@@ -1,7 +1,7 @@
 """Configuration management"""
 import os
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Union
 from dotenv import load_dotenv
 
 # Load environment variables
@@ -10,6 +10,18 @@ load_dotenv()
 
 class Config:
     """Application configuration"""
+
+    @staticmethod
+    def _get_env_as_int(key: str, default: int) -> int:
+        """Safely get an environment variable as an integer."""
+        value = os.getenv(key)
+        if value is None:
+            return default
+        try:
+            return int(value)
+        except (ValueError, TypeError):
+            print(f"Warning: Invalid value '{value}' for {key}. Using default: {default}")
+            return default
 
     # API Keys
     GROQ_API_KEY: Optional[str] = os.getenv("GROQ_API_KEY")
@@ -21,9 +33,9 @@ class Config:
     LLM_BACKEND: str = os.getenv("LLM_BACKEND", "ollama")  # ollama, openai
 
     # Processing Settings
-    CHUNK_LENGTH_SECONDS: int = int(os.getenv("CHUNK_LENGTH_SECONDS", "600"))
-    CHUNK_OVERLAP_SECONDS: int = int(os.getenv("CHUNK_OVERLAP_SECONDS", "10"))
-    AUDIO_SAMPLE_RATE: int = int(os.getenv("AUDIO_SAMPLE_RATE", "16000"))
+    CHUNK_LENGTH_SECONDS: int = _get_env_as_int("CHUNK_LENGTH_SECONDS", 600)
+    CHUNK_OVERLAP_SECONDS: int = _get_env_as_int("CHUNK_OVERLAP_SECONDS", 10)
+    AUDIO_SAMPLE_RATE: int = _get_env_as_int("AUDIO_SAMPLE_RATE", 16000)
 
     # Ollama Settings
     OLLAMA_MODEL: str = os.getenv("OLLAMA_MODEL", "gpt-oss:20b")

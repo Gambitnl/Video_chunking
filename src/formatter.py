@@ -1,10 +1,18 @@
 """Output formatters for different transcript formats"""
 import json
+import re
 from pathlib import Path
 from typing import List, Dict, Optional
 from datetime import timedelta
 from .classifier import ClassificationResult
 
+def sanitize_filename(name: str) -> str:
+    """Remove characters that are invalid for file paths."""
+    # Replace spaces and common separators with underscores
+    name = re.sub(r'[\s/:]', '_', name)
+    # Remove any character that is not a letter, number, underscore, or hyphen
+    name = re.sub(r'[^\w\-]', '', name)
+    return name
 
 class TranscriptFormatter:
     """
@@ -236,15 +244,45 @@ class TranscriptFormatter:
         json_text = self.format_json(
             segments, classifications, speaker_profiles, metadata
         )
-        (output_dir / f"{session_name}_data.json").write_text(
-            json_text, encoding='utf-8'
-        )
+        json_path = output_dir / f"{session_name}_data.json"
+        json_path.write_text(json_text, encoding='utf-8')
+
+        # SRT subtitle exports
+        try:
+            from .srt_exporter import SRTExporter
+            srt_exporter = SRTExporter()
+
+            # Full SRT
+            srt_exporter.export_from_json(
+                json_path,
+                output_dir / f"{session_name}_full.srt",
+                include_speaker=True
+            )
+
+            # IC-only SRT
+            srt_exporter.export_ic_only_srt(
+                json_path,
+                output_dir / f"{session_name}_ic_only.srt",
+                include_speaker=True
+            )
+
+            # OOC-only SRT
+            srt_exporter.export_ooc_only_srt(
+                json_path,
+                output_dir / f"{session_name}_ooc_only.srt",
+                include_speaker=True
+            )
+        except Exception as e:
+            print(f"Warning: SRT export failed: {e}")
 
         return {
             'full': output_dir / f"{session_name}_full.txt",
             'ic_only': output_dir / f"{session_name}_ic_only.txt",
             'ooc_only': output_dir / f"{session_name}_ooc_only.txt",
-            'json': output_dir / f"{session_name}_data.json"
+            'json': json_path,
+            'srt_full': output_dir / f"{session_name}_full.srt",
+            'srt_ic': output_dir / f"{session_name}_ic_only.srt",
+            'srt_ooc': output_dir / f"{session_name}_ooc_only.srt"
         }
 
 

@@ -3,6 +3,8 @@ import gradio as gr
 from pathlib import Path
 import json
 import requests
+import socket
+import sys
 from src.pipeline import DDSessionProcessor
 from src.config import Config
 from src.diarizer import SpeakerProfileManager
@@ -358,7 +360,13 @@ with gr.Blocks(title="D&D Session Processor", theme=gr.themes.Soft()) as demo:
             with gr.Column():
                 gr.Markdown("#### View Characters")
                 char_refresh_btn = gr.Button("Refresh Character List", size="sm")
-                char_list_display = gr.Markdown()
+                char_table = gr.Dataframe(
+                    headers=["Character", "Player", "Race/Class", "Level", "Sessions"],
+                    datatype=["str", "str", "str", "number", "number"],
+                    label="Characters",
+                    interactive=False,
+                    wrap=True
+                )
 
                 char_select = gr.Dropdown(
                     label="Select Character",
@@ -408,17 +416,21 @@ with gr.Blocks(title="D&D Session Processor", theme=gr.themes.Soft()) as demo:
             characters = manager.list_characters()
 
             if not characters:
-                return "No characters found.", [], []
+                return [], [], []
 
-            # Create markdown table
-            table = "| Character | Player | Race/Class | Level | Sessions |\n"
-            table += "|-----------|--------|------------|-------|----------|\n"
-
+            # Create data for Dataframe
+            table_data = []
             for char_name in characters:
                 profile = manager.get_profile(char_name)
-                table += f"| {profile.name} | {profile.player} | {profile.race} {profile.class_name} | {profile.level} | {profile.total_sessions} |\n"
+                table_data.append([
+                    profile.name,
+                    profile.player,
+                    f"{profile.race} {profile.class_name}",
+                    profile.level,
+                    profile.total_sessions
+                ])
 
-            return table, characters, characters
+            return table_data, characters, characters
 
         def view_character_profile(character_name):
             if not character_name:
@@ -459,10 +471,28 @@ with gr.Blocks(title="D&D Session Processor", theme=gr.themes.Soft()) as demo:
             except Exception as e:
                 return f"Error: {str(e)}"
 
+        # Handler for clicking on table rows
+        def on_table_select(evt: gr.SelectData):
+            """When a row is clicked, select that character"""
+            if evt.index[0] >= 0:  # evt.index is (row, col)
+                from src.character_profile import CharacterProfileManager
+                manager = CharacterProfileManager()
+                characters = manager.list_characters()
+                if evt.index[0] < len(characters):
+                    selected_char = characters[evt.index[0]]
+                    return selected_char
+            return None
+
         # Wire up the buttons
         char_refresh_btn.click(
             fn=load_character_list,
-            outputs=[char_list_display, char_select, export_char_dropdown]
+            outputs=[char_table, char_select, export_char_dropdown]
+        )
+
+        # When table row is clicked, update dropdown
+        char_table.select(
+            fn=on_table_select,
+            outputs=[char_select]
         )
 
         view_char_btn.click(
@@ -486,7 +516,7 @@ with gr.Blocks(title="D&D Session Processor", theme=gr.themes.Soft()) as demo:
         # Load character list on page load
         demo.load(
             fn=load_character_list,
-            outputs=[char_list_display, char_select, export_char_dropdown]
+            outputs=[char_table, char_select, export_char_dropdown]
         )
 
     with gr.Tab("Speaker Management"):
@@ -683,7 +713,30 @@ with gr.Blocks(title="D&D Session Processor", theme=gr.themes.Soft()) as demo:
         - **Out of memory**: Try processing shorter clips first
         """)
 
+def is_port_in_use(port):
+    """Check if a port is already in use"""
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        try:
+            s.bind(('127.0.0.1', port))
+            return False
+        except OSError:
+            return True
+
 if __name__ == "__main__":
+    # Check if port is already in use
+    if is_port_in_use(7860):
+        print("=" * 80)
+        print("⚠️  ERROR: Gradio app already running on port 7860!")
+        print("=" * 80)
+        print("\nAnother instance of the application is already running.")
+        print("Please close the existing instance before starting a new one.")
+        print("\nTo kill existing instances:")
+        print("  1. Check running processes: netstat -ano | findstr :7860")
+        print("  2. Kill the process: taskkill /PID <process_id> /F")
+        print("=" * 80)
+        sys.exit(1)
+
+    print("Starting Gradio web UI on http://127.0.0.1:7860")
     demo.launch(
         server_name="127.0.0.1",
         server_port=7860,

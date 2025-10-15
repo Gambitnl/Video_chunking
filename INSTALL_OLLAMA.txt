@@ -1,0 +1,58 @@
+==========================================
+OLLAMA + GPT-OSS INSTALLATION GUIDE
+==========================================
+
+STEP 1: Run the Installer
+--------------------------
+Location: f:\Repos\VideoChunking\ollama_setup.exe
+Action:   Double-click to install
+Size:     1.1 GB
+
+STEP 2: Pull OpenAI GPT-OSS Model
+----------------------------------
+After installation, open a NEW terminal and run:
+
+    ollama pull gpt-oss:20b
+
+Download size: ~12.8GB
+RAM required: 16GB+ (32GB recommended)
+Why: OpenAI's open-weight model, best quality
+
+STEP 3: Alternative Models (if needed)
+---------------------------------------
+If you have less than 16GB RAM:
+
+For best Dutch:
+    ollama pull qwen2.5:7b       (4.7GB, needs 8GB RAM)
+
+For fastest speed:
+    ollama pull llama3.2:3b      (2GB, needs 4GB RAM)
+
+STEP 4: Verify
+--------------
+    ollama list
+    ollama run gpt-oss:20b "Classify: Ik rol voor initiatief"
+
+STEP 5: Start Using
+-------------------
+The app will automatically use GPT-OSS!
+Open: http://127.0.0.1:7860
+
+==========================================
+CURRENT STATUS
+==========================================
+✅ Ollama installer downloaded (1.1GB)
+⏳ Waiting for you to run installer
+⏳ Then: ollama pull gpt-oss:20b (~12.8GB)
+
+==========================================
+SYSTEM REQUIREMENTS
+==========================================
+Minimum: 16GB RAM, 15GB free disk
+Recommended: 32GB RAM, SSD
+
+==========================================
+FULL DETAILS
+==========================================
+See: INSTALL_GPT_OSS.md for complete guide
+==========================================

@@ -1,0 +1,93 @@
+D&D Session Transcription & Diarization System
+================================================
+
+Project Structure:
+
+VideoChunking/
+│
+├── src/                          # Core application modules
+│   ├── __init__.py               # Package initialization
+│   ├── config.py                 # Configuration management
+│   ├── audio_processor.py        # Audio conversion (M4A → WAV)
+│   ├── chunker.py                # Hybrid chunking with VAD
+│   ├── transcriber.py            # Multi-backend transcription
+│   ├── merger.py                 # LCS overlap merging
+│   ├── diarizer.py               # Speaker diarization
+│   ├── classifier.py             # IC/OOC classification
+│   ├── formatter.py              # Output generation
+│   └── pipeline.py               # Main orchestration
+│
+├── User Interfaces
+│   ├── app.py                    # Gradio web interface
+│   └── cli.py                    # Command-line interface
+│
+├── Documentation
+│   ├── README.md                 # Project overview
+│   ├── SETUP.md                  # Installation guide
+│   ├── USAGE.md                  # Usage examples
+│   ├── QUICKREF.md               # Quick reference
+│   ├── DEVELOPMENT.md            # Development chronicle
+│   ├── PROJECT_SUMMARY.md        # Complete summary
+│   └── PROJECT_STRUCTURE.txt     # This file
+│
+├── Configuration
+│   ├── requirements.txt          # Python dependencies
+│   ├── .env.example              # Config template
+│   └── .gitignore                # Git ignore rules
+│
+├── Examples
+│   └── example.py                # Python API examples
+│
+└── Output Directories (created automatically)
+    ├── output/                   # Generated transcripts
+    ├── temp/                     # Temporary files
+    └── models/                   # Speaker profiles
+
+Files Summary:
+--------------
+Total: 23 files
+- Core modules: 10
+- Interfaces: 2
+- Documentation: 7
+- Configuration: 3
+- Examples: 1
+
+Code Statistics:
+----------------
+- Python code: ~3,500 lines
+- Documentation: ~2,500 lines
+- Total: ~6,000 lines
+
+Technology Stack:
+-----------------
+- Language: Python 3.10+
+- Audio: FFmpeg, pydub, soundfile
+- ML: PyTorch, faster-whisper, PyAnnote, Ollama
+- UI: Gradio, Click, Rich
+- Utils: numpy, scipy, tqdm
+
+Pipeline Flow:
+--------------
+M4A Recording
+    ↓
+Audio Conversion (16kHz mono WAV)
+    ↓
+Smart Chunking (10-min with 10s overlap)
+    ↓
+Transcription (Whisper - Dutch)
+    ↓
+Overlap Merging (LCS algorithm)
+    ↓
+Speaker Diarization (PyAnnote)
+    ↓
+IC/OOC Classification (Ollama)
+    ↓
+Output Generation (4 formats)
+    ↓
+Results:
+- Full transcript (TXT)
+- IC-only transcript (TXT)
+- OOC-only transcript (TXT)
+- Structured data (JSON)
+
+Status: ✅ Complete and production-ready!

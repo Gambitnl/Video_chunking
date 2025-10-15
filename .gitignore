@@ -1,0 +1,65 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual environments
+venv/
+env/
+ENV/
+.venv
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Project specific
+.env
+output/
+temp/
+models/
+*.wav
+*.m4a
+*.mp3
+*.flac
+
+# Installed applications and tools
+ffmpeg/
+ffmpeg_temp/
+ollama_setup.exe
+*.exe
+*.msi
+*.zip
+
+# Keep example files
+!.env.example
+!models/
+!models/parties.json.example
+
+# Logs
+*.log
+logs/
+
+# OS
+.DS_Store
+Thumbs.db

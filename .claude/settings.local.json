@@ -1,0 +1,26 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(dir:*)",
+      "Bash(python app.py:*)",
+      "Bash(python -m pip install:*)",
+      "Bash(mkdir:*)",
+      "Bash(curl:*)",
+      "Bash(unzip:*)",
+      "Bash(mv:*)",
+      "Bash(rm:*)",
+      "Bash(powershell.exe:*)",
+      "Bash(\"f:/Repos/VideoChunking/ffmpeg/bin/ffmpeg.exe\" -version)",
+      "Bash(python -c \"import subprocess; result = subprocess.run([''f:/Repos/VideoChunking/ffmpeg/bin/ffmpeg.exe'', ''-version''], capture_output=True, text=True); print(''✓ FFmpeg is accessible from Python'' if result.returncode == 0 else ''✗ Failed'')\")",
+      "Bash(python -c \"import subprocess; result = subprocess.run([''f:/Repos/VideoChunking/ffmpeg/bin/ffmpeg.exe'', ''-version''], capture_output=True, text=True); print(''SUCCESS: FFmpeg is accessible from Python'' if result.returncode == 0 else ''FAILED'')\")",
+      "Bash(python:*)",
+      "Bash(ollama:*)",
+      "Bash(del test_party.py)",
+      "Bash(netstat:*)",
+      "Bash(findstr:*)",
+      "Bash(taskkill:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

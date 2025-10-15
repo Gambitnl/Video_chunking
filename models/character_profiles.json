@@ -1,0 +1,372 @@
+{
+  "Sha'ek Mindfa'ek": {
+    "name": "Sha'ek Mindfa'ek",
+    "player": "Player1",
+    "race": "Adar (from Adar)",
+    "class_name": "Cleric of Ioun",
+    "level": 3,
+    "description": "The Broken - A hardened veteran cleric with glowing green eyes. Survived the Smelting ritual, connected to Quori spirit Golos.",
+    "personality": "Urgent, focused, battle-worn. Moves with purpose and rarely engages in small talk.",
+    "backstory": "Survived the dangerous Smelting ritual and is connected to a Quori spirit named Golos. Has extensive combat experience.",
+    "appearance": "Wears heavy chain mail with visible wear and damage from combat. Halflange reddish hair and short wild beard (Scottish warrior style). Carries a large bag the size of a melon and a shield with Ioun's emblem. Eyes glow faintly fluorescent green.",
+    "aliases": [
+      "Sha'ek",
+      "The Broken",
+      "The Defect"
+    ],
+    "campaign": "Gaia Adventures - Culdor Academy",
+    "first_session": "Session 1 (29-Nov-2024)",
+    "last_updated": "2025-10-15T23:26:31.313614",
+    "notable_actions": [
+      {
+        "session": "Session 1",
+        "timestamp": null,
+        "description": "Stormed into Professor Artex's meeting room, out of breath and urgent",
+        "type": "social"
+      },
+      {
+        "session": "Session 2",
+        "timestamp": null,
+        "description": "Prayed to Pelor in the temple and received visions from both Ioun and Quori spirit about sickness and corruption in the spider webs",
+        "type": "divine"
+      },
+      {
+        "session": "Session 2",
+        "timestamp": null,
+        "description": "Rushed out of the temple to warn the party about the danger",
+        "type": "social"
+      },
+      {
+        "session": "Session 3",
+        "timestamp": null,
+        "description": "Rushed into the farmhouse to help the party during spider attack",
+        "type": "combat"
+      }
+    ],
+    "inventory": [
+      {
+        "name": "Chain Mail Armor",
+        "description": "Heavy chain mail with battle damage",
+        "session_acquired": null,
+        "category": "armor"
+      },
+      {
+        "name": "Shield with Ioun's Emblem",
+        "description": "Well-maintained shield bearing the symbol of Ioun",
+        "session_acquired": null,
+        "category": "armor"
+      },
+      {
+        "name": "Large Bag",
+        "description": "Round bag the size of a melon",
+        "session_acquired": null,
+        "category": "equipment"
+      },
+      {
+        "name": "Healing Potion",
+        "description": "Given by Professor Artex",
+        "session_acquired": "Session 1",
+        "category": "consumable"
+      }
+    ],
+    "relationships": [
+      {
+        "name": "Golos",
+        "relationship_type": "bonded spirit",
+        "description": "Quori spirit connected through the Smelting ritual",
+        "first_met": "Before Session 1"
+      },
+      {
+        "name": "Ioun",
+        "relationship_type": "deity",
+        "description": "Goddess of knowledge, cleric devotee",
+        "first_met": "Before Session 1"
+      },
+      {
+        "name": "Professor Artex",
+        "relationship_type": "ally",
+        "description": "Leonin Professor who organized the investigation groups",
+        "first_met": "Session 1"
+      }
+    ],
+    "development_notes": [
+      {
+        "session": "Session 2",
+        "note": "Receives divine visions from both Ioun and Quori spirit warning of sickness and corruption",
+        "category": "divine connection"
+      }
+    ],
+    "memorable_quotes": [],
+    "sessions_appeared": [
+      "Session 1",
+      "Session 2",
+      "Session 3"
+    ],
+    "total_sessions": 3,
+    "current_goals": [
+      "Investigate the disappearances at Culdor Academy",
+      "Understand the connection between spider webs and necromantic magic",
+      "Protect the party from corruption"
+    ],
+    "completed_goals": [],
+    "dm_notes": "",
+    "player_notes": ""
+  },
+  "Pipira Shimmerlock": {
+    "name": "Pipira Shimmerlock",
+    "player": "Player2",
+    "race": "Gnome",
+    "class_name": "Wizard",
+    "level": 3,
+    "description": "An ambitious gnome student wizard. Perceptive, eager to learn, fond of experiments and tinkering with mechanical objects.",
+    "personality": "Curious, experimental, loves reading and tinkering. Always looking to learn new things.",
+    "backstory": "",
+    "appearance": "Female gnome wizard with the typical gnomish enthusiasm for magic and mechanics.",
+    "aliases": [
+      "Pip",
+      "Pipira"
+    ],
+    "campaign": "Gaia Adventures - Culdor Academy",
+    "first_session": "Session 1 (29-Nov-2024)",
+    "last_updated": "2025-10-15T23:26:31.314614",
+    "notable_actions": [
+      {
+        "session": "Session 1",
+        "timestamp": null,
+        "description": "Sat with Pas'Ta at Professor Artex's table",
+        "type": "social"
+      },
+      {
+        "session": "Session 2",
+        "timestamp": null,
+        "description": "Used Detect Magic to investigate the village, found strong magical aura from farmhouse",
+        "type": "magic"
+      },
+      {
+        "session": "Session 2",
+        "timestamp": null,
+        "description": "Failed DEX save and got trapped in spider webs at the farmhouse",
+        "type": "combat"
+      },
+      {
+        "session": "Session 3",
+        "timestamp": null,
+        "description": "Used Detect Magic again in the underground area with cocoons",
+        "type": "exploration"
+      },
+      {
+        "session": "Session 3",
+        "timestamp": null,
+        "description": "Found spell scrolls in the mage's house",
+        "type": "exploration"
+      }
+    ],
+    "inventory": [
+      {
+        "name": "Healing Potion",
+        "description": "Given by Professor Artex",
+        "session_acquired": "Session 1",
+        "category": "consumable"
+      },
+      {
+        "name": "Green Flame Blade Scroll",
+        "description": "Spell scroll found in mage's house",
+        "session_acquired": "Session 3",
+        "category": "magical"
+      },
+      {
+        "name": "Chaos Bolt Scroll",
+        "description": "Spell scroll found in mage's house",
+        "session_acquired": "Session 3",
+        "category": "magical"
+      },
+      {
+        "name": "Shield Scroll",
+        "description": "Spell scroll found in mage's house",
+        "session_acquired": "Session 3",
+        "category": "magical"
+      },
+      {
+        "name": "Invisibility Scroll",
+        "description": "Spell scroll found in mage's house",
+        "session_acquired": "Session 3",
+        "category": "magical"
+      }
+    ],
+    "relationships": [
+      {
+        "name": "Professor Artex",
+        "relationship_type": "mentor",
+        "description": "Professor at Culdor Academy",
+        "first_met": "Session 1"
+      },
+      {
+        "name": "Furnax",
+        "relationship_type": "companion",
+        "description": "Frost Hellhound companion. Black with dark blue stripes, cold aura. Intelligent and well-trained.",
+        "first_met": "Before Session 1"
+      }
+    ],
+    "development_notes": [],
+    "memorable_quotes": [],
+    "sessions_appeared": [
+      "Session 1",
+      "Session 2",
+      "Session 3"
+    ],
+    "total_sessions": 3,
+    "current_goals": [
+      "Study the necromantic properties of the spider webs",
+      "Learn new spells from found scrolls",
+      "Investigate the cult and ritual mentioned in the mage's book"
+    ],
+    "completed_goals": [],
+    "dm_notes": "",
+    "player_notes": ""
+  },
+  "Fan'nar Khe'Lek": {
+    "name": "Fan'nar Khe'Lek",
+    "player": "Player3",
+    "race": "Winter Eladrin",
+    "class_name": "Handyman/Ranger",
+    "level": 3,
+    "description": "Snow-white skin, blond hair, wears fur clothing. Works for Culdor Academy. Sharp-witted, mysterious, prefers working alone.",
+    "personality": "Sharp-witted, mysterious, prefers to work alone. Observant and perceptive.",
+    "backstory": "Works as the handyman for Culdor Academy. Has a mysterious background.",
+    "appearance": "White skin (snow-white), blond hair. Wears clothing made from different types of fur. Uses archery and flail. Carries a magical black leather Grimoire. No visible weapons at first glance.",
+    "aliases": [
+      "Pas'Ta",
+      "Fan'nar"
+    ],
+    "campaign": "Gaia Adventures - Culdor Academy",
+    "first_session": "Session 1 (29-Nov-2024)",
+    "last_updated": "2025-10-15T23:26:31.316089",
+    "notable_actions": [
+      {
+        "session": "Session 1",
+        "timestamp": null,
+        "description": "Sat with Pip at Professor Artex's table",
+        "type": "social"
+      },
+      {
+        "session": "Session 2",
+        "timestamp": null,
+        "description": "Explored the village while Sha'ek prayed in the temple",
+        "type": "exploration"
+      },
+      {
+        "session": "Session 2",
+        "timestamp": null,
+        "description": "Failed DEX save and got trapped in spider webs at the farmhouse",
+        "type": "combat"
+      }
+    ],
+    "inventory": [
+      {
+        "name": "Healing Potion",
+        "description": "Given by Professor Artex",
+        "session_acquired": "Session 1",
+        "category": "consumable"
+      },
+      {
+        "name": "Bow",
+        "description": "Used for archery",
+        "session_acquired": null,
+        "category": "weapon"
+      },
+      {
+        "name": "Flail",
+        "description": "Melee weapon",
+        "session_acquired": null,
+        "category": "weapon"
+      },
+      {
+        "name": "Black Leather Grimoire",
+        "description": "Magical grimoire",
+        "session_acquired": null,
+        "category": "magical"
+      },
+      {
+        "name": "Fur Clothing",
+        "description": "Made from various types of fur",
+        "session_acquired": null,
+        "category": "armor"
+      }
+    ],
+    "relationships": [
+      {
+        "name": "Culdor Academy",
+        "relationship_type": "employer",
+        "description": "Works as handyman for the academy",
+        "first_met": "Before Session 1"
+      },
+      {
+        "name": "Professor Artex",
+        "relationship_type": "employer",
+        "description": "Academy professor who assigned the investigation",
+        "first_met": "Session 1"
+      }
+    ],
+    "development_notes": [],
+    "memorable_quotes": [],
+    "sessions_appeared": [
+      "Session 1",
+      "Session 2",
+      "Session 3"
+    ],
+    "total_sessions": 3,
+    "current_goals": [
+      "Investigate the disappearances",
+      "Support the party despite preferring to work alone",
+      "Uncover the cult's plans"
+    ],
+    "completed_goals": [],
+    "dm_notes": "",
+    "player_notes": ""
+  },
+  "Furnax": {
+    "name": "Furnax",
+    "player": "Companion",
+    "race": "Frost Hellhound",
+    "class_name": "Beast Companion",
+    "level": 3,
+    "description": "Pip's companion - Black with dark blue stripes, cold aura. Unruly but well-trained, intelligent, rescued by the academy.",
+    "personality": "Intelligent, unruly but well-trained. Loyal to Pip.",
+    "backstory": "Rescued by Culdor Academy. Became Pip's companion.",
+    "appearance": "Black fur with dark blue stripes. Emits a cold aura.",
+    "aliases": [
+      "Furnax"
+    ],
+    "campaign": "Gaia Adventures - Culdor Academy",
+    "first_session": "Session 1 (29-Nov-2024)",
+    "last_updated": "2025-10-15T23:26:31.317617",
+    "notable_actions": [],
+    "inventory": [],
+    "relationships": [
+      {
+        "name": "Pipira Shimmerlock",
+        "relationship_type": "master",
+        "description": "Pip is Furnax's companion and master",
+        "first_met": "Before Session 1"
+      },
+      {
+        "name": "Culdor Academy",
+        "relationship_type": "rescued by",
+        "description": "Was rescued by the academy",
+        "first_met": "Before Session 1"
+      }
+    ],
+    "development_notes": [],
+    "memorable_quotes": [],
+    "sessions_appeared": [
+      "Session 1",
+      "Session 2",
+      "Session 3"
+    ],
+    "total_sessions": 3,
+    "current_goals": [],
+    "completed_goals": [],
+    "dm_notes": "",
+    "player_notes": ""
+  }
+}

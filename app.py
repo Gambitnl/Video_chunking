@@ -754,6 +754,81 @@ with gr.Blocks(title="D&D Session Processor", theme=gr.themes.Soft()) as demo:
             outputs=[logs_output]
         )
 
+    with gr.Tab("Social Insights"):
+        gr.Markdown("""
+        ### OOC Keyword Analysis (Topic Nebula)
+
+        Analyze the out-of-character banter to find the most common topics and keywords.
+        """)
+        with gr.Row():
+            with gr.Column():
+                insight_session_id = gr.Textbox(
+                    label="Session ID",
+                    placeholder="Enter the ID of a completed session"
+                )
+                insight_btn = gr.Button("☁️ Analyze Banter", variant="primary")
+            with gr.Column():
+                keyword_output = gr.Markdown(label="Top Keywords")
+        with gr.Row():
+            nebula_output = gr.Image(label="Topic Nebula")
+
+        def analyze_ooc_ui(session_id):
+            try:
+                from src.analyzer import OOCAnalyzer
+                from src.config import Config
+                from wordcloud import WordCloud
+                import matplotlib.pyplot as plt
+
+                if not session_id:
+                    return "Please enter a session ID.", None
+
+                # Sanitize session_id for file path
+                from src.formatter import sanitize_filename
+                sanitized_session_id = sanitize_filename(session_id)
+
+                ooc_file = Config.OUTPUT_DIR / f"{sanitized_session_id}_ooc_only.txt"
+                if not ooc_file.exists():
+                    return f"OOC transcript not found for session: {session_id}", None
+
+                # Analyze
+                analyzer = OOCAnalyzer(ooc_file)
+                keywords = analyzer.get_keywords(top_n=30)
+
+                if not keywords:
+                    return "No significant keywords found in the OOC transcript.", None
+
+                # Generate Word Cloud (Topic Nebula)
+                wc = WordCloud(
+                    width=800, 
+                    height=400, 
+                    background_color="#0C111F", # Deep Space Blue
+                    colormap="cool", # A good starting point, can be customized
+                    max_words=100,
+                    contour_width=3,
+                    contour_color='#89DDF5' # Cyan Dwarf
+                )
+                wc.generate_from_frequencies(dict(keywords))
+
+                # Save to a temporary file
+                temp_path = Config.TEMP_DIR / f"{sanitized_session_id}_nebula.png"
+                wc.to_file(str(temp_path))
+
+                # Format keyword list for display
+                keyword_md = "### Top Keywords\n\n| Rank | Keyword | Frequency |\n|---|---|---|"
+                for i, (word, count) in enumerate(keywords, 1):
+                    keyword_md += f"| {i} | {word} | {count} |\n"
+
+                return keyword_md, temp_path
+
+            except Exception as e:
+                return f"Error during analysis: {e}", None
+
+        insight_btn.click(
+            fn=analyze_ooc_ui,
+            inputs=[insight_session_id],
+            outputs=[keyword_output, nebula_output]
+        )
+
     with gr.Tab("Configuration"):
         gr.Markdown(f"""
         ### Current Configuration

@@ -64,6 +64,7 @@ python cli.py process your_session.m4a
 - **[FIRST_TIME_SETUP.md](FIRST_TIME_SETUP.md)** - Quick setup guide for new users
 - **[USAGE.md](USAGE.md)** - Detailed usage guide with examples
 - **[QUICKREF.md](QUICKREF.md)** - One-page command reference
+- **[FULL_TEST_ENVIRONMENT.md](FULL_TEST_ENVIRONMENT.md)** - Run the complete pipeline locally for end-to-end validation
 
 ### Features
 - **[PARTY_CONFIG.md](PARTY_CONFIG.md)** - Party configuration system guide

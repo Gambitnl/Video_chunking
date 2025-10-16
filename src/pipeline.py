@@ -10,7 +10,7 @@ from .transcriber import TranscriberFactory, ChunkTranscription
 from .merger import TranscriptionMerger
 from .diarizer import SpeakerDiarizer, SpeakerProfileManager
 from .classifier import ClassifierFactory, ClassificationResult
-from .formatter import TranscriptFormatter, StatisticsGenerator, sanitize_filename
+from .formatter import TranscriptFormatter, StatisticsGenerator
 from .party_config import PartyConfigManager
 from .snipper import AudioSnipper
 from .logger import get_logger, log_session_start, log_session_end, log_error_with_context
@@ -52,16 +52,8 @@ class DDSessionProcessor:
             num_speakers: Expected number of speakers (3 players + 1 DM = 4)
             party_id: Party configuration to use (defaults to "default")
         """
-        self.original_session_id = session_id
-        self.session_id = sanitize_filename(session_id)
+        self.session_id = session_id
         self.logger = get_logger(f"pipeline.{self.session_id}")
-
-        if self.original_session_id != self.session_id:
-            self.logger.warning(
-                "Session ID sanitized for file system usage: '%s' -> '%s'",
-                self.original_session_id,
-                self.session_id
-            )
 
         self.party_manager = PartyConfigManager()
 
@@ -95,8 +87,6 @@ class DDSessionProcessor:
         self.formatter = TranscriptFormatter()
         self.speaker_profile_manager = SpeakerProfileManager()
         self.snipper = AudioSnipper()
-
-
 
     def process(
         self,
@@ -233,7 +223,7 @@ class DDSessionProcessor:
             )
 
             metadata = {
-                'session_id': self.original_session_id, # Use original for metadata
+                'session_id': self.session_id,
                 'input_file': str(input_file),
                 'character_names': self.character_names,
                 'player_names': self.player_names,
@@ -244,7 +234,7 @@ class DDSessionProcessor:
                 speaker_segments_with_labels,
                 classifications,
                 output_dir,
-                self.session_id, # Use sanitized ID for filenames
+                self.session_id,
                 speaker_profiles,
                 metadata
             )
@@ -263,7 +253,7 @@ class DDSessionProcessor:
                         wav_file,
                         speaker_segments_with_labels,
                         segments_output_base,
-                        self.session_id, # Use sanitized ID for dir name
+                        self.session_id,
                         classifications=classifications
                     )
                     segments_dir = segment_export.get('segments_dir')
@@ -281,7 +271,7 @@ class DDSessionProcessor:
                         'manifest': None
                     }
 
-            self.logger.info("Processing complete for session '%s'", self.original_session_id)
+            self.logger.info("Processing complete for session '%s'", self.session_id)
             self.logger.info(
                 "Session duration (audio): %s | IC duration: %s (%.1f%%)",
                 stats['total_duration_formatted'],
@@ -299,7 +289,7 @@ class DDSessionProcessor:
                     self.logger.info("Character '%s' appearances: %d", char, count)
 
             duration_seconds = perf_counter() - start_time
-            log_session_end(self.original_session_id, duration_seconds, success=True)
+            log_session_end(self.session_id, duration_seconds, success=True)
 
             return {
                 'output_files': output_files,
@@ -311,8 +301,8 @@ class DDSessionProcessor:
         except Exception as processing_error:
             duration_seconds = perf_counter() - start_time
             log_error_with_context(processing_error, context="DDSessionProcessor.process")
-            log_session_end(self.original_session_id, duration_seconds, success=False)
-            self.logger.error("Processing failed for session '%s'", self.original_session_id, exc_info=True)
+            log_session_end(self.session_id, duration_seconds, success=False)
+            self.logger.error("Processing failed for session '%s'", self.session_id, exc_info=True)
             raise
     def update_speaker_mapping(
         self,
@@ -333,4 +323,4 @@ class DDSessionProcessor:
             speaker_id,
             person_name
         )
-        print(f"✓ Mapped {speaker_id} → {person_name}")
+        self.logger.info("Mapped speaker %s to person %s", speaker_id, person_name)

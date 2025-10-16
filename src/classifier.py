@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from abc import ABC, abstractmethod
 from pathlib import Path
 from .config import Config
+from .logger import get_logger
 
 
 @dataclass
@@ -38,6 +39,7 @@ class OllamaClassifier(BaseClassifier):
 
         self.model = model or Config.OLLAMA_MODEL
         self.base_url = base_url or Config.OLLAMA_BASE_URL
+        self.logger = get_logger("classifier.ollama")
 
         # Load prompt template
         prompt_path = Config.PROJECT_ROOT / "src" / "prompts" / "classifier_prompt.txt"
@@ -116,7 +118,7 @@ class OllamaClassifier(BaseClassifier):
             )
             return self._parse_response(response['response'], index)
         except Exception as e:
-            print(f"Warning: Classification failed for segment {index}: {e}")
+            self.logger.warning("Classification failed for segment %s: %s", index, e)
             return ClassificationResult(
                 segment_index=index,
                 classification="IC",

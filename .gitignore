@@ -56,6 +56,9 @@ ollama_setup.exe
 !models/
 !models/parties.json.example
 
+# Character profile backups
+models/character_backups/
+
 # Logs
 *.log
 logs/

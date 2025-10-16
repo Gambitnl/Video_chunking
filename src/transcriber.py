@@ -189,13 +189,14 @@ class GroqTranscriber(BaseTranscriber):
 
             # Parse response
             segments = []
+            response_words = getattr(response, "words", None)
             for seg in response.segments:
                 # Adjust timestamps to absolute time
                 absolute_start = chunk.start_time + seg['start']
                 absolute_end = chunk.start_time + seg['end']
 
                 words = None
-                if 'words' in response:
+                if response_words:
                     words = [
                         {
                             'word': w['word'],
@@ -203,7 +204,7 @@ class GroqTranscriber(BaseTranscriber):
                             'end': chunk.start_time + w['end'],
                             'probability': w.get('probability', 1.0)
                         }
-                        for w in response.words
+                        for w in response_words
                         if seg['start'] <= w['start'] <= seg['end']
                     ]
 

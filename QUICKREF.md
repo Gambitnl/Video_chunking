@@ -116,6 +116,7 @@ HF_TOKEN=                  # For PyAnnote
 ```bash
 --skip-diarization        # Faster, no speaker labels
 --skip-classification     # Faster, no IC/OOC separation
+--skip-snippets           # Skip per-segment audio exports
 --num-speakers N          # Expected speaker count
 --output-dir PATH         # Custom output location
 ```

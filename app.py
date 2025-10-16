@@ -19,7 +19,8 @@ def process_session(
     player_names,
     num_speakers,
     skip_diarization,
-    skip_classification
+    skip_classification,
+    skip_snippets
 ):
     """
     Process a D&D session through the Gradio interface.
@@ -56,7 +57,8 @@ def process_session(
         result = processor.process(
             input_file=Path(audio_file),
             skip_diarization=skip_diarization,
-            skip_classification=skip_classification
+            skip_classification=skip_classification,
+            skip_snippets=skip_snippets
         )
 
         # Read output files
@@ -83,12 +85,16 @@ def process_session(
         for char, count in sorted(stats.get('character_appearances', {}).items(), key=lambda x: -x[1]):
             stats_display += f"- **{char}**: {count} times\n"
 
-        status = f"✓ Processing complete! Files saved to: {output_files['full'].parent}"
+        status = f"Processing complete! Files saved to: {output_files['full'].parent}"
+        segments_info = result.get('audio_segments', {})
+        manifest_path = segments_info.get('manifest') if segments_info else None
+        if manifest_path:
+            status += f"\nSegment manifest: {manifest_path}"
 
         return status, full_text, ic_text, ooc_text, stats_display
 
     except Exception as e:
-        error_msg = f"✗ Error: {str(e)}"
+        error_msg = f"Error: {e}"
         import traceback
         traceback.print_exc()
         return error_msg, "", "", "", ""
@@ -99,9 +105,9 @@ def map_speaker_ui(session_id, speaker_id, person_name):
     try:
         manager = SpeakerProfileManager()
         manager.map_speaker(session_id, speaker_id, person_name)
-        return f"✓ Mapped {speaker_id} → {person_name}"
+        return f"Mapped {speaker_id} -> {person_name}"
     except Exception as e:
-        return f"✗ Error: {str(e)}"
+        return f"Error: {e}"
 
 
 def get_speaker_profiles(session_id):
@@ -156,9 +162,16 @@ with gr.Blocks(title="D&D Session Processor", theme=gr.themes.Soft()) as demo:
     with gr.Tab("Process Session"):
         with gr.Row():
             with gr.Column():
+                batch_mode = gr.Checkbox(
+                    label="🔄 Batch Mode - Process Multiple Sessions",
+                    value=False,
+                    info="Upload multiple audio files to process them sequentially"
+                )
+
                 audio_input = gr.File(
-                    label="Upload Audio File",
-                    file_types=["audio"]
+                    label="Upload Audio File(s)",
+                    file_types=["audio"],
+                    file_count="multiple"
                 )
 
                 session_id_input = gr.Textbox(
@@ -207,6 +220,10 @@ with gr.Blocks(title="D&D Session Processor", theme=gr.themes.Soft()) as demo:
                     skip_classification_input = gr.Checkbox(
                         label="Skip IC/OOC Classification",
                         info="Faster, but no content separation"
+                    )
+                    skip_snippets_input = gr.Checkbox(
+                        label="Skip Audio Snippets",
+                        info="Skip per-segment audio export"
                     )
 
                 process_btn = gr.Button("🚀 Process Session", variant="primary", size="lg")
@@ -257,7 +274,8 @@ with gr.Blocks(title="D&D Session Processor", theme=gr.themes.Soft()) as demo:
                 player_names_input,
                 num_speakers_input,
                 skip_diarization_input,
-                skip_classification_input
+                skip_classification_input,
+                skip_snippets_input
             ],
             outputs=[
                 status_output,
@@ -330,7 +348,7 @@ with gr.Blocks(title="D&D Session Processor", theme=gr.themes.Soft()) as demo:
 
                 return f"✓ Successfully imported party '{imported_id}'. Refresh the page to use it."
             except Exception as e:
-                return f"✗ Error: {str(e)}"
+                return f"Error: {e}"
 
         export_btn.click(
             fn=export_party_ui,
@@ -393,6 +411,40 @@ with gr.Blocks(title="D&D Session Processor", theme=gr.themes.Soft()) as demo:
                 import_char_file = gr.File(label="Upload Character JSON", file_types=[".json"])
                 import_char_btn = gr.Button("Import Character")
                 import_char_status = gr.Textbox(label="Status", interactive=False)
+
+        # Automatic extraction section
+        with gr.Row():
+            gr.Markdown("### 🤖 Automatic Profile Extraction")
+
+        with gr.Row():
+            with gr.Column():
+                gr.Markdown("""
+                **Extract character data from session transcripts automatically!**
+
+                Upload an IC-only transcript and select the party - the AI will:
+                - Extract notable actions
+                - Find items acquired
+                - Identify relationships
+                - Capture memorable quotes
+                - Note character development
+                """)
+
+            with gr.Column():
+                extract_transcript_file = gr.File(
+                    label="IC-Only Transcript (TXT)",
+                    file_types=[".txt"]
+                )
+                extract_party_dropdown = gr.Dropdown(
+                    choices=available_parties,
+                    label="Party Configuration",
+                    value="default"
+                )
+                extract_session_id = gr.Textbox(
+                    label="Session ID",
+                    placeholder="e.g., Session 1"
+                )
+                extract_btn = gr.Button("🚀 Extract Character Data", variant="primary")
+                extract_status = gr.Textbox(label="Extraction Status", lines=5, interactive=False)
 
         with gr.Row():
             char_overview_output = gr.Markdown(
@@ -471,6 +523,60 @@ with gr.Blocks(title="D&D Session Processor", theme=gr.themes.Soft()) as demo:
             except Exception as e:
                 return f"Error: {str(e)}"
 
+        def extract_profiles_ui(transcript_file, party_id, session_id):
+            """Extract character profiles from IC transcript using LLM"""
+            if transcript_file is None:
+                return "❌ Please upload an IC-only transcript file"
+
+            if not party_id or party_id == "Manual Entry":
+                return "❌ Please select a party configuration (not Manual Entry)"
+
+            if not session_id:
+                return "❌ Please enter a session ID"
+
+            try:
+                from src.profile_extractor import CharacterProfileExtractor
+                from src.character_profile import CharacterProfileManager
+                from src.party_config import PartyConfigManager
+
+                # Initialize managers
+                extractor = CharacterProfileExtractor()
+                profile_mgr = CharacterProfileManager()
+                party_mgr = PartyConfigManager()
+
+                # Extract and update profiles
+                status = f"🔄 Extracting character data from transcript...\n"
+                status += f"Party: {party_id}\n"
+                status += f"Session: {session_id}\n\n"
+
+                results = extractor.batch_extract_and_update(
+                    transcript_path=Path(transcript_file.name),
+                    party_id=party_id,
+                    session_id=session_id,
+                    profile_manager=profile_mgr,
+                    party_manager=party_mgr
+                )
+
+                status += f"✅ Extraction complete!\n\n"
+                status += f"Updated {len(results)} character profile(s):\n"
+
+                for char_name, extracted_data in results.items():
+                    status += f"\n**{char_name}**:\n"
+                    status += f"  - Actions: {len(extracted_data.notable_actions)}\n"
+                    status += f"  - Items: {len(extracted_data.items_acquired)}\n"
+                    status += f"  - Relationships: {len(extracted_data.relationships_mentioned)}\n"
+                    status += f"  - Quotes: {len(extracted_data.memorable_quotes)}\n"
+                    status += f"  - Developments: {len(extracted_data.character_development)}\n"
+
+                status += "\n✅ Click 'Refresh Character List' to see updates!"
+
+                return status
+
+            except Exception as e:
+                import traceback
+                error_details = traceback.format_exc()
+                return f"❌ Extraction failed:\n{str(e)}\n\nDetails:\n{error_details}"
+
         # Handler for clicking on table rows
         def on_table_select(evt: gr.SelectData):
             """When a row is clicked, select that character"""
@@ -511,6 +617,12 @@ with gr.Blocks(title="D&D Session Processor", theme=gr.themes.Soft()) as demo:
             fn=import_character_ui,
             inputs=[import_char_file],
             outputs=[import_char_status]
+        )
+
+        extract_btn.click(
+            fn=extract_profiles_ui,
+            inputs=[extract_transcript_file, extract_party_dropdown, extract_session_id],
+            outputs=[extract_status]
         )
 
         # Load character list on page load

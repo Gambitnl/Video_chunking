@@ -1,6 +1,7 @@
 """Audio segment export utilities"""
 import json
 import re
+import shutil
 from pathlib import Path
 from typing import Dict, List, Optional
 from pydub import AudioSegment
@@ -18,7 +19,8 @@ class AudioSnipper:
         audio_path: Path,
         segments: List[Dict],
         base_output_dir: Path,
-        session_id: str
+        session_id: str,
+        classifications: Optional[List] = None
     ) -> Dict[str, Optional[Path]]:
         """
         Export aligned audio snippets for each transcription segment.
@@ -28,6 +30,7 @@ class AudioSnipper:
             segments: Transcription segments enriched with speaker labels.
             base_output_dir: Directory where segment folders should live.
             session_id: Session identifier for folder naming.
+            classifications: Optional classification results aligned with segments.
 
         Returns:
             Dict with paths to the created directory and manifest file.
@@ -37,6 +40,14 @@ class AudioSnipper:
 
         base_output_dir = Path(base_output_dir)
         session_dir = base_output_dir / session_id
+
+        # Ensure base directory exists before manipulating session folder
+        base_output_dir.mkdir(parents=True, exist_ok=True)
+
+        # Clear previous export to avoid stale segments
+        if session_dir.exists():
+            shutil.rmtree(session_dir)
+
         session_dir.mkdir(parents=True, exist_ok=True)
 
         audio = AudioSegment.from_file(str(audio_path))
@@ -62,16 +73,28 @@ class AudioSnipper:
             clip_path = session_dir / filename
             clip.export(str(clip_path), format="wav")
 
+            classification_entry = None
+            if classifications and len(classifications) >= index:
+                cls_obj = classifications[index - 1]
+                classification_entry = {
+                    "label": getattr(cls_obj, 'classification', None) if not isinstance(cls_obj, dict) else cls_obj.get('classification'),
+                    "confidence": getattr(cls_obj, 'confidence', None) if not isinstance(cls_obj, dict) else cls_obj.get('confidence'),
+                    "reasoning": getattr(cls_obj, 'reasoning', None) if not isinstance(cls_obj, dict) else cls_obj.get('reasoning'),
+                    "character": getattr(cls_obj, 'character', None) if not isinstance(cls_obj, dict) else cls_obj.get('character')
+                }
+
             manifest.append({
                 "index": index,
                 "speaker": speaker,
                 "start_time": start_time,
                 "end_time": end_time,
-                "file": clip_path.name
+                "file": clip_path.name,
+                "text": segment.get('text', ""),
+                "classification": classification_entry
             })
 
         manifest_path = session_dir / "manifest.json"
-        manifest_path.write_text(json.dumps(manifest, indent=2), encoding="utf-8")
+        manifest_path.write_text(json.dumps(manifest, indent=2, ensure_ascii=False), encoding="utf-8")
 
         return {
             "segments_dir": session_dir,

@@ -136,7 +136,20 @@ class PartyConfigManager:
         return list(self.parties.keys())
 
     def add_party(self, party_id: str, party: Party):
-        """Add or update a party"""
+        """Add or update a party with validation"""
+        # Validate no duplicate character names
+        char_names = [c.name for c in party.characters]
+        if len(char_names) != len(set(char_names)):
+            duplicates = [name for name in char_names if char_names.count(name) > 1]
+            raise ValueError(f"Duplicate character names not allowed: {', '.join(set(duplicates))}")
+
+        # Validate no duplicate player names (except for Companion, NPC, Beast which can repeat)
+        player_names = [c.player for c in party.characters
+                       if c.player.lower() not in ["companion", "npc", "beast"]]
+        if len(player_names) != len(set(player_names)):
+            duplicates = [name for name in player_names if player_names.count(name) > 1]
+            raise ValueError(f"Duplicate player names not allowed: {', '.join(set(duplicates))}")
+
         self.parties[party_id] = party
         self.save_parties()
 

@@ -46,6 +46,8 @@ python cli.py process your_session.m4a
 3. **OOC-Only** - Banter and meta-discussion
 4. **JSON** - Complete data for further processing
 
+**Optional:** Enable audio snippet export to save per-segment WAV clips plus a `manifest.json` under `output/segments/<session_id>/`.
+
 ### Example Output
 
 ```
@@ -339,6 +341,7 @@ Classified Segments → Formatting → Multiple Output Formats
 | Dutch language support | Fewer pre-trained models | Whisper has excellent Dutch support |
 | Zero budget | Limited API calls | Prioritize local models (Whisper, Ollama) |
 | Voice similarity (same person, different characters) | Character attribution errors | Learn character patterns over time |
+| Long-session audio exports | Per-segment clipping loads full WAV (~450 MB for 4hr) | Recommend 16 GB RAM (documented) or process sessions in smaller blocks |
 
 ## Implementation References
 

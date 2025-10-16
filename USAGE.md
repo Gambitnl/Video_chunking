@@ -449,7 +449,8 @@ Session Statistics:
 2. Get a GPU for local processing
 3. Skip diarization (`--skip-diarization`)
 4. Skip classification (`--skip-classification`)
-5. Process shorter sessions
+5. Skip audio snippets (`--skip-snippets`)
+6. Process shorter sessions
 
 ## Example: Full Workflow
 

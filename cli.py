@@ -58,6 +58,11 @@ def cli():
     help='Skip IC/OOC classification (faster but no content separation)'
 )
 @click.option(
+    '--skip-snippets',
+    is_flag=True,
+    help='Skip exporting per-segment audio snippets'
+)
+@click.option(
     '--num-speakers',
     '-n',
     type=int,
@@ -73,6 +78,7 @@ def process(
     output_dir,
     skip_diarization,
     skip_classification,
+    skip_snippets,
     num_speakers
 ):
     """Process a D&D session recording"""
@@ -110,7 +116,8 @@ def process(
             input_file=input_path,
             output_dir=output_dir,
             skip_diarization=skip_diarization,
-            skip_classification=skip_classification
+            skip_classification=skip_classification,
+            skip_snippets=skip_snippets
         )
 
         # Show success message

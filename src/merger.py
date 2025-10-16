@@ -69,83 +69,11 @@ class TranscriptionMerger:
         chunk_a_end: float,
         chunk_b_start: float
     ) -> List[TranscriptionSegment]:
-        """
-        Merge two consecutive chunk transcriptions.
-
-        Strategy:
-        1. Find overlap region (where chunks overlap in time)
-        2. Extract text from overlap regions
-        3. Find longest common subsequence
-        4. Split at the match point
-        5. Take non-overlapping part from A + all of B after overlap
-
-        Args:
-            segments_a: Segments from first chunk
-            segments_b: Segments from second chunk
-            chunk_a_end: End time of first chunk
-            chunk_b_start: Start time of second chunk (with overlap)
-
-        Returns:
-            Merged segments
-        """
-        # Calculate overlap region
-        overlap_start = chunk_b_start
-        overlap_end = chunk_a_end
-
-        # Find segments in overlap region
-        overlap_segments_a = [
-            seg for seg in segments_a
-            if seg.end_time > overlap_start
-        ]
-        overlap_segments_b = [
-            seg for seg in segments_b
-            if seg.start_time < overlap_end
-        ]
-
-        if not overlap_segments_a or not overlap_segments_b:
-            # No overlap detected, just concatenate
-            return segments_a + segments_b
-
-        # Get text from overlap regions
-        text_a = " ".join(seg.text for seg in overlap_segments_a)
-        text_b = " ".join(seg.text for seg in overlap_segments_b)
-
-        # Find longest common substring using SequenceMatcher
-        matcher = SequenceMatcher(None, text_a, text_b)
-        match = matcher.find_longest_match(0, len(text_a), 0, len(text_b))
-
-        if match.size == 0 or (match.size / max(len(text_a), len(text_b))) < self.similarity_threshold:
-            # No significant overlap found, use time-based splitting
-            return self._merge_by_time(segments_a, segments_b, overlap_end)
-
-        # We found a good match - use the match point to split
-        # Take all of A up to the match, then all of B from the match onward
-        overlap_text = text_a[match.a:match.a + match.size]
-
-        # Find where this match ends in segments_a
-        char_count = 0
-        split_index_a = len(segments_a)
-
-        for i, seg in enumerate(segments_a):
-            char_count += len(seg.text) + 1  # +1 for space
-            if char_count >= match.a + match.size:
-                split_index_a = i + 1
-                break
-
-        # Find where this match starts in segments_b
-        char_count = 0
-        split_index_b = 0
-
-        for i, seg in enumerate(segments_b):
-            if char_count >= match.b:
-                split_index_b = i
-                break
-            char_count += len(seg.text) + 1
-
-        # Merge: A up to split point + B from split point onward
-        result = segments_a[:split_index_a] + segments_b[split_index_b:]
-
-        return result
+        """Merge two consecutive chunk transcriptions using a simple time-based split."""
+        # The overlap ends at the end time of the first chunk.
+        # This provides a simple, robust, if not perfectly precise, split point.
+        split_time = chunk_a_end
+        return self._merge_by_time(segments_a, segments_b, split_time)
 
     def _merge_by_time(
         self,

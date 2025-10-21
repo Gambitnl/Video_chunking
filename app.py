@@ -228,10 +228,12 @@ def start_oauth_flow():
             f"Authorization URL generated!\n\n"
             f"Please follow these steps:\n"
             f"1. Click this link to authorize: {auth_url}\n\n"
-            f"2. Sign in with your Google account\n"
-            f"3. Grant access to the application\n"
-            f"4. Copy the authorization code shown\n"
-            f"5. Paste it in the box below and click 'Complete Authorization'"
+            f"2. Sign in with your Google account and grant access\n"
+            f"3. After granting access, your browser will try to redirect to localhost\n"
+            f"   (the page won't load - this is normal!)\n"
+            f"4. Copy the ENTIRE URL from your browser's address bar\n"
+            f"   (it will look like: http://localhost:8080/?code=...&scope=...)\n"
+            f"5. Paste the full URL below and click 'Complete Authorization'"
         )
         return instructions, flow
     except FileNotFoundError as e:
@@ -1669,9 +1671,9 @@ Narrative:"""
         with gr.Row():
             with gr.Column():
                 auth_code_input = gr.Textbox(
-                    label="Authorization Code",
-                    placeholder="Paste the code from Google here...",
-                    type="password"
+                    label="Redirect URL or Authorization Code",
+                    placeholder="Paste the full redirect URL from your browser (http://localhost:8080/?code=...)",
+                    lines=2
                 )
                 complete_auth_btn = gr.Button("Complete Authorization", variant="primary")
             with gr.Column():

@@ -7,10 +7,13 @@ and provides functions to retrieve document content.
 
 import json
 import os
+import re
 from pathlib import Path
 from typing import Optional, Tuple
+from urllib.parse import urlparse, parse_qs
 
 from google.auth.transport.requests import Request
+from google.auth.exceptions import RefreshError
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import Flow
 from googleapiclient.discovery import build
@@ -44,12 +47,12 @@ def get_auth_url() -> Tuple[str, Flow]:
             "and save as 'gdrive_credentials.json' in the project root."
         )
 
-    # Use out-of-band flow for Gradio compatibility
-    # User will copy-paste the authorization code
+    # Use localhost redirect (OOB is deprecated as of 2022)
+    # User will copy-paste the full redirect URL from browser
     flow = Flow.from_client_secrets_file(
         str(CLIENT_CONFIG_FILE),
         scopes=SCOPES,
-        redirect_uri='urn:ietf:wg:oauth:2.0:oob'
+        redirect_uri='http://localhost:8080/'
     )
 
     auth_url, _ = flow.authorization_url(
@@ -61,18 +64,30 @@ def get_auth_url() -> Tuple[str, Flow]:
     return auth_url, flow
 
 
-def exchange_code_for_token(flow: Flow, auth_code: str) -> bool:
+def exchange_code_for_token(flow: Flow, auth_response: str) -> bool:
     """
     Exchange authorization code for access token and save credentials.
 
     Args:
         flow: The Flow object from get_auth_url()
-        auth_code: The authorization code from Google (user pasted)
+        auth_response: Either the full redirect URL or just the authorization code
 
     Returns:
         True if successful, False otherwise
     """
     try:
+        # If the response looks like a URL, extract the code from it
+        if auth_response.startswith('http'):
+            parsed = urlparse(auth_response)
+            code_params = parse_qs(parsed.query).get('code')
+            if not code_params:
+                print("Error: No 'code' parameter found in redirect URL")
+                return False
+            auth_code = code_params[0]
+        else:
+            # Assume it's just the code itself
+            auth_code = auth_response
+
         flow.fetch_token(code=auth_code)
         creds = flow.credentials
 
@@ -103,8 +118,10 @@ def get_credentials() -> Optional[Credentials]:
         try:
             creds.refresh(Request())
             TOKEN_FILE.write_text(creds.to_json())
-        except Exception as e:
+        except RefreshError as e:
             print(f"Error refreshing token: {e}")
+            # Token may be invalid, delete it to force re-auth
+            TOKEN_FILE.unlink(missing_ok=True)
             return None
 
     return creds if creds and creds.valid else None
@@ -170,7 +187,7 @@ def get_document_content(doc_url: str) -> str:
 
 def _extract_doc_id(doc_url: str) -> str:
     """
-    Extract document ID from Google Docs URL.
+    Extract document ID from Google Docs URL using regex.
 
     Args:
         doc_url: Full URL or just the document ID
@@ -178,16 +195,10 @@ def _extract_doc_id(doc_url: str) -> str:
     Returns:
         Document ID string
     """
-    # If it's already just an ID (no slashes), return as-is
-    if '/' not in doc_url:
-        return doc_url
+    # Regex to find the document ID in various URL formats
+    match = re.search(r'/d/([a-zA-Z0-9-_]+)', doc_url)
+    if match:
+        return match.group(1)
 
-    # Extract from URL format: https://docs.google.com/document/d/{ID}/edit
-    doc_id_start = doc_url.find("/d/") + 3
-    doc_id_end = doc_url.find("/edit")
-    if doc_id_end == -1:
-        doc_id_end = doc_url.find("/view")
-    if doc_id_end == -1:
-        doc_id_end = len(doc_url)
-
-    return doc_url[doc_id_start:doc_id_end]
+    # If no match, assume the input is the ID itself
+    return doc_url

@@ -54,7 +54,7 @@ This guide will help you set up OAuth authentication to access your private Goog
 8. Click **"Download JSON"**
 9. Save the downloaded file as `gdrive_credentials.json` in your project root directory
 
-**Important:** The file MUST be named exactly `gdrive_credentials.json` and placed in the root of your Video_chunking directory.
+**Important:** The file MUST be named exactly `gdrive_credentials.json` and placed in the project root directory.
 
 ### 5. Install Required Dependencies
 
@@ -86,13 +86,19 @@ pip install -r requirements.txt
 
 7. Grant the requested permissions (read-only access to Drive)
 
-8. Google will show you an authorization code
+8. After granting access, your browser will try to redirect to `http://localhost:8080/`
+   - The page will NOT load (you'll see "This site can't be reached" or similar)
+   - **This is completely normal and expected!**
 
-9. Copy the code and paste it into the **"Authorization Code"** field in Gradio
+9. Look at your browser's address bar - copy the **ENTIRE URL**
+   - It will look like: `http://localhost:8080/?code=4/0A...&scope=https://...`
+   - Make sure to copy the whole thing, including the `code` and `scope` parameters
 
-10. Click **"Complete Authorization"**
+10. Paste the full URL into the **"Redirect URL or Authorization Code"** field in Gradio
 
-11. You should see a success message!
+11. Click **"Complete Authorization"**
+
+12. You should see a success message!
 
 ## Usage
 

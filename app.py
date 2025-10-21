@@ -21,6 +21,13 @@ from src.ui.constants import StatusIndicators
 from src.campaign_dashboard import CampaignDashboard
 from src.story_generator import StoryGenerator
 from src.ui.campaign_dashboard import create_dashboard_tab
+from src.google_drive_auth import (
+    get_auth_url,
+    exchange_code_for_token,
+    get_document_content,
+    is_authenticated,
+    revoke_credentials
+)
 
 
 PROJECT_ROOT = Path(__file__).resolve().parent
@@ -188,25 +195,72 @@ def get_speaker_profiles(session_id):
         return f"Error: {str(e)}"
 
 def view_google_doc(doc_url):
-    """Downloads a public Google Doc as plain text."""
+    """Downloads a Google Doc using authenticated Drive API."""
     global NOTEBOOK_CONTEXT
     try:
-        doc_id_start = doc_url.find("/d/") + 3
-        doc_id_end = doc_url.find("/edit")
-        if doc_id_end == -1:
-            doc_id_end = doc_url.find("/view")
-        if doc_id_end == -1:
-            doc_id_end = len(doc_url)
+        if not is_authenticated():
+            return "Error: Not authenticated with Google Drive. Please authorize first using the 'Authorize Google Drive' section below."
 
-        doc_id = doc_url[doc_id_start:doc_id_end]
-        export_url = f"https://docs.google.com/document/d/{doc_id}/export?format=txt"
+        content = get_document_content(doc_url)
 
-        response = requests.get(export_url)
-        response.raise_for_status()
-        NOTEBOOK_CONTEXT = response.text or ""
-        return NOTEBOOK_CONTEXT
+        # Only update NOTEBOOK_CONTEXT if we got valid content
+        if not content.startswith("Error"):
+            NOTEBOOK_CONTEXT = content
+
+        return content
     except Exception as e:
         return f"Error downloading document: {e}"
+
+
+def check_auth_status():
+    """Check if Google Drive is authenticated."""
+    if is_authenticated():
+        return "Status: Authenticated with Google Drive"
+    else:
+        return "Status: Not authenticated. Click 'Start Authorization' below."
+
+
+def start_oauth_flow():
+    """Initiate OAuth flow and return authorization URL and flow object."""
+    try:
+        auth_url, flow = get_auth_url()
+        instructions = (
+            f"Authorization URL generated!\n\n"
+            f"Please follow these steps:\n"
+            f"1. Click this link to authorize: {auth_url}\n\n"
+            f"2. Sign in with your Google account and grant access\n"
+            f"3. After granting access, your browser will try to redirect to localhost\n"
+            f"   (the page won't load - this is normal!)\n"
+            f"4. Copy the ENTIRE URL from your browser's address bar\n"
+            f"   (it will look like: http://localhost:8080/?code=...&scope=...)\n"
+            f"5. Paste the full URL below and click 'Complete Authorization'"
+        )
+        return instructions, flow
+    except FileNotFoundError as e:
+        return str(e), None
+    except Exception as e:
+        return f"Error starting OAuth flow: {e}", None
+
+
+def complete_oauth_flow(flow_object, auth_code: str):
+    """Complete OAuth flow with authorization code. Returns (result_message, cleared_flow_state)."""
+    if not flow_object:
+        return "Error: OAuth flow not started. Please click 'Start Authorization' first.", None
+
+    if not auth_code or not auth_code.strip():
+        return "Error: Please paste the authorization code.", flow_object
+
+    success = exchange_code_for_token(flow_object, auth_code.strip())
+    if success:
+        return "Success! You are now authenticated with Google Drive. You can now load documents.", None
+    else:
+        return "Error: Failed to complete authorization. Please try again.", flow_object
+
+
+def revoke_oauth():
+    """Revoke Google Drive authentication."""
+    revoke_credentials()
+    return "Authentication revoked. You will need to authorize again to access documents."
 
 
 
@@ -1575,25 +1629,70 @@ Narrative:"""
 
     with gr.Tab("Document Viewer"):
         gr.Markdown("""
-        ### View a Public Google Doc
+        ### Google Drive Document Viewer
 
-        Paste the URL of a publicly shared Google Doc to view its text content here.
+        View your private Google Docs without needing to make them publicly shared.
 
-        - Make sure the document is set to \"Anyone with the link\" → View in Google Docs before pasting the URL.
-        - Copy the full link (it should contain `/d/<document_id>/`) so the exporter can fetch the plain-text version.
-        - The viewer converts the doc to text only; formatting, images, or comments are not included.
+        **First-time setup required:**
+        1. Authorize this application with your Google account (see below)
+        2. Once authorized, you can load any Google Doc you have access to
 
-        **Usage tips**
-        - Use this tab to quickly pull campaign briefings or prep notes directly into the tool for reference while processing sessions.
-        - Combine with the Diagnostics tab to keep instructions and test notes side-by-side in the same UI session.
+        **Features:**
+        - Access your private documents securely via OAuth
+        - No need to make documents publicly shared
+        - Import campaign notes for use in profile extraction and knowledge base
         """)
+
+        # State to store OAuth flow object per session
+        oauth_flow_state = gr.State(None)
+
+        # OAuth Authorization Section
+        gr.Markdown("### Authorization")
+        with gr.Row():
+            with gr.Column():
+                auth_status = gr.Textbox(
+                    label="Authorization Status",
+                    value="Checking...",
+                    interactive=False
+                )
+                check_auth_btn = gr.Button("Check Status", size="sm")
+
+        with gr.Row():
+            with gr.Column():
+                start_auth_btn = gr.Button("Start Authorization", variant="primary")
+                revoke_auth_btn = gr.Button("Revoke Authorization", variant="secondary", size="sm")
+            with gr.Column():
+                auth_output = gr.Textbox(
+                    label="Authorization Instructions",
+                    lines=8,
+                    interactive=False
+                )
+
+        with gr.Row():
+            with gr.Column():
+                auth_code_input = gr.Textbox(
+                    label="Redirect URL or Authorization Code",
+                    placeholder="Paste the full redirect URL from your browser (http://localhost:8080/?code=...)",
+                    lines=2
+                )
+                complete_auth_btn = gr.Button("Complete Authorization", variant="primary")
+            with gr.Column():
+                auth_result = gr.Textbox(
+                    label="Result",
+                    lines=3,
+                    interactive=False
+                )
+
+        # Document Loading Section
+        gr.Markdown("### Load Document")
         with gr.Row():
             with gr.Column():
                 gdoc_url_input = gr.Textbox(
-                    label="Google Doc URL",
-                    placeholder="https://docs.google.com/document/d/..."
+                    label="Google Doc URL or ID",
+                    placeholder="https://docs.google.com/document/d/... or just the document ID"
                 )
                 gdoc_view_btn = gr.Button("Load Document", variant="primary")
+
         with gr.Row():
             gdoc_output = gr.Textbox(
                 label="Document Content",
@@ -1603,6 +1702,29 @@ Narrative:"""
                 interactive=False
             )
 
+        # Wire up the OAuth controls
+        check_auth_btn.click(
+            fn=check_auth_status,
+            outputs=[auth_status]
+        )
+
+        start_auth_btn.click(
+            fn=start_oauth_flow,
+            outputs=[auth_output, oauth_flow_state]
+        )
+
+        complete_auth_btn.click(
+            fn=complete_oauth_flow,
+            inputs=[oauth_flow_state, auth_code_input],
+            outputs=[auth_result, oauth_flow_state]
+        )
+
+        revoke_auth_btn.click(
+            fn=revoke_oauth,
+            outputs=[auth_result]
+        )
+
+        # Wire up document loading
         gdoc_view_btn.click(
             fn=view_google_doc,
             inputs=[gdoc_url_input],

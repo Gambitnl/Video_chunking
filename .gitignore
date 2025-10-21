@@ -43,6 +43,11 @@ models/
 *.mp3
 *.flac
 
+# Google Drive OAuth credentials (sensitive)
+gdrive_credentials.json
+gdrive_token.json
+outputs/gdrive_token.json
+
 # Installed applications and tools
 ffmpeg/
 ffmpeg_temp/

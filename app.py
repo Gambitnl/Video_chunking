@@ -32,7 +32,6 @@ from src.google_drive_auth import (
 
 PROJECT_ROOT = Path(__file__).resolve().parent
 NOTEBOOK_CONTEXT = ""
-OAUTH_FLOW = None  # Global to store OAuth flow between steps
 
 campaign_manager = CampaignManager()
 campaign_names = campaign_manager.get_campaign_names()
@@ -222,12 +221,10 @@ def check_auth_status():
 
 
 def start_oauth_flow():
-    """Initiate OAuth flow and return authorization URL."""
-    global OAUTH_FLOW
+    """Initiate OAuth flow and return authorization URL and flow object."""
     try:
         auth_url, flow = get_auth_url()
-        OAUTH_FLOW = flow
-        return (
+        instructions = (
             f"Authorization URL generated!\n\n"
             f"Please follow these steps:\n"
             f"1. Click this link to authorize: {auth_url}\n\n"
@@ -236,27 +233,26 @@ def start_oauth_flow():
             f"4. Copy the authorization code shown\n"
             f"5. Paste it in the box below and click 'Complete Authorization'"
         )
+        return instructions, flow
     except FileNotFoundError as e:
-        return str(e)
+        return str(e), None
     except Exception as e:
-        return f"Error starting OAuth flow: {e}"
+        return f"Error starting OAuth flow: {e}", None
 
 
-def complete_oauth_flow(auth_code: str):
-    """Complete OAuth flow with authorization code."""
-    global OAUTH_FLOW
-    if not OAUTH_FLOW:
-        return "Error: OAuth flow not started. Please click 'Start Authorization' first."
+def complete_oauth_flow(flow_object, auth_code: str):
+    """Complete OAuth flow with authorization code. Returns (result_message, cleared_flow_state)."""
+    if not flow_object:
+        return "Error: OAuth flow not started. Please click 'Start Authorization' first.", None
 
     if not auth_code or not auth_code.strip():
-        return "Error: Please paste the authorization code."
+        return "Error: Please paste the authorization code.", flow_object
 
-    success = exchange_code_for_token(OAUTH_FLOW, auth_code.strip())
+    success = exchange_code_for_token(flow_object, auth_code.strip())
     if success:
-        OAUTH_FLOW = None
-        return "Success! You are now authenticated with Google Drive. You can now load documents."
+        return "Success! You are now authenticated with Google Drive. You can now load documents.", None
     else:
-        return "Error: Failed to complete authorization. Please try again."
+        return "Error: Failed to complete authorization. Please try again.", flow_object
 
 
 def revoke_oauth():
@@ -1645,6 +1641,9 @@ Narrative:"""
         - Import campaign notes for use in profile extraction and knowledge base
         """)
 
+        # State to store OAuth flow object per session
+        oauth_flow_state = gr.State(None)
+
         # OAuth Authorization Section
         gr.Markdown("### Authorization")
         with gr.Row():
@@ -1709,13 +1708,13 @@ Narrative:"""
 
         start_auth_btn.click(
             fn=start_oauth_flow,
-            outputs=[auth_output]
+            outputs=[auth_output, oauth_flow_state]
         )
 
         complete_auth_btn.click(
             fn=complete_oauth_flow,
-            inputs=[auth_code_input],
-            outputs=[auth_result]
+            inputs=[oauth_flow_state, auth_code_input],
+            outputs=[auth_result, oauth_flow_state]
         )
 
         revoke_auth_btn.click(

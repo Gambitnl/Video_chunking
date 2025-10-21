@@ -1,9 +1,11 @@
 """Quick test script for the 5-minute sample file"""
+import pytest
 from pathlib import Path
 from src.pipeline import DDSessionProcessor
 from src.config import Config
 from src.logger import get_log_file_path
 
+@pytest.mark.slow
 def test_sample_file():
     """Test the 5-minute sample file with minimal processing"""
 
@@ -62,6 +64,7 @@ def test_sample_file():
         import traceback
         traceback.print_exc()
 
+@pytest.mark.slow
 def test_sample_quick():
     """Quick test with all optional processing skipped"""
 

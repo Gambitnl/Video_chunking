@@ -216,6 +216,27 @@ def test_config():
 
     return all(results)
 
+def test_whisper():
+    """Test Whisper model loading (optional, slow)"""
+    print_header("7. TESTING WHISPER MODEL")
+    results = []
+
+    try:
+        from src.config import Config
+        from src.transcriber import Transcriber
+
+        print(f"  Loading model: {Config.WHISPER_MODEL} (backend: {Config.WHISPER_BACKEND})")
+        print("  This may take a moment on first run...")
+
+        transcriber = Transcriber()
+        results.append(print_test("Model Load", True, f"{Config.WHISPER_MODEL} ({Config.WHISPER_BACKEND})"))
+        results.append(print_test("Transcriber Init", True, "Ready"))
+
+    except Exception as e:
+        results.append(print_test("Whisper Model", False, str(e)[:50]))
+
+    return len(results) > 0 and all(results)
+
 def main():
     """Run all tests"""
     print("\n" + "="*70)
@@ -233,6 +254,12 @@ def main():
     all_results["Directories"] = test_directories()
     all_results["Configuration"] = test_config()
 
+    # Whisper test is slow, make it optional
+    if "--skip-whisper" not in sys.argv:
+        all_results["Whisper Model"] = test_whisper()
+    else:
+        print("\n[Skipping Whisper model test - use without --skip-whisper to test]")
+
     # Summary
     print_header("SUMMARY")
     for name, passed in all_results.items():
@@ -249,7 +276,8 @@ def main():
         print("\n  Next steps:")
         print("    python test_sample.py quick   - Quick transcription test (fastest)")
         print("    python test_sample.py         - Full processing test (all features)")
-        print("    Open http://127.0.0.1:7860    - Use web interface")
+        print("    python app.py                 - Start web interface (http://127.0.0.1:7860)")
+        print("\n  Note: Use --skip-whisper flag to skip Whisper model loading test")
 
         if not all_results.get("Ollama", False):
             print("\n  Note: Ollama not running - IC/OOC classification will be skipped")

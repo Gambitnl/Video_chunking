@@ -17,6 +17,10 @@ from src.diarizer import SpeakerProfileManager
 from src.logger import get_log_file_path
 from src.party_config import PartyConfigManager, CampaignManager
 from src.knowledge_base import CampaignKnowledgeBase
+from src.ui.constants import StatusIndicators
+from src.campaign_dashboard import CampaignDashboard
+from src.story_generator import StoryGenerator
+from src.ui.campaign_dashboard import create_dashboard_tab
 from src.google_drive_auth import (
     get_auth_url,
     exchange_code_for_token,
@@ -309,253 +313,52 @@ def _list_available_sessions() -> List[str]:
 
 
 
-def _build_perspective_prompt(
-    perspective_name: str,
-    segments: List[Dict],
-    character_names: List[str],
-    narrator: bool,
-    notebook_context: str,
-) -> str:
-    """Construct prompt for the narrative generator."""
-    key_segments: List[str] = []
-    for seg in segments:
-        if seg.get("classification", "IC") != "IC":
-            continue
-        text = (seg.get("text") or "").strip()
-        if not text:
-            continue
-        char = seg.get("character") or seg.get("speaker_name") or ""
-        timestamp = seg.get("start_time")
-        try:
-            stamp = float(timestamp)
-        except (TypeError, ValueError):
-            stamp = 0.0
-        key_segments.append(f"[{stamp:06.2f}] {char}: {text}")
-        if len(key_segments) >= 60:
-            break
-
-    joined_segments = "\n".join(key_segments) if key_segments else "(Transcript excerpts unavailable)"
-    persona = (
-        f"You are the character {perspective_name}, one of the main protagonists."
-        if not narrator
-        else "You are an omniscient narrator summarizing events for the campaign log."
-    )
-    supporting = (
-        "Campaign notebook excerpt:\n" + (notebook_context[:3000] if notebook_context else "(no additional notes provided)")
-    )
-    instructions = (
-        "Write a concise per-session narrative (~3-5 paragraphs) capturing actions, emotions, and consequences. Maintain continuity with prior sessions and keep vocabulary consistent with the character's voice."
-        if not narrator
-        else "Provide a balanced overview highlighting each character's contributions while keeping the tone neutral and descriptive."
-    )
-
-    return (
-        f"{persona}\n"
-        "You are summarizing a D&D session using the following transcript extracts.\n"
-        "Focus on the referenced events; infer light transitions when necessary but avoid inventing new story beats.\n"
-        "Keep the output under 500 words.\n\n"
-        "Transcript snippets:\n"
-        f"{joined_segments}\n\n"
-        f"{supporting}\n\n"
-        "Instructions:\n"
-        f"{instructions}\n"
-    )
-
-
-def _generate_perspective_story(prompt: str, temperature: float = 0.5) -> str:
-    """Use the configured LLM to generate narrative text."""
-    try:
-        import ollama
-        import logging
-        import sys
-        import io
-
-        # Suppress ollama and other library logging temporarily
-        ollama_logger = logging.getLogger("ollama")
-        original_level = ollama_logger.level
-        ollama_logger.setLevel(logging.CRITICAL)
-
-        # Capture and suppress stdout/stderr temporarily
-        old_stdout = sys.stdout
-        old_stderr = sys.stderr
-        sys.stdout = io.StringIO()
-        sys.stderr = io.StringIO()
-
-        try:
-            client = ollama.Client(host=Config.OLLAMA_BASE_URL)
-            response = client.generate(
-                model=Config.OLLAMA_MODEL,
-                prompt=prompt,
-                options={"temperature": temperature, "num_predict": 800},
-            )
-            narrative = response.get("response", "(LLM returned no text)")
-        finally:
-            # Restore stdout/stderr and logging
-            sys.stdout = old_stdout
-            sys.stderr = old_stderr
-            ollama_logger.setLevel(original_level)
-
-        return narrative
-    except Exception as exc:
-        # Make sure stdout/stderr are restored even on exception
-        sys.stdout = old_stdout if 'old_stdout' in locals() else sys.stdout
-        sys.stderr = old_stderr if 'old_stderr' in locals() else sys.stderr
-        return f"Error generating narrative: {exc}"
-
-
-def _save_narrative(json_path: Path, session_id: str, perspective: str, story: str) -> Path:
-    """Persist generated narrative to the session's narrative folder."""
-    safe_perspective = perspective.lower().replace(" ", "_")
-    narratives_dir = (json_path.parent / "narratives")
-    narratives_dir.mkdir(parents=True, exist_ok=True)
-    file_path = narratives_dir / f"{session_id}_{safe_perspective}.md"
-    file_path.write_text(story, encoding="utf-8")
-    return file_path
-
-
-
-
-
-
-def _notebook_status() -> str:
-    if NOTEBOOK_CONTEXT:
-        sample = NOTEBOOK_CONTEXT[:200].replace('\r', ' ').replace('\n', ' ')
-        return f"Notebook context loaded ({len(NOTEBOOK_CONTEXT)} chars). Sample: {sample}..."
-    return "No notebook context loaded yet. Use the Document Viewer tab to import campaign notes."
-
-
-def _story_prepare_session(session_id: str):
-    try:
-        json_path, data = _load_session_json(session_id)
-    except Exception as exc:
-        raise RuntimeError(f"Error loading session '{session_id}': {exc}")
-    metadata = data.get("metadata", {})
-    segments = data.get("segments", [])
-    character_names = metadata.get("character_names") or []
-    state = {
-        "json_path": str(json_path),
-        "metadata": metadata,
-        "segments": segments,
-        "session_id": metadata.get("session_id") or session_id,
-    }
-    info = (
-        f"Loaded {metadata.get('session_id', session_id)} -> {len(segments)} segment(s). "
-        f"Character perspectives available: {', '.join(character_names) if character_names else 'None discovered.'}"
-    )
-    return character_names, info, state
-
-
-def story_refresh_sessions_ui():
-    sessions = _list_available_sessions()
-    if not sessions:
-        return (
-            gr.update(choices=[], value=None, interactive=True),
-            gr.update(choices=[], value=None, interactive=False),
-            "No session data found under 'output/'. Run the pipeline first.",
-            {},
-            _notebook_status(),
-        )
-    session_id = sessions[0]
-    try:
-        character_names, info, state = _story_prepare_session(session_id)
-    except Exception as exc:
-        return (
-            gr.update(choices=sessions, value=session_id, interactive=True),
-            gr.update(choices=[], value=None, interactive=False),
-            f"Error loading session: {exc}",
-            {},
-            _notebook_status(),
-        )
-    char_update = gr.update(
-        choices=character_names,
-        value=character_names[0] if character_names else None,
-        interactive=bool(character_names),
-    )
-    drop_update = gr.update(choices=sessions, value=session_id, interactive=True)
-    return drop_update, char_update, info, state, _notebook_status()
-
-
-def story_select_session_ui(session_id: str):
-    if not session_id:
-        return (
-            gr.update(choices=[], value=None, interactive=False),
-            "Select a session to begin generating narratives.",
-            {},
-            _notebook_status(),
-        )
-    try:
-        character_names, info, state = _story_prepare_session(session_id)
-    except Exception as exc:
-        return (
-            gr.update(choices=[], value=None, interactive=False),
-            f"Error loading session: {exc}",
-            {},
-            _notebook_status(),
-        )
-    char_update = gr.update(
-        choices=character_names,
-        value=character_names[0] if character_names else None,
-        interactive=bool(character_names),
-    )
-    return char_update, info, state, _notebook_status()
-
-
 def story_generate_narrator(session_state: Dict, temperature: float) -> tuple[str, str]:
     if not session_state or not session_state.get("segments"):
-        return "## ⚠️ No Session Loaded\n\nPlease select a session from the dropdown above, then try again.", ""
-
-    segments = session_state.get("segments") or []
-    metadata = session_state.get("metadata") or {}
-    session_id = metadata.get("session_id", "session")
-
-    # Show generation message
-    generating_msg = f"## 🎲 Generating Narrator Summary for {session_id}...\n\n"
-    generating_msg += f"- **Temperature**: {temperature:.2f}\n"
-    generating_msg += f"- **Segments**: {len(segments)}\n"
-    generating_msg += f"- **Characters**: {', '.join(metadata.get('character_names', ['None']))}\n\n"
-    generating_msg += "*This may take 10-30 seconds depending on your LLM speed...*"
-
-    prompt = _build_perspective_prompt(
-        perspective_name="Narrator",
-        segments=segments,
-        character_names=metadata.get("character_names") or [],
-        narrator=True,
-        notebook_context=NOTEBOOK_CONTEXT,
-    )
-    story = _generate_perspective_story(prompt, temperature=temperature)
+        return f"## {StatusIndicators.WARNING} No Session Loaded\n\nPlease select a session from the dropdown above, then try again.", ""
 
     try:
+        story_generator = StoryGenerator()
+        segments = session_state.get("segments", [])
+        metadata = session_state.get("metadata", {})
+        story = story_generator.generate_narrator_summary(
+            segments=segments,
+            character_names=metadata.get("character_names", []),
+            notebook_context=NOTEBOOK_CONTEXT,
+            temperature=temperature
+        )
         json_path = Path(session_state.get("json_path"))
-        file_path = _save_narrative(json_path, session_id, "narrator", story)
+        file_path = _save_narrative(json_path, session_state.get("session_id", "session"), "narrator", story)
         saved_path = str(file_path)
-    except Exception as exc:
-        saved_path = f"Could not save narrative: {exc}"
-
-    return story, saved_path
+        return story, saved_path
+    except Exception as e:
+        return f"Error generating narrative: {e}", ""
 
 
 def story_generate_character(session_state: Dict, character_name: str, temperature: float) -> tuple[str, str]:
     if not session_state or not session_state.get("segments"):
-        return "## ⚠️ No Session Loaded\n\nPlease select a session from the dropdown at the top of this tab, then try again.", ""
+        return f"## {StatusIndicators.WARNING} No Session Loaded\n\nPlease select a session from the dropdown at the top of this tab, then try again.", ""
     if not character_name:
         return "Select a character perspective to generate.", ""
-    segments = session_state.get("segments") or []
-    metadata = session_state.get("metadata") or {}
-    prompt = _build_perspective_prompt(
-        perspective_name=character_name,
-        segments=segments,
-        character_names=metadata.get("character_names") or [],
-        narrator=False,
-        notebook_context=NOTEBOOK_CONTEXT,
-    )
-    story = _generate_perspective_story(prompt, temperature=temperature)
+    
     try:
+        story_generator = StoryGenerator()
+        segments = session_state.get("segments", [])
+        metadata = session_state.get("metadata", {})
+        story = story_generator.generate_character_pov(
+            segments=segments,
+            character_name=character_name,
+            character_names=metadata.get("character_names", []),
+            notebook_context=NOTEBOOK_CONTEXT,
+            temperature=temperature
+        )
         json_path = Path(session_state.get("json_path"))
         file_path = _save_narrative(json_path, session_state.get("session_id", "session"), character_name, story)
         saved_path = str(file_path)
-    except Exception as exc:
-        saved_path = f"Could not save narrative: {exc}"
-    return story, saved_path
+        return story, saved_path
+    except Exception as e:
+        return f"Error generating narrative: {e}", ""
+
 
 
 def _collect_pytest_nodes():
@@ -652,303 +455,44 @@ with gr.Blocks(title="D&D Session Processor", theme=gr.themes.Soft()) as demo:
     **Supported formats**: M4A, MP3, WAV, and more
     """)
 
-    with gr.Tab("Campaign Dashboard"):
-        gr.Markdown("""
-        ### Campaign Overview & Health Check
+    dashboard_campaign, dashboard_refresh, dashboard_output = create_dashboard_tab()
 
-        Select a campaign to see its complete configuration status and what data you have.
-        """)
+    def generate_dashboard_ui(campaign_name: str) -> str:
+        """UI wrapper for the dashboard generator."""
+        try:
+            dashboard = CampaignDashboard()
+            return dashboard.generate(campaign_name)
+        except Exception as e:
+            return f"## Error Generating Dashboard\n\nAn unexpected error occurred: {e}"
 
-        campaign_names = _refresh_campaign_names()
-        dashboard_campaign = gr.Dropdown(
-            choices=["Manual Setup"] + list(campaign_names.values()),
-            value=list(campaign_names.values())[0] if campaign_names else "Manual Setup",
-            label="📋 Select Campaign to Review",
-            info="Choose which campaign to inspect"
-        )
+    def refresh_campaign_choices():
+        from src.party_config import CampaignManager
+        manager = CampaignManager()
+        names = manager.get_campaign_names()
+        choices = ["Manual Setup"] + list(names.values())
+        value = choices[0] if not names else list(names.values())[0]
+        return gr.update(choices=choices, value=value)
 
-        dashboard_refresh = gr.Button("🔄 Refresh Dashboard", variant="secondary", size="sm")
+    dashboard_refresh.click(
+        fn=generate_dashboard_ui,
+        inputs=[dashboard_campaign],
+        outputs=[dashboard_output]
+    )
 
-        dashboard_output = gr.Markdown()
+    dashboard_campaign.change(
+        fn=generate_dashboard_ui,
+        inputs=[dashboard_campaign],
+        outputs=[dashboard_output]
+    )
 
-        def generate_campaign_dashboard(campaign_name):
-            """Generate comprehensive campaign status dashboard"""
-            names = _refresh_campaign_names()
-            if campaign_name == "Manual Setup":
-                return "## Manual Setup Mode\n\nNo campaign profile selected. Choose a campaign from the dropdown to see its dashboard."
-
-            # Find campaign ID
-            campaign_id = None
-            for cid, cname in names.items():
-                if cname == campaign_name:
-                    campaign_id = cid
-                    break
-
-            if not campaign_id:
-                return f"## Error\n\nCampaign '{campaign_name}' not found."
-
-            campaign = campaign_manager.get_campaign(campaign_id)
-            if not campaign:
-                return f"## Error\n\nCampaign '{campaign_id}' configuration not found."
-
-            # Start building dashboard
-            output = f"# 🎲 Campaign Dashboard: {campaign.name}\n\n"
-
-            if campaign.description:
-                output += f"*{campaign.description}*\n\n"
-
-            output += "---\n\n"
-
-            # Component status tracking
-            all_good = []
-            needs_attention = []
-
-            # 1. PARTY CONFIGURATION
-            output += "## 1️⃣ Party Configuration\n\n"
-            party_mgr = PartyConfigManager()
-            party = party_mgr.get_party(campaign.party_id)
-
-            if party:
-                output += f"✅ **Status**: Configured\n\n"
-                output += f"- **Party Name**: {party.party_name}\n"
-                output += f"- **DM**: {party.dm_name}\n"
-                output += f"- **Characters**: {len(party.characters)}\n"
-
-                output += f"\n**Character Roster:**\n"
-                for char in party.characters:
-                    aliases = f" (aka {', '.join(char.aliases)})" if char.aliases else ""
-                    output += f"- **{char.name}**{aliases}: {char.race} {char.class_name} (played by {char.player})\n"
-
-                if party.campaign:
-                    output += f"\n**Campaign Setting**: {party.campaign}\n"
-
-                all_good.append("Party Configuration")
-            else:
-                output += f"❌ **Status**: Not configured\n\n"
-                output += f"**Action**: Go to **Party Management** tab → Create party '{campaign.party_id}'\n"
-                needs_attention.append("Party Configuration")
-
-            output += "\n---\n\n"
-
-            # 2. PROCESSING SETTINGS
-            output += "## 2️⃣ Processing Settings\n\n"
-            output += "✅ **Status**: Configured\n\n"
-            output += f"- **Number of Speakers**: {campaign.settings.num_speakers}\n"
-            output += f"- **Skip Diarization**: {'Yes' if campaign.settings.skip_diarization else 'No'}\n"
-            output += f"- **Skip IC/OOC Classification**: {'Yes' if campaign.settings.skip_classification else 'No'}\n"
-            output += f"- **Skip Audio Snippets**: {'Yes' if campaign.settings.skip_snippets else 'No'}\n"
-            output += f"- **Skip Knowledge Extraction**: {'Yes' if campaign.settings.skip_knowledge else 'No'}\n"
-            output += f"- **Session ID Prefix**: `{campaign.settings.session_id_prefix}`\n"
-            all_good.append("Processing Settings")
-
-            output += "\n---\n\n"
-
-            # 3. KNOWLEDGE BASE
-            output += "## 3️⃣ Campaign Knowledge Base\n\n"
-            try:
-                from src.knowledge_base import CampaignKnowledgeBase
-                kb = CampaignKnowledgeBase(campaign_id=campaign_id)
-
-                sessions = kb.knowledge.get('sessions_processed', [])
-                quests = kb.knowledge.get('quests', [])
-                npcs = kb.knowledge.get('npcs', [])
-                plot_hooks = kb.knowledge.get('plot_hooks', [])
-                locations = kb.knowledge.get('locations', [])
-                items = kb.knowledge.get('items', [])
-
-                total_entities = len(quests) + len(npcs) + len(plot_hooks) + len(locations) + len(items)
-
-                if sessions or total_entities > 0:
-                    output += f"✅ **Status**: Active ({total_entities} entities)\n\n"
-                    output += f"- **Sessions Processed**: {len(sessions)} ({', '.join(sessions) if sessions else 'None'})\n"
-                    output += f"- **Quests**: {len(quests)} ({len([q for q in quests if q.status == 'active'])} active)\n"
-                    output += f"- **NPCs**: {len(npcs)}\n"
-                    output += f"- **Plot Hooks**: {len(plot_hooks)} ({len([p for p in plot_hooks if not p.resolved])} unresolved)\n"
-                    output += f"- **Locations**: {len(locations)}\n"
-                    output += f"- **Items**: {len(items)}\n"
-                    output += f"\n**Storage**: `{kb.knowledge_file}`\n"
-                    all_good.append("Knowledge Base")
-                else:
-                    output += f"⚠️ **Status**: Empty (no sessions processed yet)\n\n"
-                    output += f"**Action**: Process a session or import session notes to populate knowledge base\n"
-                    output += f"\n**Storage**: `{kb.knowledge_file}` (ready)\n"
-                    needs_attention.append("Knowledge Base (empty)")
-
-            except Exception as e:
-                output += f"❌ **Status**: Error loading knowledge base\n\n"
-                output += f"```\n{str(e)}\n```\n"
-                needs_attention.append("Knowledge Base (error)")
-
-            output += "\n---\n\n"
-
-            # 4. CHARACTER PROFILES
-            output += "## 4️⃣ Character Profiles\n\n"
-            try:
-                profiles_file = Config.MODELS_DIR / "character_profiles.json"
-                if profiles_file.exists():
-                    with open(profiles_file, 'r', encoding='utf-8') as f:
-                        profiles = json.load(f)
-
-                    if party:
-                        party_char_names = [c.name for c in party.characters]
-                        profiles_for_party = [name for name in party_char_names if name in profiles]
-                        missing_profiles = [name for name in party_char_names if name not in profiles]
-
-                        if len(profiles_for_party) == len(party_char_names):
-                            output += f"✅ **Status**: Complete ({len(profiles_for_party)}/{len(party_char_names)} characters)\n\n"
-                            for name in profiles_for_party:
-                                profile = profiles[name]
-                                output += f"- **{name}**: {profile.get('personality', 'No personality set')[:50]}...\n"
-                            all_good.append("Character Profiles")
-                        elif len(profiles_for_party) > 0:
-                            output += f"⚠️ **Status**: Partial ({len(profiles_for_party)}/{len(party_char_names)} characters)\n\n"
-                            output += f"**Configured**: {', '.join(profiles_for_party)}\n\n"
-                            output += f"**Missing**: {', '.join(missing_profiles)}\n\n"
-                            output += f"**Action**: Go to **Character Profiles** tab → Create profiles for missing characters\n"
-                            needs_attention.append(f"Character Profiles ({len(missing_profiles)} missing)")
-                        else:
-                            output += f"❌ **Status**: None configured\n\n"
-                            output += f"**Action**: Go to **Character Profiles** tab → Create profiles for party characters\n"
-                            needs_attention.append("Character Profiles (none)")
-                    else:
-                        output += f"⚠️ **Status**: Cannot check (party not configured)\n"
-                        needs_attention.append("Character Profiles (no party)")
-                else:
-                    output += f"❌ **Status**: No profiles file found\n\n"
-                    output += f"**Action**: Go to **Character Profiles** tab → Create first character profile\n"
-                    needs_attention.append("Character Profiles (no file)")
-
-            except Exception as e:
-                output += f"❌ **Status**: Error loading profiles\n\n"
-                output += f"```\n{str(e)}\n```\n"
-                needs_attention.append("Character Profiles (error)")
-
-            output += "\n---\n\n"
-
-            # 5. PROCESSED SESSIONS
-            output += "## 5️⃣ Processed Audio Sessions\n\n"
-            try:
-                # Look for session output directories
-                session_dirs = []
-                if Config.OUTPUT_DIR.exists():
-                    session_dirs = [d for d in Config.OUTPUT_DIR.iterdir() if d.is_dir()]
-
-                if session_dirs:
-                    output += f"✅ **Status**: {len(session_dirs)} session(s) found\n\n"
-
-                    # List recent sessions
-                    recent = sorted(session_dirs, key=lambda d: d.stat().st_mtime, reverse=True)[:5]
-                    output += "**Recent Sessions:**\n"
-                    for d in recent:
-                        # Check for data.json
-                        data_files = list(d.glob("*_data.json"))
-                        if data_files:
-                            output += f"- `{d.name}` ✓\n"
-                        else:
-                            output += f"- `{d.name}` (incomplete)\n"
-
-                    all_good.append("Processed Sessions")
-                else:
-                    output += f"⚠️ **Status**: No sessions processed yet\n\n"
-                    output += f"**Action**: Go to **Process Session** tab → Process your first recording\n"
-                    needs_attention.append("Processed Sessions (none)")
-
-            except Exception as e:
-                output += f"❌ **Status**: Error checking sessions\n\n"
-                output += f"```\n{str(e)}\n```\n"
-                needs_attention.append("Processed Sessions (error)")
-
-            output += "\n---\n\n"
-
-            # 6. SESSION NARRATIVES
-            output += "## 6️⃣ Session Narratives\n\n"
-            try:
-                narrative_count = 0
-
-                # Check processed session narratives
-                if Config.OUTPUT_DIR.exists():
-                    for session_dir in Config.OUTPUT_DIR.iterdir():
-                        if session_dir.is_dir():
-                            narratives_dir = session_dir / "narratives"
-                            if narratives_dir.exists():
-                                narrative_count += len(list(narratives_dir.glob("*.md")))
-
-                # Check imported narratives
-                imported_dir = Config.OUTPUT_DIR / "imported_narratives"
-                if imported_dir.exists():
-                    narrative_count += len(list(imported_dir.glob("*.md")))
-
-                if narrative_count > 0:
-                    output += f"✅ **Status**: {narrative_count} narrative(s) generated\n\n"
-                    output += f"**Action**: View in **Story Notebooks** tab\n"
-                    all_good.append("Session Narratives")
-                else:
-                    output += f"⚠️ **Status**: No narratives yet\n\n"
-                    output += f"**Action**: Use **Story Notebooks** tab to generate narratives from processed sessions\n"
-                    needs_attention.append("Session Narratives (none)")
-
-            except Exception as e:
-                output += f"❌ **Status**: Error checking narratives\n\n"
-                needs_attention.append("Session Narratives (error)")
-
-            output += "\n---\n\n"
-
-            # SUMMARY
-            output += "## 📊 Campaign Health Summary\n\n"
-
-            total_components = len(all_good) + len(needs_attention)
-            health_percent = int((len(all_good) / total_components) * 100) if total_components > 0 else 0
-
-            if health_percent == 100:
-                health_emoji = "🟢"
-                health_status = "Excellent"
-            elif health_percent >= 75:
-                health_emoji = "🟡"
-                health_status = "Good"
-            elif health_percent >= 50:
-                health_emoji = "🟠"
-                health_status = "Fair"
-            else:
-                health_emoji = "🔴"
-                health_status = "Needs Setup"
-
-            output += f"### {health_emoji} Health: {health_status} ({health_percent}%)\n\n"
-
-            if all_good:
-                output += f"**✅ Configured ({len(all_good)}):**\n"
-                for item in all_good:
-                    output += f"- {item}\n"
-                output += "\n"
-
-            if needs_attention:
-                output += f"**⚠️ Needs Attention ({len(needs_attention)}):**\n"
-                for item in needs_attention:
-                    output += f"- {item}\n"
-                output += "\n"
-
-            output += "---\n\n"
-            output += "💡 **Tip**: A complete campaign setup includes party configuration, character profiles, and at least one processed session or imported notes.\n"
-
-            return output
-
-        dashboard_refresh.click(
-            fn=generate_campaign_dashboard,
-            inputs=[dashboard_campaign],
-            outputs=[dashboard_output]
-        )
-
-        dashboard_campaign.change(
-            fn=generate_campaign_dashboard,
-            inputs=[dashboard_campaign],
-            outputs=[dashboard_output]
-        )
-
-        # Load dashboard on app start
-        demo.load(
-            fn=generate_campaign_dashboard,
-            inputs=[dashboard_campaign],
-            outputs=[dashboard_output]
-        )
+    demo.load(
+        fn=refresh_campaign_choices,
+        outputs=[dashboard_campaign]
+    ).then(
+        fn=generate_dashboard_ui,
+        inputs=[dashboard_campaign],
+        outputs=[dashboard_output]
+    )
 
     with gr.Tab("Process Session"):
         with gr.Row():

@@ -30,6 +30,9 @@ OPTION_LABELS = {
     "skip_snippets": "Skip audio snippets",
     "party_context_available": "Party context available",
 }
+
+FLOWCHART_PATH = PROJECT_ROOT / "docs" / "pipeline_flowchart.svg"
+
 _state: Dict[str, object] = {
     "process": None,
     "log_handle": None,
@@ -183,6 +186,67 @@ def _status_lines(header: str = "Status") -> str:
         for stage in stages:
             lines.append(format_stage(stage))
         return "\n".join(lines)
+
+def _flowchart_initial_state():
+    if FLOWCHART_PATH.exists():
+        return ("Latest flowchart available.", str(FLOWCHART_PATH), True)
+    return ("No flowchart generated yet. Click the button below to create one.", None, False)
+
+
+def _generate_pipeline_flowchart():
+    try:
+        from graphviz import Digraph
+        from graphviz.backend import execute
+    except ImportError:
+        return (
+            "Graphviz Python package missing. Run `pip install graphviz` and ensure Graphviz binaries are installed.",
+            None,
+        )
+
+    potential_dot = PROJECT_ROOT / "tools" / "graphviz" / "Graphviz-14.0.2-win64" / "bin" / "dot.exe"
+    if potential_dot.exists():
+        os.environ["PATH"] = f"{potential_dot.parent}{os.pathsep}" + os.environ.get("PATH", "")
+        os.environ.setdefault("GRAPHVIZ_DOT", str(potential_dot))
+
+    dot = Digraph("Pipeline", graph_attr={"rankdir": "LR", "splines": "spline"})
+    dot.attr("node", shape="rectangle", style="rounded,filled", color="#0C111F", fillcolor="#161B26", fontname="Helvetica", fontcolor="#E2E8F0")
+    dot.attr("edge", color="#718096", arrowsize="0.8")
+
+    stages = [
+        ("Audio Input", "Audio Conversion"),
+        ("Audio Conversion", "Chunking"),
+        ("Chunking", "Transcription"),
+        ("Transcription", "Merge Overlaps"),
+        ("Merge Overlaps", "Speaker Diarization"),
+        ("Speaker Diarization", "IC/OOC Classification"),
+        ("IC/OOC Classification", "Output Generation"),
+        ("Output Generation", "Audio Snippet Export"),
+    ]
+
+    for src, dst in stages:
+        dot.edge(src, dst)
+
+    FLOWCHART_PATH.parent.mkdir(parents=True, exist_ok=True)
+    output_base = FLOWCHART_PATH.with_suffix("")
+
+    try:
+        rendered = Path(dot.render(str(output_base), format="svg", cleanup=True))
+    except execute.ExecutableNotFound:
+        return (
+            "Graphviz executable `dot` not found. Install Graphviz (https://graphviz.org/download/) and ensure it is on PATH.",
+            None,
+        )
+    except Exception as exc:
+        return (f"Error generating flowchart: {exc}", None)
+
+    return (f"Flowchart updated: {rendered}", str(rendered))
+
+
+def _generate_flowchart_ui():
+    status, image_path = _generate_pipeline_flowchart()
+    return status, gr.update(value=image_path, visible=bool(image_path))
+
+
 def start_app():
     _refresh_process_handle()
     proc: subprocess.Popen | None = _state.get("process")  # type: ignore[assignment]
@@ -246,7 +310,19 @@ def main():
             "The processor must remain running for the main interface at "
             f"http://127.0.0.1:{APP_PORT}."
         )
-    demo.queue()
+        with gr.Tabs():
+            with gr.Tab("Pipeline Flowchart"):
+                initial_status, initial_image, initial_visible = _flowchart_initial_state()
+                flowchart_status = gr.Markdown(initial_status)
+                flowchart_image = gr.Image(value=initial_image, visible=initial_visible, label="Pipeline Flowchart")
+                generate_btn = gr.Button("Generate Flowchart", variant="primary")
+
+                generate_btn.click(
+                    fn=_generate_flowchart_ui,
+                    outputs=[flowchart_status, flowchart_image]
+                )
+
+            demo.queue()
     demo.launch(server_name="127.0.0.1", server_port=MANAGER_PORT, show_error=True)
 @atexit.register
 def _cleanup_on_exit():

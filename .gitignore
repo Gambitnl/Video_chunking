@@ -72,3 +72,5 @@ logs/
 .DS_Store
 Thumbs.db
 nul
+tools/graphviz/
+docs/pipeline_flowchart.svg

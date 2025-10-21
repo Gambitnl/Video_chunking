@@ -1,0 +1,26 @@
+from graphviz import Digraph
+
+STAGES = [
+    ("Audio Input", "Audio Conversion"),
+    ("Audio Conversion", "Chunking"),
+    ("Chunking", "Transcription"),
+    ("Transcription", "Merge Overlaps"),
+    ("Merge Overlaps", "Speaker Diarization"),
+    ("Speaker Diarization", "IC/OOC Classification"),
+    ("IC/OOC Classification", "Output Generation"),
+    ("Output Generation", "Audio Snippet Export"),
+]
+
+def make_flowchart(output_path: str = "docs/pipeline_flowchart") -> str:
+    dot = Digraph("Pipeline", graph_attr={"rankdir": "LR", "splines": "spline"})
+    dot.attr("node", shape="rectangle", style="rounded,filled", color="#0C111F", fillcolor="#161B26", fontname="Helvetica", fontcolor="#E2E8F0")
+    dot.attr("edge", color="#718096", arrowsize="0.8")
+
+    for src, dst in STAGES:
+        dot.edge(src, dst)
+
+    return dot.render(output_path, format="svg", cleanup=True)
+
+if __name__ == "__main__":
+    output_file = make_flowchart()
+    print(f"Generated {output_file}")

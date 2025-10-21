@@ -437,11 +437,15 @@ If you are updating from a previous version, the system will automatically perfo
 ## Future Enhancements
 
 Planned features:
-- **Character comparison** tools
-- **Timeline visualization** of character actions
-- **Relationship graphs** showing party dynamics
-- **Character arc analysis** using AI
-- **Integration with session notebooks** for personalized stories
+- **Character comparison** tools (side-by-side stat comparisons, participation tracking)
+- **Timeline visualization** of character actions (interactive session timeline with major events)
+- **Relationship graphs** showing party dynamics (network visualization of character interactions)
+- **Character arc analysis** using AI (automated personality change detection, growth tracking)
+
+### Recently Implemented
+- ✅ **Integration with session notebooks** for personalized stories - NOW AVAILABLE via Story Notebooks tab (character POV narratives)
+- ✅ **Automatic profile extraction** from session transcripts - Character Profiles tab auto-extraction feature
+- ✅ **Individual file storage** per character for better scalability and safety
 
 ## Example: Complete Character Profile
 

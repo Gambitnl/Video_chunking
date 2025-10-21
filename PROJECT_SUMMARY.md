@@ -94,11 +94,12 @@ Output:
 ✅ Character attribution
 
 ### Output & Formatting
-✅ 4 output formats
+✅ 7 output formats (TXT full/IC/OOC, JSON, SRT full/IC/OOC)
 ✅ Timestamp formatting (HH:MM:SS)
 ✅ Speaker label resolution
 ✅ Statistics generation
 ✅ UTF-8 encoding for Dutch characters
+✅ SRT subtitle export for video overlay
 
 ### User Interface
 ✅ Gradio web UI with file upload
@@ -107,6 +108,16 @@ Output:
 ✅ Dependency checker
 ✅ Configuration viewer
 ✅ Speaker management tools
+✅ App Manager (real-time status monitoring)
+
+### Campaign Management
+✅ Party configuration system
+✅ Character profiles (individual file storage)
+✅ Campaign Dashboard (health monitoring)
+✅ Knowledge Base (auto-extraction of quests/NPCs/locations/items)
+✅ Import Session Notes (backfill from written notes)
+✅ Story Notebooks (narrator + character POV generation)
+✅ Google Docs integration (style guide support)
 
 ### Developer Experience
 ✅ Modular architecture
@@ -115,6 +126,7 @@ Output:
 ✅ Error handling
 ✅ Graceful degradation
 ✅ Python API
+✅ Pytest test suite (unit + integration)
 
 ## Technology Choices
 
@@ -216,22 +228,22 @@ Output:
 ## Potential Future Enhancements
 
 ### High Priority
-- SRT subtitle export (for video overlay)
-- Batch processing UI
-- Session comparison/analysis
-- Improved character detection
+- Batch processing UI (process multiple sessions at once)
+- Session comparison/analysis (compare sessions for trends)
+- Improved character detection (better IC/OOC classification)
+- Timeline visualization (interactive session timeline)
 
 ### Medium Priority
-- Automatic session summarization
-- Search across multiple sessions
-- Combat encounter extraction
-- Timeline visualization
+- Automatic session summarization (AI-generated session summaries)
+- Search across multiple sessions (full-text search across campaigns)
+- Combat encounter extraction (identify and extract combat scenes)
+- Voice fingerprinting (improve speaker identification accuracy)
 
 ### Low Priority
-- Voice cloning for TTS
-- Emotion/tone detection
-- NPC tracking
-- Campaign wiki generation
+- Voice cloning for TTS (generate character voices)
+- Emotion/tone detection (analyze speaker sentiment)
+- Advanced NPC tracking (relationship graphs, faction tracking)
+- Campaign analytics (trends, pacing analysis, character participation metrics)
 
 ## Lessons Learned
 

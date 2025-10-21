@@ -299,4 +299,228 @@ Users can now:
 -   **Character Role-Playing**: The LLM Chat tab includes a dropdown to select a character, which injects a system prompt for the LLM to adopt that character's persona.
 -   **Log Tab Scrolling**: Implemented CSS to make the log viewer in the "Logs" tab scrollable for better usability with long logs.
 -   **Improved Explanations**: Added more detailed descriptions to the "Party Management" and "Character Profiles" tabs to better explain their purpose and functionality to users.
--   **Bug Fixes**: Resolved several startup errors related to the new "Campaign Library" tab and a deprecated format in the Chatbot component.
+- **Bug Fixes**: Resolved several startup errors related to the new "Campaign Library" tab and a deprecated format in the Chatbot component.
+
+### Test Suite Refactoring
+
+**Problem**: The test suite was taking nearly 6 minutes to run, even when only collecting tests. This was caused by the `FasterWhisperTranscriber` loading its large AI model as soon as the module was imported, rather than when it was first used.
+
+**Solution**:
+1.  **Lazy Loading**: Refactored `src/transcriber.py` to defer the expensive model loading until the `transcribe_chunk` method is actually called. This reduced test collection time from ~6 minutes to under 10 seconds.
+2.  **Redundancy Removal**: Deleted the `test_everything.py` file, which was largely a duplicate of `test_system.py` and contained code that interfered with the test runner's lifecycle.
+
+## Session: 2025-10-21 - Campaign Management Features & Documentation
+
+### Campaign Dashboard Implementation
+
+**Goal**: Provide users with a comprehensive overview of their campaign health and configuration status.
+
+**Implemented**:
+- **Campaign Dashboard Tab** - Centralized view of campaign components
+  - Party configuration status (characters, players, DM info)
+  - Settings validation (Whisper, LLM, processing options)
+  - Knowledge base tracking (quests, NPCs, locations, items, plot hooks)
+  - Character profiles overview
+  - Session history with narratives
+  - Health indicators: 🟢 Green (90-100%), 🟡 Yellow (70-89%), 🟠 Orange (50-69%), 🔴 Red (0-49%)
+  - Status badges: ✅ Configured | ⚠️ Needs attention | ❌ Missing
+
+**Why This Approach**:
+- Single-page health check for campaign readiness
+- Identifies missing configurations before processing
+- Tracks knowledge base growth across sessions
+- Helps users understand system completeness at a glance
+
+### Campaign Knowledge Base
+
+**Goal**: Automatically extract and track campaign elements across sessions for DM reference.
+
+**Implemented**:
+- **Automatic Knowledge Extraction** from session transcripts
+  - 🎯 Quests: Active and completed objectives
+  - 👥 NPCs: Named characters with descriptions and relationships
+  - 🔓 Plot Hooks: Potential story threads
+  - 📍 Locations: Places visited or mentioned
+  - ⚡ Items: Significant objects and artifacts
+
+- **Campaign Library Tab**
+  - Load and view knowledge base by campaign
+  - Auto-extraction toggle during session processing
+  - JSON storage per campaign: `models/knowledge/{campaign}_knowledge.json`
+  - Integration with Campaign Dashboard for health tracking
+
+**Design Decisions**:
+- Extract from IC-only transcript for narrative focus
+- LLM-based extraction using structured prompts
+- Cumulative knowledge across all sessions
+- Campaign-specific storage for multi-campaign support
+
+### Story Notebooks Feature
+
+**Goal**: Transform session transcripts into narrative story formats from different perspectives.
+
+**Implemented**:
+- **Document Viewer Integration**
+  - Fetch Google Docs (with view-only share link)
+  - Use as context/style guide for narrative generation
+  - Refresh notebook context on demand
+
+- **Story Notebooks Tab**
+  - Narrator perspective: Third-person omniscient storytelling
+  - Character POV: First-person from each character's viewpoint
+  - Output saved to `output/{session}/narratives/`
+  - Session selection from existing processed sessions
+  - Integration with Google Docs for style consistency
+
+**Why This Approach**:
+- Leverages Google Docs for collaborative style guides
+- Multiple perspective options for different use cases
+- LLM-powered narrative transformation
+- Organized storage alongside session outputs
+
+### Import Session Notes
+
+**Goal**: Backfill campaign data for early sessions that weren't recorded.
+
+**Implemented**:
+- **Import Session Notes Tab**
+  - Import from text notes (paste or upload)
+  - Campaign association for knowledge base integration
+  - Optional knowledge extraction from notes
+  - Optional narrative generation from notes
+  - Output to `output/imported_narratives/`
+
+**Use Cases**:
+- Add early campaign sessions that predate recording
+- Integrate written session notes into knowledge base
+- Generate narratives from DM notes
+- Complete campaign history for Dashboard tracking
+
+### SRT Subtitle Export
+
+**Goal**: Support video overlay workflows for session recordings.
+
+**Implemented**:
+- **Subtitle Generation** in `src/formatter.py`
+  - Full transcript subtitles (IC + OOC with labels)
+  - IC-only subtitles (game narrative)
+  - OOC-only subtitles (player banter)
+  - Proper SRT formatting with sequential numbering
+  - Timestamp precision for video sync
+
+**Output Files**:
+- `{session}_full.srt`
+- `{session}_ic_only.srt`
+- `{session}_ooc_only.srt`
+
+**Why This Feature**:
+- Enables video recording workflows
+- Supports content creation (YouTube, streaming)
+- Provides accessibility for hearing-impaired viewers
+- Complements audio-only transcription
+
+### App Manager Tool
+
+**Goal**: Provide real-time monitoring of processing pipelines with stage-level detail.
+
+**Implemented**:
+- **App Manager** (`app_manager.py`)
+  - Auto-refreshing status display
+  - Per-stage progress tracking with clocks
+  - Options recap showing enabled/disabled features
+  - "Next" hints when stages complete
+  - Idle detection when no active processing
+
+**Why This Approach**:
+- Long-running pipelines need visibility
+- Stage timing helps identify bottlenecks
+- Status JSON integration with pipeline
+- Better UX for 4+ hour session processing
+
+### Additional Test Suite Improvements
+
+**Goal**: Further improve test organization and execution speed.
+
+**Implemented**:
+- **pytest Marker System**
+  - Added `@pytest.mark.slow` to integration tests in `test_sample.py`
+  - Fast unit tests remain unmarked for quick execution
+  - System verification test (`test_system.py`) with optional Whisper loading
+
+- **Merged System Verification**
+  - Consolidated `test_everything.py` into `test_system.py`
+  - Added unique Whisper model test from test_everything.py
+  - Implemented `--skip-whisper` flag for faster environment checks
+  - Single source of truth for system verification
+
+**Test Execution Strategies**:
+```bash
+pytest tests/                    # Fast unit tests only (< 1 second)
+pytest -m slow                   # Integration tests only (5+ minutes)
+pytest -m "not slow"             # All except integration tests
+python test_system.py            # Full system check (includes Whisper)
+python test_system.py --skip-whisper  # Quick check (skips model loading)
+```
+
+### Bug Fixes (2025-10-21)
+
+**Unicode Compatibility**:
+- `app.py:2548` - Warning emoji (⚠️) → "WARNING:" for Windows cp1252 compatibility
+- `src/chunker.py:82` - Approximation symbol (≈) → tilde (~) in log messages
+
+**Rationale**: Windows console uses cp1252 encoding by default, which doesn't support these Unicode characters, causing crashes during logging.
+
+### Documentation Updates
+
+**Major Updates**:
+- `README.md` - Added Campaign Dashboard, Knowledge Base, Story Notebooks
+- `USAGE.md` - Added detailed guides for new features
+- `QUICKREF.md` - Added quick reference sections and cheatsheets
+- `SESSION_NOTEBOOK.md` - Changed status from "Planned" to "Implemented"
+- `CAMPAIGN_DASHBOARD.md` - **NEW** comprehensive guide with health indicators
+- `CAMPAIGN_KNOWLEDGE_BASE.md` - Updated with Import Session Notes integration
+
+### Current Feature Set Summary
+
+The VideoChunking system now includes:
+
+**Core Processing Pipeline**:
+- ✅ Audio conversion (M4A → WAV)
+- ✅ Hybrid VAD-based chunking
+- ✅ Multi-backend transcription (local/Groq/OpenAI)
+- ✅ LCS-based overlap merging
+- ✅ Speaker diarization (PyAnnote)
+- ✅ IC/OOC classification (Ollama)
+- ✅ Multi-format output (TXT, JSON, SRT)
+
+**Campaign Management**:
+- ✅ Party configuration system
+- ✅ Character profiles (individual file storage)
+- ✅ Campaign Dashboard (health monitoring)
+- ✅ Knowledge Base (auto-extraction)
+- ✅ Import Session Notes (backfill)
+- ✅ Story Notebooks (narrative generation)
+
+**User Interfaces**:
+- ✅ Gradio Web UI (multi-tab interface)
+- ✅ Rich CLI (comprehensive commands)
+- ✅ App Manager (status monitoring)
+
+**Quality Assurance**:
+- ✅ Pytest test suite (unit + integration)
+- ✅ Test markers for fast/slow separation
+- ✅ System verification tool
+- ✅ Unicode compatibility fixes
+- ✅ Graceful degradation
+
+**Documentation**:
+- ✅ 6+ comprehensive guides
+- ✅ Quick reference card
+- ✅ API examples
+- ✅ Troubleshooting guides
+- ✅ Feature-specific documentation
+
+---
+
+**End of 2025-10-21 Session**
+**Status**: Feature-complete campaign management system with robust testing infrastructure and comprehensive documentation

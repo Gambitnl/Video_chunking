@@ -1,6 +1,6 @@
 {
   "campaign_id": "default",
-  "last_updated": "2025-10-21T21:57:14.372146",
+  "last_updated": "2025-10-21T22:23:26.520882",
   "sessions_processed": [
     "test_sep19_5m"
   ],
@@ -24,12 +24,22 @@
       "related_npcs": [],
       "related_locations": [],
       "notes": []
+    },
+    {
+      "title": "Mansion Investigation",
+      "description": "Investigate the mansion to find a friend of the speaker and uncover any hidden secrets.",
+      "status": "unknown",
+      "first_mentioned": "test_sep19_5m",
+      "last_updated": "test_sep19_5m",
+      "related_npcs": [],
+      "related_locations": [],
+      "notes": []
     }
   ],
   "npcs": [
     {
       "name": "Sjaak",
-      "description": "Unnamed character encountered in the mansion; may be the recipient of the quest.",
+      "description": "Unknown",
       "first_mentioned": "test_sep19_5m",
       "last_updated": "test_sep19_5m",
       "role": "unknown",
@@ -121,12 +131,42 @@
       "related_quests": [],
       "resolved": false,
       "resolution": null
+    },
+    {
+      "summary": "Traces of ooze in the mansion",
+      "details": "Spore traces of ooze are found in the mansion, suggesting a mysterious creature or contamination.",
+      "first_mentioned": "test_sep19_5m",
+      "last_updated": "test_sep19_5m",
+      "related_npcs": [],
+      "related_quests": [],
+      "resolved": false,
+      "resolution": null
+    },
+    {
+      "summary": "Hidden passage behind a beer vat",
+      "details": "A concealed entrance behind a broken beer vat leads to a basement with a secret laboratory.",
+      "first_mentioned": "test_sep19_5m",
+      "last_updated": "test_sep19_5m",
+      "related_npcs": [],
+      "related_quests": [],
+      "resolved": false,
+      "resolution": null
+    },
+    {
+      "summary": "Teleportation machine and crystal",
+      "details": "Inside the laboratory is a crystal and a machine that can teleport individuals, leading to an incident where someone was teleported away.",
+      "first_mentioned": "test_sep19_5m",
+      "last_updated": "test_sep19_5m",
+      "related_npcs": [],
+      "related_quests": [],
+      "resolved": false,
+      "resolution": null
     }
   ],
   "locations": [
     {
       "name": "Mansion",
-      "description": "A previously grand residence now in decay, visited by the party.",
+      "description": "A mansion of faded glory, with rooms such as bathrooms, bedrooms, and a basement.",
       "first_mentioned": "test_sep19_5m",
       "last_updated": "test_sep19_5m",
       "type": "building",
@@ -138,7 +178,7 @@
     },
     {
       "name": "Basement",
-      "description": "The lower level of the mansion containing barrels and a hidden passage.",
+      "description": "The lower level of the mansion, containing a hidden passage and a secret laboratory.",
       "first_mentioned": "test_sep19_5m",
       "last_updated": "test_sep19_5m",
       "type": "building",
@@ -183,12 +223,24 @@
       "visits": [
         "test_sep19_5m"
       ]
+    },
+    {
+      "name": "Secret Laboratory",
+      "description": "A hidden study/laboratory accessed through a concealed entrance, containing a crystal and a teleportation machine.",
+      "first_mentioned": "test_sep19_5m",
+      "last_updated": "test_sep19_5m",
+      "type": "building",
+      "notable_features": [],
+      "npcs_present": [],
+      "visits": [
+        "test_sep19_5m"
+      ]
     }
   ],
   "items": [
     {
       "name": "Crystal",
-      "description": "A significant crystal found in the hidden laboratory; its purpose is unknown.",
+      "description": "A crystal used within a teleportation machine.",
       "first_mentioned": "test_sep19_5m",
       "last_updated": "test_sep19_5m",
       "owner": null,
@@ -199,6 +251,16 @@
     {
       "name": "Machine",
       "description": "An apparatus located in the hidden laboratory, possibly connected to the crystal.",
+      "first_mentioned": "test_sep19_5m",
+      "last_updated": "test_sep19_5m",
+      "owner": null,
+      "location": null,
+      "properties": [],
+      "significance": null
+    },
+    {
+      "name": "Teleportation Machine",
+      "description": "A machine capable of teleporting individuals, powered by the crystal.",
       "first_mentioned": "test_sep19_5m",
       "last_updated": "test_sep19_5m",
       "owner": null,

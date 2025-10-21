@@ -67,22 +67,30 @@ class FasterWhisperTranscriber(BaseTranscriber):
     """
 
     def __init__(self, model_name: str = None, device: str = "auto"):
-        from faster_whisper import WhisperModel
-
         self.model_name = model_name or Config.WHISPER_MODEL
         self.logger = get_logger('transcriber.faster_whisper')
+        self.device = device
+        self.model = None  # Defer model loading
 
-        # Auto-detect device
-        if device == "auto":
+    def _load_model_if_needed(self):
+        """Load the Whisper model on first use."""
+        if self.model is not None:
+            return
+
+        from faster_whisper import WhisperModel
+        
+        # Auto-detect device if not specified
+        if self.device == "auto":
             import torch
-            device = "cuda" if torch.cuda.is_available() else "cpu"
+            self.device = "cuda" if torch.cuda.is_available() else "cpu"
 
-        self.logger.info("Loading Whisper model '%s' on %s...", self.model_name, device)
+        self.logger.info("Loading Whisper model '%s' on %s...", self.model_name, self.device)
         self.model = WhisperModel(
             self.model_name,
-            device=device,
-            compute_type="float16" if device == "cuda" else "int8"
+            device=self.device,
+            compute_type="float16" if self.device == "cuda" else "int8"
         )
+        self.logger.info("Whisper model loaded.")
 
     def transcribe_chunk(
         self,
@@ -90,6 +98,7 @@ class FasterWhisperTranscriber(BaseTranscriber):
         language: str = "nl"
     ) -> ChunkTranscription:
         """Transcribe using local faster-whisper"""
+        self._load_model_if_needed()
 
         self.logger.debug(
             "Transcribing chunk %d (start=%.2fs, end=%.2fs, duration=%.2fs)",
@@ -98,9 +107,6 @@ class FasterWhisperTranscriber(BaseTranscriber):
             chunk.end_time,
             chunk.end_time - chunk.start_time
         )
-
-        # Transcribe with word-level timestamps
-        segments, info = self.model.transcribe(
             chunk.audio,
             language=language,
             beam_size=5,

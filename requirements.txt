@@ -36,4 +36,4 @@ rich>=13.0.0
 pytest>=8.0.0
 
 # Visualizations
-wordcloud>=1.9.3
+wordcloud>=1.9.3graphviz>=0.21

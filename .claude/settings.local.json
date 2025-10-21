@@ -33,7 +33,10 @@
       "Bash(pip install gradio-client)",
       "Read(//c/Users/Gambit/OneDrive/Pictures/Screenshots/**)",
       "Bash(tasklist)",
-      "mcp__ide__getDiagnostics"
+      "mcp__ide__getDiagnostics",
+      "Bash(pytest -m \"not slow\" -v)",
+      "Bash(pytest tests/ -v --tb=short)",
+      "Bash(Implemented\" section showing Story Notebooks integration, auto-extraction,\n  and individual file storage\n\nAll previously \"planned\" features that are now implemented have been\nproperly documented and marked as complete.\n\nGenerated with Claude Code\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n)\")"
     ],
     "deny": [],
     "ask": []

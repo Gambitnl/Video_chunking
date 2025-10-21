@@ -274,3 +274,29 @@ Users can now:
 **End of Development Chronicle**
 **Date**: 2025-10-15
 **Final Status**: Complete and functional
+
+## Session: 2025-10-20 - Refactoring and UI Enhancements
+
+### Character Profile Storage Refactoring
+
+**Goal**: Improve the character profile storage system for better organization and to prevent data conflicts.
+
+**Problem**: The original implementation stored all character profiles in a single JSON file (`models/character_profiles.json`). This could lead to write conflicts and made manual management of individual characters difficult.
+
+**Solution**:
+1.  **Individual File Storage**: The `CharacterProfileManager` in `src/character_profile.py` was refactored to store each character profile as a separate `.json` file in a new `models/character_profiles/` directory.
+2.  **Efficient Saving**: The saving mechanism was updated to only write the single file for the character being added or updated, rather than rewriting the entire collection each time.
+3.  **Data Migration**: A one-time migration process was added to the manager's initialization. It checks for the old `character_profiles.json` file, reads its content, and automatically creates the new individual files, then renames the old file to `.migrated` to prevent re-running.
+
+**Why This Approach**:
+-   **Scalability**: Easier to manage a large number of characters.
+-   **Safety**: Reduces the risk of corrupting all profiles if a single save operation fails.
+-   **Clarity**: The file system now directly reflects the character list.
+
+### UI/UX Enhancements
+
+-   **LLM Chat Tab**: Added a new tab to the Gradio UI for direct interaction with the local Ollama model.
+-   **Character Role-Playing**: The LLM Chat tab includes a dropdown to select a character, which injects a system prompt for the LLM to adopt that character's persona.
+-   **Log Tab Scrolling**: Implemented CSS to make the log viewer in the "Logs" tab scrollable for better usability with long logs.
+-   **Improved Explanations**: Added more detailed descriptions to the "Party Management" and "Character Profiles" tabs to better explain their purpose and functionality to users.
+-   **Bug Fixes**: Resolved several startup errors related to the new "Campaign Library" tab and a deprecated format in the Chatbot component.

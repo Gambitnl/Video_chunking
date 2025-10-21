@@ -1,5 +1,31 @@
+import sys
+import types
+from dataclasses import dataclass
+from typing import List, Optional
+
+fake_torch = types.ModuleType("torch")
+fake_torch.hub = types.SimpleNamespace(load=lambda *args, **kwargs: (_ for _ in ()).throw(RuntimeError("torch hub not available")))
+sys.modules.setdefault("torch", fake_torch)
+
 from src.merger import TranscriptionMerger
-from src.transcriber import ChunkTranscription, TranscriptionSegment
+
+
+@dataclass
+class TranscriptionSegment:
+    text: str
+    start_time: float
+    end_time: float
+    confidence: Optional[float] = None
+    words: Optional[List] = None
+
+
+@dataclass
+class ChunkTranscription:
+    chunk_index: int
+    chunk_start: float
+    chunk_end: float
+    segments: List[TranscriptionSegment]
+    language: str
 
 
 def build_segment(text: str, start: float, end: float) -> TranscriptionSegment:

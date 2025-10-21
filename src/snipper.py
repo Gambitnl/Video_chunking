@@ -5,6 +5,7 @@ import shutil
 from pathlib import Path
 from typing import Dict, List, Optional
 from pydub import AudioSegment
+from .logger import get_logger
 
 
 class AudioSnipper:
@@ -12,7 +13,7 @@ class AudioSnipper:
 
     def __init__(self):
         # Reuse pydub for convenience; additional options can be added later.
-        pass
+        self.logger = get_logger('snipper')
 
     def export_segments(
         self,
@@ -36,10 +37,17 @@ class AudioSnipper:
             Dict with paths to the created directory and manifest file.
         """
         if not segments:
+            self.logger.warning("No transcription segments provided; skipping snippet export")
             return {"segments_dir": None, "manifest": None}
 
         base_output_dir = Path(base_output_dir)
         session_dir = base_output_dir / session_id
+        self.logger.info(
+            "Exporting %d audio snippets to %s (audio=%s)",
+            len(segments),
+            session_dir,
+            audio_path
+        )
 
         # Ensure base directory exists before manipulating session folder
         base_output_dir.mkdir(parents=True, exist_ok=True)
@@ -95,6 +103,11 @@ class AudioSnipper:
 
         manifest_path = session_dir / "manifest.json"
         manifest_path.write_text(json.dumps(manifest, indent=2, ensure_ascii=False), encoding="utf-8")
+        self.logger.info(
+            "Snippet export complete: %d clips, manifest=%s",
+            len(manifest),
+            manifest_path
+        )
 
         return {
             "segments_dir": session_dir,

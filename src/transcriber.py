@@ -6,6 +6,7 @@ from dataclasses import dataclass
 import numpy as np
 from .config import Config
 from .chunker import AudioChunk
+from .logger import get_logger
 
 
 @dataclass
@@ -69,13 +70,14 @@ class FasterWhisperTranscriber(BaseTranscriber):
         from faster_whisper import WhisperModel
 
         self.model_name = model_name or Config.WHISPER_MODEL
+        self.logger = get_logger('transcriber.faster_whisper')
 
         # Auto-detect device
         if device == "auto":
             import torch
             device = "cuda" if torch.cuda.is_available() else "cpu"
 
-        print(f"Loading Whisper model '{self.model_name}' on {device}...")
+        self.logger.info("Loading Whisper model '%s' on %s...", self.model_name, device)
         self.model = WhisperModel(
             self.model_name,
             device=device,
@@ -88,6 +90,14 @@ class FasterWhisperTranscriber(BaseTranscriber):
         language: str = "nl"
     ) -> ChunkTranscription:
         """Transcribe using local faster-whisper"""
+
+        self.logger.debug(
+            "Transcribing chunk %d (start=%.2fs, end=%.2fs, duration=%.2fs)",
+            chunk.chunk_index,
+            chunk.start_time,
+            chunk.end_time,
+            chunk.end_time - chunk.start_time
+        )
 
         # Transcribe with word-level timestamps
         segments, info = self.model.transcribe(
@@ -163,6 +173,7 @@ class GroqTranscriber(BaseTranscriber):
 
         self.client = Groq(api_key=self.api_key)
         self.temp_dir = Path(tempfile.gettempdir())
+        self.logger = get_logger("transcriber.groq")
 
     def transcribe_chunk(
         self,
@@ -175,6 +186,7 @@ class GroqTranscriber(BaseTranscriber):
         # Groq requires a file path, so save chunk temporarily
         temp_path = self.temp_dir / f"chunk_{chunk.chunk_index}.wav"
         sf.write(str(temp_path), chunk.audio, chunk.sample_rate)
+        self.logger.debug("Submitting chunk %d to Groq (temp file: %s)", chunk.chunk_index, temp_path)
 
         try:
             # Call Groq API
@@ -227,6 +239,7 @@ class GroqTranscriber(BaseTranscriber):
             # Clean up temp file
             if temp_path.exists():
                 temp_path.unlink()
+                self.logger.debug("Cleaned temporary chunk file %s", temp_path)
 
 
 class TranscriberFactory:

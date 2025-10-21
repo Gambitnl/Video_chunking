@@ -6,6 +6,7 @@ from typing import List, Tuple
 from dataclasses import dataclass
 from .config import Config
 from .audio_processor import AudioProcessor
+from .logger import get_logger
 
 
 @dataclass
@@ -48,6 +49,7 @@ class HybridChunker:
         self.overlap_length = overlap_length or Config.CHUNK_OVERLAP_SECONDS
         self.vad_threshold = vad_threshold
         self.audio_processor = AudioProcessor()
+        self.logger = get_logger("chunker")
 
         # Load Silero VAD model
         self.vad_model, utils = torch.hub.load(
@@ -77,6 +79,7 @@ class HybridChunker:
         """
         # Load audio
         audio, sr = self.audio_processor.load_audio(audio_path)
+        self.logger.info("Chunking audio %s (duration~%.1f sec, sample_rate=%d)", audio_path, len(audio) / sr, sr)
 
         # Normalize for better VAD performance
         audio = self.audio_processor.normalize_audio(audio)
@@ -96,11 +99,13 @@ class HybridChunker:
             (ts['start'] / sr, ts['end'] / sr)
             for ts in speech_timestamps
         ]
+        self.logger.debug("Detected %d speech regions via VAD", len(speech_segments))
 
         # Create chunks
         chunks = self._create_chunks_with_pauses(
             audio, sr, speech_segments
         )
+        self.logger.info("Created %d audio chunks", len(chunks))
 
         return chunks
 
@@ -151,6 +156,10 @@ class HybridChunker:
                 sample_rate=sr,
                 chunk_index=chunk_index
             ))
+            self.logger.debug(
+                "Chunk %d | start=%.2fs end=%.2fs duration=%.2fs",
+                chunk_index, chunk_start, chunk_end, chunk_end - chunk_start
+            )
 
             # Move to next chunk with overlap
             # If this is the last chunk, we're done

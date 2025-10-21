@@ -1,19 +1,54 @@
 # Session Notebook Guide
 
-**Status**: Planned Feature (Not Yet Implemented)
+**Status**: ✅ Implemented
 
 Transform your D&D session transcripts into readable narrative formats from different perspectives.
 
 ## Overview
 
-The Session Notebook feature will take your IC-only transcript and rewrite it as:
-- **Character POV**: First-person narrative from a specific character's perspective
+The Session Notebook feature takes your IC-only transcript and rewrites it as:
 - **Third-Person Narrator**: Traditional fantasy novel style with objective narration
-- **Journal Entry**: In-character journal/diary format for each character
+- **Character POV**: First-person narrative from a specific character's perspective
 
-## Planned Perspectives
+## How to Use (Web UI)
 
-### 1. Character First-Person POV
+### Accessing Story Notebooks
+
+1. **Open the Web UI**: Run `python app.py` and navigate to the "Story Notebooks" tab
+2. **Select a Session**: Choose a processed session from the dropdown at the top
+   - Click "Refresh Sessions" if you don't see your session listed
+3. **Adjust Creativity Slider**: Control the narrative style
+   - **0.1-0.4**: Faithful retelling, stays close to transcript
+   - **0.5**: Balanced (recommended)
+   - **0.6-1.0**: More dramatic flair and narrative embellishment
+
+### Generate Narrator Summary
+
+Click **"Generate Narrator Summary"** to create an omniscient third-person overview of the entire session. This perspective:
+- Describes events objectively from a DM/narrator viewpoint
+- Includes all party members' actions
+- Provides scene-setting and atmosphere
+- Saves to `output/<session>/narratives/<session>_narrator.md`
+
+### Generate Character Narratives
+
+1. **Select a Character**: Choose which PC's perspective to write from
+2. **Click "Generate Character Narrative"**: Creates a first-person recap from that character's eyes
+   - Filters events to what that character experienced
+   - Uses first-person voice ("I entered the cave...")
+   - Reflects character personality and observations
+   - Saves to `output/<session>/narratives/<session>_<character>.md`
+
+### Tips
+
+- **Generate narrator first** to get a complete overview
+- **Generate all character narratives** to see how different PCs experienced the same events
+- **Lower creativity (0.3-0.5)** for accurate session recaps
+- **Higher creativity (0.6-0.8)** for dramatic storytelling and campaign chronicles
+
+## Example Output Formats
+
+### 1. Character First-Person POV (Implemented)
 
 Experience the session through a specific character's eyes.
 
@@ -38,7 +73,7 @@ Elara stepped closer to examine them. "Those runes are Dwarven," she said. "Thor
 can you read them?"
 ```
 
-### 2. Third-Person Narrator
+### 2. Third-Person Narrator (Implemented)
 
 Read the session as a fantasy novel with objective narration.
 
@@ -63,9 +98,9 @@ patterns. "Those runes are Dwarven," she announced. Turning to Thorin, she asked
 "Can you read them?"
 ```
 
-### 3. Character Journal/Diary
+### 3. Character Journal/Diary (Planned)
 
-In-character journal entries for each player character.
+In-character journal entries for each player character. This format is not yet implemented but could be added in the future.
 
 **Output** (Thorin's journal):
 ```
@@ -84,7 +119,7 @@ this place that doesn't sit right with me.
 Tomorrow we delve deeper.
 ```
 
-## How It Will Work
+## Future Enhancements
 
 ### Command Line Usage (Planned)
 
@@ -105,18 +140,6 @@ python cli.py notebook session1.m4a \
   --perspective journal \
   --output-dir session1_journals/
 ```
-
-### Web UI Usage (Planned)
-
-In the Gradio interface:
-1. Process your session normally
-2. Go to "Session Notebook" tab
-3. Select perspective type:
-   - Character POV (choose character)
-   - Third-Person Narrator
-   - Character Journals (generates all)
-4. Click "Generate Notebook"
-5. Download the transformed narrative
 
 ### Python API (Planned)
 
@@ -266,17 +289,17 @@ Me? I found a very nice rock to hide behind. Discretion, valor, you know
 how it goes. Someone had to survive to tell this story.
 ```
 
-## Timeline
-
-This feature is planned for future development. Priority will be given to:
+## Development Status
 
 1. ✅ Core transcription pipeline
 2. ✅ Speaker diarization
 3. ✅ IC/OOC classification
 4. ✅ Party configuration system
-5. 🔄 Session notebook generation (You are here)
+5. ✅ Session notebook generation (Narrator + Character POV)
 6. ⏳ Multi-session chronicle compilation
 7. ⏳ Custom style templates
+8. ⏳ Character journal format
+9. ⏳ CLI and Python API
 
 ## Contributing Ideas
 
@@ -290,4 +313,16 @@ If you have ideas for narrative styles or perspective types, suggestions are wel
 
 ---
 
-**Status**: This document describes planned functionality. Check the main README for current implementation status.
+## Current Implementation
+
+The Story Notebooks feature is **fully implemented** in the Gradio Web UI:
+- ✅ **Narrator Perspective**: Third-person omniscient overview of the entire session
+- ✅ **Character Perspectives**: First-person narratives from each PC's point of view
+- ✅ **Creativity Control**: Adjustable temperature slider for narrative style
+- ✅ **Automatic Saving**: Narratives saved to `output/<session>/narratives/` as Markdown files
+
+**Not Yet Implemented**:
+- ⏳ CLI interface
+- ⏳ Python API
+- ⏳ Character journal/diary format
+- ⏳ Custom style templates

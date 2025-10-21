@@ -25,7 +25,11 @@ python cli.py process your_session.m4a
 - **📊 Multiple Output Formats**: Plain text, IC-only, OOC-only, and JSON
 - **🎯 Party Configuration**: Save and reuse character/player setups
 - **👤 Character Profiles**: Track character development, actions, inventory, and relationships
-- **📖 Session Notebooks** _(Planned)_: Transform transcripts into narrative perspectives
+- **📚 Campaign Knowledge Base**: Automatic extraction of quests, NPCs, locations, and plot hooks
+- **📋 Campaign Dashboard**: Visual health check of all campaign components
+- **📝 Import Session Notes**: Backfill early sessions from written notes
+- **💬 LLM Chat**: Interact directly with the local LLM and role-play as characters
+- **📖 Session Notebooks**: Transform transcripts into narrative perspectives (narrator + character POV)
 - **💰 Zero Budget Compatible**: 100% free with local models
 - **⚡ Fast Processing**: Optional cloud APIs for speed
 - **🔄 Learning System**: Speaker profiles improve over time
@@ -39,14 +43,22 @@ python cli.py process your_session.m4a
 - **4 speakers**: 3 players + 1 DM
 - **All in Dutch**
 
-### Output (4 files)
+### Output
 
-1. **Full Transcript** - Everything with speaker labels and IC/OOC markers
-2. **IC-Only** - Game narrative only (perfect for session notes!)
-3. **OOC-Only** - Banter and meta-discussion
-4. **JSON** - Complete data for further processing
+Each session creates a **timestamped folder** in the output directory:
+```
+output/
+  └── YYYYMMDD_HHMMSS_session_id/
+      ├── session_id_full.txt       # Everything with speaker labels and IC/OOC markers
+      ├── session_id_ic_only.txt    # Game narrative only (perfect for session notes!)
+      ├── session_id_ooc_only.txt   # Banter and meta-discussion
+      ├── session_id_data.json      # Complete data for further processing
+      ├── session_id_full.srt       # Full transcript as subtitles
+      ├── session_id_ic_only.srt    # IC-only as subtitles
+      └── session_id_ooc_only.srt   # OOC-only as subtitles
+```
 
-**Optional:** Enable audio snippet export to save per-segment WAV clips plus a `manifest.json` under `output/segments/<session_id>/`.
+**Optional:** Enable audio snippet export to save per-segment WAV clips plus a `manifest.json` in a `segments/` subdirectory.
 
 ### Example Output
 
@@ -68,7 +80,9 @@ python cli.py process your_session.m4a
 ### Features
 - **[PARTY_CONFIG.md](PARTY_CONFIG.md)** - Party configuration system guide
 - **[CHARACTER_PROFILES.md](CHARACTER_PROFILES.md)** - Character profiling and overview generation
-- **[SESSION_NOTEBOOK.md](SESSION_NOTEBOOK.md)** - Session notebook and perspective transformations _(planned)_
+- **[CAMPAIGN_KNOWLEDGE_BASE.md](CAMPAIGN_KNOWLEDGE_BASE.md)** - Automatic campaign knowledge extraction
+- **[CAMPAIGN_DASHBOARD.md](CAMPAIGN_DASHBOARD.md)** - Campaign health check and overview
+- **[SESSION_NOTEBOOK.md](SESSION_NOTEBOOK.md)** - Session notebook and perspective transformations
 
 ### Technical
 - **[DEVELOPMENT.md](DEVELOPMENT.md)** - Technical implementation details
@@ -416,17 +430,25 @@ All phases completed:
 
 ## 🔮 Future Enhancements
 
-Planned features (see [SESSION_NOTEBOOK.md](SESSION_NOTEBOOK.md) for details):
-- [ ] **Session Notebooks**: Transform IC transcripts into narrative formats
-  - [ ] Character first-person POV
-  - [ ] Third-person narrator style
+Implemented features (see documentation for details):
+- [x] **Session Notebooks**: Transform IC transcripts into narrative formats
+  - [x] Character first-person POV
+  - [x] Third-person narrator style
   - [ ] Character journal/diary entries
+  - [ ] CLI and Python API
+- [x] **Campaign Knowledge Base**: Automatic extraction and tracking of campaign entities
+- [x] **Campaign Dashboard**: Visual health check of campaign configuration
+- [x] **Import Session Notes**: Backfill early sessions from written notes
+
+Planned features:
 - [ ] SRT subtitle export for video overlay
 - [ ] Automatic session summary generation
 - [ ] Character emotion/tone detection
 - [ ] Combat encounter extraction
 - [ ] Multi-session search and analysis
 - [ ] Voice cloning for TTS playback
+- [ ] Multi-session chronicle compilation
+- [ ] Custom narrative style templates
 
 ## 🤝 Contributing
 
@@ -446,3 +468,13 @@ This project is provided as-is for personal use. See individual library licenses
 ---
 
 **Built with love for D&D players who want to preserve their campaign memories!** 🎲✨
+
+## Diagnostics & Monitoring Enhancements
+- **Diagnostics tab (app.py)**: Run `Discover Tests` to list collected pytest node IDs and execute targeted cases or the full suite directly inside the Gradio UI.
+- **Session Manager dashboard**: The landing page now auto-refreshes every 2s, shows the exact options provided for the run (party config, skip flags, output paths), and tracks per-stage start/end times with live progress indicators.
+- **Event timeline**: Recent status entries highlight when each pipeline stage finished and which stage starts next so you can monitor long-running jobs without tailing logs.
+## Story Notebooks Tab
+- Load the campaign notebook via **Document Viewer** (Google Doc export) so the LLM can weave in contextual cues.
+- Open **Story Notebooks** to pick a processed session, then generate the narrator summary and per-character POVs.
+- Each run saves Markdown files under the session�s `narratives/` folder, making it easy to iterate on edits or share drafts.
+- **Dashboard idle state**: When `app.py` isn�t listening, the manager now shows an idle summary instead of stale pipeline data, so you always know when a run is actually active.

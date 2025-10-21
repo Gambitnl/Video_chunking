@@ -6,6 +6,7 @@ import json
 import shutil
 from datetime import datetime
 import logging
+from .formatter import sanitize_filename
 
 
 @dataclass
@@ -98,185 +99,186 @@ class CharacterProfile:
 
 
 class CharacterProfileManager:
-    """Manages character profiles for a campaign"""
+    """Manages character profiles for a campaign, with each profile stored as a separate JSON file."""
 
-    def __init__(self, profiles_file: Path = None, max_backups: int = 5):
+    def __init__(self, profiles_dir: Path = None, max_backups: int = 5):
         from .config import Config
+        from .formatter import sanitize_filename
 
-        # Initialize logger
         self.logger = logging.getLogger(__name__)
+        self.sanitize_filename = sanitize_filename
 
         # Set up paths
-        self.profiles_file = profiles_file or (Config.MODELS_DIR / "character_profiles.json")
-        self.backup_dir = self.profiles_file.parent / "character_backups"
+        self.profiles_dir = profiles_dir or (Config.MODELS_DIR / "character_profiles")
+        self.backup_dir = Config.MODELS_DIR / "character_backups"
         self.max_backups = max_backups
 
-        # Ensure backup directory exists
+        # Ensure directories exist
+        self.profiles_dir.mkdir(exist_ok=True, parents=True)
         self.backup_dir.mkdir(exist_ok=True, parents=True)
 
-        # Load profiles
+        # Handle one-time migration from old single-file format
+        self._migrate_old_profiles()
+
+        # Load all profiles from individual files
         self.profiles: Dict[str, CharacterProfile] = self._load_profiles()
 
-        self.logger.info(f"CharacterProfileManager initialized with {len(self.profiles)} profiles")
+        self.logger.info(f"CharacterProfileManager initialized with {len(self.profiles)} profiles.")
+
+    def _migrate_old_profiles(self):
+        """Migrate profiles from the old single-file storage to the new individual file structure."""
+        from .config import Config
+        old_profiles_file = Config.MODELS_DIR / "character_profiles.json"
+        migrated_marker = Config.MODELS_DIR / "character_profiles.json.migrated"
+
+        if old_profiles_file.exists() and not migrated_marker.exists():
+            self.logger.warning(f"Old profile file '{old_profiles_file}' found. Migrating to individual files...")
+            try:
+                with open(old_profiles_file, 'r', encoding='utf-8') as f:
+                    data = json.load(f)
+
+                for char_name, profile_data in data.items():
+                    profile = self._parse_profile_data(profile_data)
+                    self._save_single_profile(profile)
+                    self.logger.info(f"Migrated character '{char_name}' to its own file.")
+
+                # Rename old file to prevent re-migration
+                old_profiles_file.rename(migrated_marker)
+                self.logger.warning(f"Migration complete. Old file renamed to '{migrated_marker.name}'.")
+
+            except Exception as e:
+                self.logger.error(f"Failed during migration from old profile file: {e}", exc_info=True)
+
+    def _parse_profile_data(self, profile_data: dict) -> CharacterProfile:
+        """Parse a dictionary into a CharacterProfile object, handling nested dataclasses."""
+        profile_data['notable_actions'] = [CharacterAction(**action) for action in profile_data.get('notable_actions', [])]
+        profile_data['inventory'] = [CharacterItem(**item) for item in profile_data.get('inventory', [])]
+        profile_data['relationships'] = [CharacterRelationship(**rel) for rel in profile_data.get('relationships', [])]
+        profile_data['development_notes'] = [CharacterDevelopment(**dev) for dev in profile_data.get('development_notes', [])]
+        profile_data['memorable_quotes'] = [CharacterQuote(**quote) for quote in profile_data.get('memorable_quotes', [])]
+        return CharacterProfile(**profile_data)
 
     def _load_profiles(self) -> Dict[str, CharacterProfile]:
-        """Load character profiles from JSON file"""
-        if not self.profiles_file.exists():
-            self.logger.info(f"No existing profiles file found at {self.profiles_file}")
-            return {}
+        """Load all character profiles from individual JSON files in the profiles directory."""
+        profiles = {}
+        self.logger.debug(f"Loading profiles from directory: {self.profiles_dir}")
+        for profile_file in self.profiles_dir.glob("*.json"):
+            try:
+                with open(profile_file, 'r', encoding='utf-8') as f:
+                    profile_data = json.load(f)
+                
+                profile = self._parse_profile_data(profile_data)
+                
+                if profile.name:
+                    profiles[profile.name] = profile
+                else:
+                    self.logger.warning(f"Profile file '{profile_file.name}' is missing a 'name' field. Skipping.")
 
-        try:
-            self.logger.debug(f"Loading profiles from {self.profiles_file}")
-            with open(self.profiles_file, 'r', encoding='utf-8') as f:
-                data = json.load(f)
+            except Exception as e:
+                self.logger.error(f"Failed to load character profile from '{profile_file.name}': {e}", exc_info=True)
+        
+        self.logger.info(f"Loaded {len(profiles)} character profiles from individual files.")
+        return profiles
 
-            profiles = {}
-            for char_id, profile_data in data.items():
-                # Convert nested dataclasses
-                profile_data['notable_actions'] = [
-                    CharacterAction(**action) for action in profile_data.get('notable_actions', [])
-                ]
-                profile_data['inventory'] = [
-                    CharacterItem(**item) for item in profile_data.get('inventory', [])
-                ]
-                profile_data['relationships'] = [
-                    CharacterRelationship(**rel) for rel in profile_data.get('relationships', [])
-                ]
-                profile_data['development_notes'] = [
-                    CharacterDevelopment(**dev) for dev in profile_data.get('development_notes', [])
-                ]
-                profile_data['memorable_quotes'] = [
-                    CharacterQuote(**quote) for quote in profile_data.get('memorable_quotes', [])
-                ]
-
-                profiles[char_id] = CharacterProfile(**profile_data)
-
-            self.logger.info(f"Loaded {len(profiles)} character profiles")
-            return profiles
-        except Exception as e:
-            self.logger.error(f"Failed to load character profiles: {e}", exc_info=True)
-            return {}
-
-    def _create_backup(self):
-        """Create a backup of the current profiles file"""
-        if not self.profiles_file.exists():
+    def _create_backup(self, profile_path: Path):
+        """Create a backup of a single profile file."""
+        if not profile_path.exists():
             return
 
         try:
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            backup_file = self.backup_dir / f"character_profiles_{timestamp}.json"
-
-            shutil.copy2(self.profiles_file, backup_file)
-            self.logger.debug(f"Created backup: {backup_file.name}")
-
-            # Clean up old backups
-            self._cleanup_old_backups()
-
+            backup_file = self.backup_dir / f"{profile_path.stem}_{timestamp}.json"
+            shutil.copy2(profile_path, backup_file)
+            self.logger.debug(f"Created backup for '{profile_path.name}' at '{backup_file.name}'")
+            self._cleanup_old_backups(profile_path.stem)
         except Exception as e:
-            self.logger.warning(f"Failed to create backup: {e}")
+            self.logger.warning(f"Failed to create backup for '{profile_path.name}': {e}")
 
-    def _cleanup_old_backups(self):
-        """Remove old backups, keeping only the most recent max_backups files"""
+    def _cleanup_old_backups(self, profile_stem: str):
+        """Remove old backups for a specific character, keeping the most recent ones."""
         try:
-            backups = sorted(self.backup_dir.glob("character_profiles_*.json"), reverse=True)
-
+            backups = sorted(self.backup_dir.glob(f"{profile_stem}_*.json"), reverse=True)
             if len(backups) > self.max_backups:
                 for old_backup in backups[self.max_backups:]:
                     old_backup.unlink()
                     self.logger.debug(f"Removed old backup: {old_backup.name}")
-
         except Exception as e:
-            self.logger.warning(f"Failed to cleanup old backups: {e}")
+            self.logger.warning(f"Failed to cleanup old backups for '{profile_stem}': {e}")
 
-    def save_profiles(self):
-        """Save all character profiles to JSON file with automatic backup"""
+    def _save_single_profile(self, profile: CharacterProfile):
+        """Save a single character profile to its own JSON file."""
+        if not profile or not profile.name:
+            self.logger.error("Attempted to save a profile with no name.")
+            return
+
         try:
-            self.profiles_file.parent.mkdir(exist_ok=True, parents=True)
+            profile.last_updated = datetime.now().isoformat()
+            filename = f"{self.sanitize_filename(profile.name)}.json"
+            profile_path = self.profiles_dir / filename
 
-            # Create backup before saving
-            self._create_backup()
+            self._create_backup(profile_path)
 
-            data = {}
-            for char_id, profile in self.profiles.items():
-                data[char_id] = asdict(profile)
+            with open(profile_path, 'w', encoding='utf-8') as f:
+                json.dump(asdict(profile), f, indent=2, ensure_ascii=False)
 
-            with open(self.profiles_file, 'w', encoding='utf-8') as f:
-                json.dump(data, f, indent=2, ensure_ascii=False)
-
-            self.logger.info(f"Saved {len(data)} character profiles to {self.profiles_file.name}")
+            self.logger.info(f"Saved profile for '{profile.name}' to '{profile_path.name}'")
 
         except Exception as e:
-            self.logger.error(f"Failed to save character profiles: {e}", exc_info=True)
+            self.logger.error(f"Failed to save profile for '{profile.name}': {e}", exc_info=True)
             raise
 
     def get_profile(self, character_name: str) -> Optional[CharacterProfile]:
-        """Get a character profile by name"""
+        """Get a character profile by name from the in-memory dictionary."""
         return self.profiles.get(character_name)
 
     def add_profile(self, character_name: str, profile: CharacterProfile):
-        """Add or update a character profile"""
+        """Add or update a character profile in memory and save it to its file."""
         is_new = character_name not in self.profiles
-        profile.last_updated = datetime.now().isoformat()
         self.profiles[character_name] = profile
-
+        self._save_single_profile(profile)
         self.logger.info(f"{'Added new' if is_new else 'Updated'} character profile: {character_name}")
-        self.save_profiles()
 
     def list_characters(self) -> List[str]:
-        """List all character names"""
-        return list(self.profiles.keys())
+        """List all character names from the in-memory profiles."""
+        return sorted(list(self.profiles.keys()))
 
     def export_profile(self, character_name: str, export_path: Path):
-        """Export a single character profile to JSON"""
+        """Export a single character profile to a JSON file at the specified path."""
         profile = self.get_profile(character_name)
         if not profile:
             self.logger.error(f"Cannot export - character '{character_name}' not found")
             raise ValueError(f"Character '{character_name}' not found")
 
         try:
-            data = {character_name: asdict(profile)}
             with open(export_path, 'w', encoding='utf-8') as f:
-                json.dump(data, f, indent=2, ensure_ascii=False)
-
+                json.dump(asdict(profile), f, indent=2, ensure_ascii=False)
             self.logger.info(f"Exported character '{character_name}' to {export_path}")
-
         except Exception as e:
             self.logger.error(f"Failed to export character '{character_name}': {e}", exc_info=True)
             raise
 
-    def import_profile(self, import_path: Path, character_name: Optional[str] = None):
-        """Import a character profile from JSON"""
+    def import_profile(self, import_path: Path):
+        """Import a character profile from a JSON file and save it."""
         try:
             self.logger.info(f"Importing character profile from {import_path}")
-
             with open(import_path, 'r', encoding='utf-8') as f:
                 data = json.load(f)
 
-            for file_char_name, profile_data in data.items():
-                new_char_name = character_name or file_char_name
+            # Handle both old and new export formats
+            if list(data.keys()) == [next(iter(data))]: # Old format: {"char_name": {...}}
+                char_name = next(iter(data))
+                profile_data = data[char_name]
+            else: # New format: {...}
+                profile_data = data
+                char_name = profile_data.get("name")
 
-                # Convert nested structures
-                profile_data['notable_actions'] = [
-                    CharacterAction(**action) for action in profile_data.get('notable_actions', [])
-                ]
-                profile_data['inventory'] = [
-                    CharacterItem(**item) for item in profile_data.get('inventory', [])
-                ]
-                profile_data['relationships'] = [
-                    CharacterRelationship(**rel) for rel in profile_data.get('relationships', [])
-                ]
-                profile_data['development_notes'] = [
-                    CharacterDevelopment(**dev) for dev in profile_data.get('development_notes', [])
-                ]
-                profile_data['memorable_quotes'] = [
-                    CharacterQuote(**quote) for quote in profile_data.get('memorable_quotes', [])
-                ]
+            if not char_name:
+                raise ValueError("Imported JSON does not contain a character name.")
 
-                profile = CharacterProfile(**profile_data)
-                self.add_profile(new_char_name, profile)
-
-                self.logger.info(f"Successfully imported character '{new_char_name}'")
-                return new_char_name
+            profile = self._parse_profile_data(profile_data)
+            self.add_profile(char_name, profile)
+            self.logger.info(f"Successfully imported and saved character '{char_name}'")
+            return char_name
 
         except Exception as e:
             self.logger.error(f"Failed to import character profile: {e}", exc_info=True)

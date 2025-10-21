@@ -1,0 +1,112 @@
+{
+  "name": "Pipira Shimmerlock",
+  "player": "Player2",
+  "race": "Gnome",
+  "class_name": "Wizard",
+  "level": 3,
+  "description": "An ambitious gnome student wizard. Perceptive, eager to learn, fond of experiments and tinkering with mechanical objects.",
+  "personality": "Curious, experimental, loves reading and tinkering. Always looking to learn new things.",
+  "backstory": "",
+  "appearance": "Female gnome wizard with the typical gnomish enthusiasm for magic and mechanics.",
+  "aliases": [
+    "Pip",
+    "Pipira"
+  ],
+  "campaign": "Gaia Adventures - Culdor Academy",
+  "first_session": "Session 1 (29-Nov-2024)",
+  "last_updated": "2025-10-21T21:50:21.912918",
+  "notable_actions": [
+    {
+      "session": "Session 1",
+      "timestamp": null,
+      "description": "Sat with Pas'Ta at Professor Artex's table",
+      "type": "social"
+    },
+    {
+      "session": "Session 2",
+      "timestamp": null,
+      "description": "Used Detect Magic to investigate the village, found strong magical aura from farmhouse",
+      "type": "magic"
+    },
+    {
+      "session": "Session 2",
+      "timestamp": null,
+      "description": "Failed DEX save and got trapped in spider webs at the farmhouse",
+      "type": "combat"
+    },
+    {
+      "session": "Session 3",
+      "timestamp": null,
+      "description": "Used Detect Magic again in the underground area with cocoons",
+      "type": "exploration"
+    },
+    {
+      "session": "Session 3",
+      "timestamp": null,
+      "description": "Found spell scrolls in the mage's house",
+      "type": "exploration"
+    }
+  ],
+  "inventory": [
+    {
+      "name": "Healing Potion",
+      "description": "Given by Professor Artex",
+      "session_acquired": "Session 1",
+      "category": "consumable"
+    },
+    {
+      "name": "Green Flame Blade Scroll",
+      "description": "Spell scroll found in mage's house",
+      "session_acquired": "Session 3",
+      "category": "magical"
+    },
+    {
+      "name": "Chaos Bolt Scroll",
+      "description": "Spell scroll found in mage's house",
+      "session_acquired": "Session 3",
+      "category": "magical"
+    },
+    {
+      "name": "Shield Scroll",
+      "description": "Spell scroll found in mage's house",
+      "session_acquired": "Session 3",
+      "category": "magical"
+    },
+    {
+      "name": "Invisibility Scroll",
+      "description": "Spell scroll found in mage's house",
+      "session_acquired": "Session 3",
+      "category": "magical"
+    }
+  ],
+  "relationships": [
+    {
+      "name": "Professor Artex",
+      "relationship_type": "mentor",
+      "description": "Professor at Culdor Academy",
+      "first_met": "Session 1"
+    },
+    {
+      "name": "Furnax",
+      "relationship_type": "companion",
+      "description": "Frost Hellhound companion. Black with dark blue stripes, cold aura. Intelligent and well-trained.",
+      "first_met": "Before Session 1"
+    }
+  ],
+  "development_notes": [],
+  "memorable_quotes": [],
+  "sessions_appeared": [
+    "Session 1",
+    "Session 2",
+    "Session 3"
+  ],
+  "total_sessions": 3,
+  "current_goals": [
+    "Study the necromantic properties of the spider webs",
+    "Learn new spells from found scrolls",
+    "Investigate the cult and ritual mentioned in the mage's book"
+  ],
+  "completed_goals": [],
+  "dm_notes": "",
+  "player_notes": ""
+}

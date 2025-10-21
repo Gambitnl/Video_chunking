@@ -1,0 +1,45 @@
+{
+  "name": "Furnax",
+  "player": "Companion",
+  "race": "Frost Hellhound",
+  "class_name": "Beast Companion",
+  "level": 3,
+  "description": "Pip's companion - Black with dark blue stripes, cold aura. Unruly but well-trained, intelligent, rescued by the academy.",
+  "personality": "Intelligent, unruly but well-trained. Loyal to Pip.",
+  "backstory": "Rescued by Culdor Academy. Became Pip's companion.",
+  "appearance": "Black fur with dark blue stripes. Emits a cold aura.",
+  "aliases": [
+    "Furnax"
+  ],
+  "campaign": "Gaia Adventures - Culdor Academy",
+  "first_session": "Session 1 (29-Nov-2024)",
+  "last_updated": "2025-10-21T21:50:21.915927",
+  "notable_actions": [],
+  "inventory": [],
+  "relationships": [
+    {
+      "name": "Pipira Shimmerlock",
+      "relationship_type": "master",
+      "description": "Pip is Furnax's companion and master",
+      "first_met": "Before Session 1"
+    },
+    {
+      "name": "Culdor Academy",
+      "relationship_type": "rescued by",
+      "description": "Was rescued by the academy",
+      "first_met": "Before Session 1"
+    }
+  ],
+  "development_notes": [],
+  "memorable_quotes": [],
+  "sessions_appeared": [
+    "Session 1",
+    "Session 2",
+    "Session 3"
+  ],
+  "total_sessions": 3,
+  "current_goals": [],
+  "completed_goals": [],
+  "dm_notes": "",
+  "player_notes": ""
+}

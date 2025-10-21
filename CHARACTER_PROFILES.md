@@ -13,6 +13,13 @@ The Character Profile system allows you to:
 
 ## Features
 
+### Automatic Profile Extraction
+The system can automatically analyze session transcripts to find and append new information to your character profiles. In the "Character Profiles" tab of the Web UI, you can:
+- Upload an IC-only transcript.
+- Select the relevant party.
+- Provide the Session ID (e.g., "Session 5").
+The AI will then extract notable actions, items, quotes, and more, adding them directly to the character profiles.
+
 ### Character Data Tracked
 
 - **Basic Information**: Name, player, race, class, level
@@ -121,7 +128,7 @@ manager.add_profile("Gandor the Brave", character)
 
 ### Method 2: Manual JSON Editing
 
-Edit `models/character_profiles.json` directly:
+Each character profile is stored as a separate `.json` file in the `models/character_profiles/` directory. You can edit these files directly, but it is generally recommended to use the UI or the Python API to avoid formatting errors.
 
 ```json
 {
@@ -405,11 +412,18 @@ for character in party.characters:
     char_mgr.add_profile(character.name, profile)
 ```
 
-## Storage Location
+## Storage Location & Migration
 
-Character profiles are stored in: `models/character_profiles.json`
+Character profiles are stored as individual `.json` files in the `models/character_profiles/` directory. Each file is named after the character (e.g., `Sha_ek_Mindfa_ek.json`).
 
-This file is NOT tracked in git (it's in .gitignore) to keep your character data private.
+This directory is NOT tracked in git (it's in .gitignore) to keep your character data private.
+
+### One-Time Migration
+If you are updating from a previous version, the system will automatically perform a one-time migration. On the first run, it will:
+1.  Read the old `models/character_profiles.json` file.
+2.  Create the new `models/character_profiles/` directory.
+3.  Save each character into its own file within the new directory.
+4.  Rename the old file to `models/character_profiles.json.migrated` to complete the process.
 
 ## Tips for Best Results
 
@@ -423,7 +437,6 @@ This file is NOT tracked in git (it's in .gitignore) to keep your character data
 ## Future Enhancements
 
 Planned features:
-- **Automatic extraction** from session transcripts
 - **Character comparison** tools
 - **Timeline visualization** of character actions
 - **Relationship graphs** showing party dynamics

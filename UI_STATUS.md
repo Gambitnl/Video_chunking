@@ -174,3 +174,10 @@ If the tab still doesn't appear after trying the above:
 ---
 
 **Last Updated**: Based on current `app.py` code structure
+
+## Diagnostics & Manager Updates
+- **Diagnostics tab**: exposes pytest discovery/runner controls directly in the Gradio interface for quick validation.
+- **Manager status card**: now logs session input options, skip flags, and stage start/end times with automatic refresh so you can monitor a live run without digging through logs.
+## Manager Idle Behaviour
+- When `app.py` isn’t running, the dashboard now reports the status tracker as idle instead of replaying the last run.
+- Launch `python app_manager.py` first if you want to keep the dashboard ready; hit **Start App** to bring the processor up and the live session details will stream in automatically.

@@ -77,6 +77,10 @@ class SessionLogger:
             return logging.getLogger(f"DDSessionProcessor.{name}")
         return self.logger
 
+    def get_log_file_path(self) -> Path:
+        """Return current log file path"""
+        return self.log_file
+
     def debug(self, message: str, **kwargs):
         """Log debug message"""
         self.logger.debug(message, **kwargs)
@@ -158,6 +162,11 @@ _logger_instance = SessionLogger()
 def get_logger(name: Optional[str] = None):
     """Get logger instance - convenience function"""
     return _logger_instance.get_logger(name)
+
+
+def get_log_file_path() -> Path:
+    """Convenience accessor for current log file path"""
+    return _logger_instance.get_log_file_path()
 
 
 def log_session_start(session_id: str, **kwargs):

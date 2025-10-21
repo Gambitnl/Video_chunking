@@ -6,6 +6,7 @@ import soundfile as sf
 import numpy as np
 from pydub import AudioSegment
 from .config import Config
+from .logger import get_logger
 
 
 class AudioProcessor:
@@ -13,6 +14,7 @@ class AudioProcessor:
 
     def __init__(self):
         self.sample_rate = Config.AUDIO_SAMPLE_RATE
+        self.logger = get_logger("audio")
         # Try to find FFmpeg - first in PATH, then in local install
         self.ffmpeg_path = self._find_ffmpeg()
 
@@ -23,14 +25,17 @@ class AudioProcessor:
         # Try to find in PATH
         ffmpeg_in_path = shutil.which("ffmpeg")
         if ffmpeg_in_path:
+            self.logger.debug("FFmpeg discovered in PATH: %s", ffmpeg_in_path)
             return "ffmpeg"
 
         # Try local installation
         local_ffmpeg = Config.PROJECT_ROOT / "ffmpeg" / "bin" / "ffmpeg.exe"
         if local_ffmpeg.exists():
+            self.logger.debug("FFmpeg discovered in local bundle: %s", local_ffmpeg)
             return str(local_ffmpeg)
 
         # Default to "ffmpeg" and let it fail with helpful error
+        self.logger.warning("FFmpeg not found; relying on system PATH resolution")
         return "ffmpeg"
 
     def convert_to_wav(self, input_path: Path, output_path: Path = None) -> Path:
@@ -52,6 +57,8 @@ class AudioProcessor:
         if output_path is None:
             output_path = Config.TEMP_DIR / f"{input_path.stem}_converted.wav"
 
+        self.logger.info("Converting %s -> %s (sample_rate=%s)", input_path, output_path, self.sample_rate)
+
         # Use FFmpeg for conversion
         # -ar: sample rate, -ac: channels (1=mono), -y: overwrite
         command = [
@@ -70,8 +77,10 @@ class AudioProcessor:
                 capture_output=True,
                 text=True
             )
+            self.logger.debug("FFmpeg conversion command succeeded: %s", " ".join(command))
             return output_path
         except subprocess.CalledProcessError as e:
+            self.logger.error("FFmpeg conversion failed: %s", e.stderr.strip())
             raise RuntimeError(f"FFmpeg conversion failed: {e.stderr}")
         except FileNotFoundError:
             raise RuntimeError(
@@ -87,6 +96,8 @@ class AudioProcessor:
             Tuple of (audio_data, sample_rate)
         """
         audio, sr = sf.read(str(path))
+        if audio.dtype != np.float32:
+            audio = audio.astype(np.float32, copy=False)
         return audio, sr
 
     def get_duration(self, path: Path) -> float:
@@ -112,8 +123,8 @@ class AudioProcessor:
         - Peak normalization preserves dynamics
         """
         if audio.max() > 0:
-            return audio / np.abs(audio).max()
-        return audio
+            return (audio / np.abs(audio).max()).astype(np.float32, copy=False)
+        return audio.astype(np.float32, copy=False)
 
     def save_audio(self, audio: np.ndarray, path: Path, sample_rate: int = None):
         """Save audio array to file"""

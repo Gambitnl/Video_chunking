@@ -1,0 +1,30 @@
+{
+  "my_campaign": {
+    "name": "The Broken Seekers Campaign",
+    "description": "Main D&D campaign with 3 players + DM",
+    "party_id": "default",
+    "settings": {
+      "num_speakers": 4,
+      "skip_diarization": false,
+      "skip_classification": false,
+      "skip_snippets": true,
+      "session_id_prefix": "BrokenSeekers_S",
+      "auto_number_sessions": true
+    },
+    "notes": "Standard setup with all features enabled except audio snippets"
+  },
+  "quick_test": {
+    "name": "Quick Test Campaign",
+    "description": "Fast processing for testing",
+    "party_id": "default",
+    "settings": {
+      "num_speakers": 4,
+      "skip_diarization": true,
+      "skip_classification": true,
+      "skip_snippets": true,
+      "session_id_prefix": "Test_",
+      "auto_number_sessions": false
+    },
+    "notes": "All features skipped for maximum speed"
+  }
+}

@@ -1,0 +1,100 @@
+{
+  "name": "Fan'nar Khe'Lek",
+  "player": "Player3",
+  "race": "Winter Eladrin",
+  "class_name": "Handyman/Ranger",
+  "level": 3,
+  "description": "Snow-white skin, blond hair, wears fur clothing. Works for Culdor Academy. Sharp-witted, mysterious, prefers working alone.",
+  "personality": "Sharp-witted, mysterious, prefers to work alone. Observant and perceptive.",
+  "backstory": "Works as the handyman for Culdor Academy. Has a mysterious background.",
+  "appearance": "White skin (snow-white), blond hair. Wears clothing made from different types of fur. Uses archery and flail. Carries a magical black leather Grimoire. No visible weapons at first glance.",
+  "aliases": [
+    "Pas'Ta",
+    "Fan'nar"
+  ],
+  "campaign": "Gaia Adventures - Culdor Academy",
+  "first_session": "Session 1 (29-Nov-2024)",
+  "last_updated": "2025-10-21T21:50:21.913916",
+  "notable_actions": [
+    {
+      "session": "Session 1",
+      "timestamp": null,
+      "description": "Sat with Pip at Professor Artex's table",
+      "type": "social"
+    },
+    {
+      "session": "Session 2",
+      "timestamp": null,
+      "description": "Explored the village while Sha'ek prayed in the temple",
+      "type": "exploration"
+    },
+    {
+      "session": "Session 2",
+      "timestamp": null,
+      "description": "Failed DEX save and got trapped in spider webs at the farmhouse",
+      "type": "combat"
+    }
+  ],
+  "inventory": [
+    {
+      "name": "Healing Potion",
+      "description": "Given by Professor Artex",
+      "session_acquired": "Session 1",
+      "category": "consumable"
+    },
+    {
+      "name": "Bow",
+      "description": "Used for archery",
+      "session_acquired": null,
+      "category": "weapon"
+    },
+    {
+      "name": "Flail",
+      "description": "Melee weapon",
+      "session_acquired": null,
+      "category": "weapon"
+    },
+    {
+      "name": "Black Leather Grimoire",
+      "description": "Magical grimoire",
+      "session_acquired": null,
+      "category": "magical"
+    },
+    {
+      "name": "Fur Clothing",
+      "description": "Made from various types of fur",
+      "session_acquired": null,
+      "category": "armor"
+    }
+  ],
+  "relationships": [
+    {
+      "name": "Culdor Academy",
+      "relationship_type": "employer",
+      "description": "Works as handyman for the academy",
+      "first_met": "Before Session 1"
+    },
+    {
+      "name": "Professor Artex",
+      "relationship_type": "employer",
+      "description": "Academy professor who assigned the investigation",
+      "first_met": "Session 1"
+    }
+  ],
+  "development_notes": [],
+  "memorable_quotes": [],
+  "sessions_appeared": [
+    "Session 1",
+    "Session 2",
+    "Session 3"
+  ],
+  "total_sessions": 3,
+  "current_goals": [
+    "Investigate the disappearances",
+    "Support the party despite preferring to work alone",
+    "Uncover the cult's plans"
+  ],
+  "completed_goals": [],
+  "dm_notes": "",
+  "player_notes": ""
+}

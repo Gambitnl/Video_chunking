@@ -35,20 +35,42 @@ ollama pull gpt-oss:20b
 
 **Note**: This model requires at least 16GB of RAM. See `INSTALL_GPT_OSS.md` for alternative models.
 
-## 4. Setup PyAnnote for Speaker Diarization
+## 4. Setup PyAnnote for Speaker Diarization (Optional - Only if Using Diarization)
 
-1. Visit https://huggingface.co/pyannote/speaker-diarization-3.1
-2. Accept the terms and conditions
-3. Create a HuggingFace account if needed
-4. Generate an access token at https://huggingface.co/settings/tokens
-5. Copy `.env.example` to `.env`:
+PyAnnote speaker diarization uses gated models that require a HuggingFace token.
+
+**Note**: You can skip this step if you plan to use `--skip-diarization` (faster processing, but all speakers labeled as "UNKNOWN").
+
+### Steps to get your HuggingFace token:
+
+1. **Accept model terms**:
+   - Visit https://huggingface.co/pyannote/speaker-diarization and accept terms
+   - Visit https://huggingface.co/pyannote/segmentation and accept terms
+   - Wait for approval (usually instant)
+
+2. **Create HuggingFace account** (if you don't have one):
+   - Sign up at https://huggingface.co
+
+3. **Generate access token**:
+   - Go to https://huggingface.co/settings/tokens
+   - Click "Create new token"
+   - **Token type**: Select "Read" (you don't need Write or Fine-grained)
+   - **Token name**: Enter any name (e.g., "dnd-processor")
+   - **Permissions**: Enable "Read access to contents of all public gated repos you can access"
+   - Click "Create token" and copy it
+
+4. **Add token to your `.env` file**:
    ```bash
+   # Copy the example file if you don't have .env yet
    cp .env.example .env
    ```
-6. Add your token to `.env`:
+
+   Then edit `.env` and add:
    ```
-   HF_TOKEN=hf_xxxxxxxxxxxxx
+   HF_TOKEN=hf_xxxxxxxxxxxxxxxxxxxxx
    ```
+
+**Security note**: The token only needs Read access to download gated models. It cannot modify or upload anything.
 
 ## 5. Configure Your Party (Optional but Recommended)
 
@@ -99,6 +121,8 @@ Example:
   }
 }
 ```
+
+**Note on Profile Storage**: On its first run, the application will automatically migrate existing character profiles to a new storage format. An old `models/character_profiles.json` file will be read and moved to individual files in a new `models/character_profiles/` directory. This is a one-time process.
 
 ## 6. Verify Setup
 
@@ -198,3 +222,7 @@ For more help, see:
 - [SETUP.md](SETUP.md) - Detailed installation guide
 - [USAGE.md](USAGE.md) - How to use the system
 - [QUICKREF.md](QUICKREF.md) - Quick reference
+
+## Post-Setup Check
+- Launch `python app_manager.py` to confirm the manager dashboard detects the processor; the status card now surfaces every option you pass from the UI along with live stage timing.
+- Start the Gradio app and verify the new **Diagnostics** tab can collect pytest tests (requires `pytest` from `requirements.txt`) and run a quick suite to ensure the development environment is ready.

@@ -65,10 +65,7 @@ class SpeakerDiarizer:
             hf_token = os.getenv("HF_TOKEN")
 
             if hf_token:
-                self.pipeline = Pipeline.from_pretrained(
-                    model_name,
-                    use_auth_token=hf_token
-                )
+                self.pipeline = Pipeline.from_pretrained(model_name)
             else:
                 # Try without token (may fail for some models)
                 self.pipeline = Pipeline.from_pretrained(model_name)

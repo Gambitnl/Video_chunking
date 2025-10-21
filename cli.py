@@ -5,6 +5,7 @@ from rich.console import Console
 from rich.table import Table
 from src.pipeline import DDSessionProcessor
 from src.config import Config
+from src.logger import get_log_file_path
 
 console = Console()
 
@@ -122,9 +123,11 @@ def process(
 
         # Show success message
         console.print("\n[bold green]✓ Processing completed successfully![/bold green]")
+        console.print(f"[dim]Verbose log: {get_log_file_path()}[/dim]")
 
     except Exception as e:
         console.print(f"\n[bold red]✗ Processing failed: {e}[/bold red]")
+        console.print(f"[dim]Inspect log for details: {get_log_file_path()}[/dim]")
         raise click.Abort()
 
 

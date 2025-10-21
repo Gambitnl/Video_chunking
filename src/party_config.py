@@ -290,3 +290,88 @@ class PartyConfigManager:
 
         with open(export_path, 'w', encoding='utf-8') as f:
             json.dump(data, f, indent=2, ensure_ascii=False)
+
+
+@dataclass
+class CampaignSettings:
+    """Processing settings for a campaign"""
+    num_speakers: int = 4
+    skip_diarization: bool = False
+    skip_classification: bool = False
+    skip_snippets: bool = True
+    skip_knowledge: bool = False
+    session_id_prefix: str = "Session_"
+    auto_number_sessions: bool = False
+
+
+@dataclass
+class Campaign:
+    """Represents a campaign profile with party and settings"""
+    name: str
+    party_id: str
+    settings: CampaignSettings
+    description: Optional[str] = None
+    notes: Optional[str] = None
+
+
+class CampaignManager:
+    """Manages campaign profiles"""
+
+    def __init__(self, config_file: Path = None):
+        self.config_file = config_file or (Config.MODELS_DIR / "campaigns.json")
+        self.campaigns = self._load_campaigns()
+
+    def _load_campaigns(self) -> Dict[str, Campaign]:
+        """Load campaigns from JSON file"""
+        if not self.config_file.exists():
+            return {}
+
+        try:
+            with open(self.config_file, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+
+            campaigns = {}
+            for campaign_id, campaign_data in data.items():
+                settings_data = campaign_data.get('settings', {})
+                settings = CampaignSettings(**settings_data)
+
+                campaign = Campaign(
+                    name=campaign_data['name'],
+                    party_id=campaign_data['party_id'],
+                    settings=settings,
+                    description=campaign_data.get('description'),
+                    notes=campaign_data.get('notes')
+                )
+                campaigns[campaign_id] = campaign
+
+            return campaigns
+        except Exception as e:
+            print(f"Error loading campaigns: {e}")
+            return {}
+
+    def get_campaign(self, campaign_id: str) -> Optional[Campaign]:
+        """Get a campaign by ID"""
+        return self.campaigns.get(campaign_id)
+
+    def list_campaigns(self) -> List[str]:
+        """List all campaign IDs"""
+        return list(self.campaigns.keys())
+
+    def get_campaign_names(self) -> Dict[str, str]:
+        """Get mapping of campaign IDs to display names"""
+        return {cid: campaign.name for cid, campaign in self.campaigns.items()}
+
+    def add_campaign(self, campaign_id: str, campaign: Campaign):
+        """Add or update a campaign"""
+        self.campaigns[campaign_id] = campaign
+        self._save_campaigns()
+
+    def _save_campaigns(self):
+        """Save campaigns to JSON file"""
+        data = {}
+        for campaign_id, campaign in self.campaigns.items():
+            campaign_dict = asdict(campaign)
+            data[campaign_id] = campaign_dict
+
+        with open(self.config_file, 'w', encoding='utf-8') as f:
+            json.dump(data, f, indent=2, ensure_ascii=False)

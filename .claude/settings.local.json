@@ -18,9 +18,25 @@
       "Bash(del test_party.py)",
       "Bash(netstat:*)",
       "Bash(findstr:*)",
-      "Bash(taskkill:*)"
+      "Bash(taskkill:*)",
+      "Bash(where:*)",
+      "Bash(start OllamaSetup.exe)",
+      "WebSearch",
+      "WebFetch",
+      "Bash(timeout:*)",
+      "Bash(nvidia-smi:*)",
+      "Bash(npm:*)",
+      "Bash(npx:*)",
+      "Bash(uvx:*)",
+      "Bash(git:*)",
+      "mcp__*",
+      "Bash(pip install gradio-client)",
+      "Read(//c/Users/Gambit/OneDrive/Pictures/Screenshots/**)",
+      "Bash(tasklist)",
+      "mcp__ide__getDiagnostics"
     ],
     "deny": [],
     "ask": []
-  }
+  },
+  "enableAllProjectMcpServers": true
 }

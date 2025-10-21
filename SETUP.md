@@ -62,23 +62,31 @@ Ollama runs the local LLM for classifying in-character vs out-of-character conte
 
 ### 4. Setup PyAnnote (for Speaker Diarization)
 
-PyAnnote requires a HuggingFace account and token.
+**Note**: This step is **optional** if you plan to use `--skip-diarization` (faster processing, but speakers labeled as "UNKNOWN").
 
-1. **Create HuggingFace account**:
+PyAnnote uses gated models that require a HuggingFace token:
+
+1. **Accept model terms** (required before creating token):
+   - Visit https://huggingface.co/pyannote/speaker-diarization and accept terms
+   - Visit https://huggingface.co/pyannote/segmentation and accept terms
+   - Wait for approval (usually instant)
+
+2. **Create HuggingFace account** (if you don't have one):
    - Visit https://huggingface.co/join
-
-2. **Accept model terms**:
-   - Go to https://huggingface.co/pyannote/speaker-diarization
-   - Click "Agree and access repository"
 
 3. **Create access token**:
    - Visit https://huggingface.co/settings/tokens
-   - Click "New token"
-   - Give it a name and create
+   - Click "Create new token"
+   - **Token type**: Select "Read" (not Write or Fine-grained)
+   - **Token name**: Enter any name (e.g., "dnd-processor")
+   - **Permissions**: Enable "Read access to contents of all public gated repos you can access"
+   - Copy the token (starts with `hf_`)
 
 4. **Add token to environment**:
-   - Copy `.env.example` to `.env`
-   - Add your token: `HF_TOKEN=your_token_here`
+   - Copy `.env.example` to `.env` if you haven't already
+   - Add your token: `HF_TOKEN=hf_xxxxxxxxxxxxx`
+
+**Security note**: The token only needs Read access to download gated models.
 
 ### 5. Configure Settings (Optional)
 

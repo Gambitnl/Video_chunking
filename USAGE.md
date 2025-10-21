@@ -41,7 +41,28 @@ python cli.py process recording.m4a \
 
 ## Understanding the Output
 
-After processing, you'll get 4 files:
+After processing, each session is saved in its own **timestamped folder**:
+
+```
+output/
+  └── YYYYMMDD_HHMMSS_session_id/
+      ├── session_id_full.txt
+      ├── session_id_ic_only.txt
+      ├── session_id_ooc_only.txt
+      ├── session_id_data.json
+      ├── session_id_full.srt
+      ├── session_id_ic_only.srt
+      └── session_id_ooc_only.srt
+```
+
+**Example**: Processing a session with ID "session1" on October 19, 2025 at 7:47 PM creates:
+```
+output/20251019_194750_session1/
+```
+
+This keeps each session organized and prevents files from different sessions getting mixed together.
+
+### Output Files
 
 ### 1. Full Transcript (`*_full.txt`)
 
@@ -128,28 +149,32 @@ Complete structured data for further processing:
 
 **Use this for**: Custom analysis, building other tools, statistics
 
-### 5. Session Notebook (Coming Soon)
+### 5. Session Narratives (`narratives/`)
 
-Transform your IC-only transcript into different narrative perspectives:
+Transform your IC-only transcript into readable story formats using the **Story Notebooks** tab in the Web UI.
 
-**Character POV**: Experience the session from a specific character's perspective
+**Narrator Summary** (`*_narrator.md`): Third-person omniscient overview
 ```
-I entered the dark cave, my torch flickering in the damp air. The walls dripped
-with moisture. As I raised my torch higher, ancient runes became visible on the stone.
+The party ventured into the dark cave, their footsteps echoing off damp stone walls.
+Thorin raised his torch high, illuminating ancient Dwarven runes carved deep into
+the rock face.
 
-My companion Elara spoke up: "These runes look Dwarven..."
-```
-
-**Third-Person Narrator**: Read the session as a fantasy novel
-```
-Thorin entered the dark cave, his torch flickering in the damp air. The walls
-dripped with moisture. As he raised his torch higher, ancient runes became
-visible on the stone.
-
-Elara examined the markings carefully. "These runes look Dwarven," she observed.
+"These markings are old," Elara observed, tracing the symbols with her fingers.
+"Very old..."
 ```
 
-_Note: This feature will use the LLM to transform the IC-only transcript into readable narrative formats. The original transcripts remain unchanged._
+**Character Perspective** (`*_{character}.md`): First-person narrative from a PC's viewpoint
+```
+I entered the cave cautiously, my torch casting flickering shadows on the wet walls.
+The air was thick and cold. As I held my light higher, I noticed strange symbols
+carved into the stone.
+
+Elara stepped closer to examine them. "These runes are Dwarven," she said.
+```
+
+**How to Generate**: See the "Creating Session Narratives" section below.
+
+_Note: This feature uses your local LLM to transform the IC-only transcript into readable narrative formats. The original transcripts remain unchanged._
 
 ## Using Party Configurations
 
@@ -287,16 +312,51 @@ For very long sessions (6+ hours):
 
 ### Faster Processing (Skip Optional Steps)
 
+You can skip any of the three optional processing stages to save time:
+
+#### Skip Speaker Diarization (`--skip-diarization`)
+Skip identifying who is speaking. **~30% time saved**, but all speakers labeled as 'UNKNOWN'.
+
+**Pros**: Faster, no HuggingFace token needed
+**Cons**: Can't tell who said what
+**When to use**: Quick transcription, single speaker, or when you don't care who's talking
+
 ```bash
-# Skip both diarization and classification for 2-3x speed
-python cli.py process session.m4a \
-  --skip-diarization \
-  --skip-classification
+python cli.py process session.m4a --skip-diarization
 ```
 
-You'll still get transcription, just without:
-- Speaker labels (everyone will be "UNKNOWN")
-- IC/OOC separation (everything will be marked IC)
+#### Skip IC/OOC Classification (`--skip-classification`)
+Skip separating in-character dialogue from out-of-character banter. **~20% time saved**, but no IC/OOC filtering (all content labeled as IC).
+
+**Pros**: Faster, no LLM needed
+**Cons**: Can't filter out OOC banter
+**When to use**: Sessions with minimal OOC content, or when you want everything
+
+```bash
+python cli.py process session.m4a --skip-classification
+```
+
+#### Skip Audio Snippets (`--skip-snippets`)
+Skip exporting individual WAV files for each dialogue segment. **~10% time saved**, saves disk space.
+
+**Pros**: Faster, much less disk space used
+**Cons**: No individual audio clips per segment
+**When to use**: You only need transcripts, not audio segments
+
+```bash
+python cli.py process session.m4a --skip-snippets
+```
+
+#### Skip Everything (Maximum Speed)
+```bash
+# Skip all optional processing for 2-3x speed
+python cli.py process session.m4a \
+  --skip-diarization \
+  --skip-classification \
+  --skip-snippets
+```
+
+You'll still get transcription with timestamps, just without speaker labels, IC/OOC filtering, or audio segments.
 
 ### Using Groq API for Speed
 
@@ -504,3 +564,165 @@ python cli.py show-speakers C1S05
 - Check [SETUP.md](SETUP.md) for installation issues
 - Check [README.md](README.md) for project overview
 - Review the Help tab in the web UI
+
+## LLM Chat
+
+The Web UI includes a powerful "LLM Chat" tab that allows you to interact directly with the locally configured language model (e.g., Ollama). You can use this for general queries or to role-play as one of your campaign characters.
+
+### Features
+
+- **Direct LLM Access**: Chat directly with the model.
+- **Character Role-Playing**: Select a character from the dropdown to have the LLM adopt their personality, description, and backstory.
+- **Session-Based History**: The chat remembers your conversation within the current session.
+- **Clear Chat**: A button to easily reset the conversation.
+
+### How to Use
+
+1.  Navigate to the **LLM Chat** tab in the web UI.
+2.  To have a general conversation, simply type your message in the "Your Message" box and press Enter.
+3.  To chat as a character:
+    - Select a character from the **Chat as Character** dropdown menu.
+    - The chat history will automatically clear.
+    - Type your message. The LLM will now respond from the perspective of the selected character.
+4.  Click the **Clear Chat** button at any time to start a new conversation.
+
+**Note on Chat History**: The chat history is stored in-memory for the duration of your browser session. If you close or refresh the application, the chat history will be lost. It is not saved to a file.
+
+## Campaign Dashboard
+
+The **Campaign Dashboard** tab provides a comprehensive health check of all components tied to your selected campaign.
+
+### Features
+
+- **Campaign Health Percentage**: 0-100% with color-coded indicator (🟢🟡🟠🔴)
+- **Visual Status Indicators**: ✅ (configured), ⚠️ (needs attention), ❌ (missing)
+- **Component Tracking**: 6 key areas monitored
+- **Actionable Next Steps**: Specific recommendations for missing components
+
+### Components Monitored
+
+1. **Party Configuration**: `models/parties/{campaign}_party.json`
+2. **Processing Settings**: Campaign-specific settings in party config
+3. **Knowledge Base**: `models/knowledge/{campaign}_knowledge.json`
+4. **Character Profiles**: `models/character_profiles/{campaign}_*.json`
+5. **Processed Sessions**: `output/{campaign}_Session_*/`
+6. **Session Narratives**: `output/{campaign}_Session_*/narratives/`
+
+### How to Use
+
+1. **Select a campaign** on the "Process Session" tab
+2. **Go to "Campaign Dashboard" tab**
+3. **Click "Refresh Campaign Info"** to update the dashboard
+4. **Review status indicators** to see what's configured
+5. **Follow "Next Steps"** to fix missing components
+
+### Health Indicators
+
+- 🟢 **90-100%**: Excellent - Everything configured
+- 🟡 **70-89%**: Good - Most components ready
+- 🟠 **50-69%**: Needs Attention - Several missing
+- 🔴 **0-49%**: Critical - Major setup needed
+
+See **[CAMPAIGN_DASHBOARD.md](CAMPAIGN_DASHBOARD.md)** for complete documentation.
+
+## Campaign Library (Knowledge Base)
+
+The **Campaign Library** tab displays all campaign knowledge automatically extracted from your sessions.
+
+### What Gets Tracked
+
+- 🎯 **Quests**: Active, completed, and failed missions
+- 👥 **NPCs**: Characters met, their roles, and relationships
+- 🔓 **Plot Hooks**: Unresolved mysteries and foreshadowing
+- 📍 **Locations**: Places visited and their descriptions
+- ⚡ **Items**: Important artifacts and equipment
+
+### How It Works
+
+1. **Automatic Extraction**: After processing each session, the LLM analyzes the IC-only transcript
+2. **Entity Identification**: Quests, NPCs, locations, items, and plot hooks are detected
+3. **Knowledge Merging**: New information merges with existing campaign knowledge
+4. **Smart Updates**: Existing entities are updated, new ones are added
+
+### Accessing the Knowledge Base
+
+**Web UI**:
+1. Go to **"Campaign Library"** tab
+2. Select your campaign from the dropdown
+3. Click **"Load Knowledge Base"**
+4. Browse entities by category or search across all
+
+**File Location**: `models/knowledge/{campaign}_knowledge.json`
+
+### Disabling Knowledge Extraction
+
+If you don't want automatic knowledge extraction:
+
+**Web UI**: Uncheck "Skip Campaign Knowledge Extraction" checkbox when processing
+
+**CLI**: Add `--skip-knowledge` flag (not yet implemented)
+
+See **[CAMPAIGN_KNOWLEDGE_BASE.md](CAMPAIGN_KNOWLEDGE_BASE.md)** for complete documentation.
+
+## Import Session Notes (Backfilling)
+
+The **Import Session Notes** tab allows you to import written notes from early sessions (before you started recording).
+
+### Use Case
+
+Don't have recordings of sessions 1-5? Import your written notes to:
+- Extract campaign knowledge (quests, NPCs, locations, etc.)
+- Generate narrative summaries
+- Create a complete session timeline
+- Build character profiles from early sessions
+
+### How to Import
+
+1. **Go to "Import Session Notes" tab**
+2. **Enter Session ID**: e.g., "Session_01", "Session_02"
+3. **Select Campaign**: Choose from dropdown
+4. **Provide Notes**: Paste text or upload `.txt`/`.md` file
+5. **Enable Options**:
+   - ✅ **Extract Knowledge**: Add entities to knowledge base
+   - ✅ **Generate Narrative**: Create story summary
+6. **Click "Import Session Notes"**
+
+### Example Notes Format
+
+```markdown
+Session 1 - The Adventure Begins
+
+The party met at the Broken Compass tavern in Neverwinter. Guard Captain
+Thorne approached them with a quest: find Marcus, a merchant who disappeared
+on the Waterdeep Road three days ago.
+
+NPCs Met:
+- Guard Captain Thorne (stern but fair, quest giver)
+- Innkeeper Mara (friendly, provided rumors)
+
+Locations:
+- The Broken Compass (tavern in Neverwinter)
+- Waterdeep Road (where Marcus vanished)
+
+Quests Started:
+- Find Marcus the Missing Merchant (active)
+
+The party set out at dawn, following the road north...
+```
+
+### Generated Files
+
+- **Knowledge Base**: Updated with extracted entities
+- **Narrative** (if enabled): `output/imported_narratives/{session_id}_narrator.md`
+
+See **[CAMPAIGN_KNOWLEDGE_BASE.md](CAMPAIGN_KNOWLEDGE_BASE.md)** for complete documentation.
+
+## Monitoring & Diagnostics
+- Open the Gradio UI and switch to the **Diagnostics** tab to list pytest suites (`Discover Tests`) and run individual nodes or the entire suite without leaving the browser.
+- Keep `app_manager.py` running: the manager now surfaces every option the session was launched with, tracks stage start/end timestamps, and refreshes automatically so you can watch progress in real time.
+- Use the **Recent Events** list in the manager to confirm which stage completed last and what will run next�helpful when processing multi-hour sessions.
+## Creating Session Narratives
+1. Paste your shared Google Doc URL into the **Document Viewer** tab and click *Fetch* to populate the campaign notebook context.
+2. Switch to **Story Notebooks**, pick a processed session, and adjust the creativity slider to control how closely the prose mirrors the transcript.
+3. Generate the narrator overview, then choose individual characters to produce first-person recaps; each result is saved to `output/<session>/narratives/` for easy revisiting.
+- The manager now differentiates between �idle� and �active� states: if the processor isn�t listening on port 7860 you�ll see an idle summary with the most recent session ID, and detailed stage progress appears only once a session is running.

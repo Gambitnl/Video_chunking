@@ -102,6 +102,9 @@ The repository implements an end-to-end workflow for processing long-form Dungeo
 4. **Telemetry & Logging Extensions**  
    - Funnel remaining `print` statements (e.g., in auxiliary utilities) through `SessionLogger` and expose log level selection in CLI/UI.
 
+5. **Incremental Config Autofill**  
+   - While the pipeline processes transcripts, have the contextual LLM progressively backfill missing party metadata (character names, player names, factions) so newly inferred details appear in the app without waiting for full session completion.
+
 ---
 
 _Prepared by ChatGPT (Codex), GPT-5-based coding agent._

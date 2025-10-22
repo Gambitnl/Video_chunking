@@ -1,0 +1,234 @@
+{
+  "campaign_id": "broken_seekers",
+  "last_updated": "2025-10-22T13:49:53.574230",
+  "sessions_processed": [
+    "Session_01"
+  ],
+  "quests": [
+    {
+      "title": "Investigate the Aftermath of the Storm",
+      "description": "Multiple groups are being assembled to research the cause and effects of the devastating storm that killed 70% of the population.",
+      "status": "unknown",
+      "first_mentioned": "Session_01",
+      "last_updated": "Session_01",
+      "related_npcs": [],
+      "related_locations": [],
+      "notes": []
+    }
+  ],
+  "npcs": [
+    {
+      "name": "Professor Artex",
+      "description": "Leonine professor at the Culdor Academy who organizes the research groups.",
+      "first_mentioned": "Session_01",
+      "last_updated": "Session_01",
+      "role": "quest_giver",
+      "location": "Culdor Academy",
+      "relationships": {},
+      "appearances": [
+        "Session_01"
+      ],
+      "notes": []
+    },
+    {
+      "name": "Pipira Shimmerlock (Pip)",
+      "description": "Female gnome wizard, student, curious and loves experiments.",
+      "first_mentioned": "Session_01",
+      "last_updated": "Session_01",
+      "role": "ally",
+      "location": "Culdor Academy",
+      "relationships": {},
+      "appearances": [
+        "Session_01"
+      ],
+      "notes": []
+    },
+    {
+      "name": "Fan'nar Khe'Lek (Pas'Ta)",
+      "description": "Winter Eladrin, muscular, blond, works as a handyman at the academy.",
+      "first_mentioned": "Session_01",
+      "last_updated": "Session_01",
+      "role": "ally",
+      "location": "Culdor Academy",
+      "relationships": {},
+      "appearances": [
+        "Session_01"
+      ],
+      "notes": []
+    },
+    {
+      "name": "Sha’ek",
+      "description": "Cleric in heavy chain mail with green eyes, carrying a large bag and a shield bearing his god’s emblem, searching urgently for someone.",
+      "first_mentioned": "Session_01",
+      "last_updated": "Session_01",
+      "role": "unknown",
+      "location": "outside Culdor Academy",
+      "relationships": {},
+      "appearances": [
+        "Session_01"
+      ],
+      "notes": []
+    },
+    {
+      "name": "Furnax (Frost Hellhound)",
+      "description": "Black and dark blue hellhound companion named by Pip.",
+      "first_mentioned": "Session_01",
+      "last_updated": "Session_01",
+      "role": "ally",
+      "location": "party's companion",
+      "relationships": {},
+      "appearances": [
+        "Session_01"
+      ],
+      "notes": []
+    }
+  ],
+  "plot_hooks": [
+    {
+      "summary": "The cause of the catastrophic storm.",
+      "details": "The storm killed 70% of the population and is believed to be an act of the gods. The reason behind it remains unexplained.",
+      "first_mentioned": "Session_01",
+      "last_updated": "Session_01",
+      "related_npcs": [],
+      "related_quests": [],
+      "resolved": false,
+      "resolution": null
+    },
+    {
+      "summary": "The purpose of the investigation stone.",
+      "details": "The group receives a stone that can send a message up to 10 minutes long once per day; its exact use and origin are unclear.",
+      "first_mentioned": "Session_01",
+      "last_updated": "Session_01",
+      "related_npcs": [],
+      "related_quests": [],
+      "resolved": false,
+      "resolution": null
+    },
+    {
+      "summary": "Sha’ek’s urgent search.",
+      "details": "The cleric enters the academy looking for someone specific, but no explanation is given.",
+      "first_mentioned": "Session_01",
+      "last_updated": "Session_01",
+      "related_npcs": [],
+      "related_quests": [],
+      "resolved": false,
+      "resolution": null
+    },
+    {
+      "summary": "Origin of the Frost Hellhound.",
+      "details": "Furnax was named by Pip; the background of how the creature came to be with the party is not yet revealed.",
+      "first_mentioned": "Session_01",
+      "last_updated": "Session_01",
+      "related_npcs": [],
+      "related_quests": [],
+      "resolved": false,
+      "resolution": null
+    }
+  ],
+  "locations": [
+    {
+      "name": "Atlas",
+      "description": "A city that shares its name with the surrounding continent, located on the continent of Atlas.",
+      "first_mentioned": "Session_01",
+      "last_updated": "Session_01",
+      "type": "city",
+      "notable_features": [],
+      "npcs_present": [],
+      "visits": [
+        "Session_01"
+      ]
+    },
+    {
+      "name": "Culdor Academy",
+      "description": "An academic institution where the party gathers to plan their investigation.",
+      "first_mentioned": "Session_01",
+      "last_updated": "Session_01",
+      "type": "building",
+      "notable_features": [],
+      "npcs_present": [],
+      "visits": [
+        "Session_01"
+      ]
+    },
+    {
+      "name": "Magic Shop",
+      "description": "A shop where the party can purchase magical items up to 500 gold worth.",
+      "first_mentioned": "Session_01",
+      "last_updated": "Session_01",
+      "type": "building",
+      "notable_features": [],
+      "npcs_present": [],
+      "visits": [
+        "Session_01"
+      ]
+    },
+    {
+      "name": "Smithy",
+      "description": "A forge where the party can buy or forge items.",
+      "first_mentioned": "Session_01",
+      "last_updated": "Session_01",
+      "type": "building",
+      "notable_features": [],
+      "npcs_present": [],
+      "visits": [
+        "Session_01"
+      ]
+    },
+    {
+      "name": "Continent of Atlas",
+      "description": "The continent on which the city of Atlas is located.",
+      "first_mentioned": "Session_01",
+      "last_updated": "Session_01",
+      "type": "continent",
+      "notable_features": [],
+      "npcs_present": [],
+      "visits": [
+        "Session_01"
+      ]
+    },
+    {
+      "name": "World Gaia",
+      "description": "The broader world in which the continent of Atlas exists.",
+      "first_mentioned": "Session_01",
+      "last_updated": "Session_01",
+      "type": "world",
+      "notable_features": [],
+      "npcs_present": [],
+      "visits": [
+        "Session_01"
+      ]
+    }
+  ],
+  "items": [
+    {
+      "name": "Investigation Stone",
+      "description": "A stone that allows the group to send a message up to 10 minutes long once per day.",
+      "first_mentioned": "Session_01",
+      "last_updated": "Session_01",
+      "owner": "Group",
+      "location": null,
+      "properties": [],
+      "significance": null
+    },
+    {
+      "name": "Healing Potion",
+      "description": "A potion that restores health.",
+      "first_mentioned": "Session_01",
+      "last_updated": "Session_01",
+      "owner": "Individual party members",
+      "location": null,
+      "properties": [],
+      "significance": null
+    },
+    {
+      "name": "Furnax (Frost Hellhound)",
+      "description": "A black and dark blue hellhound companion named by Pip.",
+      "first_mentioned": "Session_01",
+      "last_updated": "Session_01",
+      "owner": "Pip",
+      "location": null,
+      "properties": [],
+      "significance": null
+    }
+  ]
+}

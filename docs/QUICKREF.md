@@ -258,9 +258,18 @@ print(result['statistics'])
 
 ## Campaign Dashboard Cheatsheet
 - **Access**: Campaign Dashboard tab → Select campaign → Click "Refresh Campaign Info"
-- **Health Indicators**: 🟢 90-100% | 🟡 70-89% | 🟠 50-69% | 🔴 0-49%
+- **Health Indicators**: 
+  - `HEALTH_EXCELLENT` 🟢 90-100%
+  - `HEALTH_GOOD` 🟡 70-89%
+  - `HEALTH_FAIR` 🟠 50-69%
+  - `HEALTH_POOR` 🔴 0-49%
 - **Components**: Party config, settings, knowledge base, character profiles, sessions, narratives
-- **Status**: ✅ Configured | ⚠️ Needs attention | ❌ Missing
+- **Status**: 
+  - `SUCCESS` ✅ Configured
+  - `WARNING` ⚠️ Needs attention
+  - `ERROR` ❌ Missing
+
+See [STATUS_INDICATORS.md](STATUS_INDICATORS.md) for complete reference.
 
 ## Campaign Library Cheatsheet
 - **Access**: Campaign Library tab → Select campaign → Click "Load Knowledge Base"
@@ -274,3 +283,9 @@ print(result['statistics'])
 - **Process**: Session ID → Campaign → Paste/upload notes → Enable options → Import
 - **Options**: Extract Knowledge | Generate Narrative
 - **Output**: `models/knowledge/{campaign}_knowledge.json` + `output/imported_narratives/`
+
+### MCP Toolchain (Future)
+- `python tools/make_pipeline_flowchart.py` ? generates pipeline flowchart (Graphviz).
+- Agent commands (LangChain) to be added for automated runs.
+- Retrieval/LLM backends selectable via config.
+

@@ -107,6 +107,8 @@ class FasterWhisperTranscriber(BaseTranscriber):
             chunk.end_time,
             chunk.end_time - chunk.start_time
         )
+
+        segments, info = self.model.transcribe(
             chunk.audio,
             language=language,
             beam_size=5,

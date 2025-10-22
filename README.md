@@ -15,7 +15,7 @@ python app.py
 python cli.py process your_session.m4a
 ```
 
-**See [SETUP.md](SETUP.md) for detailed installation instructions.**
+**See [SETUP.md](docs/SETUP.md) for detailed installation instructions.**
 
 ## ✨ Features
 
@@ -72,17 +72,17 @@ output/
 ## 📖 Documentation
 
 ### Getting Started
-- **[SETUP.md](SETUP.md)** - Installation and configuration
-- **[FIRST_TIME_SETUP.md](FIRST_TIME_SETUP.md)** - Quick setup guide for new users
-- **[USAGE.md](USAGE.md)** - Detailed usage guide with examples
-- **[QUICKREF.md](QUICKREF.md)** - One-page command reference
+- **[SETUP.md](docs/SETUP.md)** - Installation and configuration
+- **[FIRST_TIME_SETUP.md](docs/FIRST_TIME_SETUP.md)** - Quick setup guide for new users
+- **[USAGE.md](docs/USAGE.md)** - Detailed usage guide with examples
+- **[QUICKREF.md](docs/QUICKREF.md)** - One-page command reference
 
 ### Features
-- **[PARTY_CONFIG.md](PARTY_CONFIG.md)** - Party configuration system guide
+- **[PARTY_CONFIG.md](docs/PARTY_CONFIG.md)** - Party configuration system guide
 - **[CHARACTER_PROFILES.md](CHARACTER_PROFILES.md)** - Character profiling and overview generation
-- **[CAMPAIGN_KNOWLEDGE_BASE.md](CAMPAIGN_KNOWLEDGE_BASE.md)** - Automatic campaign knowledge extraction
+- **[CAMPAIGN_KNOWLEDGE_BASE.md](docs/CAMPAIGN_KNOWLEDGE_BASE.md)** - Automatic campaign knowledge extraction
 - **[CAMPAIGN_DASHBOARD.md](CAMPAIGN_DASHBOARD.md)** - Campaign health check and overview
-- **[SESSION_NOTEBOOK.md](SESSION_NOTEBOOK.md)** - Session notebook and perspective transformations
+- **[SESSION_NOTEBOOK.md](docs/SESSION_NOTEBOOK.md)** - Session notebook and perspective transformations
 
 ### Technical
 - **[DEVELOPMENT.md](DEVELOPMENT.md)** - Technical implementation details
@@ -476,5 +476,5 @@ This project is provided as-is for personal use. See individual library licenses
 ## Story Notebooks Tab
 - Load the campaign notebook via **Document Viewer** (Google Doc export) so the LLM can weave in contextual cues.
 - Open **Story Notebooks** to pick a processed session, then generate the narrator summary and per-character POVs.
-- Each run saves Markdown files under the session�s `narratives/` folder, making it easy to iterate on edits or share drafts.
-- **Dashboard idle state**: When `app.py` isn�t listening, the manager now shows an idle summary instead of stale pipeline data, so you always know when a run is actually active.
+- Each run saves Markdown files under the session's `narratives/` folder, making it easy to iterate on edits or share drafts.
+- **Dashboard idle state**: When `app.py` isn't listening, the manager now shows an idle summary instead of stale pipeline data, so you always know when a run is actually active.

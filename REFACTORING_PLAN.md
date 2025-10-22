@@ -1,5 +1,12 @@
 Task Summary: Refactoring Candidates for D&D Session Processor
 
+> **WARNING: DEPRECATED - 2025-10-22**
+> This refactoring plan has been consolidated into **ROADMAP.md** under "P0: Code Refactoring".
+> Please refer to ROADMAP.md for the current implementation order and priorities.
+> This file is kept for historical reference only.
+
+---
+
   Context
 
   The D&D Session Transcription system has grown significantly with new features:     

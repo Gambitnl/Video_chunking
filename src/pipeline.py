@@ -194,7 +194,32 @@ class DDSessionProcessor:
 
             self.logger.info("Stage 2/9: Chunking audio with VAD...")
             StatusTracker.update_stage(self.session_id, 2, "running", "Detecting speech regions")
-            chunks = self.chunker.chunk_audio(wav_file)
+
+            chunk_progress = {"count": 0}
+
+            def _chunk_progress_callback(chunk, total_duration):
+                try:
+                    chunk_progress["count"] = chunk.chunk_index + 1
+                    details = {
+                        "chunks_created": chunk_progress["count"],
+                        "latest_chunk_index": chunk.chunk_index,
+                        "latest_chunk_end": round(chunk.end_time, 2)
+                    }
+                    if total_duration and total_duration > 0:
+                        percent = min(100.0, max(0.0, (chunk.end_time / total_duration) * 100))
+                        details["progress_percent"] = round(percent, 1)
+
+                    StatusTracker.update_stage(
+                        self.session_id,
+                        2,
+                        "running",
+                        message=f"Chunking... {chunk_progress['count']} chunk{'s' if chunk_progress['count'] != 1 else ''}",
+                        details=details
+                    )
+                except Exception as progress_error:
+                    self.logger.debug("Chunk progress callback skipped: %s", progress_error)
+
+            chunks = self.chunker.chunk_audio(wav_file, progress_callback=_chunk_progress_callback)
             StatusTracker.update_stage(
                 self.session_id, 2, "completed", f"Created {len(chunks)} chunks"
             )

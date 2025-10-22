@@ -8,9 +8,12 @@ and provides functions to retrieve document content.
 import json
 import os
 import re
+import webbrowser
+import threading
 from pathlib import Path
 from typing import Optional, Tuple
 from urllib.parse import urlparse, parse_qs
+from http.server import HTTPServer, BaseHTTPRequestHandler
 
 from google.auth.transport.requests import Request
 from google.auth.exceptions import RefreshError
@@ -30,6 +33,153 @@ TOKEN_FILE = Path(Config.OUTPUT_DIR) / "gdrive_token.json"
 
 # OAuth client config file path (user needs to provide this)
 CLIENT_CONFIG_FILE = Path.cwd() / "gdrive_credentials.json"
+
+
+# Global variables to capture OAuth callback
+_oauth_code = None
+_oauth_error = None
+_server_ready = threading.Event()
+
+
+class OAuthCallbackHandler(BaseHTTPRequestHandler):
+    """HTTP request handler to capture OAuth callback."""
+
+    def do_GET(self):
+        """Handle the OAuth redirect."""
+        global _oauth_code, _oauth_error
+
+        # Parse the callback URL
+        parsed = urlparse(self.path)
+        params = parse_qs(parsed.query)
+
+        # Extract code or error
+        if 'code' in params:
+            _oauth_code = params['code'][0]
+            message = "Authentication successful! You can close this window and return to the application."
+            self.send_response(200)
+        elif 'error' in params:
+            _oauth_error = params['error'][0]
+            message = f"Authentication failed: {_oauth_error}. You can close this window."
+            self.send_response(400)
+        else:
+            message = "Unknown response from Google. You can close this window."
+            self.send_response(400)
+
+        # Send HTML response
+        self.send_header('Content-type', 'text/html')
+        self.end_headers()
+
+        html = f"""
+        <html>
+        <head><title>OAuth Authentication</title></head>
+        <body style="font-family: Arial, sans-serif; text-align: center; padding: 50px;">
+            <h2>{message}</h2>
+            <p>This window can be closed.</p>
+            <script>window.close();</script>
+        </body>
+        </html>
+        """
+        self.wfile.write(html.encode())
+
+    def log_message(self, format, *args):
+        """Suppress server log messages."""
+        pass
+
+
+def authenticate_automatically() -> Tuple[bool, str]:
+    """
+    Perform OAuth authentication with automatic browser flow.
+
+    This function:
+    1. Starts a local HTTP server to catch the OAuth callback
+    2. Opens the user's browser to Google's authorization page
+    3. Waits for the user to authorize
+    4. Automatically captures and processes the authorization code
+
+    Returns:
+        Tuple of (success: bool, message: str)
+    """
+    global _oauth_code, _oauth_error
+
+    # Reset global state
+    _oauth_code = None
+    _oauth_error = None
+
+    # Check for credentials file
+    if not CLIENT_CONFIG_FILE.exists():
+        return False, (
+            f"⚠️ Setup Required: OAuth credentials file not found.\n\n"
+            f"📍 Expected location: {CLIENT_CONFIG_FILE}\n\n"
+            f"📖 Please follow the setup guide to create your credentials:\n"
+            f"   docs/GOOGLE_OAUTH_SIMPLE_SETUP.md\n\n"
+            f"⏱️ This is a one-time setup that takes about 5-10 minutes.\n"
+            f"💰 It's completely FREE - no billing required!\n\n"
+            f"Once you have the file, just click this button again."
+        )
+
+    try:
+        # Create the OAuth flow
+        flow = Flow.from_client_secrets_file(
+            str(CLIENT_CONFIG_FILE),
+            scopes=SCOPES,
+            redirect_uri='http://localhost:8080/'
+        )
+
+        # Generate authorization URL
+        auth_url, _ = flow.authorization_url(
+            access_type='offline',
+            include_granted_scopes='true',
+            prompt='consent'
+        )
+
+        # Start local server to catch callback
+        server = HTTPServer(('localhost', 8080), OAuthCallbackHandler)
+        server.timeout = 300  # 5 minute timeout
+
+        def run_server():
+            """Run the server in a separate thread."""
+            _server_ready.set()
+            server.handle_request()  # Handle one request then stop
+
+        # Start server in background thread
+        server_thread = threading.Thread(target=run_server, daemon=True)
+        server_thread.start()
+
+        # Wait for server to be ready
+        _server_ready.wait(timeout=2)
+        _server_ready.clear()
+
+        # Open browser for user to authorize
+        webbrowser.open(auth_url)
+
+        # Wait for callback (server will handle one request)
+        server_thread.join(timeout=310)  # Wait up to 5 minutes + buffer
+
+        # Check results
+        if _oauth_error:
+            return False, f"Authentication failed: {_oauth_error}"
+
+        if not _oauth_code:
+            return False, (
+                "Authentication timed out or was cancelled.\n"
+                "Please try again and make sure to approve the authorization in your browser."
+            )
+
+        # Exchange code for token
+        flow.fetch_token(code=_oauth_code)
+        creds = flow.credentials
+
+        # Save credentials
+        TOKEN_FILE.parent.mkdir(parents=True, exist_ok=True)
+        TOKEN_FILE.write_text(creds.to_json())
+
+        return True, (
+            "Success! You are now authenticated with Google Drive.\n"
+            "You can now load private Google Docs without making them publicly shared."
+        )
+
+    except Exception as e:
+        return False, f"Error during authentication: {str(e)}"
 
 
 def get_auth_url() -> Tuple[str, Flow]:

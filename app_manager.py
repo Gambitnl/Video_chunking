@@ -212,19 +212,14 @@ def _generate_pipeline_flowchart():
     dot.attr("node", shape="rectangle", style="rounded,filled", color="#0C111F", fillcolor="#161B26", fontname="Helvetica", fontcolor="#E2E8F0")
     dot.attr("edge", color="#718096", arrowsize="0.8")
 
-    stages = [
-        ("Audio Input", "Audio Conversion"),
-        ("Audio Conversion", "Chunking"),
-        ("Chunking", "Transcription"),
-        ("Transcription", "Merge Overlaps"),
-        ("Merge Overlaps", "Speaker Diarization"),
-        ("Speaker Diarization", "IC/OOC Classification"),
-        ("IC/OOC Classification", "Output Generation"),
-        ("Output Generation", "Audio Snippet Export"),
-    ]
-
-    for src, dst in stages:
-        dot.edge(src, dst)
+    if not STAGES:
+        dot.node("No stages defined")
+    else:
+        dot.edge("Audio Input", STAGES[0]["name"])
+        for i in range(len(STAGES) - 1):
+            src = STAGES[i]["name"]
+            dst = STAGES[i + 1]["name"]
+            dot.edge(src, dst)
 
     FLOWCHART_PATH.parent.mkdir(parents=True, exist_ok=True)
     output_base = FLOWCHART_PATH.with_suffix("")

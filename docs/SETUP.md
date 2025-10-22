@@ -290,3 +290,9 @@ This can speed up processing by 5-10x!
 ---
 
 You're all set! Try processing your first D&D session.
+
+## MCP Integrations (Preparation)
+1. Install `graphviz` (system + Python) for flowchart tooling.
+2. Optional: install `langchain`, `llama-index`, `openai`, `ollama` (pending integration).
+3. Update `.env` with backend preferences once agent workflows land.
+

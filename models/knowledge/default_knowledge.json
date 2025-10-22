@@ -1,6 +1,6 @@
 {
   "campaign_id": "default",
-  "last_updated": "2025-10-21T22:23:26.520882",
+  "last_updated": "2025-10-22T01:22:24.228096",
   "sessions_processed": [
     "test_sep19_5m"
   ],
@@ -27,8 +27,28 @@
     },
     {
       "title": "Mansion Investigation",
-      "description": "Investigate the mansion to find a friend of the speaker and uncover any hidden secrets.",
+      "description": "Go to the mansion to locate a friend and uncover any hidden information.",
       "status": "unknown",
+      "first_mentioned": "test_sep19_5m",
+      "last_updated": "test_sep19_5m",
+      "related_npcs": [],
+      "related_locations": [],
+      "notes": []
+    },
+    {
+      "title": "Discover Hidden Lab and Crystal",
+      "description": "Find the hidden passage in the basement, enter the study/lab, and determine the purpose of the crystal and machine.",
+      "status": "unknown",
+      "first_mentioned": "test_sep19_5m",
+      "last_updated": "test_sep19_5m",
+      "related_npcs": [],
+      "related_locations": [],
+      "notes": []
+    },
+    {
+      "title": "Find Friend in Mansion",
+      "description": "Investigate a mansion to locate a friend of the quest giver.",
+      "status": "active",
       "first_mentioned": "test_sep19_5m",
       "last_updated": "test_sep19_5m",
       "related_npcs": [],
@@ -39,11 +59,11 @@
   "npcs": [
     {
       "name": "Sjaak",
-      "description": "Unknown",
+      "description": "A figure who attacks the party and later teleports away.",
       "first_mentioned": "test_sep19_5m",
       "last_updated": "test_sep19_5m",
-      "role": "unknown",
-      "location": "Mansion",
+      "role": "enemy",
+      "location": "Mansion (or hidden laboratory)",
       "relationships": {},
       "appearances": [
         "test_sep19_5m"
@@ -161,12 +181,82 @@
       "related_quests": [],
       "resolved": false,
       "resolution": null
+    },
+    {
+      "summary": "Hidden laboratory with a crystal and machine behind a disguised vat.",
+      "details": "The laboratory contains a crystal and a machine that seem to be connected to teleportation. Sjaak was teleported away after the machine was activated.",
+      "first_mentioned": "test_sep19_5m",
+      "last_updated": "test_sep19_5m",
+      "related_npcs": [],
+      "related_quests": [],
+      "resolved": false,
+      "resolution": null
+    },
+    {
+      "summary": "Tracks of 'oezes' and slime trail leading to hidden entrance.",
+      "details": "There were traces of 'oezes' (unknown creature) and slime near the vats, suggesting prior activity and a hidden passage.",
+      "first_mentioned": "test_sep19_5m",
+      "last_updated": "test_sep19_5m",
+      "related_npcs": [],
+      "related_quests": [],
+      "resolved": false,
+      "resolution": null
+    },
+    {
+      "summary": "Friend's whereabouts uncertain.",
+      "details": "The original quest was to find a friend in the mansion, but it remains unclear whether they were found.",
+      "first_mentioned": "test_sep19_5m",
+      "last_updated": "test_sep19_5m",
+      "related_npcs": [],
+      "related_quests": [],
+      "resolved": false,
+      "resolution": null
+    },
+    {
+      "summary": "Hidden passage behind beer barrel with slime trail",
+      "details": "The basement contains a concealed entrance revealed by a slime-like trail and leaking barrels.",
+      "first_mentioned": "test_sep19_5m",
+      "last_updated": "test_sep19_5m",
+      "related_npcs": [],
+      "related_quests": [],
+      "resolved": false,
+      "resolution": null
+    },
+    {
+      "summary": "Crystal and machine in secret laboratory",
+      "details": "An underground laboratory holds a crystal and an unnamed machine, suggesting a larger plot.",
+      "first_mentioned": "test_sep19_5m",
+      "last_updated": "test_sep19_5m",
+      "related_npcs": [],
+      "related_quests": [],
+      "resolved": false,
+      "resolution": null
+    },
+    {
+      "summary": "Unexplained teleportation of Sjaak",
+      "details": "Sjaak was teleported away after the encounter, hinting at teleportation technology or a powerful spell.",
+      "first_mentioned": "test_sep19_5m",
+      "last_updated": "test_sep19_5m",
+      "related_npcs": [],
+      "related_quests": [],
+      "resolved": false,
+      "resolution": null
+    },
+    {
+      "summary": "Hints of someone working with strange stone or crystal",
+      "details": "Notes mention advice about a stone or crystal and the desire for more money.",
+      "first_mentioned": "test_sep19_5m",
+      "last_updated": "test_sep19_5m",
+      "related_npcs": [],
+      "related_quests": [],
+      "resolved": false,
+      "resolution": null
     }
   ],
   "locations": [
     {
       "name": "Mansion",
-      "description": "A mansion of faded glory, with rooms such as bathrooms, bedrooms, and a basement.",
+      "description": "An old mansion of faded glory visited by the party.",
       "first_mentioned": "test_sep19_5m",
       "last_updated": "test_sep19_5m",
       "type": "building",
@@ -178,7 +268,7 @@
     },
     {
       "name": "Basement",
-      "description": "The lower level of the mansion, containing a hidden passage and a secret laboratory.",
+      "description": "The mansion's basement, containing vats and a hidden passage.",
       "first_mentioned": "test_sep19_5m",
       "last_updated": "test_sep19_5m",
       "type": "building",
@@ -214,7 +304,7 @@
     },
     {
       "name": "Hidden Laboratory",
-      "description": "A secret room behind a barrel, containing a crystal and a machine.",
+      "description": "A study/lab behind a disguised passage in the basement, containing a crystal and machine.",
       "first_mentioned": "test_sep19_5m",
       "last_updated": "test_sep19_5m",
       "type": "building",
@@ -226,10 +316,22 @@
     },
     {
       "name": "Secret Laboratory",
-      "description": "A hidden study/laboratory accessed through a concealed entrance, containing a crystal and a teleportation machine.",
+      "description": "A hidden room behind the basement containing a crystal and a machine.",
       "first_mentioned": "test_sep19_5m",
       "last_updated": "test_sep19_5m",
       "type": "building",
+      "notable_features": [],
+      "npcs_present": [],
+      "visits": [
+        "test_sep19_5m"
+      ]
+    },
+    {
+      "name": "Basement of Mansion",
+      "description": "The basement houses barrels and a hidden passage to a secret laboratory.",
+      "first_mentioned": "test_sep19_5m",
+      "last_updated": "test_sep19_5m",
+      "type": "dungeon",
       "notable_features": [],
       "npcs_present": [],
       "visits": [
@@ -240,17 +342,17 @@
   "items": [
     {
       "name": "Crystal",
-      "description": "A crystal used within a teleportation machine.",
+      "description": "A crystal used in an unnamed machine in the secret laboratory.",
       "first_mentioned": "test_sep19_5m",
       "last_updated": "test_sep19_5m",
-      "owner": null,
+      "owner": "Secret Laboratory (currently unclaimed)",
       "location": null,
       "properties": [],
       "significance": null
     },
     {
       "name": "Machine",
-      "description": "An apparatus located in the hidden laboratory, possibly connected to the crystal.",
+      "description": "An unknown machine in the hidden laboratory, likely a teleportation device.",
       "first_mentioned": "test_sep19_5m",
       "last_updated": "test_sep19_5m",
       "owner": null,

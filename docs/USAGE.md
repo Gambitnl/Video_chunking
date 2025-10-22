@@ -720,9 +720,17 @@ See **[CAMPAIGN_KNOWLEDGE_BASE.md](CAMPAIGN_KNOWLEDGE_BASE.md)** for complete do
 ## Monitoring & Diagnostics
 - Open the Gradio UI and switch to the **Diagnostics** tab to list pytest suites (`Discover Tests`) and run individual nodes or the entire suite without leaving the browser.
 - Keep `app_manager.py` running: the manager now surfaces every option the session was launched with, tracks stage start/end timestamps, and refreshes automatically so you can watch progress in real time.
-- Use the **Recent Events** list in the manager to confirm which stage completed last and what will run next�helpful when processing multi-hour sessions.
+- Use the **Recent Events** list in the manager to confirm which stage completed last and what will run next (helpful when processing multi-hour sessions).
 ## Creating Session Narratives
 1. Paste your shared Google Doc URL into the **Document Viewer** tab and click *Fetch* to populate the campaign notebook context.
 2. Switch to **Story Notebooks**, pick a processed session, and adjust the creativity slider to control how closely the prose mirrors the transcript.
 3. Generate the narrator overview, then choose individual characters to produce first-person recaps; each result is saved to `output/<session>/narratives/` for easy revisiting.
-- The manager now differentiates between �idle� and �active� states: if the processor isn�t listening on port 7860 you�ll see an idle summary with the most recent session ID, and detailed stage progress appears only once a session is running.
+- The manager now differentiates between "idle" and "active" states: if the processor isn't listening on port 7860 you'll see an idle summary with the most recent session ID, and detailed stage progress appears only once a session is running.
+
+## MCP Agent Workflows (Planned)
+- LangChain agent orchestrates pipeline tools for context-aware processing.
+- LlamaIndex stores transcripts & knowledge, powering retrieval/Q&A.
+- Backend selection (OpenAI/Ollama) configurable via `.env`.
+- CLI/Gradio extensions will expose agent-driven commands.
+
+

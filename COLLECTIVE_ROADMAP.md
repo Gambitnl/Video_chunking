@@ -1,6 +1,13 @@
 # Multi-Agent Roadmap (VideoChunking)
 
-> **Self-Identity Check**  
+> **WARNING: DEPRECATED - 2025-10-22**
+> This file has been consolidated into the comprehensive **ROADMAP.md** in the project root.
+> Please refer to ROADMAP.md for the current, complete roadmap with all features and priorities.
+> This file is kept for historical reference only.
+
+---
+
+> **Self-Identity Check**
 > Any AI collaborator must verify its identity before acting in this repository. Multiple agents (Claude, Gemini, ChatGPT/Codex) contribute here; keep logs attributable.
 
 ---

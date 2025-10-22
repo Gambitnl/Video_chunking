@@ -4,6 +4,7 @@ from typing import List, Dict, Optional
 from dataclasses import dataclass
 import torch
 import numpy as np
+import threading
 from .config import Config
 from .transcriber import TranscriptionSegment
 
@@ -21,17 +22,8 @@ class SpeakerDiarizer:
     """
     Speaker diarization using PyAnnote.audio.
 
-    Purpose:
-    - Identify "who spoke when" in the audio
-    - Assign speaker labels to transcription segments
-    - Learn speaker identities over multiple sessions
-
-    Challenge for this project:
-    - 4 speakers (3 players + 1 DM)
-    - Single room mic = overlapping speech
-    - Same person voices multiple characters
-
-    PyAnnote.audio is state-of-the-art for this task.
+    This class uses a lazy-loading, thread-safe pattern to initialize the pipeline
+    only when it is first needed.
     """
 
     def __init__(self, num_speakers: int = 4):
@@ -41,48 +33,40 @@ class SpeakerDiarizer:
         """
         self.num_speakers = num_speakers
         self.pipeline = None
-        self._init_pipeline()
+        self.model_load_lock = threading.Lock()
 
-    def _init_pipeline(self):
-        """
-        Initialize PyAnnote pipeline.
+    def _load_pipeline_if_needed(self):
+        """Load the PyAnnote pipeline on first use, in a thread-safe manner."""
+        with self.model_load_lock:
+            if self.pipeline is not None:
+                return
 
-        Note: Requires HuggingFace token for some models.
-        Uses public models when possible.
-        """
-        try:
-            from pyannote.audio import Pipeline
+            try:
+                from pyannote.audio import Pipeline
+                import os
 
-            # Try to load the pipeline
-            # You may need to accept terms at: https://huggingface.co/pyannote/speaker-diarization
-            # Then create a token at: https://huggingface.co/settings/tokens
-            # And set it in environment: HF_TOKEN=your_token
+                model_name = "pyannote/speaker-diarization-3.1"
+                
+                print(f"Initializing PyAnnote pipeline for the first time (model: {model_name})...")
+                print("This is a one-time operation and may take a moment.")
 
-            model_name = "pyannote/speaker-diarization-3.1"
-
-            # Check for HuggingFace token
-            import os
-            hf_token = os.getenv("HF_TOKEN")
-
-            if hf_token:
-                self.pipeline = Pipeline.from_pretrained(model_name)
-            else:
-                # Try without token (may fail for some models)
+                # The pipeline automatically uses HF_TOKEN environment variable if available.
                 self.pipeline = Pipeline.from_pretrained(model_name)
 
-            # Move to GPU if available
-            if torch.cuda.is_available():
-                self.pipeline = self.pipeline.to(torch.device("cuda"))
+                if torch.cuda.is_available():
+                    self.pipeline = self.pipeline.to(torch.device("cuda"))
+                
+                print("PyAnnote pipeline initialized successfully.")
 
-        except Exception as e:
-            print(f"Warning: Could not initialize PyAnnote pipeline: {e}")
-            print("Speaker diarization will be limited.")
-            print("\nTo use full diarization:")
-            print("1. Visit: https://huggingface.co/pyannote/speaker-diarization")
-            print("2. Accept the terms")
-            print("3. Create token: https://huggingface.co/settings/tokens")
-            print("4. Set HF_TOKEN in your .env file")
-            self.pipeline = None
+            except Exception as e:
+                print(f"Warning: Could not initialize PyAnnote pipeline: {e}")
+                print("Speaker diarization will be limited.")
+                print("\nTo use full diarization:")
+                print("1. Visit: https://huggingface.co/pyannote/speaker-diarization")
+                print("2. Accept the terms")
+                print("3. Create token: https://huggingface.co/settings/tokens")
+                print("4. Set HF_TOKEN in your .env file")
+                self.pipeline = None # Ensure it's None on failure
 
     def diarize(self, audio_path: Path) -> List[SpeakerSegment]:
         """
@@ -94,6 +78,8 @@ class SpeakerDiarizer:
         Returns:
             List of SpeakerSegment objects
         """
+        self._load_pipeline_if_needed()
+
         if self.pipeline is None:
             # Fallback: create dummy single-speaker segments
             return self._create_fallback_diarization(audio_path)

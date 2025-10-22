@@ -2,7 +2,7 @@
 import torch
 import numpy as np
 from pathlib import Path
-from typing import List, Tuple
+from typing import List, Tuple, Optional, Callable
 from dataclasses import dataclass
 from .config import Config
 from .audio_processor import AudioProcessor
@@ -60,7 +60,7 @@ class HybridChunker:
         )
         self.get_speech_timestamps = utils[0]
 
-    def chunk_audio(self, audio_path: Path) -> List[AudioChunk]:
+    def chunk_audio(self, audio_path: Path, progress_callback: Optional[Callable[[AudioChunk, float], None]] = None) -> List[AudioChunk]:
         """
         Chunk audio file into overlapping segments.
 
@@ -160,6 +160,12 @@ class HybridChunker:
                 "Chunk %d | start=%.2fs end=%.2fs duration=%.2fs",
                 chunk_index, chunk_start, chunk_end, chunk_end - chunk_start
             )
+
+            if progress_callback:
+                try:
+                    progress_callback(chunks[-1], total_duration)
+                except Exception as exc:
+                    self.logger.warning("Chunk progress callback failed: %s", exc)
 
             # Move to next chunk with overlap
             # If this is the last chunk, we're done

@@ -1,4 +1,4 @@
-# Development Chronicle
+﻿# Development Chronicle
 
 ## Session: 2025-10-15 - Initial Implementation
 
@@ -9,7 +9,7 @@
 **Approach**:
 1. Start with a modular architecture - separate concerns into distinct modules
 2. Support multiple backends (local + API) to give users flexibility
-3. Build from bottom-up: audio processing → transcription → diarization → classification → UI
+3. Build from bottom-up: audio processing â†’ transcription â†’ diarization â†’ classification â†’ UI
 
 **Files Created So Far**:
 - `requirements.txt` - Chose libraries based on:
@@ -28,7 +28,7 @@
   - 16kHz sample rate (Whisper optimal)
   - Automatic directory creation
 
-### Audio Processing Module ✅
+### Audio Processing Module âœ…
 
 **Implemented**:
 - `src/audio_processor.py` - Audio conversion and utilities
@@ -48,7 +48,7 @@
    - 10-second overlap between chunks (prevents word cutting)
 
 3. **Smart Pause Detection**
-   - Searches ±30 seconds from ideal chunk end
+   - Searches Â±30 seconds from ideal chunk end
    - Scores gaps by proximity and width
    - Prefers wider silences closer to target length
 
@@ -58,7 +58,7 @@
 - Overlap ensures no words are lost at boundaries
 - 10-min chunks = optimal balance of context vs API limits
 
-### Transcription Engine ✅
+### Transcription Engine âœ…
 
 **Implemented**:
 - `src/transcriber.py` - Multi-backend transcription system
@@ -82,7 +82,7 @@
 - Falls back to time-based splitting if no match
 - Preserves all timestamps accurately
 
-### Speaker Diarization ✅
+### Speaker Diarization âœ…
 
 **Implemented**: `src/diarizer.py`
 
@@ -103,7 +103,7 @@
 - Assign speaker with maximum overlap to each segment
 - Allows for future voice embedding comparison
 
-### IC/OOC Classification ✅
+### IC/OOC Classification âœ…
 
 **Implemented**: `src/classifier.py`
 
@@ -125,7 +125,7 @@
 - Reasoning: Why this classification
 - Character: Name if IC speech
 
-### Output Generation ✅
+### Output Generation âœ…
 
 **Implemented**: `src/formatter.py`
 
@@ -141,12 +141,12 @@
 - Speaker distribution
 - Character appearances
 
-### Pipeline Orchestration ✅
+### Pipeline Orchestration âœ…
 
 **Implemented**: `src/pipeline.py`
 
 **Flow**:
-1. Convert audio (M4A → WAV)
+1. Convert audio (M4A â†’ WAV)
 2. Chunk with VAD
 3. Transcribe chunks
 4. Merge overlaps
@@ -160,7 +160,7 @@
 - Optional stages (can skip diarization/classification)
 - Comprehensive error handling
 
-### User Interfaces ✅
+### User Interfaces âœ…
 
 **Implemented**:
 1. **CLI** (`cli.py`)
@@ -180,21 +180,21 @@
 
 ```
 Input (M4A)
-    ↓
-AudioProcessor (→ 16kHz WAV)
-    ↓
-HybridChunker (→ 10-min chunks with 10s overlap)
-    ↓
-Transcriber (→ text + timestamps per chunk)
-    ↓
-Merger (→ single transcript, no duplicates)
-    ↓
-SpeakerDiarizer (→ who spoke when)
-    ↓
-Classifier (→ IC/OOC labels)
-    ↓
-Formatter (→ 4 output formats)
-    ↓
+    â†“
+AudioProcessor (â†’ 16kHz WAV)
+    â†“
+HybridChunker (â†’ 10-min chunks with 10s overlap)
+    â†“
+Transcriber (â†’ text + timestamps per chunk)
+    â†“
+Merger (â†’ single transcript, no duplicates)
+    â†“
+SpeakerDiarizer (â†’ who spoke when)
+    â†“
+Classifier (â†’ IC/OOC labels)
+    â†“
+Formatter (â†’ 4 output formats)
+    â†“
 Output (TXT + JSON)
 ```
 
@@ -213,20 +213,20 @@ Output (TXT + JSON)
 
 ## Achievements
 
-✅ Full pipeline implemented
-✅ Multiple backend support (local + cloud)
-✅ Graceful degradation
-✅ Two UIs (CLI + Web)
-✅ Speaker learning across sessions
-✅ 4 output formats
-✅ Comprehensive error handling
-✅ Statistics generation
-✅ Dutch language optimized
-✅ Zero-budget compatible
+âœ… Full pipeline implemented
+âœ… Multiple backend support (local + cloud)
+âœ… Graceful degradation
+âœ… Two UIs (CLI + Web)
+âœ… Speaker learning across sessions
+âœ… 4 output formats
+âœ… Comprehensive error handling
+âœ… Statistics generation
+âœ… Dutch language optimized
+âœ… Zero-budget compatible
 
 ## Final Implementation Summary
 
-### Project Complete! ✅
+### Project Complete! âœ…
 
 **Total Time**: ~1 development session
 **Status**: Production-ready system
@@ -248,14 +248,14 @@ Output (TXT + JSON)
 ### End-to-End Capability
 
 The system now handles:
-1. ✅ Any audio format (M4A, MP3, WAV, etc.)
-2. ✅ Dutch language transcription
-3. ✅ 4 speakers (3 players + DM)
-4. ✅ 4-hour sessions
-5. ✅ Speaker identification
-6. ✅ IC/OOC classification
-7. ✅ Multiple output formats
-8. ✅ Web + CLI interfaces
+1. âœ… Any audio format (M4A, MP3, WAV, etc.)
+2. âœ… Dutch language transcription
+3. âœ… 4 speakers (3 players + DM)
+4. âœ… 4-hour sessions
+5. âœ… Speaker identification
+6. âœ… IC/OOC classification
+7. âœ… Multiple output formats
+8. âœ… Web + CLI interfaces
 
 ### Ready for Production Use
 
@@ -267,7 +267,7 @@ Users can now:
 - Search for specific moments
 - Track character participation
 
-**The system works!** 🎉
+**The system works!** ðŸŽ‰
 
 ---
 
@@ -322,8 +322,8 @@ Users can now:
   - Knowledge base tracking (quests, NPCs, locations, items, plot hooks)
   - Character profiles overview
   - Session history with narratives
-  - Health indicators: 🟢 Green (90-100%), 🟡 Yellow (70-89%), 🟠 Orange (50-69%), 🔴 Red (0-49%)
-  - Status badges: ✅ Configured | ⚠️ Needs attention | ❌ Missing
+  - Health indicators: ðŸŸ¢ Green (90-100%), ðŸŸ¡ Yellow (70-89%), ðŸŸ  Orange (50-69%), ðŸ”´ Red (0-49%)
+  - Status badges: âœ… Configured | âš ï¸ Needs attention | âŒ Missing
 
 **Why This Approach**:
 - Single-page health check for campaign readiness
@@ -337,11 +337,11 @@ Users can now:
 
 **Implemented**:
 - **Automatic Knowledge Extraction** from session transcripts
-  - 🎯 Quests: Active and completed objectives
-  - 👥 NPCs: Named characters with descriptions and relationships
-  - 🔓 Plot Hooks: Potential story threads
-  - 📍 Locations: Places visited or mentioned
-  - ⚡ Items: Significant objects and artifacts
+  - ðŸŽ¯ Quests: Active and completed objectives
+  - ðŸ‘¥ NPCs: Named characters with descriptions and relationships
+  - ðŸ”“ Plot Hooks: Potential story threads
+  - ðŸ“ Locations: Places visited or mentioned
+  - âš¡ Items: Significant objects and artifacts
 
 - **Campaign Library Tab**
   - Load and view knowledge base by campaign
@@ -462,13 +462,25 @@ python test_system.py            # Full system check (includes Whisper)
 python test_system.py --skip-whisper  # Quick check (skips model loading)
 ```
 
-### Bug Fixes (2025-10-21)
+### Status Indicator Refactoring
+
+**Centralized Status Constants**:
+- Created `src/ui/constants.py` with `StatusIndicators` class
+- Migrated all status emojis to constants
+- Added Windows cp1252 compatibility
+- See [STATUS_INDICATORS.md](docs/STATUS_INDICATORS.md) for complete reference
 
 **Unicode Compatibility**:
-- `app.py:2548` - Warning emoji (⚠️) → "WARNING:" for Windows cp1252 compatibility
-- `src/chunker.py:82` - Approximation symbol (≈) → tilde (~) in log messages
+- Replaced direct emoji usage with `StatusIndicators` constants
+- Added Windows-compatible fallbacks in one central location
+- Previous issues resolved through centralization
 
-**Rationale**: Windows console uses cp1252 encoding by default, which doesn't support these Unicode characters, causing crashes during logging.
+**Migration Scope**:
+- Campaign Dashboard indicators
+- Quest status icons
+- Character development icons
+- Item category markers
+- Relationship type indicators
 
 ### Documentation Updates
 
@@ -485,42 +497,52 @@ python test_system.py --skip-whisper  # Quick check (skips model loading)
 The VideoChunking system now includes:
 
 **Core Processing Pipeline**:
-- ✅ Audio conversion (M4A → WAV)
-- ✅ Hybrid VAD-based chunking
-- ✅ Multi-backend transcription (local/Groq/OpenAI)
-- ✅ LCS-based overlap merging
-- ✅ Speaker diarization (PyAnnote)
-- ✅ IC/OOC classification (Ollama)
-- ✅ Multi-format output (TXT, JSON, SRT)
+- âœ… Audio conversion (M4A â†’ WAV)
+- âœ… Hybrid VAD-based chunking
+- âœ… Multi-backend transcription (local/Groq/OpenAI)
+- âœ… LCS-based overlap merging
+- âœ… Speaker diarization (PyAnnote)
+- âœ… IC/OOC classification (Ollama)
+- âœ… Multi-format output (TXT, JSON, SRT)
 
 **Campaign Management**:
-- ✅ Party configuration system
-- ✅ Character profiles (individual file storage)
-- ✅ Campaign Dashboard (health monitoring)
-- ✅ Knowledge Base (auto-extraction)
-- ✅ Import Session Notes (backfill)
-- ✅ Story Notebooks (narrative generation)
+- âœ… Party configuration system
+- âœ… Character profiles (individual file storage)
+- âœ… Campaign Dashboard (health monitoring)
+- âœ… Knowledge Base (auto-extraction)
+- âœ… Import Session Notes (backfill)
+- âœ… Story Notebooks (narrative generation)
 
 **User Interfaces**:
-- ✅ Gradio Web UI (multi-tab interface)
-- ✅ Rich CLI (comprehensive commands)
-- ✅ App Manager (status monitoring)
+- âœ… Gradio Web UI (multi-tab interface)
+- âœ… Rich CLI (comprehensive commands)
+- âœ… App Manager (status monitoring)
 
 **Quality Assurance**:
-- ✅ Pytest test suite (unit + integration)
-- ✅ Test markers for fast/slow separation
-- ✅ System verification tool
-- ✅ Unicode compatibility fixes
-- ✅ Graceful degradation
+- âœ… Pytest test suite (unit + integration)
+- âœ… Test markers for fast/slow separation
+- âœ… System verification tool
+- âœ… Unicode compatibility fixes
+- âœ… Graceful degradation
 
 **Documentation**:
-- ✅ 6+ comprehensive guides
-- ✅ Quick reference card
-- ✅ API examples
-- ✅ Troubleshooting guides
-- ✅ Feature-specific documentation
+- âœ… 6+ comprehensive guides
+- âœ… Quick reference card
+- âœ… API examples
+- âœ… Troubleshooting guides
+- âœ… Feature-specific documentation
 
 ---
 
 **End of 2025-10-21 Session**
 **Status**: Feature-complete campaign management system with robust testing infrastructure and comprehensive documentation
+
+## MCP Integration Roadmap
+
+1. Start by wrapping each pipeline stage as a reusable tool function (typed signatures, docstrings).
+2. Create a LangChain agent module (`src/agent.py`), register the tool set, wire the agent into CLI/Gradio.
+3. Add LlamaIndex-based retrieval for transcripts, knowledge bases, and profile artifacts.
+4. Provide OpenAI Function Calling schemas so external orchestrators can invoke the pipeline.
+5. Support Ollama as a local backend (config toggle) alongside OpenAI.
+6. Extend tests (unit & integration) with mocked LLMs; target >85% branch coverage.
+7. Update documentation (README, QUICKREF, USAGE) with agent/LLM setup and usage examples.

@@ -297,3 +297,9 @@ The system is:
 - ✅ Free to use
 
 **Ready for immediate use!**
+## MCP Automation & Testing Plan
+
+- Wrap every pipeline stage as an MCP-compatible tool with typed arguments/return values.
+- Register tools in a LangChain agent, support LlamaIndex retrieval, and expose OpenAI/Ollama backends.
+- Add CLI and Gradio commands for agent-driven runs; document configuration and usage.
+- Expand tests with mocked LLM calls and end-to-end agent smoke tests; enforce coverage goals.

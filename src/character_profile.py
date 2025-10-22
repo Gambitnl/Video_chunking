@@ -393,14 +393,15 @@ class CharacterProfileManager:
             md += f"_Carrying {len(profile.inventory)} items_\n\n"
 
             # Category icon mapping
+            from .ui.constants import StatusIndicators
             category_icons = {
-                'weapon': '⚔️',
-                'armor': '🛡️',
-                'magical': '✨',
-                'consumable': '🧪',
-                'quest': '📜',
-                'equipment': '🔧',
-                'misc': '📦'
+                'weapon': StatusIndicators.WEAPON,
+                'armor': StatusIndicators.ARMOR,
+                'magical': StatusIndicators.MAGICAL,
+                'consumable': StatusIndicators.CONSUMABLE,
+                'quest': StatusIndicators.QUEST_ITEM,
+                'equipment': StatusIndicators.EQUIPMENT,
+                'misc': StatusIndicators.MISC
             }
 
             by_category = {}
@@ -425,20 +426,20 @@ class CharacterProfileManager:
 
             # Relationship type icons
             rel_icons = {
-                'ally': '🤝',
-                'enemy': '⚔️',
-                'neutral': '🤷',
-                'mentor': '👨‍🏫',
-                'student': '👨‍🎓',
-                'friend': '❤️',
-                'rival': '⚡',
-                'family': '👨‍👩‍👦',
-                'deity': '🙏',
-                'bonded spirit': '👻',
-                'companion': '🐾',
-                'employer': '💼',
-                'master': '👑',
-                'rescued by': '🆘'
+                'ally': StatusIndicators.ALLY,
+                'enemy': StatusIndicators.ENEMY,
+                'neutral': StatusIndicators.NEUTRAL,
+                'mentor': StatusIndicators.MENTOR,
+                'student': StatusIndicators.STUDENT,
+                'friend': StatusIndicators.FRIEND,
+                'rival': StatusIndicators.RIVAL,
+                'family': StatusIndicators.FAMILY,
+                'deity': StatusIndicators.DEITY,
+                'bonded spirit': StatusIndicators.SPIRIT,
+                'companion': StatusIndicators.COMPANION,
+                'employer': StatusIndicators.EMPLOYER,
+                'master': StatusIndicators.MASTER,
+                'rescued by': StatusIndicators.RESCUED
             }
 
             for rel in profile.relationships:
@@ -464,14 +465,15 @@ class CharacterProfileManager:
             md += "## 📈 Character Development\n\n"
 
             # Development category icons
+            from .ui.constants import StatusIndicators
             dev_icons = {
-                'personality': '🎭',
-                'backstory': '📜',
-                'goal': '🎯',
-                'fear': '😰',
-                'trait': '✨',
-                'divine connection': '🙏',
-                'general': '📌'
+                'personality': StatusIndicators.PERSONALITY,
+                'backstory': StatusIndicators.BACKSTORY,
+                'goal': StatusIndicators.QUEST_ACTIVE,  # Reuse quest active icon
+                'fear': StatusIndicators.FEAR,
+                'trait': StatusIndicators.TRAIT,
+                'divine connection': StatusIndicators.DIVINE,
+                'general': StatusIndicators.GENERAL
             }
 
             for dev in profile.development_notes:

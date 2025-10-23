@@ -1,0 +1,487 @@
+# Implementation Plans - VideoChunking Project
+
+> **Planning Mode Document**
+> **Created**: 2025-10-22
+> **For**: Development Team
+> **Source**: ROADMAP.md
+
+This document provides detailed implementation plans for each roadmap item, broken down into actionable subtasks.
+
+---
+
+## [DOCS] Implementation Requirements
+
+### Solution Reasoning & Documentation
+
+**REQUIRED**: All implementers must provide solution reasoning for design decisions. This facilitates code review dialogue and ensures architectural decisions are documented.
+
+#### Implementation Notes Template
+
+When completing a feature, add an "Implementation Notes & Reasoning" section with:
+
+```markdown
+### Implementation Notes & Reasoning
+**Implementer**: [Your Name/Handle]
+**Date**: YYYY-MM-DD
+
+#### Design Decisions
+1. **[Decision Name]**
+   - **Choice**: What was chosen
+   - **Reasoning**: Why this approach
+   - **Alternatives Considered**: What else was evaluated
+   - **Trade-offs**: What was gained/lost
+
+2. **[Another Decision]**
+   - ...
+
+#### Open Questions
+- Questions or concerns for code review
+- Areas needing feedback or validation
+```
+
+#### Code Review Findings Template
+
+After code review, add a "Code Review Findings" section:
+
+```markdown
+### Code Review Findings
+**Reviewer**: [Name]
+**Date**: YYYY-MM-DD
+**Status**: [WARNING] Issues Found / [DONE] Approved / [LOOP] Revisions Requested
+
+#### Issues Identified
+1. **[Issue Category]** - [Severity: Critical/High/Medium/Low]
+   - **Problem**: Description
+   - **Impact**: What could go wrong
+   - **Recommendation**: How to fix
+   - **Status**: [ ] Unresolved / [x] Fixed / [DEFER] Deferred
+
+#### Positive Findings
+- What was done well
+- Good patterns to replicate
+
+#### Verdict
+- Overall assessment
+- Merge recommendation (Ready / Needs fixes / Needs redesign)
+```
+
+### How to Invoke Critical Review
+
+**When you complete an implementation**, request critical review using:
+
+**AI Agent Invocation**:
+```bash
+# Explicit invocation
+/critical-reviewer P0-BUG-003
+
+# Challenge pattern (triggers deep skeptical analysis)
+"Is there truly no issues with the P0-BUG-003 implementation?"
+
+# Direct request
+"Critically review the checkpoint system implementation"
+```
+
+**Human Review**: Share this document section with reviewer and ask them to use the templates above.
+
+**See**: `docs/CRITICAL_REVIEW_WORKFLOW.md` for complete workflow guide.
+
+---
+
+## Table of Contents
+
+- [P0: Critical / Immediate](#p0-critical--immediate)
+  - [Bug Fixes](#p0-bug-fixes)
+  - [Code Refactoring](#p0-code-refactoring)
+
+---
+
+# P0: Critical / Immediate
+
+## P0-BUG-001: Stale Clip Cleanup in Audio Snipper
+
+**File**: `src/snipper.py`
+**Effort**: 0.5 days
+**Priority**: MEDIUM
+**Dependencies**: None
+**Status**: [DONE] Completed (2025-10-22)
+
+### Problem Statement
+When reprocessing a session, the audio snipper saves new clips but doesn't remove orphaned WAV files from previous runs, causing directory confusion and wasted disk space.
+
+### Implementation Plan
+
+#### Subtask 1.1: Add Directory Cleanup Method
+**Effort**: 2 hours
+
+Add cleanup logic to remove stale WAV files and manifest before exporting new batch.
+
+**Code Example**:
+```python
+def _clear_session_directory(self, session_dir: Path) -> int:
+    """Remove existing snippet artifacts for a session."""
+    if not session_dir.exists():
+        return 0
+
+    removed = 0
+    for wav_file in session_dir.glob("*.wav"):
+        try:
+            wav_file.unlink()
+            removed += 1
+        except OSError as exc:
+            self.logger.warning("Failed to remove %s: %s", wav_file, exc)
+
+    # Also clean manifest
+    manifest_file = session_dir / "manifest.json"
+    if manifest_file.exists():
+        manifest_file.unlink()
+
+    if removed:
+        self.logger.info("Cleared %d stale clips from %s", removed, session_dir)
+
+    return removed
+```
+
+#### Subtask 1.2: Add Configuration Option
+**Effort**: 1 hour
+
+Add `CLEAN_STALE_CLIPS` to config with default=True.
+
+**Files**: `src/config.py`, `.env.example`
+
+#### Subtask 1.3: Testing
+**Effort**: 1 hour
+
+Create unit tests for cleanup enabled/disabled paths.
+
+### Implementation Notes & Reasoning
+**Implementer**: [Original Developer]
+**Date**: 2025-10-22
+
+#### Design Decisions
+
+1. **Preserve Non-Audio Files**
+   - **Choice**: Only remove `*.wav` files, not entire directory
+   - **Reasoning**: Preserve potential metadata files, checkpoints, or user-added documentation
+   - **Alternatives Considered**: `shutil.rmtree()` to delete entire directory
+   - **Trade-offs**: Gained safety; minimal extra complexity
+
+2. **Also Clean Manifest File**
+   - **Choice**: Remove both WAV clips and `manifest.json`
+   - **Reasoning**: Prevents confusion from stale manifest pointing to deleted clips
+   - **Alternatives Considered**: Only remove WAV files per spec
+   - **Trade-offs**: Better consistency; bonus feature beyond spec
+
+3. **Error Handling on File Removal**
+   - **Choice**: Catch `OSError` and log warning instead of crashing
+   - **Reasoning**: File locks/permissions shouldn't halt entire export process
+   - **Alternatives Considered**: Let exceptions propagate
+   - **Trade-offs**: More robust; slightly masks errors (but logged)
+
+4. **Configuration Toggle with Safe Default**
+   - **Choice**: Make cleanup opt-out (default=True)
+   - **Reasoning**: Safer default for most users; prevents disk waste
+   - **Alternatives Considered**: Opt-in (default=False)
+   - **Trade-offs**: Better defaults; users who want old behavior must set config
+
+#### Open Questions
+None - implementation straightforward
+
+### Code Review Findings
+**Reviewer**: Claude Code (Critical Analysis)
+**Date**: 2025-10-22
+**Status**: [DONE] Approved - Production Ready
+
+#### Issues Identified
+None found. Implementation exceeds requirements.
+
+#### Positive Findings
+- [x] **Exceeds Spec**: Also cleans manifest.json (bonus feature)
+- [x] **Non-Audio Preservation**: Intentionally preserves .txt, checkpoints, etc.
+- [x] **Robust Error Handling**: Catches OSError, logs warnings, continues
+- [x] **Comprehensive Testing**: Both enabled/disabled paths tested
+- [x] **Clear Logging**: Both INFO (files removed) and DEBUG (no files) messages
+- [x] **Return Value**: Returns count for potential telemetry
+- [x] **Test Coverage**: All code paths tested with realistic fixtures
+
+#### Verdict
+**Overall Assessment**: Clean, well-tested, production-ready implementation. No issues found.
+
+**Merge Recommendation**: [DONE] **Ready for Merge**
+- All requirements met
+- Bonus features add value
+- Test coverage complete
+- No revisions needed
+
+---
+
+## P0-BUG-002: Unsafe Type Casting in Configuration
+
+**File**: `src/config.py`
+**Effort**: 0.5 days
+**Priority**: MEDIUM
+**Dependencies**: None
+**Status**: [LOOP] Revisions Requested (2025-10-22)
+
+### Problem Statement
+Non-numeric values in `.env` file crash on `int()` cast during startup, preventing the application from launching.
+
+### Implementation Plan
+
+#### Subtask 2.1: Create Safe Casting Utility
+**Effort**: 1 hour
+
+Add helper function to safely cast environment variables to integers with fallback.
+
+**Code Example**:
+```python
+@staticmethod
+def _get_env_as_int(key: str, default: int) -> int:
+    """Safely get an environment variable as an integer."""
+    value = os.getenv(key)
+    if value is None or value.strip() == "":
+        return default
+    try:
+        return int(value)
+    except (ValueError, TypeError):
+        _logger.warning(
+            "Invalid integer for %s: %r. Using default %s",
+            key, value, default
+        )
+        return default
+```
+
+#### Subtask 2.2: Replace All Unsafe Casts
+**Effort**: 2 hours
+
+Replace all `int(os.getenv(...))` with safe helper.
+
+**Affected values**:
+- `CHUNK_LENGTH_SECONDS`
+- `CHUNK_OVERLAP_SECONDS`
+- `AUDIO_SAMPLE_RATE`
+- Any other numeric configs
+
+#### Subtask 2.3: Add Boolean Support
+**Effort**: 1 hour
+
+Create `_get_env_as_bool()` for boolean configs.
+
+#### Subtask 2.4: Testing
+**Effort**: 1 hour
+
+Unit tests for edge cases (invalid, empty, None, negative, very large).
+
+### Implementation Notes & Reasoning
+**Implementer**: [Original Developer]
+**Date**: 2025-10-22
+
+#### Design Decisions
+
+1. **Use Static Methods with Underscore Prefix**
+   - **Choice**: Created `_get_env_as_int()` and `_get_env_as_bool()` as static methods with underscore prefix
+   - **Reasoning**: Methods don't need instance state; underscore indicates internal helper
+   - **Alternatives Considered**: Module-level functions, public methods without underscore
+   - **Trade-offs**: Gained simplicity; lost clear public API when called from `app_manager.py`
+
+2. **Skip Float Support**
+   - **Choice**: Did not implement `_get_env_as_float()`
+   - **Reasoning**: YAGNI principle - no float config values exist in current codebase
+   - **Alternatives Considered**: Implement proactively for future use
+   - **Trade-offs**: Reduced immediate effort; risk of future developer using unsafe `float()` cast
+
+3. **Empty String Handling for Integers**
+   - **Choice**: Added explicit check `value.strip() == ""` to return default
+   - **Reasoning**: Prevents warnings for unset/empty env vars in default configs
+   - **Alternatives Considered**: Let empty string fail to int() and log warning
+   - **Trade-offs**: Cleaner logs; inconsistent with bool helper behavior
+
+4. **No Value Range Validation**
+   - **Choice**: Accept any valid integer (including negative, very large)
+   - **Reasoning**: Keep helper simple; let downstream code validate semantics
+   - **Alternatives Considered**: Add min/max parameters for validation
+   - **Trade-offs**: Simpler implementation; allows semantically invalid values (negative sample rates)
+
+#### Open Questions
+- Should `_get_env_as_int()` be public API since `app_manager.py` uses it?
+- Should we add basic range validation to prevent obvious errors?
+- Is it okay that bool and int helpers handle empty strings differently?
+
+### Code Review Findings
+**Reviewer**: Claude Code (Critical Analysis)
+**Date**: 2025-10-22
+**Status**: [WARNING] Issues Found - Revisions Recommended
+
+#### Issues Identified
+
+1. **API Design Inconsistency** - Severity: Medium
+   - **Problem**: Methods prefixed with `_` (private convention) are being called from outside the class in `app_manager.py:16-17`
+     ```python
+     APP_PORT = Config._get_env_as_int("SESSION_APP_PORT", 7860)
+     MANAGER_PORT = Config._get_env_as_int("SESSION_MANAGER_PORT", 7861)
+     ```
+   - **Impact**: Confusing API, violates encapsulation convention
+   - **Recommendation**: Either remove underscore prefix (make public) or add these configs as class attributes in `Config` itself
+   - **Status**: [ ] Unresolved
+
+2. **Bool/Int Helper Inconsistency** - Severity: **HIGH** [CRITICAL]
+   - **Problem**: Whitespace-only strings handled differently between helpers
+     ```python
+     # Int helper (line 21):
+     if value is None or value.strip() == "":  # Returns default
+         return default
+
+     # Bool helper (line 38):
+     if value is None:  # Does NOT check for empty string
+         return default
+     return value.strip().lower() in {...}  # "" -> False, not default!
+     ```
+   - **Impact**: Inconsistent behavior - `CHUNK_LENGTH_SECONDS="   "` uses default (600), but `CLEAN_STALE_CLIPS="   "` returns False instead of default True
+   - **Recommendation**: Add `or value.strip() == ""` to bool helper (line 38)
+   - **Status**: [ ] Unresolved - **Should be fixed before merge**
+
+3. **No Value Range Validation** - Severity: Medium
+   - **Problem**: Accepts semantically invalid values
+     ```python
+     AUDIO_SAMPLE_RATE=-500           # Negative sample rate accepted
+     CHUNK_LENGTH_SECONDS=99999999999 # Absurdly large value accepted
+     ```
+   - **Impact**: Values pass config validation but cause errors downstream in audio processing
+   - **Recommendation**: Add optional `min_value` and `max_value` parameters to `_get_env_as_int()`, or document that semantic validation is caller's responsibility
+   - **Status**: [ ] Unresolved - Consider for future enhancement
+
+4. **Float-like Values Silently Rejected** - Severity: Low
+   - **Problem**: Users might expect `CHUNK_LENGTH_SECONDS=10.5` to round to `10`, but it falls back to default (600) with warning
+   - **Impact**: Confusing UX - value is far from intended
+   - **Recommendation**: Update warning message to suggest removing decimal point, or document this behavior
+   - **Status**: [ ] Unresolved - Documentation improvement
+
+5. **Insufficient Test Coverage** - Severity: Medium
+   - **Problem**: Only 2 integration tests; no direct unit tests of helper functions
+   - **Missing Test Cases**:
+     - Negative integers
+     - Very large integers
+     - Float-like strings ("10.5")
+     - Whitespace-only strings for bool helper (**would have caught Issue #2!**)
+     - Capitalized bool values ("TRUE", "FALSE")
+   - **Impact**: Edge cases not validated; future regressions possible
+   - **Recommendation**: Add direct unit tests for `_get_env_as_int()` and `_get_env_as_bool()`
+   - **Status**: [ ] Unresolved
+
+6. **No Float Support = Future Risk** - Severity: Low-Medium
+   - **Problem**: Intentionally skipped (YAGNI), but audio processing often needs float configs (thresholds, confidence scores, VAD settings)
+   - **Impact**: When first float config is added, developer might:
+     - Forget to create `_get_env_as_float()`
+     - Use unsafe `float(os.getenv(...))` directly
+     - **Reintroduce the exact crash bug this fix prevents**
+   - **Recommendation**: Either implement proactively with tests, or add code comment warning at top of `Config` class
+   - **Status**: [DEFER] Deferred - Add when first float config is needed
+
+#### Positive Findings
+- [x] **Solves Critical Crash Issue**: App no longer crashes on invalid env values
+- [x] **Proper Logging Integration**: Uses module logger, not print statements
+- [x] **Clean Implementation**: Code is readable and follows existing patterns
+- [x] **Handles Multiple Edge Cases**: None, TypeError, ValueError all covered
+- [x] **Zero Breaking Changes**: Existing API unchanged, backward compatible
+
+#### Verdict
+**Overall Assessment**: Functionally complete and solves the critical startup crash issue. However, has quality/consistency issues that should be addressed.
+
+**Priority Fixes Before Merge**:
+1. [CRITICAL] **Issue #2** (Bool/Int inconsistency) - **MUST FIX**
+2. [WARNING] **Issue #1** (API design) - Should address
+3. [WARNING] **Issue #5** (Test coverage) - Should improve
+
+**Merge Recommendation**: [LOOP] **Revisions Requested**
+- Fix Issue #2 (5 min fix)
+- Address Issue #1 (15 min fix)
+- Add whitespace tests for bool helper
+- Then ready for merge
+
+**Future Enhancements** (Can be separate PR):
+- Add range validation (#3)
+- Improve float rejection messaging (#4)
+- Implement `_get_env_as_float()` (#6)
+
+---
+
+## P0-BUG-003: Checkpoint System for Resumable Processing
+
+**Files**: `src/pipeline.py`, new `src/checkpoint.py`
+**Effort**: 2 days
+**Priority**: HIGH
+**Dependencies**: None
+**Status**: [DONE] Completed
+
+### Problem Statement
+If processing fails mid-way through a 4-hour session (e.g., power outage, crash), all progress is lost and the user must start from the beginning.
+
+### Success Criteria
+- [x] Can resume from last successful stage
+- [x] Checkpoint files are human-readable (JSON)
+- [x] UI shows "Resume" option when checkpoint exists
+- [x] CLI has `--resume` flag
+- [x] Old checkpoints auto-expire after 7 days
+
+---
+
+## P0-REFACTOR-001: Extract Campaign Dashboard
+
+**Files**: Extract from `app.py` to `src/campaign_dashboard.py`
+**Effort**: 2 days
+**Priority**: HIGH
+**Status**: NOT STARTED
+
+### Problem Statement
+Campaign Dashboard code is embedded in `app.py` (2,564 lines), making it hard to maintain and test.
+
+### Implementation Plan
+
+Create new module `src/campaign_dashboard.py` with:
+- `CampaignDashboard` class
+- Methods for health checks, status displays
+- Independent of Gradio (pure Python logic)
+- Gradio tab wrapper in `src/ui/campaign_dashboard_tab.py`
+
+---
+
+## P0-REFACTOR-002: Extract Story Generation
+
+**Files**: Extract from `app.py` to `src/story_generator.py`
+**Effort**: 1 day
+**Priority**: MEDIUM
+**Status**: NOT STARTED
+
+### Problem Statement
+Story generation logic is mixed with UI code in `app.py`.
+
+### Implementation Plan
+
+Extract to dedicated module with CLI support for batch generation.
+
+---
+
+## P0-REFACTOR-003: Split app.py into UI Modules
+
+**Files**: `app.py` -> `src/ui/*.py`
+**Effort**: 3-4 days
+**Priority**: HIGH
+**Status**: NOT STARTED
+
+### Problem Statement
+`app.py` is 2,564 lines - too large to maintain effectively.
+
+### Implementation Plan
+
+Create module-per-tab architecture:
+```
+src/ui/
+├── base.py                      # Shared UI utilities
+├── process_session.py           # Main processing tab
+├── campaign_dashboard_tab.py    # Dashboard tab
+├── import_notes.py              # Import session notes tab
+└── ... (10 more tab modules)
+```
+
+---
+
+**See ROADMAP.md for complete P0-P4 feature list**

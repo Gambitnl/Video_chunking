@@ -258,18 +258,9 @@ print(result['statistics'])
 
 ## Campaign Dashboard Cheatsheet
 - **Access**: Campaign Dashboard tab → Select campaign → Click "Refresh Campaign Info"
-- **Health Indicators**: 
-  - `HEALTH_EXCELLENT` 🟢 90-100%
-  - `HEALTH_GOOD` 🟡 70-89%
-  - `HEALTH_FAIR` 🟠 50-69%
-  - `HEALTH_POOR` 🔴 0-49%
+- **Health Indicators**: 🟢 90-100% | 🟡 70-89% | 🟠 50-69% | 🔴 0-49%
 - **Components**: Party config, settings, knowledge base, character profiles, sessions, narratives
-- **Status**: 
-  - `SUCCESS` ✅ Configured
-  - `WARNING` ⚠️ Needs attention
-  - `ERROR` ❌ Missing
-
-See [STATUS_INDICATORS.md](STATUS_INDICATORS.md) for complete reference.
+- **Status**: ✅ Configured | ⚠️ Needs attention | ❌ Missing
 
 ## Campaign Library Cheatsheet
 - **Access**: Campaign Library tab → Select campaign → Click "Load Knowledge Base"

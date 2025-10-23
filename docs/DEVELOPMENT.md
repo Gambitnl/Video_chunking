@@ -462,25 +462,13 @@ python test_system.py            # Full system check (includes Whisper)
 python test_system.py --skip-whisper  # Quick check (skips model loading)
 ```
 
-### Status Indicator Refactoring
-
-**Centralized Status Constants**:
-- Created `src/ui/constants.py` with `StatusIndicators` class
-- Migrated all status emojis to constants
-- Added Windows cp1252 compatibility
-- See [STATUS_INDICATORS.md](docs/STATUS_INDICATORS.md) for complete reference
+### Bug Fixes (2025-10-21)
 
 **Unicode Compatibility**:
-- Replaced direct emoji usage with `StatusIndicators` constants
-- Added Windows-compatible fallbacks in one central location
-- Previous issues resolved through centralization
+- `app.py:2548` - Warning emoji (âš ï¸) â†’ "WARNING:" for Windows cp1252 compatibility
+- `src/chunker.py:82` - Approximation symbol (â‰ˆ) â†’ tilde (~) in log messages
 
-**Migration Scope**:
-- Campaign Dashboard indicators
-- Quest status icons
-- Character development icons
-- Item category markers
-- Relationship type indicators
+**Rationale**: Windows console uses cp1252 encoding by default, which doesn't support these Unicode characters, causing crashes during logging.
 
 ### Documentation Updates
 

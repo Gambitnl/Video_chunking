@@ -389,7 +389,7 @@ class CharacterProfileManager:
 
         # Inventory
         if profile.inventory:
-            md += "## Inventory\n\n"
+            md += "## [BAG] Inventory\n\n"
             md += f"_Carrying {len(profile.inventory)} items_\n\n"
 
             # Category icon mapping

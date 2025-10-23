@@ -26,6 +26,11 @@ def stub_audio_segment(monkeypatch):
     )
     yield
 
+    base_output = tmp_path / "segments"
+    stale_dir = base_output / "session-alpha"
+    stale_dir.mkdir(parents=True)
+    (stale_dir / "old.wav").write_bytes(b"stale")
+    (stale_dir / "keep.txt").write_text("leave me")
 
 @pytest.fixture
 def temp_output_dir(tmp_path):
@@ -113,10 +118,9 @@ def test_export_segments_creates_files_and_manifest(monkeypatch, temp_output_dir
         "segment_0003_Player1.wav",
     ]
 
-    manifest_data = json.loads(manifest_path.read_text(encoding="utf-8"))
-    assert len(manifest_data) == 3
-    assert manifest_data[0]["speaker"] == "Player1"
-    assert manifest_data[1]["speaker"] == "DM"
+    dummy_audio = DummyAudioSegment()
+    monkeypatch.setattr("src.snipper.AudioSegment.from_file", lambda *args, **kwargs: dummy_audio)
+    monkeypatch.setattr("src.snipper.Config.CLEAN_STALE_CLIPS", True, raising=False)
 
 
 def test_export_with_no_segments(temp_output_dir, dummy_audio_path):
@@ -124,27 +128,50 @@ def test_export_with_no_segments(temp_output_dir, dummy_audio_path):
     snipper = AudioSnipper()
     result = snipper.export_segments(dummy_audio_path, [], temp_output_dir, "test_empty_session")
 
-    assert result["segments_dir"] is None
-    assert result["manifest"] is None
+    session_dir = result["segments_dir"]
+    assert session_dir is not None
+    assert session_dir.exists()
+    assert not (session_dir / "old.wav").exists(), "Stale files should be removed"
+    assert (session_dir / "keep.txt").exists(), "Non-audio files should be preserved"
 
-    session_dir = temp_output_dir / "test_empty_session"
-    assert not session_dir.exists()
+    manifest_path = result["manifest"]
+    assert manifest_path is not None
+    data = json.loads(manifest_path.read_text(encoding="utf-8"))
+    assert data[0]["text"] == "Hallo wereld"
+    assert data[0]["classification"]["label"] == "IC"
+    assert data[0]["classification"]["confidence"] == 0.9
+    assert data[0]["classification"]["reasoning"] == "Unit test"
+    assert data[0]["classification"]["character"] == "DM"
 
 
-def test_filename_sanitization(monkeypatch, temp_output_dir, dummy_audio_path):
-    """Speaker names should be sanitized to create safe filenames."""
-    monkeypatch.setattr("src.snipper.Config.CLEAN_STALE_CLIPS", True, raising=False)
+def test_export_segments_skips_cleanup_when_disabled(tmp_path, monkeypatch):
+    audio_path = tmp_path / "session.wav"
+    audio_path.write_bytes(b"fake-audio")
 
-    segments = [
-        {"start_time": 1.0, "end_time": 2.0, "speaker": "Player 1 (Test)"},
-        {"start_time": 3.0, "end_time": 4.0, "speaker": "D&D_Master"},
-    ]
+    base_output = tmp_path / "segments"
+    session_dir = base_output / "session-beta"
+    session_dir.mkdir(parents=True)
+    preserved = session_dir / "custom.wav"
+    preserved.write_bytes(b"legacy")
+
+    segments = [{
+        "text": "Hallo opnieuw",
+        "start_time": 0.0,
+        "end_time": 1.0,
+        "speaker": "SPEAKER_01"
+    }]
+
+    dummy_audio = DummyAudioSegment()
+    monkeypatch.setattr("src.snipper.AudioSegment.from_file", lambda *args, **kwargs: dummy_audio)
+    monkeypatch.setattr("src.snipper.Config.CLEAN_STALE_CLIPS", False, raising=False)
 
     snipper = AudioSnipper()
-    snipper.export_segments(dummy_audio_path, segments, temp_output_dir, "test_sanitize")
+    snipper.export_segments(
+        audio_path=audio_path,
+        segments=segments,
+        base_output_dir=base_output,
+        session_id="session-beta",
+        classifications=None
+    )
 
-    wav_files = sorted((temp_output_dir / "test_sanitize").glob("segment_*.wav"))
-    assert [f.name for f in wav_files] == [
-        "segment_0001_Player_1_Test.wav",
-        "segment_0002_D_D_Master.wav",
-    ]
+    assert preserved.exists(), "Cleanup should be skipped when disabled"

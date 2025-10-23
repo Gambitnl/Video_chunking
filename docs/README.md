@@ -2,6 +2,8 @@
 
 This directory contains all the documentation for the D&D Session Processor. Below is a summary of each file.
 
+> **[ROCKET] New contributors**: Start with [`AGENT_ONBOARDING.md`](../AGENT_ONBOARDING.md) in the root directory for a structured onboarding path with step-by-step reading order.
+
 ---
 
 ### Core Documentation
@@ -29,11 +31,15 @@ This directory contains all the documentation for the D&D Session Processor. Bel
 - **[SESSION_NOTEBOOK.md](./SESSION_NOTEBOOK.md)**: A guide to the Story Notebooks feature for generating narrative summaries from transcripts.
 - **[STATUS_INDICATORS.md](./STATUS_INDICATORS.md)**: A reference guide for all status indicators, icons, and symbols used throughout the application.
 
-### Development & Agent Logs
+### Development & Agent Workflows
 
+- **[AGENT_ONBOARDING.md](../AGENT_ONBOARDING.md)**: (In root) **START HERE** - Comprehensive onboarding guide with structured reading path for new AI agents and contributors. Tells you what to read and in what order.
 - **[DEVELOPMENT.md](./DEVELOPMENT.md)**: A development chronicle logging major implementation and refactoring sessions.
 - **[UI_STATUS.md](./UI_STATUS.md)**: A debugging and status guide for the Party Management UI tab.
-- **[AGENTS.md](../AGENTS.md)**: (In root) Core instructions for AI agents working in this repository.
+- **[CRITICAL_REVIEW_WORKFLOW.md](./CRITICAL_REVIEW_WORKFLOW.md)**: A step-by-step guide to the Critical Reviewer Agent methodology for rigorous code review with documented reasoning.
+- **[CRITICAL_REVIEWER_SETUP_SUMMARY.md](./CRITICAL_REVIEWER_SETUP_SUMMARY.md)**: Summary of the Critical Reviewer Agent integration, including all files created/modified and how to use the system.
+- **[AGENTS.md](../AGENTS.md)**: (In root) Core instructions for AI agents working in this repository, including Critical Reviewer invocation.
+- **Operator Workflow**: See [AGENTS.md#operator-workflow](../AGENTS.md#operator-workflow) for the required plan -> implement -> document -> test loop that keeps implementation plans in sync.
 - **[ROADMAP.md](../ROADMAP.md)**: (In root) Consolidated multi-agent roadmap covering priorities, ownership, and sequencing.
 - **[COLLECTIVE_ROADMAP.md](../COLLECTIVE_ROADMAP.md)**: (In root) The high-level project plan and agent priorities.
 - **[REFACTORING_PLAN.md](../REFACTORING_PLAN.md)**: (In root) The detailed plan for improving the codebase architecture.

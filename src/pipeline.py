@@ -1,10 +1,11 @@
-﻿"""Main processing pipeline orchestrating all components"""
+"""Main processing pipeline orchestrating all components"""
 from pathlib import Path
 from time import perf_counter
 from typing import Optional, List, Dict
 from datetime import datetime
 from tqdm import tqdm
 from .config import Config
+from .checkpoint import CheckpointManager
 from .audio_processor import AudioProcessor
 from .chunker import HybridChunker
 from .transcriber import TranscriberFactory, ChunkTranscription
@@ -67,7 +68,8 @@ class DDSessionProcessor:
         character_names: Optional[List[str]] = None,
         player_names: Optional[List[str]] = None,
         num_speakers: int = 4,
-        party_id: Optional[str] = None
+        party_id: Optional[str] = None,
+        resume: bool = True
     ):
         """
         Args:
@@ -80,6 +82,7 @@ class DDSessionProcessor:
         self.session_id = session_id
         self.safe_session_id = sanitize_filename(session_id)
         self.logger = get_logger(f"pipeline.{self.safe_session_id}")
+        self.resume_enabled = resume
 
         if self.safe_session_id != self.session_id:
             self.logger.warning(
@@ -89,6 +92,10 @@ class DDSessionProcessor:
             )
 
         self.party_manager = PartyConfigManager()
+        self.checkpoint_manager = CheckpointManager(
+            self.safe_session_id,
+            Config.OUTPUT_DIR / "_checkpoints" / self.safe_session_id
+        )
 
         self.party_id = party_id
         # Load party configuration if provided
@@ -133,10 +140,35 @@ class DDSessionProcessor:
         skip_knowledge: bool = False
     ) -> Dict:
         """Process a complete D&D session recording and return output metadata."""
-        # Create session-specific output directory with timestamp
-        base_output_dir = output_dir or Config.OUTPUT_DIR
-        base_output_dir = Path(base_output_dir)
-        output_dir = create_session_output_dir(base_output_dir, self.safe_session_id)
+        # Create or reuse session-specific output directory with optional checkpoint resume
+        base_output_dir = Path(output_dir or Config.OUTPUT_DIR)
+        resume_stage: Optional[str] = None
+        resume_record = None
+        completed_stages = set()
+
+        if self.resume_enabled:
+            latest = self.checkpoint_manager.latest()
+            if latest:
+                resume_stage, resume_record = latest
+                completed_stages = set(resume_record.completed_stages or [])
+                self.logger.info(
+                    "Checkpoint detected for session '%s' at stage '%s' (saved %s)",
+                    self.session_id,
+                    resume_stage,
+                    resume_record.timestamp,
+                )
+
+        if resume_record and resume_record.metadata.get("session_output_dir"):
+            output_dir = Path(resume_record.metadata["session_output_dir"])
+            output_dir.mkdir(parents=True, exist_ok=True)
+        else:
+            output_dir = create_session_output_dir(base_output_dir, self.safe_session_id)
+
+        checkpoint_metadata = {
+            "input_file": str(input_file),
+            "session_output_dir": str(output_dir),
+            "base_output_dir": str(base_output_dir),
+        }
 
         start_time = perf_counter()
         log_session_start(
@@ -179,17 +211,59 @@ class DDSessionProcessor:
         StatusTracker.start_session(self.session_id, skip_flags, session_options)
 
         try:
-            self.logger.info("Stage 1/9: Converting audio to optimal format...")
-            StatusTracker.update_stage(self.session_id, 1, "running", "Converting source audio")
-            wav_file = self.audio_processor.convert_to_wav(input_file)
-            duration = self.audio_processor.get_duration(wav_file)
-            StatusTracker.update_stage(
-                self.session_id, 1, "completed", f"Duration {duration:.1f}s"
-            )
+            use_checkpoint_audio = False
+            wav_file: Optional[Path] = None
+            duration: Optional[float] = None
+
+            if "audio_converted" in completed_stages:
+                audio_checkpoint = self.checkpoint_manager.load("audio_converted")
+                wav_path_str = audio_checkpoint.data.get("wav_path") if audio_checkpoint else None
+                if wav_path_str:
+                    wav_path = Path(wav_path_str)
+                    if wav_path.exists():
+                        wav_file = wav_path
+                        duration = float(audio_checkpoint.data.get("duration", 0.0))
+                        use_checkpoint_audio = True
+                    else:
+                        self.logger.warning(
+                            "Checkpoint WAV missing at %s; re-running conversion",
+                            wav_path,
+                        )
+                        completed_stages.discard("audio_converted")
+
+            if use_checkpoint_audio:
+                self.logger.info("Stage 1/9: Using converted audio from checkpoint %s", wav_file)
+                StatusTracker.update_stage(
+                    self.session_id,
+                    1,
+                    "completed",
+                    f"Duration {duration:.1f}s (checkpoint)",
+                )
+            else:
+                self.logger.info("Stage 1/9: Converting audio to optimal format...")
+                StatusTracker.update_stage(self.session_id, 1, "running", "Converting source audio")
+                wav_file = self.audio_processor.convert_to_wav(input_file)
+                duration = self.audio_processor.get_duration(wav_file)
+                StatusTracker.update_stage(
+                    self.session_id, 1, "completed", f"Duration {duration:.1f}s"
+                )
+                completed_stages.add("audio_converted")
+                self.checkpoint_manager.save(
+                    "audio_converted",
+                    {
+                        "wav_path": str(wav_file),
+                        "duration": duration,
+                    },
+                    completed_stages=sorted(completed_stages),
+                    metadata=checkpoint_metadata,
+                )
+
+            duration_hours = (duration or 0.0) / 3600 if duration else 0.0
             self.logger.info(
-                "Stage 1/9 complete: %.1f seconds of audio (%.1f hours)",
-                duration,
-                duration / 3600
+                "Stage 1/9 %s: %.1f seconds of audio (%.1f hours)",
+                "resumed" if use_checkpoint_audio else "complete",
+                duration or 0.0,
+                duration_hours,
             )
 
             self.logger.info("Stage 2/9: Chunking audio with VAD...")
@@ -526,6 +600,10 @@ class DDSessionProcessor:
             duration_seconds = perf_counter() - start_time
             StatusTracker.complete_session(self.session_id)
             log_session_end(self.session_id, duration_seconds, success=True)
+
+            # Processing completed successfully; clear checkpoints for next run
+            if self.resume_enabled:
+                self.checkpoint_manager.clear()
 
             return {
                 'output_files': output_files,

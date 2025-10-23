@@ -67,6 +67,7 @@ models/character_backups/
 # Logs
 *.log
 logs/
+.claude/agents/
 
 # OS
 .DS_Store

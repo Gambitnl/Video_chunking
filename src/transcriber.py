@@ -198,7 +198,7 @@ class GroqTranscriber(BaseTranscriber):
 
         try:
             # Call Groq API
-            with open(temp_path, "rb") as audio_file:
+            with open(str(temp_path), "rb") as audio_file:
                 response = self.client.audio.transcriptions.create(
                     file=audio_file,
                     model="whisper-large-v3",

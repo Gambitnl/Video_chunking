@@ -15,7 +15,7 @@ class Config:
     """Application configuration"""
 
     @staticmethod
-    def _get_env_as_int(key: str, default: int) -> int:
+    def get_env_as_int(key: str, default: int) -> int:
         """Safely get an environment variable as an integer."""
         value = os.getenv(key)
         if value is None or value.strip() == "":

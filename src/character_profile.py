@@ -346,7 +346,7 @@ class CharacterProfileManager:
             if profile.current_goals:
                 md += "### Current Objectives\n\n"
                 for goal in profile.current_goals:
-                    md += f"-  {goal}\n"
+                    md += f"- [ ] {goal}\n"
                 md += "\n"
 
             if profile.completed_goals:

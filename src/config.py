@@ -35,7 +35,7 @@ class Config:
     def _get_env_as_bool(key: str, default: bool) -> bool:
         """Safely get an environment variable as a boolean."""
         value = os.getenv(key)
-        if value is None:
+        if value is None or value.strip() == "":
             return default
         return value.strip().lower() in {"1", "true", "yes", "on"}
 

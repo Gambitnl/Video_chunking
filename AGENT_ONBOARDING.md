@@ -119,7 +119,7 @@
 7. MERGE AFTER APPROVAL
    |
    v Update documentation
-   └-> Loop back to step 1 for next task
+   +-> Loop back to step 1 for next task
 ```
 
 ---

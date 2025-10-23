@@ -1,4 +1,4 @@
-﻿"""Simple Gradio landing page to control the session processor."""
+"""Simple Gradio landing page to control the session processor."""
 import atexit
 import os
 import socket
@@ -9,11 +9,12 @@ from pathlib import Path
 from typing import Dict
 import gradio as gr
 from src.logger import get_log_file_path
+from src.config import Config
 from src.status_tracker import StatusTracker, STAGES
 PROJECT_ROOT = Path(__file__).resolve().parent
 APP_COMMAND = [sys.executable, "app.py"]
-APP_PORT = int(os.getenv("SESSION_APP_PORT", "7860"))
-MANAGER_PORT = int(os.getenv("SESSION_MANAGER_PORT", "7861"))
+APP_PORT = Config._get_env_as_int("SESSION_APP_PORT", 7860)
+MANAGER_PORT = Config._get_env_as_int("SESSION_MANAGER_PORT", 7861)
 OPTION_LABELS = {
     "input_file": "Input file",
     "base_output_dir": "Base output directory",

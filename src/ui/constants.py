@@ -5,52 +5,52 @@ class StatusIndicators:
     """Centralised set of status indicator glyphs for the UI."""
 
     # General status
-    SUCCESS = "✅"
-    ERROR = "❌"
-    WARNING = "⚠️"
-    UNKNOWN = "❓"
+    SUCCESS = "[OK]"
+    ERROR = "[ERROR]"
+    WARNING = "[WARN]"
+    UNKNOWN = "[UNKNOWN]"
 
     # Health indicators
-    HEALTH_EXCELLENT = "🟢"  # 90-100%
-    HEALTH_GOOD = "🟡"        # 70-89%
-    HEALTH_FAIR = "🟠"        # 50-69%
-    HEALTH_POOR = "🔴"        # 0-49%
+    HEALTH_EXCELLENT = "[HEALTH-GREEN]"  # 90-100%
+    HEALTH_GOOD = "[HEALTH-YELLOW]"        # 70-89%
+    HEALTH_FAIR = "[HEALTH-ORANGE]"        # 50-69%
+    HEALTH_POOR = "[HEALTH-RED]"        # 0-49%
 
     # Quest status
-    QUEST_ACTIVE = "🧭"
+    QUEST_ACTIVE = "[QUEST]"
     QUEST_COMPLETE = SUCCESS
     QUEST_FAILED = ERROR
     QUEST_UNKNOWN = UNKNOWN
 
     # Character development
-    PERSONALITY = "🎭"
-    BACKSTORY = "📜"
-    FEAR = "😨"
-    TRAIT = "✨"
-    DIVINE = "🛐"
-    GENERAL = "🧠"
+    PERSONALITY = "[PERSONALITY]"
+    BACKSTORY = "[BACKSTORY]"
+    FEAR = "[FEAR]"
+    TRAIT = "[TRAIT]"
+    DIVINE = "[DIVINE]"
+    GENERAL = "[GENERAL]"
 
     # Item categories
-    WEAPON = "🗡️"
-    ARMOR = "🛡️"
-    MAGICAL = "🔮"
-    CONSUMABLE = "🧪"
-    QUEST_ITEM = "🏆"
-    EQUIPMENT = "🧰"
-    MISC = "🎒"
+    WEAPON = "[WEAPON]"
+    ARMOR = "[ARMOR]"
+    MAGICAL = "[MAGIC]"
+    CONSUMABLE = "[POTION]"
+    QUEST_ITEM = "[QUEST-ITEM]"
+    EQUIPMENT = "[GEAR]"
+    MISC = "[MISC]"
 
     # Relationship types
-    ALLY = "🤝"
-    ENEMY = "⚔️"
-    NEUTRAL = "😐"
-    MENTOR = "🧙"
-    STUDENT = "🎓"
-    FRIEND = "🫂"
-    RIVAL = "🥊"
-    FAMILY = "👪"
-    DEITY = "🛐"
-    SPIRIT = "👻"
-    COMPANION = "🐾"
-    EMPLOYER = "💼"
-    MASTER = "🧑‍🏫"
-    RESCUED = "🆘"
+    ALLY = "[ALLY]"
+    ENEMY = "[ENEMY]"
+    NEUTRAL = "[NEUTRAL]"
+    MENTOR = "[MENTOR]"
+    STUDENT = "[GRAD]"
+    FRIEND = "[FRIEND]"
+    RIVAL = "[RIVAL]"
+    FAMILY = "[FAMILY]"
+    DEITY = "[DEITY]"
+    SPIRIT = "[SPIRIT]"
+    COMPANION = "[COMPANION]"
+    EMPLOYER = "[EMPLOYER]"
+    MASTER = "[MASTER]"
+    RESCUED = "[RESCUED]"

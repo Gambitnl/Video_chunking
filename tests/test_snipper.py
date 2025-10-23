@@ -23,6 +23,7 @@ def test_export_segments_cleans_directory_and_builds_manifest(tmp_path, monkeypa
     stale_dir = base_output / "session-alpha"
     stale_dir.mkdir(parents=True)
     (stale_dir / "old.wav").write_bytes(b"stale")
+    (stale_dir / "keep.txt").write_text("leave me")
 
     segments = [
         {
@@ -43,6 +44,7 @@ def test_export_segments_cleans_directory_and_builds_manifest(tmp_path, monkeypa
 
     dummy_audio = DummyAudioSegment()
     monkeypatch.setattr("src.snipper.AudioSegment.from_file", lambda *args, **kwargs: dummy_audio)
+    monkeypatch.setattr("src.snipper.Config.CLEAN_STALE_CLIPS", True, raising=False)
 
     snipper = AudioSnipper()
     result = snipper.export_segments(
@@ -57,6 +59,7 @@ def test_export_segments_cleans_directory_and_builds_manifest(tmp_path, monkeypa
     assert session_dir is not None
     assert session_dir.exists()
     assert not (session_dir / "old.wav").exists(), "Stale files should be removed"
+    assert (session_dir / "keep.txt").exists(), "Non-audio files should be preserved"
 
     manifest_path = result["manifest"]
     assert manifest_path is not None
@@ -66,3 +69,36 @@ def test_export_segments_cleans_directory_and_builds_manifest(tmp_path, monkeypa
     assert data[0]["classification"]["confidence"] == 0.9
     assert data[0]["classification"]["reasoning"] == "Unit test"
     assert data[0]["classification"]["character"] == "DM"
+
+
+def test_export_segments_skips_cleanup_when_disabled(tmp_path, monkeypatch):
+    audio_path = tmp_path / "session.wav"
+    audio_path.write_bytes(b"fake-audio")
+
+    base_output = tmp_path / "segments"
+    session_dir = base_output / "session-beta"
+    session_dir.mkdir(parents=True)
+    preserved = session_dir / "custom.wav"
+    preserved.write_bytes(b"legacy")
+
+    segments = [{
+        "text": "Hallo opnieuw",
+        "start_time": 0.0,
+        "end_time": 1.0,
+        "speaker": "SPEAKER_01"
+    }]
+
+    dummy_audio = DummyAudioSegment()
+    monkeypatch.setattr("src.snipper.AudioSegment.from_file", lambda *args, **kwargs: dummy_audio)
+    monkeypatch.setattr("src.snipper.Config.CLEAN_STALE_CLIPS", False, raising=False)
+
+    snipper = AudioSnipper()
+    snipper.export_segments(
+        audio_path=audio_path,
+        segments=segments,
+        base_output_dir=base_output,
+        session_id="session-beta",
+        classifications=None
+    )
+
+    assert preserved.exists(), "Cleanup should be skipped when disabled"

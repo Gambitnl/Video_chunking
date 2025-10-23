@@ -310,7 +310,7 @@ class CharacterProfileManager:
         md += "---\n\n"
 
         # Basic Info
-        md += "## 📋 Basic Information\n\n"
+        md += "## [NOTE] Basic Information\n\n"
         md += f"- **Player**: {profile.player}\n"
         md += f"- **Campaign**: {profile.campaign}\n"
 
@@ -324,40 +324,40 @@ class CharacterProfileManager:
 
         # Description
         if profile.description:
-            md += "## 📖 Description\n\n"
+            md += "## [BOOK] Description\n\n"
             md += profile.description + "\n\n"
 
         if profile.appearance:
-            md += "### 👤 Appearance\n\n"
+            md += "### [PERSON] Appearance\n\n"
             md += profile.appearance + "\n\n"
 
         if profile.personality:
-            md += "### 🎭 Personality\n\n"
+            md += "### [THEATER] Personality\n\n"
             md += profile.personality + "\n\n"
 
         if profile.backstory:
-            md += "### 📜 Backstory\n\n"
+            md += "### [SCROLL] Backstory\n\n"
             md += profile.backstory + "\n\n"
 
         # Goals
         if profile.current_goals or profile.completed_goals:
-            md += "## 🎯 Goals & Progress\n\n"
+            md += "## [TARGET] Goals & Progress\n\n"
 
             if profile.current_goals:
                 md += "### Current Objectives\n\n"
                 for goal in profile.current_goals:
-                    md += f"- 🔲 {goal}\n"
+                    md += f"-  {goal}\n"
                 md += "\n"
 
             if profile.completed_goals:
                 md += "### Completed Goals\n\n"
                 for goal in profile.completed_goals:
-                    md += f"- ✅ {goal}\n"
+                    md += f"- [DONE] {goal}\n"
                 md += "\n"
 
         # Notable Actions
         if profile.notable_actions:
-            md += "## ⚔️ Notable Actions\n\n"
+            md += "## swords Notable Actions\n\n"
 
             # Group by action type for summary
             action_types = {}
@@ -372,24 +372,24 @@ class CharacterProfileManager:
 
             # Action type emoji mapping
             action_icons = {
-                'combat': '⚔️',
-                'social': '💬',
-                'exploration': '🔍',
-                'magic': '✨',
-                'divine': '🙏',
-                'general': '📌'
+                'combat': '[COMBAT]',
+                'social': '[CHAT]',
+                'exploration': '[EXPLORE]',
+                'magic': '[MAGIC]',
+                'divine': '[DIVINE]',
+                'general': '[GENERAL]'
             }
 
             # Display recent actions (last 15)
             recent_actions = profile.notable_actions[-15:] if len(profile.notable_actions) > 15 else profile.notable_actions
             for action in recent_actions:
-                icon = action_icons.get(action.type, '•')
+                icon = action_icons.get(action.type, '-')
                 md += f"**{action.session}** {icon} _{action.type.title()}_\n"
                 md += f"  {action.description}\n\n"
 
         # Inventory
         if profile.inventory:
-            md += "## 🎒 Inventory\n\n"
+            md += "## Inventory\n\n"
             md += f"_Carrying {len(profile.inventory)} items_\n\n"
 
             # Category icon mapping
@@ -409,7 +409,7 @@ class CharacterProfileManager:
                 by_category.setdefault(item.category, []).append(item)
 
             for category, items in sorted(by_category.items()):
-                icon = category_icons.get(category, '•')
+                icon = category_icons.get(category, '-')
                 md += f"### {icon} {category.title()}\n\n"
                 for item in items:
                     md += f"- **{item.name}**"
@@ -422,7 +422,7 @@ class CharacterProfileManager:
 
         # Relationships
         if profile.relationships:
-            md += "## 🤝 Relationships\n\n"
+            md += "## [HANDSHAKE] Relationships\n\n"
 
             # Relationship type icons
             rel_icons = {
@@ -443,7 +443,7 @@ class CharacterProfileManager:
             }
 
             for rel in profile.relationships:
-                icon = rel_icons.get(rel.relationship_type.lower(), '•')
+                icon = rel_icons.get(rel.relationship_type.lower(), '-')
                 md += f"**{icon} {rel.name}** _{rel.relationship_type}_\n"
                 if rel.description:
                     md += f"  {rel.description}\n"
@@ -453,16 +453,16 @@ class CharacterProfileManager:
 
         # Memorable Quotes
         if profile.memorable_quotes:
-            md += "## 💬 Memorable Quotes\n\n"
+            md += "## [CHAT] Memorable Quotes\n\n"
             for quote in profile.memorable_quotes[-5:]:  # Last 5
                 md += f"> \"{quote.quote}\"\n\n"
                 if quote.context:
                     md += f"_Context: {quote.context}_\n"
-                md += f"_— {quote.session}_\n\n"
+                md += f"_- {quote.session}_\n\n"
 
         # Development
         if profile.development_notes:
-            md += "## 📈 Character Development\n\n"
+            md += "## [UP] Character Development\n\n"
 
             # Development category icons
             from .ui.constants import StatusIndicators
@@ -477,17 +477,17 @@ class CharacterProfileManager:
             }
 
             for dev in profile.development_notes:
-                icon = dev_icons.get(dev.category.lower(), '•')
+                icon = dev_icons.get(dev.category.lower(), '-')
                 md += f"**{dev.session}** {icon} _{dev.category.title()}_\n"
                 md += f"  {dev.note}\n\n"
 
         # Notes
         if profile.dm_notes:
-            md += "## 📝 DM Notes\n\n"
+            md += "## [NOTE] DM Notes\n\n"
             md += profile.dm_notes + "\n\n"
 
         if profile.player_notes:
-            md += "## ✍️ Player Notes\n\n"
+            md += "## [WRITE] Player Notes\n\n"
             md += profile.player_notes + "\n\n"
 
         # Footer with update info

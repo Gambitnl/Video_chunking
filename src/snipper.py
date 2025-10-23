@@ -1,10 +1,10 @@
 """Audio segment export utilities"""
 import json
 import re
-import shutil
 from pathlib import Path
 from typing import Dict, List, Optional
 from pydub import AudioSegment
+from .config import Config
 from .logger import get_logger
 
 
@@ -14,6 +14,35 @@ class AudioSnipper:
     def __init__(self):
         # Reuse pydub for convenience; additional options can be added later.
         self.logger = get_logger('snipper')
+        self.clean_stale_clips = Config.CLEAN_STALE_CLIPS
+
+    def _clear_session_directory(self, session_dir: Path) -> int:
+        """Remove existing snippet artifacts for a session."""
+        if not session_dir.exists():
+            return 0
+
+        removed = 0
+
+        for wav_file in session_dir.glob("*.wav"):
+            try:
+                wav_file.unlink()
+                removed += 1
+            except OSError as exc:
+                self.logger.warning("Failed to remove stale clip %s: %s", wav_file, exc)
+
+        manifest_file = session_dir / "manifest.json"
+        if manifest_file.exists():
+            try:
+                manifest_file.unlink()
+            except OSError as exc:
+                self.logger.warning("Failed to remove stale manifest %s: %s", manifest_file, exc)
+
+        if removed:
+            self.logger.info("Cleared %d stale clips from %s", removed, session_dir)
+        else:
+            self.logger.debug("No stale clips found in %s", session_dir)
+
+        return removed
 
     def export_segments(
         self,
@@ -52,9 +81,13 @@ class AudioSnipper:
         # Ensure base directory exists before manipulating session folder
         base_output_dir.mkdir(parents=True, exist_ok=True)
 
-        # Clear previous export to avoid stale segments
-        if session_dir.exists():
-            shutil.rmtree(session_dir)
+        if self.clean_stale_clips:
+            self._clear_session_directory(session_dir)
+        else:
+            self.logger.debug(
+                "Skipping stale clip cleanup for %s (CLEAN_STALE_CLIPS disabled)",
+                session_dir
+            )
 
         session_dir.mkdir(parents=True, exist_ok=True)
 

@@ -357,7 +357,7 @@ class CharacterProfileManager:
 
         # Notable Actions
         if profile.notable_actions:
-            md += "## swords Notable Actions\n\n"
+            md += "## [COMBAT] Notable Actions\n\n"
 
             # Group by action type for summary
             action_types = {}

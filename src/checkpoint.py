@@ -80,8 +80,12 @@ class CheckpointManager:
         path = self._stage_path(stage)
         if not path.exists():
             return None
-        data = json.loads(path.read_text(encoding="utf-8"))
-        return CheckpointRecord(**data)
+        try:
+            data = json.loads(path.read_text(encoding="utf-8"))
+            return CheckpointRecord(**data)
+        except (json.JSONDecodeError, TypeError) as e:
+            self.logger.warning("Could not load corrupted checkpoint for stage '%s': %s", stage, e)
+            return None
 
     def has_checkpoint(self, stage: str) -> bool:
         """Return True if a checkpoint for the stage exists."""

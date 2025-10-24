@@ -37,14 +37,14 @@ This planning system is split across multiple documents:
 
 ### P0: Critical / Immediate
 **Total Effort**: 5.5 days
-**Status**: 1 complete, 1 needs revisions, 4 not started
+**Status**: 3 complete, 1 needs revisions, 2 not started
 
 | Item | Effort | Status | Document |
 |------|--------|--------|----------|
 | P0-BUG-001: Stale Clip Cleanup | 0.5 days | [DONE] Complete | PLANS.md:100 |
 | P0-BUG-002: Safe Type Casting | 0.5 days | [LOOP] Revisions Needed | PLANS.md:217 |
 | P0-BUG-003: Checkpoint System | 2 days | [DONE] Complete | PLANS.md:407 |
-| P0-REFACTOR-001: Extract Campaign Dashboard | 2 days | NOT STARTED | PLANS.md:427 |
+| P0-REFACTOR-001: Extract Campaign Dashboard | 2 days | [DONE] Complete | PLANS.md:427 |
 | P0-REFACTOR-002: Extract Story Generation | 1 day | NOT STARTED | PLANS.md:447 |
 | P0-REFACTOR-003: Split app.py into UI Modules | 3-4 days | NOT STARTED | PLANS.md:463 |
 
@@ -117,7 +117,7 @@ This planning system is split across multiple documents:
 **Week 1**:
 - [x] Complete P0-BUG-002 revisions (0.5 days)
 - [ ] P1-FEATURE-003: Batch Processing (1 day)
-- [ ] P0-REFACTOR-001: Extract Campaign Dashboard (2 days)
+- [x] P0-REFACTOR-001: Extract Campaign Dashboard (2 days)
 - [ ] Start P0-REFACTOR-003: Split app.py (1 day progress)
 
 **Week 2**:
@@ -352,7 +352,7 @@ P4-DOCS-001 (API Docs)
 ### P0 Completion Criteria
 - [ ] All P0 bugs fixed and tested
 - [ ] `app.py` reduced to < 1000 lines
-- [ ] Campaign Dashboard in separate module
+- [x] Campaign Dashboard in separate module
 - [ ] All refactored code has tests
 
 ### P1 Completion Criteria

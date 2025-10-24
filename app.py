@@ -20,7 +20,7 @@ from src.knowledge_base import CampaignKnowledgeBase
 from src.ui.constants import StatusIndicators
 from src.campaign_dashboard import CampaignDashboard
 from src.story_generator import StoryGenerator
-from src.ui.campaign_dashboard import create_dashboard_tab
+from src.ui.campaign_dashboard_tab import create_dashboard_tab
 from src.google_drive_auth import (
     get_auth_url,
     exchange_code_for_token,

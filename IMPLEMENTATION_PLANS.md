@@ -429,7 +429,7 @@ If processing fails mid-way through a 4-hour session (e.g., power outage, crash)
 **Files**: Extract from `app.py` to `src/campaign_dashboard.py`
 **Effort**: 2 days
 **Priority**: HIGH
-**Status**: NOT STARTED
+**Status**: [DONE] Completed 2025-10-24
 
 ### Problem Statement
 Campaign Dashboard code is embedded in `app.py` (2,564 lines), making it hard to maintain and test.
@@ -441,6 +441,31 @@ Create new module `src/campaign_dashboard.py` with:
 - Methods for health checks, status displays
 - Independent of Gradio (pure Python logic)
 - Gradio tab wrapper in `src/ui/campaign_dashboard_tab.py`
+
+### Implementation Notes & Reasoning
+**Implementer**: Codex (GPT-5)
+**Date**: 2025-10-24
+
+#### Design Decisions
+1. **Module Naming and Separation**
+   - **Choice**: Keep logic in `src/campaign_dashboard.py` and move the Gradio wrapper to `src/ui/campaign_dashboard_tab.py`.
+   - **Reasoning**: Aligns module structure with the implementation plan and clarifies the split between pure logic and UI bindings.
+   - **Alternatives Considered**: Leaving the wrapper in `src/ui/campaign_dashboard.py`. Rejected to avoid future confusion with plan naming and additional UI modules.
+   - **Trade-offs**: Requires updating imports (`app.py`) and docs, but improves discoverability.
+
+2. **Dashboard Instantiation**
+   - **Choice**: Continue instantiating `CampaignDashboard()` per request in the UI layer.
+   - **Reasoning**: Keeps dependencies local and avoids long-lived global state; existing tests already mock the manager constructors.
+   - **Trade-offs**: Slight overhead on repeated instantiation, acceptable for user-triggered actions.
+
+#### Open Questions
+- Should `CampaignDashboard` accept optional injected managers for easier headless testing and reuse in CLI workflows?
+
+### Validation
+- `pytest tests/test_campaign_dashboard.py -q`
+
+### Follow-up
+- Consider dependency injection for `CampaignDashboard` managers if CLI reuse grows.
 
 ---
 

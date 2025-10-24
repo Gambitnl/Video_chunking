@@ -212,6 +212,7 @@ class TestPipelineStageExecution:
              patch('src.pipeline.TranscriptionMerger'), \
              patch('src.pipeline.TranscriptFormatter'), \
              patch('src.pipeline.AudioSnipper'), \
+             patch('src.pipeline.CheckpointManager'), \
              patch('src.pipeline.StatusTracker'), \
              patch('src.pipeline.SpeakerDiarizer') as mock_diarizer_cls:
 
@@ -266,6 +267,7 @@ class TestPipelineStageExecution:
              patch('src.pipeline.TranscriptionMerger'), \
              patch('src.pipeline.TranscriptFormatter'), \
              patch('src.pipeline.AudioSnipper'), \
+             patch('src.pipeline.CheckpointManager'), \
              patch('src.pipeline.StatusTracker'), \
              patch('src.pipeline.SpeakerDiarizer') as mock_diarizer_cls:
 
@@ -315,6 +317,7 @@ class TestPipelineStageExecution:
              patch('src.pipeline.TranscriptionMerger'), \
              patch('src.pipeline.TranscriptFormatter'), \
              patch('src.pipeline.AudioSnipper'), \
+             patch('src.pipeline.CheckpointManager'), \
              patch('src.pipeline.StatusTracker'), \
              patch('src.pipeline.ClassifierFactory') as mock_classifier_factory:
 
@@ -641,6 +644,7 @@ class TestPipelineErrorHandling:
              patch('src.pipeline.TranscriptionMerger'), \
              patch('src.pipeline.TranscriptFormatter'), \
              patch('src.pipeline.AudioSnipper'), \
+             patch('src.pipeline.CheckpointManager'), \
              patch('src.pipeline.StatusTracker'), \
              patch('src.pipeline.SpeakerDiarizer') as mock_diarizer_cls:
 
@@ -694,6 +698,7 @@ class TestPipelineErrorHandling:
              patch('src.pipeline.TranscriptionMerger'), \
              patch('src.pipeline.TranscriptFormatter'), \
              patch('src.pipeline.AudioSnipper'), \
+             patch('src.pipeline.CheckpointManager'), \
              patch('src.pipeline.StatusTracker'), \
              patch('src.pipeline.ClassifierFactory') as mock_classifier_factory:
 

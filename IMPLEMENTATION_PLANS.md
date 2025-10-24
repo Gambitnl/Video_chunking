@@ -526,7 +526,7 @@ Extract to dedicated module with CLI support for batch generation.
 **Files**: `app.py` -> `src/ui/*.py`
 **Effort**: 3-4 days
 **Priority**: HIGH
-**Status**: NOT STARTED
+**Status**: [DONE] Completed 2025-10-24
 
 ### Problem Statement
 `app.py` is 2,564 lines - too large to maintain effectively.
@@ -544,14 +544,16 @@ src/ui/
 ```
 
 ### Implementation Notes & Reasoning
-**Implementer**: Codex (GPT-5)
+**Implementer**: Codex (GPT-5)  
 **Date**: 2025-10-24
 
-- Extracted the Process Session UI into `src/ui/process_session_tab.py`, replacing the inline block in `app.py` with a module call and reducing top-level churn.
-- `create_process_session_tab` now centralizes campaign/party form controls and returns the party list consumed by downstream tabs.
-- Updated `app.py` imports and reinstantiated `PartyConfigManager` for Party Management wiring after the module call.
-- Validation: `pytest tests/test_campaign_dashboard.py -q` (ensures surrounding UI remains stable).
-- Next: migrate Party Management, Import Notes, and Story tabs to dedicated modules to continue shrinking `app.py`.
+- Split each Gradio tab from `app.py` into dedicated modules under `src/ui/`, covering import notes, campaign library, character profiles, speaker management, document viewer, social insights, story notebooks, diagnostics/logs, LLM chat, configuration, and help.
+- Introduced `StoryNotebookManager`-backed helpers along with tab creators so the Gradio layer now wires reusable services instead of duplicating logic across UI and CLI.
+- Centralized OAuth and Google Doc handling inside `src/ui/document_viewer_tab.py`, exposing a simple `_set_notebook_context` callback so story generation picks up imported notes automatically.
+- Updated `app.py` to delegate tab construction, reducing the file from a monolithic layout to a lightweight orchestrator that assembles modules and shared dependencies.
+
+#### Validation
+- `pytest -q` *(fails: tests/test_transcriber.py indentation error pre-existing in repository)*
 
 ---
 

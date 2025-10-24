@@ -147,7 +147,7 @@ def test_groq_transcriber(mock_path_exists, mock_unlink, mock_file_open, mock_sf
     
     assert len(segment.words) == 2
     assert segment.words[0]['word'] == 'Groq'
-        assert segment.words[0]['start'] == pytest.approx(10.0 + 1.0)
+    assert segment.words[0]['start'] == pytest.approx(10.0 + 1.0)
     
     
     class TestTranscriptionSegment:
@@ -219,6 +219,6 @@ def test_groq_transcriber(mock_path_exists, mock_unlink, mock_file_open, mock_sf
             assert chunk_transcription.language == "en"
             assert len(chunk_transcription.segments) == 1
             assert chunk_transcription.segments[0].text == "hello"
-    
-    
-    @patch('groq.Groq')
+
+
+@patch('groq.Groq')

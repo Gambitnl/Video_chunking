@@ -507,6 +507,16 @@ src/ui/
 └── ... (10 more tab modules)
 ```
 
+### Implementation Notes & Reasoning
+**Implementer**: Codex (GPT-5)
+**Date**: 2025-10-24
+
+- Extracted the Process Session UI into `src/ui/process_session_tab.py`, replacing the inline block in `app.py` with a module call and reducing top-level churn.
+- `create_process_session_tab` now centralizes campaign/party form controls and returns the party list consumed by downstream tabs.
+- Updated `app.py` imports and reinstantiated `PartyConfigManager` for Party Management wiring after the module call.
+- Validation: `pytest tests/test_campaign_dashboard.py -q` (ensures surrounding UI remains stable).
+- Next: migrate Party Management, Import Notes, and Story tabs to dedicated modules to continue shrinking `app.py`.
+
 ---
 
 **See ROADMAP.md for complete P0-P4 feature list**

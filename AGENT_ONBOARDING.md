@@ -36,7 +36,7 @@
 - **Key sections**:
   - "Operator Workflow" (lines 53-62) - **CRITICAL**: The plan -> implement -> document -> test loop
   - "AI Agent Workflows" - Critical Reviewer methodology
-  - "Character Encoding: ASCII-Only" - Keep files cp1252-compatible
+  - "Character Encoding: cp1252-compatible" - Avoid non-cp1252 characters to ensure broad compatibility across systems and editors. Note: This is a broader set than strict ASCII.
 
 #### 1.3: Quick Reference
 **File**: [`docs/QUICKREF.md`](./docs/QUICKREF.md)
@@ -74,7 +74,8 @@
 - **Key sections**: "P0: Critical / Immediate", "Quick Reference Guide"
 
 #### 3.2: Implementation Plans (if they exist)
-- Look for `IMPLEMENTATION_PLANS.md` and related files
+- Look for `IMPLEMENTATION_PLANS.md` and related files in the root directory for active plans.
+- Files in `docs/archive/` are historical and should not be used for current work.
 - These contain detailed subtasks, code examples, templates
 - Read the plan for any feature before implementing it
 
@@ -84,7 +85,7 @@
 
 ## [LOOP] The Operator Workflow Loop
 
-**CRITICAL**: This is how ALL work is done in this repository.
+**CRITICAL**: This is how ALL work is done in this repository. The pipeline now supports **checkpointing and resume**, meaning you can restart a process from the last completed stage if it's interrupted.
 
 ```
 1. START FROM THE PLAN
@@ -95,6 +96,7 @@
    |
    v Implement one subtask at a time
    v Update plan immediately (checkboxes, notes)
+   v **Leverage Checkpoints**: If your work involves running the main pipeline, it will automatically save progress. If interrupted, you can restart, and it will resume from the last completed stage.
 
 3. DOCUMENT REASONING
    |

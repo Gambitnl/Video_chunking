@@ -70,12 +70,13 @@ Transform long-form D&D session recordings into rich, searchable transcripts wit
   - Fix: Clear session directory before writing new batch
   - Estimated effort: 0.5 days
   - Impact: MEDIUM - prevents directory confusion
-- [ ] **Unsafe Type Casting in Configuration**
+- [x] **Unsafe Type Casting in Configuration**
   - File: `src/config.py`
   - Issue: Non-numeric .env values crash on int() cast
   - Fix: Wrap casts in try-except, fall back to defaults
   - Estimated effort: 0.5 days
   - Impact: MEDIUM - prevents startup crashes
+  - Status: [DONE] Completed (2025-10-24)
 - [ ] **Checkpoint system for resumable processing**
   - Save intermediate state after each pipeline stage
   - Prevent data loss on 4+ hour sessions

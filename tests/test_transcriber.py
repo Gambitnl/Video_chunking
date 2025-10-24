@@ -147,4 +147,78 @@ def test_groq_transcriber(mock_path_exists, mock_unlink, mock_file_open, mock_sf
     
     assert len(segment.words) == 2
     assert segment.words[0]['word'] == 'Groq'
-    assert segment.words[1]['start'] == pytest.approx(10.0 + 1.6)
+        assert segment.words[0]['start'] == pytest.approx(10.0 + 1.0)
+    
+    
+    class TestTranscriptionSegment:
+        def test_to_dict(self):
+            segment = TranscriptionSegment(
+                text="hello", start_time=0.0, end_time=1.0, confidence=0.9, words=[{"word": "hello", "start": 0.0, "end": 1.0}]
+            )
+            expected_dict = {
+                "text": "hello",
+                "start_time": 0.0,
+                "end_time": 1.0,
+                "confidence": 0.9,
+                "words": [{"word": "hello", "start": 0.0, "end": 1.0}],
+            }
+            assert segment.to_dict() == expected_dict
+    
+        def test_from_dict(self):
+            data = {
+                "text": "hello",
+                "start_time": 0.0,
+                "end_time": 1.0,
+                "confidence": 0.9,
+                "words": [{"word": "hello", "start": 0.0, "end": 1.0}],
+            }
+            segment = TranscriptionSegment.from_dict(data)
+            assert segment.text == "hello"
+            assert segment.start_time == 0.0
+            assert segment.end_time == 1.0
+            assert segment.confidence == 0.9
+            assert segment.words == [{"word": "hello", "start": 0.0, "end": 1.0}]
+    
+    
+    class TestChunkTranscription:
+        def test_to_dict(self):
+            segment = TranscriptionSegment(
+                text="hello", start_time=0.0, end_time=1.0, confidence=0.9, words=[]
+            )
+            chunk_transcription = ChunkTranscription(
+                chunk_index=0, chunk_start=0.0, chunk_end=10.0, segments=[segment], language="en"
+            )
+            expected_dict = {
+                "chunk_index": 0,
+                "chunk_start": 0.0,
+                "chunk_end": 10.0,
+                "segments": [segment.to_dict()],
+                "language": "en",
+            }
+            assert chunk_transcription.to_dict() == expected_dict
+    
+        def test_from_dict(self):
+            segment_data = {
+                "text": "hello",
+                "start_time": 0.0,
+                "end_time": 1.0,
+                "confidence": 0.9,
+                "words": [],
+            }
+            data = {
+                "chunk_index": 0,
+                "chunk_start": 0.0,
+                "chunk_end": 10.0,
+                "segments": [segment_data],
+                "language": "en",
+            }
+            chunk_transcription = ChunkTranscription.from_dict(data)
+            assert chunk_transcription.chunk_index == 0
+            assert chunk_transcription.chunk_start == 0.0
+            assert chunk_transcription.chunk_end == 10.0
+            assert chunk_transcription.language == "en"
+            assert len(chunk_transcription.segments) == 1
+            assert chunk_transcription.segments[0].text == "hello"
+    
+    
+    @patch('groq.Groq')

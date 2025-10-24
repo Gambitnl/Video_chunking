@@ -16,6 +16,27 @@ class ClassificationResult:
     reasoning: str
     character: Optional[str] = None  # Character name if IC
 
+    def to_dict(self) -> dict:
+        """Converts the ClassificationResult to a dictionary for serialization."""
+        return {
+            "segment_index": self.segment_index,
+            "classification": self.classification,
+            "confidence": self.confidence,
+            "reasoning": self.reasoning,
+            "character": self.character,
+        }
+
+    @classmethod
+    def from_dict(cls, data: dict) -> "ClassificationResult":
+        """Creates a ClassificationResult from a dictionary."""
+        return cls(
+            segment_index=data["segment_index"],
+            classification=data["classification"],
+            confidence=data["confidence"],
+            reasoning=data["reasoning"],
+            character=data.get("character"),
+        )
+
 
 class BaseClassifier(ABC):
     """Abstract base for IC/OOC classifiers"""

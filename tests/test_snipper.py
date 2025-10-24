@@ -26,12 +26,6 @@ def stub_audio_segment(monkeypatch):
     )
     yield
 
-    base_output = tmp_path / "segments"
-    stale_dir = base_output / "session-alpha"
-    stale_dir.mkdir(parents=True)
-    (stale_dir / "old.wav").write_bytes(b"stale")
-    (stale_dir / "keep.txt").write_text("leave me")
-
 @pytest.fixture
 def temp_output_dir(tmp_path):
     """Create a temporary directory for test outputs."""

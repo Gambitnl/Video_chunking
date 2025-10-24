@@ -141,12 +141,12 @@
 - Speaker distribution
 - Character appearances
 
-### Pipeline Orchestration âœ…
+### Pipeline Orchestration ✅
 
 **Implemented**: `src/pipeline.py`
 
 **Flow**:
-1. Convert audio (M4A â†’ WAV)
+1. Convert audio (M4A → WAV)
 2. Chunk with VAD
 3. Transcribe chunks
 4. Merge overlaps
@@ -160,7 +160,27 @@
 - Optional stages (can skip diarization/classification)
 - Comprehensive error handling
 
-### User Interfaces âœ…
+#### Checkpointing and Resumable Processing
+
+**Goal**: Enable the pipeline to resume processing from the last completed stage if interrupted, preventing data loss and saving significant time for long sessions.
+
+**Implementation Details**:
+- **`src/checkpoint.py`**: Provides the `CheckpointManager` class, which handles saving and loading `CheckpointRecord` objects to disk. Each record stores the session ID, stage name, timestamp, stage-specific data, a list of completed stages, and session metadata.
+- **`src/pipeline.py`**: The `DDSessionProcessor` now integrates `CheckpointManager` to:
+    - **Save Checkpoints**: After each major processing stage (Audio Conversion, Chunking, Transcription, Merging, Diarization, Classification, Output Generation, Audio Segment Export, Knowledge Extraction), relevant intermediate data is serialized and saved to a checkpoint file.
+    - **Load Checkpoints**: At the beginning of each stage, the pipeline checks if the stage was previously completed (using the `completed_stages` list in the latest checkpoint). If so, it loads the data from the checkpoint and skips the processing for that stage.
+- **Serialization**: Custom `to_dict()` and `from_dict()` methods were added to key data classes to ensure they can be correctly serialized to JSON for storage in checkpoints:
+    - **`src/chunker.py`**: `AudioChunk` now serializes its metadata (`start_time`, `end_time`, `sample_rate`, `chunk_index`). The actual audio (NumPy array) is *not* stored in the checkpoint to keep files small. Instead, it is re-extracted from the original WAV file upon resumption.
+    - **`src/audio_processor.py`**: A new `load_audio_segment(path, start_time, end_time)` method was added to efficiently load specific time ranges of audio from a WAV file, crucial for reconstructing `AudioChunk` objects from metadata.
+    - **`src/transcriber.py`**: `TranscriptionSegment` and `ChunkTranscription` now include `to_dict()` and `from_dict()` for serializing transcription results.
+    - **`src/classifier.py`**: `ClassificationResult` includes `to_dict()` and `from_dict()` for serializing IC/OOC classification outcomes.
+
+**Benefits**:
+- **Robustness**: Protects against crashes or interruptions during long-running processes.
+- **Efficiency**: Avoids re-processing already completed stages, saving time and computational resources.
+- **Flexibility**: Allows users to manually stop and resume processing at their convenience.
+
+### User Interfaces ✅
 
 **Implemented**:
 1. **CLI** (`cli.py`)

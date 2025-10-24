@@ -49,6 +49,57 @@ class TestAudioChunk:
         assert chunk.chunk_index == 3
         assert len(chunk.audio) == 32000
 
+    def test_audio_chunk_to_dict(self):
+        """Test to_dict method of AudioChunk."""
+        audio_data = np.zeros(16000)
+        chunk = AudioChunk(
+            audio=audio_data,
+            start_time=10.0,
+            end_time=11.0,
+            sample_rate=16000,
+            chunk_index=0
+        )
+        expected_dict = {
+            "start_time": 10.0,
+            "end_time": 11.0,
+            "sample_rate": 16000,
+            "chunk_index": 0,
+        }
+        assert chunk.to_dict() == expected_dict
+
+    def test_audio_chunk_from_dict(self):
+        """Test from_dict method of AudioChunk with audio data."""
+        chunk_data = {
+            "start_time": 10.0,
+            "end_time": 11.0,
+            "sample_rate": 16000,
+            "chunk_index": 0,
+        }
+        dummy_audio = np.array([1.0, 2.0, 3.0])
+        chunk = AudioChunk.from_dict(chunk_data, audio_data=dummy_audio)
+
+        assert chunk.start_time == 10.0
+        assert chunk.end_time == 11.0
+        assert chunk.sample_rate == 16000
+        assert chunk.chunk_index == 0
+        assert np.array_equal(chunk.audio, dummy_audio)
+
+    def test_audio_chunk_from_dict_no_audio_data(self):
+        """Test from_dict method of AudioChunk without audio data."""
+        chunk_data = {
+            "start_time": 10.0,
+            "end_time": 11.0,
+            "sample_rate": 16000,
+            "chunk_index": 0,
+        }
+        chunk = AudioChunk.from_dict(chunk_data)
+
+        assert chunk.start_time == 10.0
+        assert chunk.end_time == 11.0
+        assert chunk.sample_rate == 16000
+        assert chunk.chunk_index == 0
+        assert np.array_equal(chunk.audio, np.array([]))
+
 
 # ============================================================================
 # Initialization Tests

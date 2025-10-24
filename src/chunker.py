@@ -22,6 +22,26 @@ class AudioChunk:
     def duration(self) -> float:
         return self.end_time - self.start_time
 
+    def to_dict(self) -> dict:
+        """Converts the AudioChunk metadata to a dictionary for serialization."""
+        return {
+            "start_time": self.start_time,
+            "end_time": self.end_time,
+            "sample_rate": self.sample_rate,
+            "chunk_index": self.chunk_index,
+        }
+
+    @classmethod
+    def from_dict(cls, data: dict, audio_data: Optional[np.ndarray] = None) -> "AudioChunk":
+        """Creates an AudioChunk from a dictionary, optionally including audio data."""
+        return cls(
+            audio=audio_data if audio_data is not None else np.array([]), # Placeholder if audio not provided
+            start_time=data["start_time"],
+            end_time=data["end_time"],
+            sample_rate=data["sample_rate"],
+            chunk_index=data["chunk_index"],
+        )
+
 
 class HybridChunker:
     """

@@ -19,7 +19,7 @@ from src.party_config import PartyConfigManager, CampaignManager
 from src.knowledge_base import CampaignKnowledgeBase
 from src.ui.constants import StatusIndicators
 from src.campaign_dashboard import CampaignDashboard
-from src.story_generator import StoryGenerator
+from src.story_notebook import StoryNotebookManager, StorySessionData
 from src.ui.campaign_dashboard_tab import create_dashboard_tab
 from src.ui.party_management_tab import create_party_management_tab
 from src.ui.process_session_tab import create_process_session_tab
@@ -35,6 +35,7 @@ from src.google_drive_auth import (
 
 PROJECT_ROOT = Path(__file__).resolve().parent
 NOTEBOOK_CONTEXT = ""
+story_manager = StoryNotebookManager()
 
 SIDE_MENU_CSS = """
 #main-tabs {
@@ -104,10 +105,7 @@ SIDE_MENU_CSS = """
 """
 
 def _notebook_status() -> str:
-    if NOTEBOOK_CONTEXT:
-        sample = NOTEBOOK_CONTEXT[:200].replace('\\n', ' ').replace('\\r', ' ')
-        return f"Notebook context loaded ({len(NOTEBOOK_CONTEXT)} chars). Sample: {sample}..."
-    return "No notebook context loaded yet. Use the Document Viewer tab to import campaign notes."
+    return StoryNotebookManager.format_notebook_status(NOTEBOOK_CONTEXT)
 campaign_manager = CampaignManager()
 campaign_names = campaign_manager.get_campaign_names()
 
@@ -371,73 +369,16 @@ def open_setup_guide():
 
 
 
-def _load_session_json(session_id: str) -> tuple[Path, Dict]:
-    """Load session JSON data for the latest matching session."""
-    session_prefix = session_id.replace(" ", "_")
-    candidates = list(Config.OUTPUT_DIR.glob(f"**/{session_prefix}*_data.json"))
-    if not candidates:
-        raise FileNotFoundError(f"No session data found for session_id={session_id}")
-    latest = max(candidates, key=lambda p: p.stat().st_mtime)
-    data = json.loads(latest.read_text(encoding="utf-8"))
-    return latest, data
-
-
 STORY_NO_DATA = "No transcription data available for this session yet."
 
 
-def _list_available_sessions() -> List[str]:
-    """Return recent session IDs based on available JSON output."""
-    session_ids: List[str] = []
-    seen = set()
-    candidates = sorted(
-        Config.OUTPUT_DIR.glob("**/*_data.json"),
-        key=lambda p: p.stat().st_mtime,
-        reverse=True,
+def _session_from_state(session_state: Dict) -> StorySessionData:
+    return StorySessionData(
+        session_id=session_state.get("session_id", "session"),
+        json_path=Path(session_state.get("json_path", Config.OUTPUT_DIR)),
+        metadata=session_state.get("metadata", {}),
+        segments=session_state.get("segments", []),
     )
-    for candidate in candidates:
-        try:
-            data = json.loads(candidate.read_text(encoding="utf-8"))
-            session_id = (
-                data.get("metadata", {}).get("session_id")
-                or candidate.stem.replace("_data", "")
-            )
-        except Exception:
-            session_id = candidate.stem.replace("_data", "")
-        if session_id and session_id not in seen:
-            seen.add(session_id)
-            session_ids.append(session_id)
-        if len(session_ids) >= 25:
-            break
-    return session_ids
-
-
-def _build_story_session_info(session_id: str, data: Dict, json_path: Path) -> str:
-    """Format a short markdown summary for the selected session."""
-    metadata = data.get("metadata") or {}
-    stats = metadata.get("statistics") or {}
-    segments = data.get("segments") or []
-    total_segments = len(segments)
-    ic_segments = stats.get("ic_segments", 0)
-    ooc_segments = stats.get("ooc_segments", 0)
-    duration = stats.get("total_duration_formatted") or f"{stats.get('total_duration_seconds', 0)}s"
-    ic_share = stats.get("ic_percentage")
-    character_names = metadata.get("character_names") or []
-
-    details = [
-        f"- **Session ID**: `{session_id}`",
-        f"- **Segments**: {total_segments} total ({ic_segments} IC / {ooc_segments} OOC)",
-        f"- **Duration**: {duration}",
-    ]
-
-    if isinstance(ic_share, (int, float)):
-        details.append(f"- **IC Share**: {ic_share:.1f}%")
-
-    if character_names:
-        details.append(f"- **Characters**: {', '.join(character_names)}")
-
-    details.append(f"- **Source JSON**: `{json_path}`")
-
-    return f"### {StatusIndicators.SUCCESS} Session Ready\n\n" + "\n".join(details)
 
 
 def _prepare_story_session_outputs(
@@ -465,7 +406,7 @@ def _prepare_story_session_outputs(
         )
 
     try:
-        json_path, data = _load_session_json(selected)
+        session = story_manager.load_session(selected)
     except FileNotFoundError:
         message = (
             f"## {StatusIndicators.WARNING} Session Not Found\n\n"
@@ -492,8 +433,8 @@ def _prepare_story_session_outputs(
             notebook_status,
         )
 
-    segments = data.get("segments") or []
-    character_names = data.get("metadata", {}).get("character_names") or []
+    segments = session.segments
+    character_names = session.character_names
     character_dropdown = gr.update(
         choices=character_names,
         value=(character_names[0] if character_names else None),
@@ -506,12 +447,16 @@ def _prepare_story_session_outputs(
             "The selected session file is missing segment data."
         )
     else:
-        message = _build_story_session_info(selected, data, json_path)
+        details = story_manager.build_session_info(session)
+        message = (
+            f"### {StatusIndicators.SUCCESS} Session Ready\n\n"
+            f"{details}"
+        )
 
     session_state: Dict = {
-        "session_id": selected,
-        "json_path": str(json_path),
-        "metadata": data.get("metadata", {}),
+        "session_id": session.session_id,
+        "json_path": str(session.json_path),
+        "metadata": session.metadata,
         "segments": segments,
     }
 
@@ -526,40 +471,14 @@ def _prepare_story_session_outputs(
 
 def story_refresh_sessions_ui() -> Tuple[dict, dict, str, Dict, str]:
     """Refresh available sessions and prime state for the first entry."""
-    sessions = _list_available_sessions()
+    sessions = story_manager.list_sessions()
     return _prepare_story_session_outputs(None, sessions)
 
 
 def story_select_session_ui(session_id: Optional[str]) -> Tuple[dict, dict, str, Dict, str]:
     """Update UI state when a session is selected."""
-    sessions = _list_available_sessions()
+    sessions = story_manager.list_sessions()
     return _prepare_story_session_outputs(session_id, sessions)
-
-
-def _save_narrative(json_path: Path, session_id: str, perspective: str, story: str) -> Path:
-    """Persist generated narratives alongside session output artifacts."""
-    if not story.strip():
-        raise ValueError("Narrative content is empty.")
-
-    base_dir = json_path.parent
-    if base_dir == Config.OUTPUT_DIR:
-        base_dir = base_dir / session_id
-
-    narratives_dir = base_dir / "narratives"
-    narratives_dir.mkdir(parents=True, exist_ok=True)
-
-    from src.formatter import sanitize_filename
-
-    safe_perspective = sanitize_filename(perspective or "narrative") or "narrative"
-    narrative_path = narratives_dir / f"{session_id}_{safe_perspective.lower()}.md"
-    narrative_path.write_text(story, encoding="utf-8")
-    return narrative_path
-
-
-
-
-
-
 
 
 def story_generate_narrator(session_state: Dict, temperature: float) -> tuple[str, str]:
@@ -567,18 +486,13 @@ def story_generate_narrator(session_state: Dict, temperature: float) -> tuple[st
         return f"## {StatusIndicators.WARNING} No Session Loaded\n\nPlease select a session from the dropdown above, then try again.", ""
 
     try:
-        story_generator = StoryGenerator()
-        segments = session_state.get("segments", [])
-        metadata = session_state.get("metadata", {})
-        story = story_generator.generate_narrator_summary(
-            segments=segments,
-            character_names=metadata.get("character_names", []),
+        session = _session_from_state(session_state)
+        story, file_path = story_manager.generate_narrator(
+            session,
             notebook_context=NOTEBOOK_CONTEXT,
             temperature=temperature
         )
-        json_path = Path(session_state.get("json_path"))
-        file_path = _save_narrative(json_path, session_state.get("session_id", "session"), "narrator", story)
-        saved_path = str(file_path)
+        saved_path = str(file_path) if file_path else ""
         return story, saved_path
     except Exception as e:
         return f"Error generating narrative: {e}", ""
@@ -591,19 +505,14 @@ def story_generate_character(session_state: Dict, character_name: str, temperatu
         return "Select a character perspective to generate.", ""
     
     try:
-        story_generator = StoryGenerator()
-        segments = session_state.get("segments", [])
-        metadata = session_state.get("metadata", {})
-        story = story_generator.generate_character_pov(
-            segments=segments,
+        session = _session_from_state(session_state)
+        story, file_path = story_manager.generate_character(
+            session,
             character_name=character_name,
-            character_names=metadata.get("character_names", []),
             notebook_context=NOTEBOOK_CONTEXT,
             temperature=temperature
         )
-        json_path = Path(session_state.get("json_path"))
-        file_path = _save_narrative(json_path, session_state.get("session_id", "session"), character_name, story)
-        saved_path = str(file_path)
+        saved_path = str(file_path) if file_path else ""
         return story, saved_path
     except Exception as e:
         return f"Error generating narrative: {e}", ""

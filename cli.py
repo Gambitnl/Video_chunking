@@ -6,6 +6,7 @@ from rich.table import Table
 from src.pipeline import DDSessionProcessor
 from src.config import Config
 from src.logger import get_log_file_path
+from src.story_notebook import StoryNotebookManager, load_notebook_context_file
 
 console = Console()
 
@@ -588,9 +589,9 @@ def batch(
         # Scan directory for audio files
         input_path = Path(input_dir)
         audio_extensions = {'.m4a', '.mp3', '.wav', '.flac', '.ogg', '.aac'}
-        for ext in audio_extensions:
-            audio_files.extend(input_path.glob(f'*{ext}'))
-            audio_files.extend(input_path.glob(f'*{ext.upper()}'))
+        audio_files.extend(
+            p for p in input_path.glob("*") if p.is_file() and p.suffix.lower() in audio_extensions
+        )
 
     if files:
         # Add explicitly specified files
@@ -652,6 +653,99 @@ def batch(
         console.print(f"\n[bold red]✗ Batch processing failed: {e}[/bold red]")
         console.print(f"[dim]Inspect log for details: {get_log_file_path()}[/dim]")
         raise click.Abort()
+
+
+@cli.command("generate-story")
+@click.argument("session_ids", nargs=-1)
+@click.option(
+    "--all",
+    "process_all",
+    is_flag=True,
+    help="Generate narratives for all available sessions.",
+)
+@click.option(
+    "--characters",
+    "-c",
+    multiple=True,
+    help="Character perspectives to generate (repeatable). Defaults to all characters.",
+)
+@click.option(
+    "--skip-narrator",
+    is_flag=True,
+    help="Skip generating the narrator summary.",
+)
+@click.option(
+    "--temperature",
+    type=click.FloatRange(0.0, 1.0),
+    default=0.5,
+    show_default=True,
+    help="Sampling temperature passed to the story generator.",
+)
+@click.option(
+    "--context-file",
+    type=click.Path(exists=True, dir_okay=False),
+    help="Optional text file with notebook context to include in prompts.",
+)
+def generate_story(session_ids, process_all, characters, skip_narrator, temperature, context_file):
+    """Generate story notebook narratives from processed sessions."""
+    manager = StoryNotebookManager()
+
+    if process_all:
+        target_sessions = manager.list_sessions(limit=None)
+    else:
+        target_sessions = list(session_ids)
+
+    if not target_sessions:
+        raise click.UsageError("Provide at least one SESSION_ID or use --all.")
+
+    notebook_context = load_notebook_context_file(Path(context_file)) if context_file else ""
+
+    for session_id in target_sessions:
+        try:
+            session = manager.load_session(session_id)
+        except FileNotFoundError:
+            console.print(f"[yellow]Skipping {session_id}: processed session data not found.[/yellow]")
+            continue
+
+        console.print(f"\n[bold cyan]Session:[/bold cyan] {session.session_id}")
+        table = Table(title=f"Narratives for {session.session_id}")
+        table.add_column("Perspective", style="cyan")
+        table.add_column("Saved Path", style="green")
+
+        generated = False
+
+        if not skip_narrator:
+            _, path = manager.generate_narrator(
+                session,
+                notebook_context=notebook_context,
+                temperature=temperature,
+            )
+            if path:
+                table.add_row("Narrator", str(path))
+                generated = True
+
+        requested_characters = list(characters) if characters else session.character_names
+        if characters:
+            missing = [name for name in characters if name not in session.character_names]
+            if missing:
+                console.print(f"[yellow]Skipping unknown characters for {session.session_id}: {', '.join(missing)}[/yellow]")
+            requested_characters = [name for name in characters if name in session.character_names]
+
+        for character_name in requested_characters:
+            _, path = manager.generate_character(
+                session,
+                character_name=character_name,
+                notebook_context=notebook_context,
+                temperature=temperature,
+            )
+            if path:
+                table.add_row(character_name, str(path))
+                generated = True
+
+        if generated and table.row_count:
+            console.print(table)
+        else:
+            console.print("[yellow]No narratives generated for this session.[/yellow]")
 
 
 if __name__ == '__main__':

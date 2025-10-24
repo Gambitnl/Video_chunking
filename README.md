@@ -19,6 +19,7 @@ python cli.py process your_session.m4a
 
 ## ✨ Features
 
+- **💾 Resumable Processing (Checkpoints)**: Automatically saves progress after each major pipeline stage, allowing you to resume processing from where it left off if interrupted. Essential for long-running sessions.
 - **🎤 Multi-Speaker Diarization**: Automatically identify who is speaking
 - **🗣️ Dutch Language Support**: Optimized for Dutch D&D sessions
 - **🎭 IC/OOC Classification**: Separate in-character dialogue from meta-discussion

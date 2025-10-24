@@ -45,7 +45,7 @@ This planning system is split across multiple documents:
 | P0-BUG-002: Safe Type Casting | 0.5 days | [LOOP] Revisions Needed | PLANS.md:217 |
 | P0-BUG-003: Checkpoint System | 2 days | [DONE] Complete | PLANS.md:407 |
 | P0-REFACTOR-001: Extract Campaign Dashboard | 2 days | [DONE] Complete | PLANS.md:427 |
-| P0-REFACTOR-002: Extract Story Generation | 1 day | [DONE] Completed 2025-10-24 | PLANS.md:447 |
+| P0-REFACTOR-002: Extract Story Generation | 1 day | NOT STARTED | PLANS.md:447 |
 | P0-REFACTOR-003: Split app.py into UI Modules | 3-4 days | [IN PROGRESS] Started 2025-10-24 | PLANS.md:463 |
 
 **Recommendation**: Complete P0-BUG-002 revisions immediately, then prioritize refactoring to enable parallel development.
@@ -122,7 +122,7 @@ This planning system is split across multiple documents:
 
 **Week 2**:
 - [ ] Complete P0-REFACTOR-003: Split app.py (3 days remaining)
-- [x] P0-REFACTOR-002: Extract Story Generation (1 day)
+- [ ] P0-REFACTOR-002: Extract Story Generation (1 day)
 
 **Deliverables**:
 - Batch processing CLI

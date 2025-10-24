@@ -474,7 +474,7 @@ Create new module `src/campaign_dashboard.py` with:
 **Files**: Extract from `app.py` to `src/story_generator.py`
 **Effort**: 1 day
 **Priority**: MEDIUM
-**Status**: [DONE] Completed 2025-10-24
+**Status**: NOT STARTED
 
 ### Problem Statement
 Story generation logic is mixed with UI code in `app.py`.
@@ -482,42 +482,6 @@ Story generation logic is mixed with UI code in `app.py`.
 ### Implementation Plan
 
 Extract to dedicated module with CLI support for batch generation.
-
-### Implementation Notes & Reasoning
-**Implementer**: Codex (GPT-5)  
-**Date**: 2025-10-24
-
-#### Design Decisions
-1. **StoryNotebookManager Service Extraction**
-   - **Choice**: Created `src/story_notebook.py` with a `StoryNotebookManager` service and `StorySessionData` container.
-   - **Reasoning**: Centralizes session loading, narrative generation, and persistence so both the UI and CLI share one implementation.
-   - **Alternatives Considered**: Extending `StoryGenerator` directly with file-system helpers. Rejected to keep LLM prompting separate from orchestration concerns.
-   - **Trade-offs**: Slightly larger surface area (new class) but reduces duplication and simplifies future testing.
-2. **CLI Batch Command**
-   - **Choice**: Added `generate-story` Click command that loops through requested sessions, optionally filters characters, and writes outputs via the service.
-   - **Reasoning**: Provides non-UI workflow requested in the plan while reusing the new service; keeps options explicit for narrator vs character runs.
-   - **Trade-offs**: Introduces additional CLI dependency on `rich.Table`, but aligns with existing CLI formatting patterns.
-3. **UI Integration Strategy**
-   - **Choice**: Kept Gradio-specific updates in `app.py` while delegating data prep to the service.
-   - **Reasoning**: Avoids Gradio imports in the service layer and preserves UI behavior with minimal changes.
-   - **Open Questions**: Consider promoting story tab into `src/ui/` modules during P0-REFACTOR-003 for deeper separation.
-
-#### Validation
-- `pytest tests/test_story_notebook.py -q`
-
-### Code Review Findings
-**Reviewer**: _Pending_  
-**Date**: _Pending_  
-**Status**: [LOOP] Review Requested
-
-#### Issues Identified
-- _Pending review._
-
-#### Positive Findings
-- _Pending review._
-
-#### Verdict
-- _Awaiting critical review._
 
 ---
 
@@ -546,11 +510,11 @@ src/ui/
 ### Implementation Notes & Reasoning
 **Implementer**: Codex (GPT-5)
 **Date**: 2025-10-24
-
-- Extracted the Process Session UI into `src/ui/process_session_tab.py`, replacing the inline block in `app.py` with a module call and reducing top-level churn.
-- `create_process_session_tab` now centralizes campaign/party form controls and returns the party list consumed by downstream tabs.
-- Updated `app.py` imports and reinstantiated `PartyConfigManager` for Party Management wiring after the module call.
-- Validation: `pytest tests/test_campaign_dashboard.py -q` (ensures surrounding UI remains stable).
+- Extracted the Process Session and Party Management tabs into src/ui/process_session_tab.py and src/ui/party_management_tab.py, shrinking pp.py.
+- Added src/ui/import_notes_tab.py to encapsulate the session-notes importer, knowledge extraction flow, and narrative generation toggles.
+- Helper factories (create_process_session_tab, create_party_management_tab, create_import_notes_tab) now share _refresh_campaign_names and keep downstream tabs lightweight.
+- Validation: pytest tests/test_campaign_dashboard.py -q (ensures neighbouring tabs still render and respond).
+- Next: extract Campaign Library, Character Profiles, and Story tabs to dedicated modules.
 - Next: migrate Party Management, Import Notes, and Story tabs to dedicated modules to continue shrinking `app.py`.
 
 ---

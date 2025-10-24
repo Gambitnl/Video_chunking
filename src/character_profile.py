@@ -10,6 +10,19 @@ from .formatter import sanitize_filename
 
 
 @dataclass
+class ProfileUpdate:
+    """A suggested update to a character profile."""
+    character: str
+    category: str
+    type: str
+    content: str
+    timestamp: str
+    confidence: float
+    context: str
+
+
+
+@dataclass
 class CharacterAction:
     """Represents a significant action taken by a character"""
     session: str
@@ -590,3 +603,40 @@ class CharacterProfileManager:
                 matches.append(char_name)
 
         return matches
+
+    def merge_updates(self, character_name: str, updates: Dict[str, List['ProfileUpdate']]) -> Optional[CharacterProfile]:
+        """Merge suggested updates into a character profile."""
+        profile = self.get_profile(character_name)
+        if not profile:
+            self.logger.error(f"Cannot merge updates - character '{character_name}' not found")
+            return None
+
+        for category, moments in updates.items():
+            for moment in moments:
+                if category == "notable_actions":
+                    profile.notable_actions.append(CharacterAction(
+                        session=moment.timestamp, # Using timestamp as session for now
+                        description=moment.content,
+                        type=moment.type
+                    ))
+                elif category == "memorable_quotes":
+                    profile.memorable_quotes.append(CharacterQuote(
+                        session=moment.timestamp,
+                        quote=moment.content,
+                        context=moment.context
+                    ))
+                elif category == "development_notes":
+                    profile.development_notes.append(CharacterDevelopment(
+                        session=moment.timestamp,
+                        note=moment.content,
+                        category=moment.type
+                    ))
+                elif category == "relationships":
+                    profile.relationships.append(CharacterRelationship(
+                        name=moment.content, # Assuming content is the name of the other character
+                        relationship_type=moment.type,
+                        first_met=moment.timestamp
+                    ))
+        
+        self.add_profile(character_name, profile)
+        return profile

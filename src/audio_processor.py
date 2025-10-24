@@ -148,7 +148,7 @@ class AudioProcessor:
         with sf.SoundFile(str(path), 'r') as f:
             sr = f.samplerate
             start_frame = int(start_time * sr)
-            end_frame = int(end_time * sr)
+            frames = max(0, int((end_time - start_time) * sr))
             f.seek(start_frame)
-            audio = f.read(frames=end_frame - start_frame, dtype='float32')
+            audio = f.read(frames=frames, dtype='float32')
         return audio, sr

@@ -154,8 +154,8 @@ Transform long-form D&D session recordings into rich, searchable transcripts wit
 - Add to `src/snipper.py`
 
 #### 3. Batch Processing
-**Owner**: Open
-**Status**: NOT STARTED
+**Owner**: Gemini
+**Status**: [DONE] Completed (2025-10-24)
 **Effort**: 1 day
 **Impact**: MEDIUM-HIGH
 

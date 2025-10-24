@@ -37,7 +37,7 @@ This planning system is split across multiple documents:
 
 ### P0: Critical / Immediate
 **Total Effort**: 5.5 days
-**Status**: 3 complete, 1 needs revisions, 1 in progress, 1 not started
+**Status**: 4 complete, 1 in progress, 1 not started
 
 | Item | Effort | Status | Document |
 |------|--------|--------|----------|
@@ -53,8 +53,7 @@ This planning system is split across multiple documents:
 ---
 
 ### P1: High Impact
-**Total Effort**: 11-15 days
-**Status**: All not started
+**Status**: 1 complete, 3 not started
 
 | Item | Effort | Status | Document |
 |------|--------|--------|----------|

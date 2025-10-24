@@ -1,206 +1,107 @@
-"""Batch processing module for handling multiple sessions sequentially."""
+"""\nProcess multiple D&D session recordings in batch mode.\n"""
 from __future__ import annotations
-
+import time
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta
+from datetime import datetime
 from pathlib import Path
-from time import perf_counter
-from typing import Dict, List, Optional
+from typing import List, Optional, Dict, Any
 
 from rich.console import Console
-from rich.progress import (
-    BarColumn,
-    Progress,
-    SpinnerColumn,
-    TextColumn,
-    TimeElapsedColumn,
-)
 
 from .config import Config
-from .logger import get_logger
 from .pipeline import DDSessionProcessor
+from .logger import get_logger
 
-
-@dataclass
-class BatchResult:
-    """Result of processing a single file in a batch."""
-
-    file: Path
-    session_id: str
-    status: str  # "success", "failed", "skipped"
-    start_time: datetime
-    end_time: Optional[datetime] = None
-    processing_duration: Optional[float] = None
-    error: Optional[str] = None
-    output_dir: Optional[Path] = None
-    resumed_from_checkpoint: bool = False
-
-    @property
-    def success(self) -> bool:
-        """Return True if processing succeeded."""
-        return self.status == "success"
-
-    @property
-    def failed(self) -> bool:
-        """Return True if processing failed."""
-        return self.status == "failed"
-
-    def duration_str(self) -> str:
-        """Format processing duration as human-readable string."""
-        if self.processing_duration is None:
-            return "N/A"
-        return str(timedelta(seconds=int(self.processing_duration)))
+console = Console()
 
 
 @dataclass
 class BatchReport:
-    """Summary report for batch processing operation."""
+    """Summary report for a completed batch process."""
 
     start_time: datetime
     end_time: Optional[datetime] = None
-    results: List[BatchResult] = field(default_factory=list)
     total_files: int = 0
+    processed_files: List[Dict[str, Any]] = field(default_factory=list)
+    failed_files: List[Dict[str, Any]] = field(default_factory=list)
+    resumed_files: List[str] = field(default_factory=list)
+
+    def record_success(self, file: Path, duration: float, output_dir: Path, resumed: bool):
+        self.processed_files.append({
+            "file": str(file),
+            "duration": duration,
+            "output_dir": str(output_dir),
+        })
+        if resumed:
+            self.resumed_files.append(str(file))
+
+    def record_failure(self, file: Path, error: str):
+        self.failed_files.append({"file": str(file), "error": error})
+
+    def finalize(self):
+        self.end_time = datetime.now()
 
     @property
-    def total_duration(self) -> Optional[float]:
-        """Return total batch processing duration in seconds."""
-        if self.end_time is None:
-            return None
+    def total_duration(self) -> float:
+        if not self.end_time:
+            return 0.0
         return (self.end_time - self.start_time).total_seconds()
 
-    @property
-    def successful_count(self) -> int:
-        """Count successfully processed files."""
-        return sum(1 for r in self.results if r.success)
-
-    @property
-    def failed_count(self) -> int:
-        """Count failed files."""
-        return sum(1 for r in self.results if r.failed)
-
-    @property
-    def resumed_count(self) -> int:
-        """Count files resumed from checkpoint."""
-        return sum(1 for r in self.results if r.resumed_from_checkpoint)
-
     def summary_markdown(self) -> str:
-        """Generate a concise summary in markdown format."""
-        lines = ["## Batch Processing Summary"]
-        lines.append(f"- **Total Files**: {self.total_files}")
-        lines.append(f"- **Successful**: {self.successful_count}")
-        lines.append(f"- **Failed**: {self.failed_count}")
-        lines.append(f"- **Resumed from Checkpoint**: {self.resumed_count}")
+        """Generate a markdown summary of the batch report."""
+        report = [
+            "# Batch Processing Report",
+            f"**Started**: {self.start_time.strftime('%Y-%m-%d %H:%M:%S')}",
+            f"**Completed**: {self.end_time.strftime('%Y-%m-%d %H:%M:%S') if self.end_time else 'In Progress'}",
+            f"**Total Time**: {self.total_duration:.2f}s",
+            "",
+            "## Summary",
+            f"- **Total Sessions**: {self.total_files}",
+            f"- **Successful**: {len(self.processed_files)}",
+            f"- **Failed**: {len(self.failed_files)}",
+            f"- **Resumed from Checkpoint**: {len(self.resumed_files)}",
+            "",
+        ]
 
-        if self.total_duration:
-            duration_str = str(timedelta(seconds=int(self.total_duration)))
-            lines.append(f"- **Total Time**: {duration_str}")
+        if self.processed_files:
+            report.append("### Successful")
+            report.append("| Session | Processing Time | Output |")
+            report.append("|---|---|---|")
+            for item in self.processed_files:
+                report.append(f"| {Path(item['file']).name} | {item['duration']:.2f}s | {item['output_dir']} |")
+            report.append("")
 
-        return "\n".join(lines)
+        if self.failed_files:
+            report.append("### Failed")
+            report.append("| Session | Error |")
+            report.append("|---|---|")
+            for item in self.failed_files:
+                report.append(f"| {Path(item['file']).name} | {item['error']} |")
+            report.append("")
 
-    def full_markdown(self) -> str:
-        """Generate complete batch processing report in markdown format."""
-        lines = ["# Batch Processing Report\n"]
-        lines.append(f"**Started**: {self.start_time.strftime('%Y-%m-%d %H:%M:%S')}")
-
-        if self.end_time:
-            lines.append(
-                f"**Completed**: {self.end_time.strftime('%Y-%m-%d %H:%M:%S')}"
-            )
-            duration_str = str(timedelta(seconds=int(self.total_duration)))
-            lines.append(f"**Total Time**: {duration_str}\n")
-
-        lines.append("## Summary\n")
-        lines.append(f"- **Total Sessions**: {self.total_files}")
-        lines.append(f"- **Successful**: {self.successful_count}")
-        lines.append(f"- **Failed**: {self.failed_count}")
-        lines.append(f"- **Resumed from Checkpoint**: {self.resumed_count}\n")
-
-        # Successful sessions
-        if self.successful_count > 0:
-            lines.append("## Successful Sessions\n")
-            lines.append("| Session | Duration | Output |")
-            lines.append("|---------|----------|--------|")
-
-            for result in self.results:
-                if result.success:
-                    duration = result.duration_str()
-                    output = str(result.output_dir) if result.output_dir else "N/A"
-                    checkpoint_mark = "✓" if result.resumed_from_checkpoint else ""
-                    lines.append(
-                        f"| {result.file.name} {checkpoint_mark} | {duration} | {output} |"
-                    )
-            lines.append("")
-
-        # Failed sessions
-        if self.failed_count > 0:
-            lines.append("## Failed Sessions\n")
-            lines.append("| Session | Error |")
-            lines.append("|---------|-------|")
-
-            for result in self.results:
-                if result.failed:
-                    error = result.error or "Unknown error"
-                    # Truncate very long errors but preserve more context
-                    if len(error) > 150:
-                        error = error[:147] + "..."
-                    lines.append(f"| {result.file.name} | {error} |")
-            lines.append("")
-
-        lines.append("---")
-        lines.append(
-            "\n_Generated by VideoChunking Batch Processor_"
-        )
-
-        return "\n".join(lines)
-
-    def save(self, output_path: Path) -> None:
-        """Save the full report to a markdown file."""
-        output_path.write_text(self.full_markdown(), encoding="utf-8")
+        return "\n".join(report)
+    
+    def save(self, path: Path):
+        """Save the markdown report to a file."""
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(self.summary_markdown(), encoding="utf-8")
 
 
 class BatchProcessor:
-    """
-    Process multiple D&D session recordings sequentially.
+    """Process multiple sessions with retry and resumption."""
 
-    Features:
-    - Automatic checkpoint resumption for partially processed sessions
-    - Graceful error handling (continue on failure)
-    - Progress reporting with rich progress bars
-    - Summary report generation
-    """
-
-    def __init__(
+    def __init__( 
         self,
         party_id: Optional[str] = None,
         num_speakers: int = 4,
         resume_enabled: bool = True,
         output_dir: Optional[str] = None,
     ):
-        """
-        Initialize batch processor.
-
-        Args:
-            party_id: Party configuration ID to use for all sessions
-            num_speakers: Expected number of speakers for all sessions
-            resume_enabled: Whether to resume from checkpoints
-            output_dir: Base output directory for all sessions
-        """
         self.party_id = party_id
         self.num_speakers = num_speakers
         self.resume_enabled = resume_enabled
-        self.output_dir = Path(output_dir) if output_dir else Config.OUTPUT_DIR
-        self.logger = get_logger("batch_processor")
-        self.console = Console()
-
-        # Validate party_id if provided
-        if self.party_id:
-            from .party_config import PartyConfigManager
-            party_manager = PartyConfigManager()
-            if self.party_id not in party_manager.list_parties():
-                self.logger.warning(
-                    "Party ID '%s' not found. Processing will continue but may fail during session processing.",
-                    self.party_id
-                )
+        self.output_dir = Path(output_dir) if output_dir else None
+        self.logger = get_logger("DDSessionProcessor.batch")
 
     def process_batch(
         self,
@@ -210,189 +111,45 @@ class BatchProcessor:
         skip_snippets: bool = False,
         skip_knowledge: bool = False,
     ) -> BatchReport:
-        """
-        Process multiple audio files sequentially.
+        """Process multiple files sequentially."""
+        report = BatchReport(start_time=datetime.now(), total_files=len(files))
 
-        Args:
-            files: List of audio file paths to process
-            skip_diarization: Skip speaker diarization for all files
-            skip_classification: Skip IC/OOC classification for all files
-            skip_snippets: Skip audio snippet export for all files
-            skip_knowledge: Skip campaign knowledge extraction for all files
+        for i, file in enumerate(files):
+            session_id = file.stem
+            console.print(f"\n[bold]Processing file {i+1}/{len(files)}: {file.name}[/bold]")
 
-        Returns:
-            BatchReport with summary and individual results
-        """
-        report = BatchReport(
-            start_time=datetime.now(),
-            total_files=len(files),
-        )
-
-        self.logger.info("Starting batch processing of %d files", len(files))
-
-        # Create progress bar
-        with Progress(
-            SpinnerColumn(),
-            TextColumn("[bold blue]{task.description}"),
-            BarColumn(),
-            TextColumn("[progress.percentage]{task.percentage:>3.0f}%"),
-            TimeElapsedColumn(),
-            console=self.console,
-        ) as progress:
-            task = progress.add_task(
-                "[cyan]Processing sessions...", total=len(files)
-            )
-
-            for idx, file in enumerate(files, 1):
-                progress.update(
-                    task,
-                    description=f"[cyan]Processing {idx}/{len(files)}: {file.name}",
+            try:
+                processor = DDSessionProcessor(
+                    session_id=session_id,
+                    num_speakers=self.num_speakers,
+                    party_id=self.party_id,
+                    resume=self.resume_enabled,
                 )
 
-                result = self._process_file(
-                    file=file,
+                start_time = time.perf_counter()
+                
+                result = processor.process(
+                    input_file=file,
+                    output_dir=self.output_dir,
                     skip_diarization=skip_diarization,
                     skip_classification=skip_classification,
                     skip_snippets=skip_snippets,
                     skip_knowledge=skip_knowledge,
                 )
+                
+                duration = time.perf_counter() - start_time
+                
+                output_dir = result.get('output_files', {}).get('full_transcript')
+                if output_dir:
+                    output_dir = Path(output_dir).parent
 
-                report.results.append(result)
+                report.record_success(file, duration, output_dir, processor.checkpoint_manager.latest() is not None)
 
-                # Log result
-                if result.success:
-                    status_msg = "✓ SUCCESS"
-                    if result.resumed_from_checkpoint:
-                        status_msg += " (resumed from checkpoint)"
-                    self.logger.info("%s: %s", status_msg, file.name)
-                else:
-                    self.logger.error("✗ FAILED: %s - %s", file.name, result.error)
+            except Exception as e:
+                self.logger.error(f"Failed to process {file}: {e}", exc_info=True)
+                report.record_failure(file, str(e))
+                console.print(f"[red]✗ Error processing {file.name}: {e}[/red]")
 
-                progress.advance(task)
 
-        report.end_time = datetime.now()
-        self.logger.info(
-            "Batch processing complete: %d successful, %d failed",
-            report.successful_count,
-            report.failed_count,
-        )
-
+        report.finalize()
         return report
-
-    def _process_file(
-        self,
-        file: Path,
-        skip_diarization: bool,
-        skip_classification: bool,
-        skip_snippets: bool,
-        skip_knowledge: bool,
-    ) -> BatchResult:
-        """
-        Process a single audio file.
-
-        Args:
-            file: Path to audio file
-            skip_diarization: Skip speaker diarization
-            skip_classification: Skip IC/OOC classification
-            skip_snippets: Skip audio snippet export
-            skip_knowledge: Skip campaign knowledge extraction
-
-        Returns:
-            BatchResult with processing outcome
-        """
-        session_id = file.stem
-        result = BatchResult(
-            file=file,
-            session_id=session_id,
-            status="failed",
-            start_time=datetime.now(),
-        )
-
-        try:
-            # Create processor for this session
-            processor = DDSessionProcessor(
-                session_id=session_id,
-                party_id=self.party_id,
-                num_speakers=self.num_speakers,
-                resume=self.resume_enabled,
-            )
-
-            # Check if resuming from checkpoint
-            if self.resume_enabled:
-                latest = processor.checkpoint_manager.latest()
-                if latest:
-                    result.resumed_from_checkpoint = True
-                    self.logger.info(
-                        "Resuming session '%s' from checkpoint at stage '%s'",
-                        session_id,
-                        latest[0],
-                    )
-
-            # Process the file
-            start = perf_counter()
-            output_metadata = processor.process(
-                input_file=file,
-                output_dir=self.output_dir,
-                skip_diarization=skip_diarization,
-                skip_classification=skip_classification,
-                skip_snippets=skip_snippets,
-                skip_knowledge=skip_knowledge,
-            )
-            end = perf_counter()
-
-            # Mark as successful
-            result.status = "success"
-            result.end_time = datetime.now()
-            result.processing_duration = end - start
-            result.output_dir = Path(output_metadata.get("output_dir", ""))
-
-        except KeyboardInterrupt:
-            # Re-raise keyboard interrupt to stop batch
-            self.logger.warning("Batch processing interrupted by user")
-            raise
-
-        except FileNotFoundError as exc:
-            result.status = "failed"
-            result.end_time = datetime.now()
-            result.error = f"File not found: {exc}"
-            result.processing_duration = (
-                datetime.now() - result.start_time
-            ).total_seconds()
-
-            self.logger.error(
-                "Failed to process %s: File not accessible. Check file path and permissions.",
-                file.name,
-                exc_info=True,
-            )
-
-        except PermissionError as exc:
-            result.status = "failed"
-            result.end_time = datetime.now()
-            result.error = f"Permission denied: {exc}"
-            result.processing_duration = (
-                datetime.now() - result.start_time
-            ).total_seconds()
-
-            self.logger.error(
-                "Failed to process %s: Permission denied. Run with elevated privileges or check file permissions.",
-                file.name,
-                exc_info=True,
-            )
-
-        except Exception as exc:
-            # Generic catch-all
-            result.status = "failed"
-            result.end_time = datetime.now()
-            result.error = str(exc)
-            result.processing_duration = (
-                datetime.now() - result.start_time
-            ).total_seconds()
-
-            self.logger.error(
-                "Failed to process %s: %s (may be retryable - check logs)",
-                file.name,
-                exc,
-                exc_info=True,
-            )
-
-        return result

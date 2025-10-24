@@ -220,7 +220,7 @@ None found. Implementation exceeds requirements.
 **Effort**: 0.5 days
 **Priority**: MEDIUM
 **Dependencies**: None
-**Status**: [LOOP] Revisions Requested (2025-10-22)
+**Status**: [DONE] Complete (2025-10-24)
 
 ### Problem Statement
 Non-numeric values in `.env` file crash on `int()` cast during startup, preventing the application from launching.
@@ -232,10 +232,10 @@ Non-numeric values in `.env` file crash on `int()` cast during startup, preventi
 
 Add helper function to safely cast environment variables to integers with fallback.
 
-**Code Example**:
+**Code Example** (Implemented):
 ```python
 @staticmethod
-def _get_env_as_int(key: str, default: int) -> int:
+def get_env_as_int(key: str, default: int) -> int:
     """Safely get an environment variable as an integer."""
     value = os.getenv(key)
     if value is None or value.strip() == "":
@@ -277,11 +277,11 @@ Unit tests for edge cases (invalid, empty, None, negative, very large).
 
 #### Design Decisions
 
-1. **Use Static Methods with Underscore Prefix**
-   - **Choice**: Created `_get_env_as_int()` and `_get_env_as_bool()` as static methods with underscore prefix
-   - **Reasoning**: Methods don't need instance state; underscore indicates internal helper
-   - **Alternatives Considered**: Module-level functions, public methods without underscore
-   - **Trade-offs**: Gained simplicity; lost clear public API when called from `app_manager.py`
+1. **Use Public Static Methods** ✅ REVISED
+   - **Choice**: Created `get_env_as_int()` and `get_env_as_bool()` as public static methods (no underscore)
+   - **Reasoning**: Methods are called from `app_manager.py`, making them part of the public API; underscore would violate encapsulation conventions
+   - **Alternatives Considered**: Private methods with underscore, module-level functions
+   - **Trade-offs**: Clear public API; follows Python naming conventions; external usage is explicit
 
 2. **Skip Float Support**
    - **Choice**: Did not implement `_get_env_as_float()`

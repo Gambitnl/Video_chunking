@@ -32,7 +32,7 @@ class Config:
             return default
 
     @staticmethod
-    def _get_env_as_bool(key: str, default: bool) -> bool:
+    def get_env_as_bool(key: str, default: bool) -> bool:
         """Safely get an environment variable as a boolean."""
         value = os.getenv(key)
         if value is None or value.strip() == "":
@@ -49,10 +49,10 @@ class Config:
     LLM_BACKEND: str = os.getenv("LLM_BACKEND", "ollama")  # ollama, openai
 
     # Processing Settings
-    CHUNK_LENGTH_SECONDS: int = _get_env_as_int("CHUNK_LENGTH_SECONDS", 600)
-    CHUNK_OVERLAP_SECONDS: int = _get_env_as_int("CHUNK_OVERLAP_SECONDS", 10)
-    AUDIO_SAMPLE_RATE: int = _get_env_as_int("AUDIO_SAMPLE_RATE", 16000)
-    CLEAN_STALE_CLIPS: bool = _get_env_as_bool("CLEAN_STALE_CLIPS", True)
+    CHUNK_LENGTH_SECONDS: int = get_env_as_int("CHUNK_LENGTH_SECONDS", 600)
+    CHUNK_OVERLAP_SECONDS: int = get_env_as_int("CHUNK_OVERLAP_SECONDS", 10)
+    AUDIO_SAMPLE_RATE: int = get_env_as_int("AUDIO_SAMPLE_RATE", 16000)
+    CLEAN_STALE_CLIPS: bool = get_env_as_bool("CLEAN_STALE_CLIPS", True)
 
     # Ollama Settings
     OLLAMA_MODEL: str = os.getenv("OLLAMA_MODEL", "gpt-oss:20b")

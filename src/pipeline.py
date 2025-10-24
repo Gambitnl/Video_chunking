@@ -334,9 +334,10 @@ class DDSessionProcessor:
                         audio_segment, _ = self.audio_processor.load_audio_segment(wav_file, start_time, end_time)
                         reconstructed_chunks.append(AudioChunk.from_dict(chunk_data, audio_data=audio_segment))
                     else:
-                        self.logger.error("WAV file not found for chunk reconstruction: %s", wav_file)
-                        # Fallback: create chunk without audio, subsequent stages might fail or need re-running
-                        reconstructed_chunks.append(AudioChunk.from_dict(chunk_data))
+                        raise FileNotFoundError(
+                            f"Required audio file '{wav_file}' for checkpoint resumption not found. "
+                            "Cannot reconstruct audio chunks."
+                        )
                 chunks = reconstructed_chunks
 
             self.logger.info("Stage 2/9 %s: %d chunks processed", "resumed" if "audio_chunked" in completed_stages else "complete", len(chunks))

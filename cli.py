@@ -486,5 +486,173 @@ def check_setup():
         console.print("\nRun: pip install -r requirements.txt")
 
 
+@cli.command()
+@click.option(
+    '--input-dir',
+    '-d',
+    type=click.Path(exists=True, file_okay=False, dir_okay=True),
+    help='Directory containing audio files to process'
+)
+@click.option(
+    '--files',
+    '-f',
+    multiple=True,
+    type=click.Path(exists=True),
+    help='Specific audio files to process (can be used multiple times)'
+)
+@click.option(
+    '--output-dir',
+    '-o',
+    help='Base output directory for processed sessions',
+    type=click.Path(),
+    default=None
+)
+@click.option(
+    '--party',
+    help='Party configuration ID to use for all sessions',
+    default=None
+)
+@click.option(
+    '--resume/--no-resume',
+    default=True,
+    help='Resume from checkpoints if they exist (default: enabled)'
+)
+@click.option(
+    '--skip-diarization',
+    is_flag=True,
+    help='Skip speaker diarization for all sessions'
+)
+@click.option(
+    '--skip-classification',
+    is_flag=True,
+    help='Skip IC/OOC classification for all sessions'
+)
+@click.option(
+    '--skip-snippets',
+    is_flag=True,
+    help='Skip audio snippet export for all sessions'
+)
+@click.option(
+    '--skip-knowledge',
+    is_flag=True,
+    help='Skip campaign knowledge extraction for all sessions'
+)
+@click.option(
+    '--num-speakers',
+    '-n',
+    type=int,
+    default=4,
+    help='Expected number of speakers for all sessions (default: 4)'
+)
+def batch(
+    input_dir,
+    files,
+    output_dir,
+    party,
+    resume,
+    skip_diarization,
+    skip_classification,
+    skip_snippets,
+    skip_knowledge,
+    num_speakers
+):
+    """
+    Process multiple D&D session recordings in batch mode.
+
+    Can process all audio files in a directory or specific files.
+    Supports automatic checkpoint resumption and generates a summary report.
+
+    Examples:
+
+        # Process all audio files in a directory
+        python cli.py batch --input-dir ./recordings
+
+        # Process specific files
+        python cli.py batch -f session1.m4a -f session2.mp3
+
+        # With custom options
+        python cli.py batch -d ./recordings --party default --skip-knowledge
+    """
+    from src.batch_processor import BatchProcessor
+
+    # Validate that at least one input source is provided
+    if not input_dir and not files:
+        console.print("[red]✗ Error: Must provide either --input-dir or --files[/red]")
+        console.print("[dim]Use --help for usage information[/dim]")
+        raise click.Abort()
+
+    # Collect files to process
+    audio_files = []
+
+    if input_dir:
+        # Scan directory for audio files
+        input_path = Path(input_dir)
+        audio_extensions = {'.m4a', '.mp3', '.wav', '.flac', '.ogg', '.aac'}
+        for ext in audio_extensions:
+            audio_files.extend(input_path.glob(f'*{ext}'))
+            audio_files.extend(input_path.glob(f'*{ext.upper()}'))
+
+    if files:
+        # Add explicitly specified files
+        audio_files.extend([Path(f) for f in files])
+
+    # Deduplicate and sort all files
+    audio_files = sorted(set(audio_files))
+
+    if not audio_files:
+        console.print("[red]✗ No audio files found to process.[/red]")
+        if input_dir:
+            console.print(f"[dim]Checked directory: {input_dir}[/dim]")
+            console.print("[dim]Supported formats: .m4a, .mp3, .wav, .flac, .ogg, .aac[/dim]")
+        raise click.Abort()
+
+    # Show files to be processed
+    console.print(f"\n[bold]Found {len(audio_files)} file(s) to process:[/bold]")
+    for idx, file in enumerate(audio_files, 1):
+        console.print(f"  {idx}. {file.name}")
+    console.print()
+
+    # Create batch processor
+    processor = BatchProcessor(
+        party_id=party,
+        num_speakers=num_speakers,
+        resume_enabled=resume,
+        output_dir=output_dir
+    )
+
+    # Process batch
+    try:
+        report = processor.process_batch(
+            files=audio_files,
+            skip_diarization=skip_diarization,
+            skip_classification=skip_classification,
+            skip_snippets=skip_snippets,
+            skip_knowledge=skip_knowledge
+        )
+
+        # Display summary
+        console.print("\n[bold green]✓ Batch processing completed![/bold green]")
+        console.print(f"\n{report.summary_markdown()}")
+
+        # Save report
+        if output_dir:
+            report_path = Path(output_dir) / "batch_report.md"
+        else:
+            report_path = Config.OUTPUT_DIR / "batch_report.md"
+
+        report.save(report_path)
+        console.print(f"\n[dim]Full report saved to: {report_path}[/dim]")
+        console.print(f"[dim]Verbose log: {get_log_file_path()}[/dim]")
+
+    except KeyboardInterrupt:
+        console.print("\n[yellow]⚠ Batch processing interrupted by user[/yellow]")
+        console.print("[dim]Progress has been checkpointed. Use --resume to continue.[/dim]")
+        raise click.Abort()
+    except Exception as e:
+        console.print(f"\n[bold red]✗ Batch processing failed: {e}[/bold red]")
+        console.print(f"[dim]Inspect log for details: {get_log_file_path()}[/dim]")
+        raise click.Abort()
+
+
 if __name__ == '__main__':
     cli()

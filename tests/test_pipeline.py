@@ -37,11 +37,25 @@ def test_create_session_output_dir_creates_parents(tmp_path):
     assert session_dir.parent.exists()
 
 
-@pytest.mark.skip(reason="Template - not implemented")
 def test_create_session_output_dir_idempotent(tmp_path):
     """Test that calling twice creates different directories (different timestamps)."""
-    # TODO: Implement
-    pass
+    import time
+
+    # Create first directory
+    dir1 = create_session_output_dir(tmp_path, "test")
+    assert dir1.exists()
+
+    # Wait a moment to ensure different timestamp
+    time.sleep(1.1)  # Sleep >1 second to get different timestamp
+
+    # Create second directory with same session_id
+    dir2 = create_session_output_dir(tmp_path, "test")
+    assert dir2.exists()
+
+    # Should create two different directories due to different timestamps
+    assert dir1 != dir2
+    assert "test" in dir1.name
+    assert "test" in dir2.name
 
 
 # ============================================================================
@@ -59,31 +73,51 @@ class TestDDSessionProcessorInit:
         assert processor.safe_session_id == "test_session"
         assert processor.logger is not None
 
-    @pytest.mark.skip(reason="Template - not implemented")
     def test_init_sanitizes_session_id(self):
         """Test session ID sanitization for filesystem safety."""
-        # TODO: Test with session_id containing / : * ? " < > |
-        # Should sanitize to filesystem-safe name
-        pass
+        # Test with session_id containing filesystem-unsafe characters
+        processor = DDSessionProcessor("test/session:2*file?")
 
-    @pytest.mark.skip(reason="Template - not implemented")
+        # Should sanitize to filesystem-safe name
+        assert "/" not in processor.safe_session_id
+        assert ":" not in processor.safe_session_id
+        assert "*" not in processor.safe_session_id
+        assert "?" not in processor.safe_session_id
+
+        # Should still be valid
+        assert processor.session_id == "test/session:2*file?"
+        assert len(processor.safe_session_id) > 0
+
     def test_init_with_party_config(self, tmp_path):
         """Test initialization with party configuration."""
-        # TODO: Create mock party config
-        # TODO: Test character_names, player_names, party_id
-        pass
+        # Test with explicit character and player names
+        processor = DDSessionProcessor(
+            "test",
+            character_names=["Aragorn", "Legolas"],
+            player_names=["Alice", "Bob"]
+        )
 
-    @pytest.mark.skip(reason="Template - not implemented")
+        assert processor.character_names == ["Aragorn", "Legolas"]
+        assert processor.player_names == ["Alice", "Bob"]
+        assert processor.party_id is None  # No party_id provided
+        assert processor.party_context is None
+
     def test_init_creates_checkpoint_manager(self):
         """Test that checkpoint manager is created when resume=True."""
-        # TODO: Verify checkpoint_manager is not None
-        # TODO: Verify resume_enabled is True
-        pass
+        processor = DDSessionProcessor("test", resume=True)
 
-    @pytest.mark.skip(reason="Template - not implemented")
+        assert processor.checkpoint_manager is not None
+        assert processor.resume_enabled is True
+
+        # Test with resume=False
+        processor_no_resume = DDSessionProcessor("test2", resume=False)
+        assert processor_no_resume.checkpoint_manager is not None  # Manager created but not used
+        assert processor_no_resume.resume_enabled is False
+
+    @pytest.mark.skip(reason="N/A - output directory created in process(), not __init__()")
     def test_init_creates_output_directory(self, tmp_path):
         """Test that output directory structure is created."""
-        # TODO: Verify output directories exist
+        # Note: Output directories are created during process(), not during initialization
         pass
 
 
@@ -94,13 +128,50 @@ class TestDDSessionProcessorInit:
 class TestPipelineStageExecution:
     """Test execution of individual pipeline stages with mocked dependencies."""
 
-    @pytest.mark.skip(reason="Template - not implemented")
     def test_process_stage_audio_conversion(self, monkeypatch, tmp_path):
         """Test audio conversion stage with mocked AudioProcessor."""
-        # TODO: Mock AudioProcessor
-        # TODO: Verify convert_to_wav called with correct params
-        # TODO: Verify output WAV path returned
-        pass
+        # Create test input file
+        input_file = tmp_path / "test.m4a"
+        input_file.touch()
+
+        # Mock all components to avoid full pipeline execution
+        mock_audio_processor = MagicMock()
+        wav_file = tmp_path / "test.wav"
+        wav_file.touch()
+        mock_audio_processor.convert_to_wav.return_value = wav_file
+        mock_audio_processor.get_duration.return_value = 120.0
+
+        # Patch all pipeline components
+        with patch('src.pipeline.AudioProcessor', return_value=mock_audio_processor), \
+             patch('src.pipeline.HybridChunker'), \
+             patch('src.pipeline.TranscriberFactory'), \
+             patch('src.pipeline.TranscriptionMerger'), \
+             patch('src.pipeline.TranscriptFormatter'), \
+             patch('src.pipeline.AudioSnipper'), \
+             patch('src.pipeline.StatusTracker'):
+
+            processor = DDSessionProcessor("test", resume=False)
+
+            # Mock remaining pipeline stages to stop after conversion
+            processor.chunker.chunk_audio = MagicMock(return_value=[])
+            processor.transcriber.transcribe_chunk = MagicMock(return_value=Mock())
+            processor.merger.merge_transcriptions = MagicMock(return_value=[])
+            processor.formatter.save_all_formats = MagicMock(return_value={})
+            processor.snipper.export_segments = MagicMock(return_value={'segments_dir': None, 'manifest': None})
+
+            # Process the file
+            result = processor.process(
+                input_file=input_file,
+                output_dir=tmp_path,
+                skip_diarization=True,
+                skip_classification=True,
+                skip_snippets=True,
+                skip_knowledge=True
+            )
+
+            # Verify audio conversion was called
+            mock_audio_processor.convert_to_wav.assert_called_once_with(input_file)
+            mock_audio_processor.get_duration.assert_called_once_with(wav_file)
 
     @pytest.mark.skip(reason="Template - not implemented")
     def test_process_stage_chunking(self, monkeypatch, tmp_path):
@@ -126,34 +197,208 @@ class TestPipelineStageExecution:
         # TODO: Verify overlaps removed
         pass
 
-    @pytest.mark.skip(reason="Template - not implemented")
-    def test_process_stage_diarization_when_enabled(self, monkeypatch):
+    def test_process_stage_diarization_when_enabled(self, monkeypatch, tmp_path):
         """Test diarization runs when skip_diarization=False."""
-        # TODO: Mock SpeakerDiarizer
-        # TODO: Verify diarize() called
-        # TODO: Verify speaker labels added
-        pass
+        # Create test input file
+        input_file = tmp_path / "test.m4a"
+        input_file.touch()
+        wav_file = tmp_path / "test.wav"
+        wav_file.touch()
 
-    @pytest.mark.skip(reason="Template - not implemented")
-    def test_process_stage_diarization_when_skipped(self, monkeypatch):
+        # Mock all components
+        with patch('src.pipeline.AudioProcessor') as mock_audio_cls, \
+             patch('src.pipeline.HybridChunker'), \
+             patch('src.pipeline.TranscriberFactory'), \
+             patch('src.pipeline.TranscriptionMerger'), \
+             patch('src.pipeline.TranscriptFormatter'), \
+             patch('src.pipeline.AudioSnipper'), \
+             patch('src.pipeline.StatusTracker'), \
+             patch('src.pipeline.SpeakerDiarizer') as mock_diarizer_cls:
+
+            mock_audio = mock_audio_cls.return_value
+            mock_audio.convert_to_wav.return_value = wav_file
+            mock_audio.get_duration.return_value = 60.0
+
+            mock_diarizer = mock_diarizer_cls.return_value
+            mock_diarizer.diarize.return_value = [{'speaker': 'SPEAKER_00'}]
+            mock_diarizer.assign_speakers_to_transcription.return_value = [
+                {'text': 'test', 'speaker': 'SPEAKER_00', 'start_time': 0, 'end_time': 1,
+                 'confidence': 0.9, 'words': []}
+            ]
+
+            processor = DDSessionProcessor("test", resume=False)
+            processor.chunker.chunk_audio = MagicMock(return_value=[Mock(chunk_index=0)])
+            processor.transcriber.transcribe_chunk = MagicMock(return_value=Mock(
+                text='test', start_time=0, end_time=1, confidence=0.9, words=[]
+            ))
+            processor.merger.merge_transcriptions = MagicMock(return_value=[
+                Mock(text='test', start_time=0, end_time=1, confidence=0.9, words=[])
+            ])
+            processor.formatter.save_all_formats = MagicMock(return_value={})
+            processor.snipper.export_segments = MagicMock(return_value={'segments_dir': None, 'manifest': None})
+
+            # Process with diarization enabled
+            result = processor.process(
+                input_file=input_file,
+                output_dir=tmp_path,
+                skip_diarization=False,  # Enable diarization
+                skip_classification=True,
+                skip_snippets=True,
+                skip_knowledge=True
+            )
+
+            # Verify diarization was called
+            mock_diarizer.diarize.assert_called_once_with(wav_file)
+            mock_diarizer.assign_speakers_to_transcription.assert_called_once()
+
+    def test_process_stage_diarization_when_skipped(self, monkeypatch, tmp_path):
         """Test diarization is skipped when skip_diarization=True."""
-        # TODO: Mock SpeakerDiarizer
-        # TODO: Call process(skip_diarization=True)
-        # TODO: Verify diarizer NOT called
-        pass
+        # Create test input file
+        input_file = tmp_path / "test.m4a"
+        input_file.touch()
+        wav_file = tmp_path / "test.wav"
+        wav_file.touch()
 
-    @pytest.mark.skip(reason="Template - not implemented")
-    def test_process_stage_classification_when_enabled(self, monkeypatch):
+        # Mock all components
+        with patch('src.pipeline.AudioProcessor') as mock_audio_cls, \
+             patch('src.pipeline.HybridChunker'), \
+             patch('src.pipeline.TranscriberFactory'), \
+             patch('src.pipeline.TranscriptionMerger'), \
+             patch('src.pipeline.TranscriptFormatter'), \
+             patch('src.pipeline.AudioSnipper'), \
+             patch('src.pipeline.StatusTracker'), \
+             patch('src.pipeline.SpeakerDiarizer') as mock_diarizer_cls:
+
+            mock_audio = mock_audio_cls.return_value
+            mock_audio.convert_to_wav.return_value = wav_file
+            mock_audio.get_duration.return_value = 60.0
+
+            mock_diarizer = mock_diarizer_cls.return_value
+
+            processor = DDSessionProcessor("test", resume=False)
+            processor.chunker.chunk_audio = MagicMock(return_value=[Mock(chunk_index=0)])
+            processor.transcriber.transcribe_chunk = MagicMock(return_value=Mock(
+                text='test', start_time=0, end_time=1, confidence=0.9, words=[]
+            ))
+            processor.merger.merge_transcriptions = MagicMock(return_value=[
+                Mock(text='test', start_time=0, end_time=1, confidence=0.9, words=[])
+            ])
+            processor.formatter.save_all_formats = MagicMock(return_value={})
+            processor.snipper.export_segments = MagicMock(return_value={'segments_dir': None, 'manifest': None})
+
+            # Process with diarization skipped
+            result = processor.process(
+                input_file=input_file,
+                output_dir=tmp_path,
+                skip_diarization=True,  # Skip diarization
+                skip_classification=True,
+                skip_snippets=True,
+                skip_knowledge=True
+            )
+
+            # Verify diarizer was NOT called
+            mock_diarizer.diarize.assert_not_called()
+            mock_diarizer.assign_speakers_to_transcription.assert_not_called()
+
+    def test_process_stage_classification_when_enabled(self, monkeypatch, tmp_path):
         """Test classification runs when skip_classification=False."""
-        # TODO: Mock ClassifierFactory
-        # TODO: Verify classify_segments called
-        pass
+        # Create test input file
+        input_file = tmp_path / "test.m4a"
+        input_file.touch()
+        wav_file = tmp_path / "test.wav"
+        wav_file.touch()
 
-    @pytest.mark.skip(reason="Template - not implemented")
-    def test_process_stage_classification_when_skipped(self, monkeypatch):
+        # Mock all components
+        with patch('src.pipeline.AudioProcessor') as mock_audio_cls, \
+             patch('src.pipeline.HybridChunker'), \
+             patch('src.pipeline.TranscriberFactory'), \
+             patch('src.pipeline.TranscriptionMerger'), \
+             patch('src.pipeline.TranscriptFormatter'), \
+             patch('src.pipeline.AudioSnipper'), \
+             patch('src.pipeline.StatusTracker'), \
+             patch('src.pipeline.ClassifierFactory') as mock_classifier_factory:
+
+            mock_audio = mock_audio_cls.return_value
+            mock_audio.convert_to_wav.return_value = wav_file
+            mock_audio.get_duration.return_value = 60.0
+
+            mock_classifier = MagicMock()
+            from src.classifier import ClassificationResult
+            mock_classifier.classify_segments.return_value = [
+                ClassificationResult(segment_index=0, classification="IC", confidence=0.9, reasoning="test")
+            ]
+
+            processor = DDSessionProcessor("test", resume=False)
+            processor.classifier = mock_classifier
+            processor.chunker.chunk_audio = MagicMock(return_value=[Mock(chunk_index=0)])
+            processor.transcriber.transcribe_chunk = MagicMock(return_value=Mock(
+                text='test', start_time=0, end_time=1, confidence=0.9, words=[]
+            ))
+            processor.merger.merge_transcriptions = MagicMock(return_value=[
+                Mock(text='test', start_time=0, end_time=1, confidence=0.9, words=[])
+            ])
+            processor.formatter.save_all_formats = MagicMock(return_value={})
+            processor.snipper.export_segments = MagicMock(return_value={'segments_dir': None, 'manifest': None})
+
+            # Process with classification enabled
+            result = processor.process(
+                input_file=input_file,
+                output_dir=tmp_path,
+                skip_diarization=True,
+                skip_classification=False,  # Enable classification
+                skip_snippets=True,
+                skip_knowledge=True
+            )
+
+            # Verify classification was called
+            mock_classifier.classify_segments.assert_called_once()
+
+    def test_process_stage_classification_when_skipped(self, monkeypatch, tmp_path):
         """Test classification is skipped when skip_classification=True."""
-        # TODO: Verify classifier NOT called
-        pass
+        # Create test input file
+        input_file = tmp_path / "test.m4a"
+        input_file.touch()
+        wav_file = tmp_path / "test.wav"
+        wav_file.touch()
+
+        # Mock all components
+        with patch('src.pipeline.AudioProcessor') as mock_audio_cls, \
+             patch('src.pipeline.HybridChunker'), \
+             patch('src.pipeline.TranscriberFactory'), \
+             patch('src.pipeline.TranscriptionMerger'), \
+             patch('src.pipeline.TranscriptFormatter'), \
+             patch('src.pipeline.AudioSnipper'), \
+             patch('src.pipeline.StatusTracker'):
+
+            mock_audio = mock_audio_cls.return_value
+            mock_audio.convert_to_wav.return_value = wav_file
+            mock_audio.get_duration.return_value = 60.0
+
+            processor = DDSessionProcessor("test", resume=False)
+            mock_classifier = MagicMock()
+            processor.classifier = mock_classifier
+            processor.chunker.chunk_audio = MagicMock(return_value=[Mock(chunk_index=0)])
+            processor.transcriber.transcribe_chunk = MagicMock(return_value=Mock(
+                text='test', start_time=0, end_time=1, confidence=0.9, words=[]
+            ))
+            processor.merger.merge_transcriptions = MagicMock(return_value=[
+                Mock(text='test', start_time=0, end_time=1, confidence=0.9, words=[])
+            ])
+            processor.formatter.save_all_formats = MagicMock(return_value={})
+            processor.snipper.export_segments = MagicMock(return_value={'segments_dir': None, 'manifest': None})
+
+            # Process with classification skipped
+            result = processor.process(
+                input_file=input_file,
+                output_dir=tmp_path,
+                skip_diarization=True,
+                skip_classification=True,  # Skip classification
+                skip_snippets=True,
+                skip_knowledge=True
+            )
+
+            # Verify classifier was NOT called
+            mock_classifier.classify_segments.assert_not_called()
 
 
 # ============================================================================

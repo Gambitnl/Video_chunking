@@ -220,7 +220,7 @@ None found. Implementation exceeds requirements.
 **Effort**: 0.5 days
 **Priority**: MEDIUM
 **Dependencies**: None
-**Status**: [LOOP] Revisions Requested (2025-10-22)
+**Status**: [DONE] Complete (2025-10-24)
 
 ### Problem Statement
 Non-numeric values in `.env` file crash on `int()` cast during startup, preventing the application from launching.
@@ -232,10 +232,10 @@ Non-numeric values in `.env` file crash on `int()` cast during startup, preventi
 
 Add helper function to safely cast environment variables to integers with fallback.
 
-**Code Example**:
+**Code Example** (Implemented):
 ```python
 @staticmethod
-def _get_env_as_int(key: str, default: int) -> int:
+def get_env_as_int(key: str, default: int) -> int:
     """Safely get an environment variable as an integer."""
     value = os.getenv(key)
     if value is None or value.strip() == "":
@@ -277,11 +277,11 @@ Unit tests for edge cases (invalid, empty, None, negative, very large).
 
 #### Design Decisions
 
-1. **Use Static Methods with Underscore Prefix**
-   - **Choice**: Created `_get_env_as_int()` and `_get_env_as_bool()` as static methods with underscore prefix
-   - **Reasoning**: Methods don't need instance state; underscore indicates internal helper
-   - **Alternatives Considered**: Module-level functions, public methods without underscore
-   - **Trade-offs**: Gained simplicity; lost clear public API when called from `app_manager.py`
+1. **Use Public Static Methods** ✅ REVISED
+   - **Choice**: Created `get_env_as_int()` and `get_env_as_bool()` as public static methods (no underscore)
+   - **Reasoning**: Methods are called from `app_manager.py`, making them part of the public API; underscore would violate encapsulation conventions
+   - **Alternatives Considered**: Private methods with underscore, module-level functions
+   - **Trade-offs**: Clear public API; follows Python naming conventions; external usage is explicit
 
 2. **Skip Float Support**
    - **Choice**: Did not implement `_get_env_as_float()`
@@ -429,7 +429,7 @@ If processing fails mid-way through a 4-hour session (e.g., power outage, crash)
 **Files**: Extract from `app.py` to `src/campaign_dashboard.py`
 **Effort**: 2 days
 **Priority**: HIGH
-**Status**: NOT STARTED
+**Status**: [DONE] Completed 2025-10-24
 
 ### Problem Statement
 Campaign Dashboard code is embedded in `app.py` (2,564 lines), making it hard to maintain and test.
@@ -441,6 +441,31 @@ Create new module `src/campaign_dashboard.py` with:
 - Methods for health checks, status displays
 - Independent of Gradio (pure Python logic)
 - Gradio tab wrapper in `src/ui/campaign_dashboard_tab.py`
+
+### Implementation Notes & Reasoning
+**Implementer**: Codex (GPT-5)
+**Date**: 2025-10-24
+
+#### Design Decisions
+1. **Module Naming and Separation**
+   - **Choice**: Keep logic in `src/campaign_dashboard.py` and move the Gradio wrapper to `src/ui/campaign_dashboard_tab.py`.
+   - **Reasoning**: Aligns module structure with the implementation plan and clarifies the split between pure logic and UI bindings.
+   - **Alternatives Considered**: Leaving the wrapper in `src/ui/campaign_dashboard.py`. Rejected to avoid future confusion with plan naming and additional UI modules.
+   - **Trade-offs**: Requires updating imports (`app.py`) and docs, but improves discoverability.
+
+2. **Dashboard Instantiation**
+   - **Choice**: Continue instantiating `CampaignDashboard()` per request in the UI layer.
+   - **Reasoning**: Keeps dependencies local and avoids long-lived global state; existing tests already mock the manager constructors.
+   - **Trade-offs**: Slight overhead on repeated instantiation, acceptable for user-triggered actions.
+
+#### Open Questions
+- Should `CampaignDashboard` accept optional injected managers for easier headless testing and reuse in CLI workflows?
+
+### Validation
+- `pytest tests/test_campaign_dashboard.py -q`
+
+### Follow-up
+- Consider dependency injection for `CampaignDashboard` managers if CLI reuse grows.
 
 ---
 
@@ -481,6 +506,16 @@ src/ui/
 ├── import_notes.py              # Import session notes tab
 └── ... (10 more tab modules)
 ```
+
+### Implementation Notes & Reasoning
+**Implementer**: Codex (GPT-5)
+**Date**: 2025-10-24
+
+- Extracted the Process Session UI into `src/ui/process_session_tab.py`, replacing the inline block in `app.py` with a module call and reducing top-level churn.
+- `create_process_session_tab` now centralizes campaign/party form controls and returns the party list consumed by downstream tabs.
+- Updated `app.py` imports and reinstantiated `PartyConfigManager` for Party Management wiring after the module call.
+- Validation: `pytest tests/test_campaign_dashboard.py -q` (ensures surrounding UI remains stable).
+- Next: migrate Party Management, Import Notes, and Story tabs to dedicated modules to continue shrinking `app.py`.
 
 ---
 

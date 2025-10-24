@@ -308,4 +308,12 @@ Planned improvements to the dashboard:
 
 ---
 
-**Built to give you confidence in your campaign setup!** 📊✨
+**Built to give you confidence in your campaign setup!**
+
+
+## Developer Notes
+
+- Core dashboard logic lives in `src/campaign_dashboard.py`.
+- The Gradio UI wrapper is defined in `src/ui/campaign_dashboard_tab.py`.
+- Tests covering the dashboard live in `tests/test_campaign_dashboard.py`.
+

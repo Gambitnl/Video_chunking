@@ -8,7 +8,30 @@ class StatusIndicators:
     SUCCESS = "[OK]"
     ERROR = "[ERROR]"
     WARNING = "[WARN]"
+    INFO = "[INFO]"
     UNKNOWN = "[UNKNOWN]"
+
+    # Processing states
+    PROCESSING = "[...]"
+    LOADING = "[LOADING]"
+    COMPLETE = "[DONE]"
+    PENDING = "[PENDING]"
+    READY = "[READY]"
+
+    # Actions (text-based, no emojis)
+    ACTION_SEND = "Send"
+    ACTION_SAVE = "Save"
+    ACTION_LOAD = "Load"
+    ACTION_DELETE = "Delete"
+    ACTION_REFRESH = "Refresh"
+    ACTION_DOWNLOAD = "Download"
+    ACTION_UPLOAD = "Upload"
+    ACTION_SEARCH = "Search"
+    ACTION_EDIT = "Edit"
+    ACTION_COPY = "Copy"
+    ACTION_NEW = "New"
+    ACTION_CANCEL = "Cancel"
+    ACTION_CONFIRM = "Confirm"
 
     # Health indicators
     HEALTH_EXCELLENT = "[HEALTH-GREEN]"  # 90-100%

@@ -229,8 +229,8 @@ def create_import_notes_tab(refresh_campaign_names: Callable[[], Dict[str, str]]
                         results += "\n"
 
                     results += f"\n**Knowledge saved to**: `{kb.knowledge_file}`\n\n"
-                    results += "[TIP] *Visit the Campaign Library tab to view all extracted knowledge!*
-\n"
+                    results += "[TIP] *Visit the Campaign Library tab to view all extracted knowledge!*"
+                    results += "\n\n"
 
                 except Exception as exc:
                     import traceback

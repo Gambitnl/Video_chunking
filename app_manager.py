@@ -133,18 +133,30 @@ def _status_lines(header: str = "Status") -> str:
             ],
         }
     lines.append("")
-    session_id = snapshot.get("session_id") or "unknown"
+    is_processing = bool(snapshot.get("processing"))
+    session_id = snapshot.get("session_id")
     status_text = snapshot.get("status", "unknown")
-    lines.append(f"**Session:** `{session_id}`")
-    lines.append(f"- Status: {status_text}")
     updated_at = snapshot.get("updated_at")
-    if updated_at:
-        lines.append(f"- Last update: {updated_at}")
-    if not snapshot.get("processing"):
-        if snapshot.get("completed_at"):
-            lines.append(f"- Last finished at: {snapshot.get('completed_at')}")
+    if not is_processing:
+        lines.append("**Session:** (idle)")
+        if session_id:
+            lines.append(f"- Last session: `{session_id}`")
+            lines.append(f"- Result: {status_text}")
+            if snapshot.get("completed_at"):
+                lines.append(f"- Finished at: {snapshot.get('completed_at')}")
+            if snapshot.get("error") and status_text == "failed":
+                lines.append(f"- Last error: {snapshot.get('error')}")
+        else:
+            lines.append("- No previous sessions recorded.")
+        if updated_at:
+            lines.append(f"- Last update: {updated_at}")
         lines.append("- No session currently processing.")
         return "\n".join(lines)
+
+    lines.append(f"**Session:** `{session_id or 'unknown'}`")
+    lines.append(f"- Status: {status_text}")
+    if updated_at:
+        lines.append(f"- Last update: {updated_at}")
     started_at = snapshot.get("started_at")
     completed_at = snapshot.get("completed_at")
     duration_s = snapshot.get("duration_seconds")

@@ -1,0 +1,17 @@
+# Profile Extraction Prompt Template
+
+## Purpose
+Describe the desired instructions for the language model when extracting character-specific updates from a session transcript. This file will be refined alongside the `ProfileExtractor` implementation.
+
+## Template Variables
+- `{{character_names}}`: Comma separated list of known PCs
+- `{{campaign_name}}`: Campaign identifier/name
+- `{{transcript_excerpt}}`: IC-only transcript chunk
+
+## Outline
+1. Summarize critical character actions (combat, social, exploration).
+2. Highlight notable quotes with speaker attribution.
+3. Capture relationship changes or emotional beats between characters.
+4. Identify inventory changes (items gained/lost) and goal progress.
+5. Provide context snippets (1-2 sentences) for each update.
+6. Return JSON matching `schemas/profile_update.json`.

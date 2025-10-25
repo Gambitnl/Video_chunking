@@ -1,6 +1,6 @@
 """Character profiling and overview generation from campaign logs and transcripts"""
 from dataclasses import dataclass, field, asdict
-from typing import List, Dict, Optional
+from typing import Any, List, Dict, Optional
 from pathlib import Path
 import json
 import shutil
@@ -8,17 +8,107 @@ from datetime import datetime
 import logging
 from .formatter import sanitize_filename
 
+PROFILE_UPDATE_CATEGORIES = [
+    "notable_actions",
+    "memorable_quotes",
+    "development_notes",
+    "relationships",
+    "inventory_changes",
+    "goal_progress",
+    "character_background",
+]
+
 
 @dataclass
 class ProfileUpdate:
     """A suggested update to a character profile."""
     character: str
     category: str
-    type: str
     content: str
-    timestamp: str
-    confidence: float
-    context: str
+    type: Optional[str] = None
+    timestamp: Optional[str] = None
+    session_id: Optional[str] = None
+    confidence: Optional[float] = None
+    context: Optional[str] = None
+    quote: Optional[str] = None
+    segment_start: Optional[float] = None
+    segment_end: Optional[float] = None
+    tags: List[str] = field(default_factory=list)
+    relationships: List[Dict[str, str]] = field(default_factory=list)
+    metadata: Dict[str, Any] = field(default_factory=dict)
+
+    def __post_init__(self) -> None:
+        if self.category not in PROFILE_UPDATE_CATEGORIES:
+            raise ValueError(
+                f"Unsupported profile update category '{self.category}'. "
+                f"Known categories: {', '.join(PROFILE_UPDATE_CATEGORIES)}"
+            )
+        if self.confidence is not None and not 0.0 <= self.confidence <= 1.0:
+            raise ValueError("confidence must be between 0.0 and 1.0")
+        if self.timestamp and len(self.timestamp.split(":")) not in (2, 3):
+            raise ValueError("timestamp must be in MM:SS or HH:MM:SS format")
+
+    def to_dict(self) -> Dict[str, Any]:
+        return asdict(self)
+
+    @classmethod
+    def from_dict(cls, payload: Dict[str, Any]) -> "ProfileUpdate":
+        character = payload.get("character")
+        category = payload.get("category")
+        content = payload.get("content")
+        if not all([character, category, content]):
+            raise ValueError("character, category, and content are required fields")
+        instance = cls(
+            character=character,
+            category=category,
+            content=content,
+            type=payload.get("type"),
+            timestamp=payload.get("timestamp"),
+            session_id=payload.get("session_id"),
+            confidence=payload.get("confidence"),
+            context=payload.get("context"),
+            quote=payload.get("quote"),
+            segment_start=payload.get("segment_start"),
+            segment_end=payload.get("segment_end"),
+            tags=list(payload.get("tags", [])),
+            relationships=list(payload.get("relationships", [])),
+            metadata=dict(payload.get("metadata", {})),
+        )
+        return instance
+
+
+@dataclass
+class ProfileUpdateBatch:
+    """Container for suggested updates generated from a session transcript."""
+    session_id: str
+    campaign_id: Optional[str] = None
+    generated_at: Optional[str] = None
+    source: Optional[Dict[str, Any]] = None
+    updates: List[ProfileUpdate] = field(default_factory=list)
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "session_id": self.session_id,
+            "campaign_id": self.campaign_id,
+            "generated_at": self.generated_at,
+            "source": self.source or {},
+            "updates": [update.to_dict() for update in self.updates],
+        }
+
+    @classmethod
+    def from_dict(cls, payload: Dict[str, Any]) -> "ProfileUpdateBatch":
+        session_id = payload.get("session_id")
+        if not session_id:
+            raise ValueError("session_id is required for ProfileUpdateBatch")
+        updates_payload = payload.get("updates", [])
+        updates = [ProfileUpdate.from_dict(item) for item in updates_payload]
+        return cls(
+            session_id=session_id,
+            campaign_id=payload.get("campaign_id"),
+            generated_at=payload.get("generated_at"),
+            source=dict(payload.get("source", {})),
+            updates=updates,
+        )
 
 
 
@@ -613,30 +703,50 @@ class CharacterProfileManager:
 
         for category, moments in updates.items():
             for moment in moments:
+                session_value = moment.session_id or moment.timestamp or "unknown_session"
+                moment_type = moment.type or "general"
                 if category == "notable_actions":
                     profile.notable_actions.append(CharacterAction(
-                        session=moment.timestamp, # Using timestamp as session for now
+                        session=session_value,
                         description=moment.content,
-                        type=moment.type
+                        type=moment_type
                     ))
                 elif category == "memorable_quotes":
                     profile.memorable_quotes.append(CharacterQuote(
-                        session=moment.timestamp,
+                        session=session_value,
                         quote=moment.content,
                         context=moment.context
                     ))
                 elif category == "development_notes":
                     profile.development_notes.append(CharacterDevelopment(
-                        session=moment.timestamp,
+                        session=session_value,
                         note=moment.content,
-                        category=moment.type
+                        category=moment_type
                     ))
                 elif category == "relationships":
-                    profile.relationships.append(CharacterRelationship(
-                        name=moment.content, # Assuming content is the name of the other character
-                        relationship_type=moment.type,
-                        first_met=moment.timestamp
+                    if moment.relationships:
+                        for relation in moment.relationships:
+                            profile.relationships.append(CharacterRelationship(
+                                name=relation.get("character", moment.content),
+                                relationship_type=relation.get("type", moment_type),
+                                description=relation.get("description"),
+                                first_met=session_value
+                            ))
+                    else:
+                        profile.relationships.append(CharacterRelationship(
+                            name=moment.content,
+                            relationship_type=moment_type,
+                            first_met=session_value
+                        ))
+                elif category == "inventory_changes":
+                    profile.inventory.append(CharacterItem(
+                        name=moment.metadata.get("item_name", moment.content) if moment.metadata else moment.content,
+                        description=moment.context,
+                        session_acquired=session_value,
+                        category=moment_type
                     ))
+                else:
+                    self.logger.debug("Unhandled profile update category '%s' for '%s'", category, character_name)
         
         self.add_profile(character_name, profile)
         return profile

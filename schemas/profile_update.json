@@ -1,0 +1,133 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "CharacterProfileUpdateBatch",
+  "description": "Schema for structured character profile updates generated from session transcripts",
+  "type": "object",
+  "required": ["session_id", "updates"],
+  "properties": {
+    "session_id": {
+      "type": "string",
+      "description": "Identifier of the session the updates were generated from"
+    },
+    "campaign_id": {
+      "type": "string",
+      "description": "Optional campaign identifier associated with the updates"
+    },
+    "generated_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Timestamp when the update batch was generated"
+    },
+    "source": {
+      "type": "object",
+      "description": "Metadata describing the generating system/version",
+      "additionalProperties": true
+    },
+    "updates": {
+      "type": "array",
+      "minItems": 0,
+      "description": "Collection of profile update suggestions",
+      "items": {
+        "type": "object",
+        "required": ["character", "category", "content"],
+        "properties": {
+          "character": {
+            "type": "string",
+            "description": "Name of the character the update applies to"
+          },
+          "category": {
+            "type": "string",
+            "enum": [
+              "notable_actions",
+              "memorable_quotes",
+              "development_notes",
+              "relationships",
+              "inventory_changes",
+              "goal_progress",
+              "character_background"
+            ],
+            "description": "Category of profile information being updated"
+          },
+          "content": {
+            "type": "string",
+            "description": "Primary text for the update"
+          },
+          "type": {
+            "type": "string",
+            "description": "Subtype of the update (e.g., combat, social, ally)"
+          },
+          "timestamp": {
+            "type": "string",
+            "pattern": "^(?:\\d{2}:)?\\d{2}:\\d{2}$",
+            "description": "Timestamp within the session (MM:SS or HH:MM:SS)"
+          },
+          "session_id": {
+            "type": "string",
+            "description": "Optional session identifier when aggregating multiple sessions"
+          },
+          "confidence": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1,
+            "description": "Confidence score between 0 and 1"
+          },
+          "context": {
+            "type": "string",
+            "description": "Additional narrative context for the update"
+          },
+          "quote": {
+            "type": "string",
+            "description": "Direct quote associated with the update"
+          },
+          "segment_start": {
+            "type": "number",
+            "minimum": 0,
+            "description": "Start time of the transcript segment in seconds"
+          },
+          "segment_end": {
+            "type": "number",
+            "minimum": 0,
+            "description": "End time of the transcript segment in seconds"
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Free-form tags that further describe the update"
+          },
+          "relationships": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["character", "description"],
+              "properties": {
+                "character": {
+                  "type": "string",
+                  "description": "Related character's name"
+                },
+                "type": {
+                  "type": "string",
+                  "description": "Relationship type (ally, rival, etc.)"
+                },
+                "description": {
+                  "type": "string",
+                  "description": "Narrative description of the relationship update"
+                }
+              },
+              "additionalProperties": false
+            },
+            "description": "Relationship updates tied to the moment"
+          },
+          "metadata": {
+            "type": "object",
+            "description": "Additional model-specific metadata",
+            "additionalProperties": true
+          }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}

@@ -108,3 +108,47 @@ class TestOllamaClassifier:
         assert results[0].confidence == 0.8
         assert results[0].character == "TestChar"
         assert results[1].segment_index == 1
+
+
+class TestClassificationResult:
+    def test_to_dict(self):
+        result = ClassificationResult(
+            segment_index=0, classification="IC", confidence=0.9, reasoning="Test reason", character="Aragorn"
+        )
+        expected_dict = {
+            "segment_index": 0,
+            "classification": "IC",
+            "confidence": 0.9,
+            "reasoning": "Test reason",
+            "character": "Aragorn",
+        }
+        assert result.to_dict() == expected_dict
+
+    def test_from_dict(self):
+        data = {
+            "segment_index": 0,
+            "classification": "IC",
+            "confidence": 0.9,
+            "reasoning": "Test reason",
+            "character": "Aragorn",
+        }
+        result = ClassificationResult.from_dict(data)
+        assert result.segment_index == 0
+        assert result.classification == "IC"
+        assert result.confidence == 0.9
+        assert result.reasoning == "Test reason"
+        assert result.character == "Aragorn"
+
+    def test_from_dict_no_character(self):
+        data = {
+            "segment_index": 1,
+            "classification": "OOC",
+            "confidence": 0.7,
+            "reasoning": "Test reason OOC",
+        }
+        result = ClassificationResult.from_dict(data)
+        assert result.segment_index == 1
+        assert result.classification == "OOC"
+        assert result.confidence == 0.7
+        assert result.reasoning == "Test reason OOC"
+        assert result.character is None

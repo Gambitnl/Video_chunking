@@ -1,0 +1,99 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Conversation",
+  "description": "Schema for campaign assistant conversation history",
+  "type": "object",
+  "properties": {
+    "conversation_id": {
+      "type": "string",
+      "description": "Unique identifier for the conversation"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Timestamp when conversation was created"
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Timestamp when conversation was last updated"
+    },
+    "messages": {
+      "type": "array",
+      "description": "List of messages in the conversation",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Unique message identifier"
+          },
+          "role": {
+            "type": "string",
+            "enum": ["user", "assistant", "system"],
+            "description": "Role of the message sender"
+          },
+          "content": {
+            "type": "string",
+            "description": "Message content"
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time",
+            "description": "When the message was sent"
+          },
+          "sources": {
+            "type": "array",
+            "description": "Source documents (for assistant messages only)",
+            "items": {
+              "type": "object",
+              "properties": {
+                "session_id": {
+                  "type": "string",
+                  "description": "Session identifier"
+                },
+                "timestamp": {
+                  "type": "string",
+                  "description": "Timestamp in session (HH:MM:SS)"
+                },
+                "speaker": {
+                  "type": "string",
+                  "description": "Speaker name"
+                },
+                "content": {
+                  "type": "string",
+                  "description": "Source content excerpt"
+                },
+                "type": {
+                  "type": "string",
+                  "enum": ["transcript", "npc", "quest", "location", "other"],
+                  "description": "Type of source document"
+                }
+              },
+              "required": ["content", "type"]
+            }
+          }
+        },
+        "required": ["id", "role", "content", "timestamp"]
+      }
+    },
+    "context": {
+      "type": "object",
+      "description": "Conversation metadata",
+      "properties": {
+        "campaign": {
+          "type": "string",
+          "description": "Campaign name or identifier"
+        },
+        "relevant_sessions": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Session IDs referenced in this conversation"
+        }
+      }
+    }
+  },
+  "required": ["conversation_id", "created_at", "messages"]
+}

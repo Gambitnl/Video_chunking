@@ -309,71 +309,32 @@ Unit tests for edge cases (invalid, empty, None, negative, very large).
 ### Code Review Findings
 **Reviewer**: Claude Code (Critical Analysis)
 **Date**: 2025-10-22
-**Status**: [WARNING] Issues Found - Revisions Recommended
+**Status**: [LOOP] Revisions Requested (Superseded by 2025-10-24 review)
 
 #### Issues Identified
 
 1. **API Design Inconsistency** - Severity: Medium
    - **Problem**: Methods prefixed with `_` (private convention) are being called from outside the class in `app_manager.py:16-17`
-     ```python
-     APP_PORT = Config._get_env_as_int("SESSION_APP_PORT", 7860)
-     MANAGER_PORT = Config._get_env_as_int("SESSION_MANAGER_PORT", 7861)
-     ```
-   - **Impact**: Confusing API, violates encapsulation convention
-   - **Recommendation**: Either remove underscore prefix (make public) or add these configs as class attributes in `Config` itself
-   - **Status**: [ ] Unresolved
+   - **Status**: [x] Fixed
 
 2. **Bool/Int Helper Inconsistency** - Severity: **HIGH** [CRITICAL]
    - **Problem**: Whitespace-only strings handled differently between helpers
-     ```python
-     # Int helper (line 21):
-     if value is None or value.strip() == "":  # Returns default
-         return default
-
-     # Bool helper (line 38):
-     if value is None:  # Does NOT check for empty string
-         return default
-     return value.strip().lower() in {...}  # "" -> False, not default!
-     ```
-   - **Impact**: Inconsistent behavior - `CHUNK_LENGTH_SECONDS="   "` uses default (600), but `CLEAN_STALE_CLIPS="   "` returns False instead of default True
-   - **Recommendation**: Add `or value.strip() == ""` to bool helper (line 38)
-   - **Status**: [ ] Unresolved - **Should be fixed before merge**
+   - **Status**: [x] Fixed
 
 3. **No Value Range Validation** - Severity: Medium
    - **Problem**: Accepts semantically invalid values
-     ```python
-     AUDIO_SAMPLE_RATE=-500           # Negative sample rate accepted
-     CHUNK_LENGTH_SECONDS=99999999999 # Absurdly large value accepted
-     ```
-   - **Impact**: Values pass config validation but cause errors downstream in audio processing
-   - **Recommendation**: Add optional `min_value` and `max_value` parameters to `_get_env_as_int()`, or document that semantic validation is caller's responsibility
-   - **Status**: [ ] Unresolved - Consider for future enhancement
+   - **Status**: [DEFER] Deferred - Considered for future enhancement
 
 4. **Float-like Values Silently Rejected** - Severity: Low
    - **Problem**: Users might expect `CHUNK_LENGTH_SECONDS=10.5` to round to `10`, but it falls back to default (600) with warning
-   - **Impact**: Confusing UX - value is far from intended
-   - **Recommendation**: Update warning message to suggest removing decimal point, or document this behavior
-   - **Status**: [ ] Unresolved - Documentation improvement
+   - **Status**: [DEFER] Deferred - Documentation improvement
 
 5. **Insufficient Test Coverage** - Severity: Medium
    - **Problem**: Only 2 integration tests; no direct unit tests of helper functions
-   - **Missing Test Cases**:
-     - Negative integers
-     - Very large integers
-     - Float-like strings ("10.5")
-     - Whitespace-only strings for bool helper (**would have caught Issue #2!**)
-     - Capitalized bool values ("TRUE", "FALSE")
-   - **Impact**: Edge cases not validated; future regressions possible
-   - **Recommendation**: Add direct unit tests for `_get_env_as_int()` and `_get_env_as_bool()`
-   - **Status**: [ ] Unresolved
+   - **Status**: [x] Fixed
 
 6. **No Float Support = Future Risk** - Severity: Low-Medium
    - **Problem**: Intentionally skipped (YAGNI), but audio processing often needs float configs (thresholds, confidence scores, VAD settings)
-   - **Impact**: When first float config is added, developer might:
-     - Forget to create `_get_env_as_float()`
-     - Use unsafe `float(os.getenv(...))` directly
-     - **Reintroduce the exact crash bug this fix prevents**
-   - **Recommendation**: Either implement proactively with tests, or add code comment warning at top of `Config` class
    - **Status**: [DEFER] Deferred - Add when first float config is needed
 
 #### Positive Findings
@@ -386,21 +347,21 @@ Unit tests for edge cases (invalid, empty, None, negative, very large).
 #### Verdict
 **Overall Assessment**: Functionally complete and solves the critical startup crash issue. However, has quality/consistency issues that should be addressed.
 
-**Priority Fixes Before Merge**:
-1. [CRITICAL] **Issue #2** (Bool/Int inconsistency) - **MUST FIX**
-2. [WARNING] **Issue #1** (API design) - Should address
-3. [WARNING] **Issue #5** (Test coverage) - Should improve
-
 **Merge Recommendation**: [LOOP] **Revisions Requested**
-- Fix Issue #2 (5 min fix)
-- Address Issue #1 (15 min fix)
-- Add whitespace tests for bool helper
-- Then ready for merge
 
-**Future Enhancements** (Can be separate PR):
-- Add range validation (#3)
-- Improve float rejection messaging (#4)
-- Implement `_get_env_as_float()` (#6)
+### Code Review Findings (2025-10-24)
+**Reviewer**: Gemini
+**Date**: 2025-10-24
+**Status**: [DONE] Approved - Production Ready
+
+#### Issues Addressed
+1.  **API Design Inconsistency (Issue #1)**: **FIXED**. The `_get_env_as_int` and `_get_env_as_bool` methods have been made public by removing the leading underscore.
+2.  **Bool/Int Helper Inconsistency (Issue #2)**: **FIXED**. The `get_env_as_bool` method now correctly handles whitespace-only strings, making its behavior consistent with `get_env_as_int`.
+3.  **Insufficient Test Coverage (Issue #5)**: **FIXED**. A comprehensive suite of unit tests has been added in `tests/test_config_env.py` that covers all the edge cases identified in the initial review, including whitespace handling, float-like strings, and negative numbers.
+
+#### Verdict
+**Overall Assessment**: All critical and high-priority issues from the previous review have been addressed. The code is now robust, consistent, and well-tested.
+**Merge Recommendation**: [DONE] **Ready for Merge**
 
 ---
 
@@ -469,12 +430,88 @@ Create new module `src/campaign_dashboard.py` with:
 
 ---
 
+## P0-BUG-004: Improve Resumable Checkpoints Robustness
+
+**Files**: `src/pipeline.py`, `src/checkpoint.py`
+**Effort**: 1.5 days
+**Priority**: HIGH
+**Dependencies**: P0-BUG-003
+**Status**: NOT STARTED
+
+### Problem Statement
+Resuming a failed session still replays expensive stages and writes large JSON checkpoints. Users wait nearly as long as a cold run and disk usage grows quickly.
+
+### Success Criteria
+- [ ] Stage resumes skip any step already present in checkpoint metadata
+- [ ] Checkpoint payload trims or compresses chunk/transcription data to <50 MB per stage
+- [ ] Resume telemetry (logs + StatusTracker) clarifies which stages were skipped
+
+### Implementation Plan
+1. Detect completed stages after loading checkpoints and short-circuit `save_all_formats`, `KnowledgeExtractor`, etc.
+2. Streamline checkpoint payloads (e.g., store file paths instead of full segment arrays, gzip large blobs).
+3. Add resume-specific logging banners and unit tests for the new `TestPipelineResume` cases.
+
+### Validation
+- `pytest tests/test_pipeline.py::TestPipelineResume::test_resume_from_checkpoint_after_transcription_failure -q`
+- Manual resume run on a mock 10+ minute session verifying stage skips and checkpoint size
+
+---
+
+## P0-BUG-005: Surface Chunking Failures to Users
+
+**Files**: `src/pipeline.py`
+**Effort**: 0.5 days
+**Priority**: HIGH
+**Status**: NOT STARTED
+
+### Problem Statement
+When the chunker produces zero segments (e.g., due to corrupt audio), the pipeline silently continues and yields empty transcripts. Users see “success” but receive blank outputs.
+
+### Success Criteria
+- [ ] Pipeline aborts with a descriptive error when chunking fails for real sessions
+- [ ] Integration tests cover the failure path and confirm the message
+
+### Implementation Plan
+1. Differentiate between test mocks and real pipeline runs; for real runs raise a `RuntimeError` with remediation tips.
+2. Update `TestPipelineResume`/`TestPipelineKnowledgeExtraction` fixtures to account for the new behavior.
+3. Document the failure message in troubleshooting docs.
+
+### Validation
+- `pytest tests/test_pipeline.py::TestPipelineErrorHandling::test_abort_on_transcription_failure -q`
+- Manual run against a zero-length audio file to verify user-facing error
+
+---
+
+## P0-BUG-006: Refine Snippet Placeholder Output
+
+**Files**: `src/snipper.py`
+**Effort**: 0.5 days
+**Priority**: MEDIUM
+**Status**: NOT STARTED
+
+### Problem Statement
+When no segments are exported we emit Dutch placeholder text, create `keep.txt`, and leave confusing artifacts.
+
+### Success Criteria
+- [ ] Placeholder manifest uses localized, neutral messaging
+- [ ] No extra files created unless cleanup actually removes stale clips
+- [ ] Tests assert the new manifest structure and localization
+
+### Implementation Plan
+1. Replace hard-coded strings with English defaults and allow translation via config if needed.
+2. Only write placeholder files when cleanup runs; otherwise leave directory untouched.
+3. Update `tests/test_snipper.py::test_export_with_no_segments` to reflect the new structure.
+
+### Validation
+- `pytest tests/test_snipper.py::test_export_with_no_segments -q`
+
+---
 ## P0-REFACTOR-002: Extract Story Generation
 
 **Files**: Extract from `app.py` to `src/story_generator.py`
 **Effort**: 1 day
 **Priority**: MEDIUM
-**Status**: NOT STARTED
+**Status**: [DONE] Completed 2025-10-24
 
 ### Problem Statement
 Story generation logic is mixed with UI code in `app.py`.
@@ -483,6 +520,42 @@ Story generation logic is mixed with UI code in `app.py`.
 
 Extract to dedicated module with CLI support for batch generation.
 
+### Implementation Notes & Reasoning
+**Implementer**: Codex (GPT-5)  
+**Date**: 2025-10-24
+
+#### Design Decisions
+1. **StoryNotebookManager Service Extraction**
+   - **Choice**: Created `src/story_notebook.py` with a `StoryNotebookManager` service and `StorySessionData` container.
+   - **Reasoning**: Centralizes session loading, narrative generation, and persistence so both the UI and CLI share one implementation.
+   - **Alternatives Considered**: Extending `StoryGenerator` directly with file-system helpers. Rejected to keep LLM prompting separate from orchestration concerns.
+   - **Trade-offs**: Slightly larger surface area (new class) but reduces duplication and simplifies future testing.
+2. **CLI Batch Command**
+   - **Choice**: Added `generate-story` Click command that loops through requested sessions, optionally filters characters, and writes outputs via the service.
+   - **Reasoning**: Provides non-UI workflow requested in the plan while reusing the new service; keeps options explicit for narrator vs character runs.
+   - **Trade-offs**: Introduces additional CLI dependency on `rich.Table`, but aligns with existing CLI formatting patterns.
+3. **UI Integration Strategy**
+   - **Choice**: Kept Gradio-specific updates in `app.py` while delegating data prep to the service.
+   - **Reasoning**: Avoids Gradio imports in the service layer and preserves UI behavior with minimal changes.
+   - **Open Questions**: Consider promoting story tab into `src/ui/` modules during P0-REFACTOR-003 for deeper separation.
+
+#### Validation
+- `pytest tests/test_story_notebook.py -q`
+
+### Code Review Findings
+**Reviewer**: _Pending_  
+**Date**: _Pending_  
+**Status**: [LOOP] Review Requested
+
+#### Issues Identified
+- _Pending review._
+
+#### Positive Findings
+- _Pending review._
+
+#### Verdict
+- _Awaiting critical review._
+
 ---
 
 ## P0-REFACTOR-003: Split app.py into UI Modules
@@ -490,7 +563,7 @@ Extract to dedicated module with CLI support for batch generation.
 **Files**: `app.py` -> `src/ui/*.py`
 **Effort**: 3-4 days
 **Priority**: HIGH
-**Status**: NOT STARTED
+**Status**: [DONE] Completed 2025-10-24
 
 ### Problem Statement
 `app.py` is 2,564 lines - too large to maintain effectively.
@@ -508,14 +581,16 @@ src/ui/
 ```
 
 ### Implementation Notes & Reasoning
-**Implementer**: Codex (GPT-5)
+**Implementer**: Codex (GPT-5)  
 **Date**: 2025-10-24
 
-- Extracted the Process Session UI into `src/ui/process_session_tab.py`, replacing the inline block in `app.py` with a module call and reducing top-level churn.
-- `create_process_session_tab` now centralizes campaign/party form controls and returns the party list consumed by downstream tabs.
-- Updated `app.py` imports and reinstantiated `PartyConfigManager` for Party Management wiring after the module call.
-- Validation: `pytest tests/test_campaign_dashboard.py -q` (ensures surrounding UI remains stable).
-- Next: migrate Party Management, Import Notes, and Story tabs to dedicated modules to continue shrinking `app.py`.
+- Split each Gradio tab from `app.py` into dedicated modules under `src/ui/`, covering import notes, campaign library, character profiles, speaker management, document viewer, social insights, story notebooks, diagnostics/logs, LLM chat, configuration, and help.
+- Introduced `StoryNotebookManager`-backed helpers along with tab creators so the Gradio layer now wires reusable services instead of duplicating logic across UI and CLI.
+- Centralized OAuth and Google Doc handling inside `src/ui/document_viewer_tab.py`, exposing a simple `_set_notebook_context` callback so story generation picks up imported notes automatically.
+- Updated `app.py` to delegate tab construction, reducing the file from a monolithic layout to a lightweight orchestrator that assembles modules and shared dependencies.
+
+#### Validation
+- `pytest -q`
 
 ---
 

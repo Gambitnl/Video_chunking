@@ -6,6 +6,7 @@ from rich.table import Table
 from src.pipeline import DDSessionProcessor
 from src.config import Config
 from src.logger import get_log_file_path
+from src.story_notebook import StoryNotebookManager, load_notebook_context_file
 
 console = Console()
 
@@ -588,9 +589,9 @@ def batch(
         # Scan directory for audio files
         input_path = Path(input_dir)
         audio_extensions = {'.m4a', '.mp3', '.wav', '.flac', '.ogg', '.aac'}
-        for ext in audio_extensions:
-            audio_files.extend(input_path.glob(f'*{ext}'))
-            audio_files.extend(input_path.glob(f'*{ext.upper()}'))
+        audio_files.extend(
+            p for p in input_path.glob("*") if p.is_file() and p.suffix.lower() in audio_extensions
+        )
 
     if files:
         # Add explicitly specified files
@@ -652,6 +653,230 @@ def batch(
         console.print(f"\n[bold red]✗ Batch processing failed: {e}[/bold red]")
         console.print(f"[dim]Inspect log for details: {get_log_file_path()}[/dim]")
         raise click.Abort()
+
+
+@cli.command("generate-story")
+@click.argument("session_ids", nargs=-1)
+@click.option(
+    "--all",
+    "process_all",
+    is_flag=True,
+    help="Generate narratives for all available sessions.",
+)
+@click.option(
+    "--characters",
+    "-c",
+    multiple=True,
+    help="Character perspectives to generate (repeatable). Defaults to all characters.",
+)
+@click.option(
+    "--skip-narrator",
+    is_flag=True,
+    help="Skip generating the narrator summary.",
+)
+@click.option(
+    "--temperature",
+    type=click.FloatRange(0.0, 1.0),
+    default=0.5,
+    show_default=True,
+    help="Sampling temperature passed to the story generator.",
+)
+@click.option(
+    "--context-file",
+    type=click.Path(exists=True, dir_okay=False),
+    help="Optional text file with notebook context to include in prompts.",
+)
+def generate_story(session_ids, process_all, characters, skip_narrator, temperature, context_file):
+    """Generate story notebook narratives from processed sessions."""
+    manager = StoryNotebookManager()
+
+    if process_all:
+        target_sessions = manager.list_sessions(limit=None)
+    else:
+        target_sessions = list(session_ids)
+
+    if not target_sessions:
+        raise click.UsageError("Provide at least one SESSION_ID or use --all.")
+
+    notebook_context = load_notebook_context_file(Path(context_file)) if context_file else ""
+
+    for session_id in target_sessions:
+        try:
+            session = manager.load_session(session_id)
+        except FileNotFoundError:
+            console.print(f"[yellow]Skipping {session_id}: processed session data not found.[/yellow]")
+            continue
+
+        console.print(f"\n[bold cyan]Session:[/bold cyan] {session.session_id}")
+        table = Table(title=f"Narratives for {session.session_id}")
+        table.add_column("Perspective", style="cyan")
+        table.add_column("Saved Path", style="green")
+
+        generated = False
+
+        if not skip_narrator:
+            _, path = manager.generate_narrator(
+                session,
+                notebook_context=notebook_context,
+                temperature=temperature,
+            )
+            if path:
+                table.add_row("Narrator", str(path))
+                generated = True
+
+        requested_characters = list(characters) if characters else session.character_names
+        if characters:
+            missing = [name for name in characters if name not in session.character_names]
+            if missing:
+                console.print(f"[yellow]Skipping unknown characters for {session.session_id}: {', '.join(missing)}[/yellow]")
+            requested_characters = [name for name in characters if name in session.character_names]
+
+        for character_name in requested_characters:
+            _, path = manager.generate_character(
+                session,
+                character_name=character_name,
+                notebook_context=notebook_context,
+                temperature=temperature,
+            )
+            if path:
+                table.add_row(character_name, str(path))
+                generated = True
+
+        if generated and table.row_count:
+            console.print(table)
+        else:
+            console.print("[yellow]No narratives generated for this session.[/yellow]")
+
+
+@cli.command()
+@click.option(
+    '--all',
+    'ingest_all',
+    is_flag=True,
+    help='Ingest all sessions and knowledge bases'
+)
+@click.option(
+    '--session',
+    help='Ingest a specific session by ID'
+)
+@click.option(
+    '--rebuild',
+    is_flag=True,
+    help='Rebuild entire index (clear + ingest all)'
+)
+@click.option(
+    '--output-dir',
+    type=click.Path(exists=True),
+    default=None,
+    help='Output directory containing sessions (default: ./output)'
+)
+@click.option(
+    '--knowledge-dir',
+    type=click.Path(exists=True),
+    default=None,
+    help='Directory containing knowledge base files (default: ./models)'
+)
+def ingest(ingest_all, session, rebuild, output_dir, knowledge_dir):
+    """Ingest session data into vector database for semantic search"""
+
+    try:
+        from src.langchain.embeddings import EmbeddingService
+        from src.langchain.vector_store import CampaignVectorStore
+        from src.langchain.data_ingestion import DataIngestor
+    except ImportError as e:
+        console.print(f"[red]Error:[/red] LangChain dependencies not installed")
+        console.print(f"Run: pip install langchain langchain-community chromadb sentence-transformers")
+        console.print(f"Details: {e}")
+        return
+
+    # Set default directories
+    if output_dir is None:
+        output_dir = Config.OUTPUT_DIR
+
+    if knowledge_dir is None:
+        knowledge_dir = Config.MODELS_DIR
+
+    output_dir = Path(output_dir)
+    knowledge_dir = Path(knowledge_dir)
+
+    console.print("[cyan]Initializing vector store...[/cyan]")
+
+    try:
+        # Initialize embedding service and vector store
+        embedding_service = EmbeddingService()
+        vector_store = CampaignVectorStore(
+            persist_dir=Config.PROJECT_ROOT / "vector_db",
+            embedding_service=embedding_service
+        )
+
+        ingestor = DataIngestor(vector_store)
+
+        if rebuild:
+            console.print("[yellow]Rebuilding entire index (this will clear existing data)...[/yellow]")
+            stats = ingestor.ingest_all(output_dir, knowledge_dir, clear_existing=True)
+
+            console.print("\n[bold green]Rebuild Complete![/bold green]")
+            table = Table(title="Ingestion Statistics")
+            table.add_column("Metric", style="cyan")
+            table.add_column("Count", style="green")
+
+            table.add_row("Sessions Ingested", str(stats["sessions_ingested"]))
+            table.add_row("Sessions Failed", str(stats["sessions_failed"]))
+            table.add_row("Total Segments", str(stats["total_segments"]))
+            table.add_row("Knowledge Bases Ingested", str(stats["knowledge_bases_ingested"]))
+            table.add_row("Knowledge Bases Failed", str(stats["knowledge_bases_failed"]))
+            table.add_row("Total Documents", str(stats["total_documents"]))
+
+            console.print(table)
+
+        elif ingest_all:
+            console.print("[cyan]Ingesting all sessions and knowledge bases...[/cyan]")
+            stats = ingestor.ingest_all(output_dir, knowledge_dir, clear_existing=False)
+
+            console.print("\n[bold green]Ingestion Complete![/bold green]")
+            table = Table(title="Ingestion Statistics")
+            table.add_column("Metric", style="cyan")
+            table.add_column("Count", style="green")
+
+            table.add_row("Sessions Ingested", str(stats["sessions_ingested"]))
+            table.add_row("Sessions Failed", str(stats["sessions_failed"]))
+            table.add_row("Total Segments", str(stats["total_segments"]))
+            table.add_row("Knowledge Bases Ingested", str(stats["knowledge_bases_ingested"]))
+            table.add_row("Knowledge Bases Failed", str(stats["knowledge_bases_failed"]))
+            table.add_row("Total Documents", str(stats["total_documents"]))
+
+            console.print(table)
+
+        elif session:
+            console.print(f"[cyan]Ingesting session: {session}[/cyan]")
+            session_dir = output_dir / session
+
+            result = ingestor.ingest_session(session_dir)
+
+            if result.get("success"):
+                console.print(f"[green]Successfully ingested {result['segments_count']} segments from {session}[/green]")
+            else:
+                console.print(f"[red]Error:[/red] {result.get('error', 'Unknown error')}")
+
+        else:
+            console.print("[yellow]Please specify --all, --session, or --rebuild[/yellow]")
+            console.print("\nExamples:")
+            console.print("  python cli.py ingest --all")
+            console.print("  python cli.py ingest --session session_005")
+            console.print("  python cli.py ingest --rebuild")
+
+        # Show vector store stats
+        stats = vector_store.get_stats()
+        console.print(f"\n[cyan]Vector Store Stats:[/cyan]")
+        console.print(f"  Transcript Segments: {stats['transcript_segments']}")
+        console.print(f"  Knowledge Documents: {stats['knowledge_documents']}")
+        console.print(f"  Total: {stats['total_documents']}")
+        console.print(f"  Persist Dir: {stats['persist_dir']}")
+
+    except Exception as e:
+        console.print(f"[red]Error during ingestion:[/red] {e}")
+        import traceback
+        traceback.print_exc()
 
 
 if __name__ == '__main__':

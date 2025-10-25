@@ -132,3 +132,23 @@ class AudioProcessor:
             sample_rate = self.sample_rate
 
         sf.write(str(path), audio, sample_rate)
+
+    def load_audio_segment(self, path: Path, start_time: float, end_time: float) -> Tuple[np.ndarray, int]:
+        """
+        Load a specific segment of an audio file into a numpy array.
+
+        Args:
+            path: Path to audio file.
+            start_time: Start time of the segment in seconds.
+            end_time: End time of the segment in seconds.
+
+        Returns:
+            Tuple of (audio_data, sample_rate)
+        """
+        with sf.SoundFile(str(path), 'r') as f:
+            sr = f.samplerate
+            start_frame = int(start_time * sr)
+            frames = max(0, int((end_time - start_time) * sr))
+            f.seek(start_frame)
+            audio = f.read(frames=frames, dtype='float32')
+        return audio, sr

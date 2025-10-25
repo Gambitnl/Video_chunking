@@ -97,3 +97,22 @@ class TestAudioProcessor:
         path = Path("/out/test.wav")
         processor.save_audio(audio, path)
         mock_sf_write.assert_called_once_with(str(path), audio, 16000)
+
+    @patch('soundfile.SoundFile')
+    def test_load_audio_segment(self, mock_soundfile, processor):
+        mock_file_instance = MagicMock()
+        mock_soundfile.return_value.__enter__.return_value = mock_file_instance
+        mock_file_instance.samplerate = 16000
+        mock_file_instance.read.return_value = np.array([0.1, 0.2, 0.3], dtype=np.float32)
+
+        path = Path("/in/test.wav")
+        start_time = 1.0
+        end_time = 1.2
+
+        audio_data, sr = processor.load_audio_segment(path, start_time, end_time)
+
+        assert sr == 16000
+        assert np.array_equal(audio_data, np.array([0.1, 0.2, 0.3], dtype=np.float32))
+        mock_soundfile.assert_called_once_with(str(path), 'r')
+        mock_file_instance.seek.assert_called_once_with(int(start_time * sr))
+        mock_file_instance.read.assert_called_once_with(frames=int((end_time - start_time) * sr), dtype='float32')

@@ -18,6 +18,27 @@ class TranscriptionSegment:
     confidence: Optional[float] = None
     words: Optional[List[Dict]] = None  # Word-level timestamps if available
 
+    def to_dict(self) -> dict:
+        """Converts the TranscriptionSegment to a dictionary for serialization."""
+        return {
+            "text": self.text,
+            "start_time": self.start_time,
+            "end_time": self.end_time,
+            "confidence": self.confidence,
+            "words": self.words,
+        }
+
+    @classmethod
+    def from_dict(cls, data: dict) -> "TranscriptionSegment":
+        """Creates a TranscriptionSegment from a dictionary."""
+        return cls(
+            text=data["text"],
+            start_time=data["start_time"],
+            end_time=data["end_time"],
+            confidence=data.get("confidence"),
+            words=data.get("words"),
+        )
+
 
 @dataclass
 class ChunkTranscription:
@@ -27,6 +48,27 @@ class ChunkTranscription:
     chunk_end: float
     segments: List[TranscriptionSegment]
     language: str
+
+    def to_dict(self) -> dict:
+        """Converts the ChunkTranscription to a dictionary for serialization."""
+        return {
+            "chunk_index": self.chunk_index,
+            "chunk_start": self.chunk_start,
+            "chunk_end": self.chunk_end,
+            "segments": [s.to_dict() for s in self.segments],
+            "language": self.language,
+        }
+
+    @classmethod
+    def from_dict(cls, data: dict) -> "ChunkTranscription":
+        """Creates a ChunkTranscription from a dictionary."""
+        return cls(
+            chunk_index=data["chunk_index"],
+            chunk_start=data["chunk_start"],
+            chunk_end=data["chunk_end"],
+            segments=[TranscriptionSegment.from_dict(s) for s in data["segments"]],
+            language=data["language"],
+        )
 
 
 class BaseTranscriber(ABC):

@@ -64,23 +64,42 @@ Transform long-form D&D session recordings into rich, searchable transcripts wit
 - [x] Unicode compatibility (cp1252 crashes) (COMPLETED)
 - [x] Multiple background processes prevention (COMPLETED)
 - [x] Party config validation (COMPLETED)
-- [ ] **Stale Clip Cleanup in Audio Snipper**
+- [x] **Stale Clip Cleanup in Audio Snipper**
   - File: `src/snipper.py`
   - Issue: Reprocessing leaves orphaned WAV files from previous runs
   - Fix: Clear session directory before writing new batch
   - Estimated effort: 0.5 days
   - Impact: MEDIUM - prevents directory confusion
-- [ ] **Unsafe Type Casting in Configuration**
+- [x] **Unsafe Type Casting in Configuration**
   - File: `src/config.py`
   - Issue: Non-numeric .env values crash on int() cast
   - Fix: Wrap casts in try-except, fall back to defaults
   - Estimated effort: 0.5 days
   - Impact: MEDIUM - prevents startup crashes
-- [ ] **Checkpoint system for resumable processing**
+  - Status: [DONE] Completed (2025-10-24)
+- [x] **Checkpoint system for resumable processing**
   - Save intermediate state after each pipeline stage
   - Prevent data loss on 4+ hour sessions
   - Estimated effort: 2 days
   - Impact: HIGH - prevents hours of lost work
+- [ ] **Improve resumable checkpoints robustness**
+  - Files: `src/pipeline.py`, `src/checkpoint.py`
+  - Issue: Resume still re-executes completed stages and checkpoints can become very large
+  - Fix: Skip already completed stages, compress/trim checkpoint payloads, and re-run only necessary steps
+  - Estimated effort: 1.5 days
+  - Impact: HIGH - faster recovery for long sessions
+- [ ] **Surface chunking failures to users**
+  - Files: `src/pipeline.py`
+  - Issue: When chunking yields zero segments the pipeline silently proceeds, leading to empty transcripts
+  - Fix: Detect real sessions vs. test mocks and abort with actionable errors for users
+  - Estimated effort: 0.5 days
+  - Impact: HIGH - avoids confusing empty outputs
+- [ ] **Refine snippet placeholder output**
+  - File: `src/snipper.py`
+  - Issue: Placeholder manifests use hard-coded Dutch text and leave stray files even when no snippets are produced
+  - Fix: Localize placeholder strings, only create markers when needed, and make the manifest structure explicit
+  - Estimated effort: 0.5 days
+  - Impact: MEDIUM - clearer UX for empty sessions
 
 #### 2. Code Refactoring (Maintainability)
 **Owner**: Open
@@ -153,8 +172,8 @@ Transform long-form D&D session recordings into rich, searchable transcripts wit
 - Add to `src/snipper.py`
 
 #### 3. Batch Processing
-**Owner**: Open
-**Status**: NOT STARTED
+**Owner**: Gemini
+**Status**: [DONE] Completed (2025-10-24)
 **Effort**: 1 day
 **Impact**: MEDIUM-HIGH
 
@@ -483,6 +502,8 @@ Transform long-form D&D session recordings into rich, searchable transcripts wit
 - [ ] Memory footprint reduced to <500MB
 - [ ] Batch processing supports 10+ sessions
 - [ ] Test coverage >60%
+- [ ] Story notebook tab responsive on large archives
+- [ ] CLI story generation reports failures clearly
 
 ### Phase 3 (P2 Complete)
 - [ ] Session analytics dashboard operational

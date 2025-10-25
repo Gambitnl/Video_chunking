@@ -41,4 +41,11 @@ rich>=13.0.0
 pytest>=8.0.0
 
 # Visualizations
-wordcloud>=1.9.3graphviz>=0.21
+wordcloud>=1.9.3
+graphviz>=0.21
+
+# LangChain and Vector Store
+langchain>=0.1.0
+langchain-community>=0.1.0
+chromadb>=0.4.0
+sentence-transformers>=2.2.0

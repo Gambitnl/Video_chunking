@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import json
 import shutil
-from dataclasses import asdict, dataclass, field
+from dataclasses import asdict, dataclass, field, is_dataclass
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
@@ -71,7 +71,8 @@ class CheckpointManager:
             metadata=metadata,
         )
         path = self._stage_path(stage)
-        path.write_text(json.dumps(asdict(record), indent=2), encoding="utf-8")
+        serializable = _make_json_safe(asdict(record))
+        path.write_text(json.dumps(serializable, indent=2), encoding="utf-8")
         self.logger.info("Checkpoint saved for stage '%s' at %s", stage, path)
         return path
 
@@ -117,3 +118,21 @@ class CheckpointManager:
             shutil.rmtree(self.checkpoint_dir)
             self.logger.info("Cleared checkpoints for session '%s'", self.session_id)
         self.checkpoint_dir.mkdir(parents=True, exist_ok=True)
+
+
+def _make_json_safe(value: Any) -> Any:
+    """Best-effort conversion of arbitrary objects into JSON-serializable structures."""
+    if isinstance(value, dict):
+        return {str(k): _make_json_safe(v) for k, v in value.items()}
+    if isinstance(value, (list, tuple, set)):
+        return [_make_json_safe(v) for v in value]
+    if hasattr(value, "to_dict") and callable(getattr(value, "to_dict")):
+        try:
+            return _make_json_safe(value.to_dict())
+        except Exception:
+            return repr(value)
+    if is_dataclass(value):
+        return _make_json_safe(asdict(value))
+    if isinstance(value, (str, int, float, bool)) or value is None:
+        return value
+    return repr(value)

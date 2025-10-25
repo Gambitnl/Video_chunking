@@ -171,6 +171,32 @@ Test extraction accuracy and merge safety.
 - How to handle character name variants (nicknames)?
 - Confidence threshold for auto-approve?
 
+### Implementation Notes & Reasoning (2025-10-25)
+**Implementer**: Codex (GPT-5)
+
+1. **Schema Definition (Subtask 1.1 / CLM-A1 dependency awareness)**
+   - **Choice**: Authored `schemas/profile_update.json` to formalize required fields (`character`, `category`, `content`) and constrain categories to existing profile collections (`notable_actions`, `memorable_quotes`, etc.).
+   - **Reasoning**: Aligning categories with current `CharacterProfile` fields prevents downstream merge logic from guessing how to apply updates.
+   - **Trade-offs**: Limits early flexibility (new categories require schema update) but keeps validation strict for now.
+
+2. **Dataclass Enhancements (Subtask 1.2 groundwork)**
+   - **Choice**: Expanded `ProfileUpdate` to include optional metadata (confidence, relationships, tags) and created `ProfileUpdateBatch` with helpers for `from_dict`/`to_dict`.
+   - **Reasoning**: Provides a strongly typed core the extractor/UI can share while keeping serialization consistent with the schema.
+   - **Trade-offs**: Adds validation that may reject loosely formatted data; mitigated by providing clear error messages and tests.
+
+3. **Extractor Skeleton (Subtask 1.2 scaffolding)**
+   - **Choice**: Added minimal `ProfileExtractor` that normalizes transcript segments and returns an empty `ProfileUpdateBatch` with metadata.
+   - **Reasoning**: Establishes a seam for future LLM integration while allowing unit tests to exercise data flow today.
+   - **Trade-offs**: No real extraction yet; documented in code docstrings to set expectations.
+
+4. **Prompt Template Stub (Subtask 1.3)**
+   - **Choice**: Captured prompt guidelines in `prompts/profile_extraction.txt` outlining required JSON output and focus areas.
+   - **Reasoning**: Keeps design decisions close to the extractor and signals placeholders reviewers can refine.
+
+5. **Testing**
+   - Added `tests/test_profile_extraction.py` covering schema round-trips, category validation, and extractor normalization behaviour.
+   - Tests run: `pytest tests/test_profile_extraction.py -q`
+
 ---
 
 ## P1-FEATURE-002: Streaming Snippet Export
@@ -610,6 +636,89 @@ Test audit and cleanup logic.
 - Dry-run mode (verify no files deleted)
 
 **Files**: `tests/test_session_manager.py`
+
+---
+
+## P1-FEATURE-005: Campaign Lifecycle Manager (Load/New Workflow)
+
+**Owner**: ChatGPT (Codex)  
+**Effort**: 5-6 days  
+**Priority**: HIGH  
+**Dependencies**: P1-FEATURE-004 (UI modernization groundwork), existing campaign/party managers  
+**Status**: NOT STARTED  
+
+### Problem Statement
+Users cannot confidently start a fresh campaign without inheriting legacy data (default parties, knowledge bases, character profiles, session summaries). The current UI lacks an entry point to declare “load existing” versus “new” campaign, and there is no manifest showing which components will be populated or reset.
+
+### Success Criteria
+- [_] Landing screen exposes two primary actions: `Load Existing Campaign` and `Start New Campaign`.
+- [_] Selection manifest lists every component that will be loaded/reset (party, knowledge base, character profiles, processed sessions, narratives, status tracker).
+- [_] Pipeline outputs and derived tooling store `campaign_id` so downstream tabs filter to the active campaign.
+- [_] New campaign wizard creates empty/seed files and clears transient state without touching other campaigns.
+- [_] Documentation explicitly records reasoning/decisions for each implementation step.
+
+**Process Requirement**: For every subtask below, the implementer must (a) add an “Implementation Notes & Reasoning” block to the relevant plan or docs, and (b) capture actions taken, trade-offs, and follow-ups.
+
+### Implementation Plan
+
+- **CLM-01: Data Surface Audit & Schema Updates**  
+  - Catalogue every file/database entry referencing campaigns: `models/campaigns.json`, `models/parties.json`, `models/knowledge/*.json`, `models/character_profiles`, `output/*`, `logs/session_status.json`, speaker profiles, notebooks.  
+  - Extend pipeline metadata (e.g., `*_data.json`, status tracker events) to include `campaign_id`.  
+  - Define migration strategy for legacy sessions lacking campaign metadata.  
+  - _Deliverables_: Updated schemas, migration notes, documentation of decisions.
+
+- **CLM-02: UI Entry Point & State Management**  
+  - Replace the landing hero (see `app.py:369`) with a campaign selector wizard.  
+  - Implement buttons for `Load Existing Campaign` and `Start New Campaign`, persisting active selection in state accessible to all tabs.  
+  - Display manifest showing availability/status for each component (party config, knowledge base, character profiles, processed sessions, narratives, status tracker).  
+  - _Deliverables_: Gradio components, state wiring, manifest rendering, reasoning log.
+
+- **CLM-03: Load Existing Campaign Workflow**  
+  - When loading, hydrate global managers (`CampaignManager`, `PartyConfigManager`, knowledge base accessors) with selected campaign id.  
+  - Ensure every tab filters data by active campaign (Process Session prefill, Campaign Dashboard, Library, Character Profiles, Story Notebooks, Social Insights, LLM Chat).  
+  - Add warnings when data is missing or still using template placeholders.  
+  - _Deliverables_: Campaign-aware filters, UI messaging, documentation of changes.
+
+- **CLM-04: New Campaign Wizard & Reset Actions**  
+  - Create guided steps to define campaign id/name, optionally clone or create a blank party, set processing defaults.  
+  - Initialize empty knowledge base, character profile directory, and narrative placeholders.  
+  - Reset transient storages (status tracker, notebook context) and confirm to the user which assets were created.  
+  - _Deliverables_: Creation flow, file scaffolding routines, reset logic, reasoning log.
+
+- **CLM-05: Tab-Level Filtering & Legacy Cleanup**  
+  - Update Story Notebook manager and Social Insights to accept `campaign_id`; hide sessions from other campaigns by default.  
+  - Update character profile manager/UI to separate profiles per campaign (directory or metadata filter) and migrate existing files.  
+  - Fix LLM Chat tab to consume the new profile source.  
+  - _Deliverables_: Updated services/tests, migration scripts, documentation.
+
+- **CLM-06: Status Tracker & Diagnostics Integration**  
+  - Extend `StatusTracker` outputs with campaign context; allow App Manager to differentiate idle states per campaign.  
+  - Update diagnostics/log tabs to highlight the active campaign and warn about stale logs from other campaigns.  
+  - _Deliverables_: Status tracker adjustments, diagnostics UX updates, documentation.
+
+- **CLM-07: Testing & Documentation**  
+  - Add unit/integration tests covering new campaign creation, load existing, and filtering behavior.  
+  - Record manual QA checklist (creating campaign, processing session, switching campaigns).  
+  - Update `docs/USAGE.md`, `docs/QUICKREF.md`, and landing page screenshots.  
+  - _Deliverables_: Tests, QA notes, documentation pull-through, final reasoning summary.
+
+### Initial Execution Sequence
+
+To get underway, tackle these four concrete items (documenting reasoning/actions for each):
+
+1. **CLM-A1** – Draft the campaign picker wizard: design the UI flow in `app.py`/`src/ui/` and outline any new state/data requirements before coding.  
+2. **CLM-A2** – Extend pipeline outputs and `StoryNotebookManager` so `campaign_id` is written/read everywhere sessions are stored or displayed.  
+3. **CLM-A3** – Scope character profiles and the LLM chat tab to the active campaign, fully dropping placeholder/default data paths.  
+4. **CLM-A4** – Build a migration helper that maps existing sessions and profiles into explicit campaigns (including docs for running it).
+
+### Validation
+- Automated: `pytest -q`, targeted tests for campaign metadata propagation.  
+- Manual: Wizard walkthrough (new campaign, load existing), session processing verifying isolation, tab data integrity checks.
+
+### Follow-Up Questions
+- Should campaign metadata include a version to support future schema migrations?  
+- Do we need soft-delete/archival support for campaigns?  
+- How should shared assets (e.g., generic parties) be represented alongside campaign-specific ones?
 
 ---
 

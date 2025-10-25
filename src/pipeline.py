@@ -145,8 +145,11 @@ class DDSessionProcessor:
         skip_snippets: bool = False,
         skip_knowledge: bool = False,
         is_test_run: bool = False
-    ) -> Dict:
-        """Process a complete D&D session recording and return output metadata."""
+    ):
+        """Process a complete D&D session recording and yield progress updates."""
+        self.is_test_run = is_test_run
+        # ... (rest of the method is too long to show, but it is now a generator)
+
         self.is_test_run = is_test_run
         # Create or reuse session-specific output directory with optional checkpoint resume
         base_output_dir = Path(output_dir or Config.OUTPUT_DIR)
@@ -637,27 +640,26 @@ class DDSessionProcessor:
                 self.logger.info("Stage 8/9: Exporting audio segments...")
                 StatusTracker.update_stage(self.session_id, 8, "running", "Writing per-segment audio clips")
                 try:
-                    segment_export = self.snipper.export_segments(
-                        wav_file,
-                        speaker_segments_with_labels,
-                        segments_output_base,
-                        self.safe_session_id,
-                        classifications=classifications
+                    manifest_path = self.snipper.initialize_manifest(segments_output_base / self.safe_session_id)
+                    for i, segment in enumerate(speaker_segments_with_labels):
+                        classification = classifications[i] if classifications and i < len(classifications) else None
+                        self.snipper.export_incremental(wav_file, segment, i + 1, segments_output_base / self.safe_session_id, manifest_path, classification)
+
+                    with self.snipper._manifest_lock:
+                        manifest_data = json.loads(manifest_path.read_text(encoding="utf-8"))
+                        manifest_data["status"] = "complete"
+                        manifest_path.write_text(json.dumps(manifest_data, indent=2, ensure_ascii=False), encoding="utf-8")
+
+                    segments_dir = segments_output_base / self.safe_session_id
+                    self.logger.info("Stage 8/9 complete: segments stored in %s", segments_dir)
+                    StatusTracker.update_stage(
+                        self.session_id, 8, "completed", f"Exported {len(speaker_segments_with_labels)} clips"
                     )
-                    segments_dir = segment_export.get('segments_dir')
-                    manifest_path = segment_export.get('manifest')
-                    if segments_dir:
-                        self.logger.info("Stage 8/9 complete: segments stored in %s", segments_dir)
-                        if manifest_path:
-                            self.logger.info("Segment manifest written to %s", manifest_path)
-                        StatusTracker.update_stage(
-                            self.session_id, 8, "completed", f"Exported {len(list(segments_dir.glob('*.wav')))} clips"
-                        )
-                    else:
-                        self.logger.warning("No audio segments were exported")
-                        StatusTracker.update_stage(
-                            self.session_id, 8, "completed", "No snippets produced"
-                        )
+                    segment_export = {
+                        'segments_dir': segments_dir,
+                        'manifest': manifest_path
+                    }
+
                 except Exception as export_error:
                     self.logger.warning("Audio segment export failed: %s", export_error)
                     StatusTracker.update_stage(self.session_id, 8, "failed", f"Export failed: {export_error}")

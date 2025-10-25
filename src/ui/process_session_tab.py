@@ -116,6 +116,8 @@ def create_process_session_tab(
 
                 stats_output = gr.Markdown(label="Statistics")
 
+                snippet_progress_output = gr.Markdown(label="Snippet Export Progress")
+
         with gr.Row():
             with gr.Tab("Full Transcript"):
                 full_output = gr.Textbox(
@@ -205,7 +207,8 @@ def create_process_session_tab(
                 ic_output,
                 ooc_output,
                 stats_output,
-            ],
+                snippet_progress_output
+            ]
         )
 
-    return available_parties
+    return available_parties, snippet_progress_output

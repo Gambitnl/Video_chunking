@@ -61,9 +61,10 @@ This planning system is split across multiple documents:
 | P1-FEATURE-002: Streaming Snippet Export | 2 days | NOT STARTED | PART2.md:138 |
 | P1-FEATURE-003: Batch Processing | 1 day | [DONE] Complete | PART2.md:251 |
 | P1-FEATURE-004: Gradio UI Modernization | 5-7 days | NOT STARTED | PART2.md:386 |
+| P1-FEATURE-005: Campaign Lifecycle Manager | 5-6 days | NOT STARTED | PART2.md:452 |
 | P1-MAINTENANCE-001: Session Cleanup | 2-3 days | NOT STARTED | PART2.md:330 |
 
-**Recommendation**: Kick off P1-FEATURE-001 (Character Profile Extraction) while grooming P1-FEATURE-004 design spikes so UI work can start immediately after.
+**Recommendation**: Kick off P1-FEATURE-001 (Character Profile Extraction) while grooming P1-FEATURE-004 and P1-FEATURE-005 discovery spikes so UI/campaign work can start immediately after.
 
 ---
 
@@ -138,16 +139,19 @@ This planning system is split across multiple documents:
 - [ ] P1-FEATURE-002: Streaming Snippet Export (2 days)
 - [ ] P1-MAINTENANCE-001: Session Cleanup (3 days)
 - [ ] P1-FEATURE-004: Gradio UI Modernization (discovery + wireframes, 1 day)
+- [ ] P1-FEATURE-005: Campaign Lifecycle Manager (CLM-01 data audit & schema updates, 1 day)
 
 **Week 2**:
 - [ ] P1-FEATURE-001: Character Profile Extraction (5 days start)
 - [ ] P1-FEATURE-004: Gradio UI Modernization (sidebar + hero panel implementation, 2 days)
+- [ ] P1-FEATURE-005: Campaign Lifecycle Manager (CLM-02 entry point prototype, 1 day)
 
 **Deliverables**:
 - Streaming export (early clips available)
 - Session cleanup tools
 - Character profile extraction (partial)
 - UI modernization foundation (sidebar nav, refreshed landing panel)
+- Campaign lifecycle groundwork (data audit, entry point prototype)
 
 ---
 
@@ -157,16 +161,19 @@ This planning system is split across multiple documents:
 **Week 1**:
 - [ ] Complete P1-FEATURE-001: Character Profile Extraction (2 days remaining)
 - [ ] P1-FEATURE-004: Gradio UI Modernization (workflow stepper, guided mode)
+- [ ] P1-FEATURE-005: Campaign Lifecycle Manager (CLM-03 load workflow)
 - [x] Start P2-LANGCHAIN-001: Conversational Interface (3 days progress)
 
 **Week 2-3**:
 - [x] Complete P2-LANGCHAIN-001: Conversational Interface (7 days remaining)
 - [x] P2-LANGCHAIN-002: Semantic Search with RAG (5-7 days)
 - [ ] P1-FEATURE-004: Gradio UI Modernization (polish, theming, QA)
+- [ ] P1-FEATURE-005: Campaign Lifecycle Manager (CLM-04 wizard, CLM-05 filtering, CLM-06 tracker, CLM-07 docs/tests)
 
 **Deliverables**:
 - Character profile extraction complete
 - Modernized Gradio UI with guided workflows
+- Campaign lifecycle feature (load/new, filtering, documentation)
 - Conversational campaign interface
 - Semantic search
 
@@ -208,6 +215,9 @@ P0-REFACTOR-003 (Split app.py)
     |     P3-FEATURE-001 (Real-time Processing)
     |
     +---> P1-FEATURE-004 (Gradio UI Modernization)
+    |         |
+    |         v
+    |     P1-FEATURE-005 (Campaign Lifecycle Manager)
     |
     +---> P1-FEATURE-003 (Batch Processing)
             |
@@ -260,6 +270,7 @@ P4-DOCS-001 (API Docs)
 | 3-4 days | P0-REFACTOR-003 | P0 | Refactor |
 | 3-5 days | P1-FEATURE-001 | P1 | Feature |
 | 5-7 days | P1-FEATURE-004 | P1 | Feature |
+| 5-6 days | P1-FEATURE-005 | P1 | Feature |
 | 3-5 days | P4-INFRA-001 | P4 | Infra |
 | 5-7 days | P2-LANGCHAIN-002 | P2 | Feature |
 | 5-7 days | P3-FEATURE-001 | P3 | Feature |
@@ -273,10 +284,16 @@ P4-DOCS-001 (API Docs)
 |-------------|----------|
 | `src/snipper.py` | P0-BUG-001, P1-FEATURE-002 |
 | `src/config.py` | P0-BUG-002, P3-FEATURE-002 |
-| `src/pipeline.py` | P0-BUG-003 |
-| `app.py` | P0-REFACTOR-001, P0-REFACTOR-002, P0-REFACTOR-003, P1-FEATURE-004 |
-| `src/ui/` | P0-REFACTOR-003, P1-FEATURE-004 |
-| `docs/UI_STATUS.md` | P1-FEATURE-004 |
+| `src/pipeline.py` | P0-BUG-003, P1-FEATURE-005 |
+| `app.py` | P0-REFACTOR-001, P0-REFACTOR-002, P0-REFACTOR-003, P1-FEATURE-004, P1-FEATURE-005 |
+| `src/ui/` | P0-REFACTOR-003, P1-FEATURE-004, P1-FEATURE-005 |
+| `src/status_tracker.py` | P1-FEATURE-005 |
+| `src/story_notebook.py` | P1-FEATURE-005 |
+| `models/campaigns.json`, `models/parties.json` | P1-FEATURE-005 |
+| `models/knowledge/` | P1-FEATURE-005 |
+| `models/character_profiles/` | P1-FEATURE-005 |
+| `output/` | P1-FEATURE-005 |
+| `docs/UI_STATUS.md` | P1-FEATURE-004, P1-FEATURE-005 |
 | `src/character_profile.py` | P1-FEATURE-001 |
 | `cli.py` | P1-FEATURE-003, P2-LANGCHAIN-002 (ingest) |
 | `src/langchain/` (new) | P2-LANGCHAIN-001, P2-LANGCHAIN-002 |
@@ -294,14 +311,14 @@ P4-DOCS-001 (API Docs)
 ### Team Composition Recommendations
 
 **For Sprint 1-2** (Foundation & Quick Wins):
-- **1x Full-stack Developer**: P0 refactoring, P1-FEATURE-003
+- **1x Full-stack Developer**: P0 refactoring, P1-FEATURE-003, P1-FEATURE-005 (CLM-01..02 discovery)
 - **1x Backend Developer**: P1-FEATURE-002, P1-MAINTENANCE-001
 - **1x UI/UX Engineer**: P1-FEATURE-004 discovery, navigation redesign, guided mode
 
 **For Sprint 3** (Advanced Features):
 - **1x AI/ML Developer**: P1-FEATURE-001, P2-LANGCHAIN-001
-- **1x Backend Developer**: P2-LANGCHAIN-002
-- **1x UI/UX Engineer**: P1-FEATURE-004 polish, theming, QA
+- **1x Backend Developer**: P2-LANGCHAIN-002, P1-FEATURE-005 (CLM-03..07 implementation)
+- **1x UI/UX Engineer**: P1-FEATURE-004 polish, theming, QA, P1-FEATURE-005 wizard UX
 
 **For Sprint 4** (Polish & Infrastructure):
 - **1x QA/DevOps Engineer**: P4-INFRA-001, P4-INFRA-002
@@ -318,6 +335,7 @@ P4-DOCS-001 (API Docs)
 | P1-FEATURE-002 | Python, threading, file I/O |
 | P1-FEATURE-003 | Python, CLI design, batch processing |
 | P1-FEATURE-004 | UI/UX design, Gradio Blocks, front-end architecture |
+| P1-FEATURE-005 | Full-stack (Python + Gradio), state management, data migration, UX writing |
 | P2-LANGCHAIN-001 | Python, LangChain, conversational AI |
 | P2-LANGCHAIN-002 | Python, vector databases, RAG |
 | P3-FEATURE-001 | Python, real-time audio, WebSockets |

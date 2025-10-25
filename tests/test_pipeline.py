@@ -801,7 +801,7 @@ class TestPipelineErrorHandling:
             mock_audio.get_duration.return_value = 60.0
 
             processor = DDSessionProcessor("test", resume=False)
-            processor.chunker.chunk_audio = MagicMock(return_value=[])
+            processor.chunker.chunk_audio = MagicMock(return_value=[MagicMock(spec=AudioChunk)])
 
             # Mock transcriber to raise an exception
             processor.transcriber.transcribe_chunk = MagicMock(

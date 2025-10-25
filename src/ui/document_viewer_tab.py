@@ -21,6 +21,7 @@ from src.google_drive_auth import (
 def create_document_viewer_tab(
     project_root: Path,
     set_notebook_context: Callable[[str], None],
+    demo=None,
 ) -> None:
     def view_google_doc(doc_url):
         try:
@@ -90,7 +91,7 @@ def create_document_viewer_tab(
                 os.startfile(str(guide_path))
             elif os.name == "posix":
                 subprocess.run(["open" if sys.platform == "darwin" else "xdg-open", str(guide_path)])
-            return f"�o\" Opening setup guide: {guide_path.name}"
+            return f"[INFO] Opening setup guide: {guide_path.name}"
         except Exception as exc:
             return f"Guide location: {guide_path}\n(Could not auto-open: {exc})"
 
@@ -101,7 +102,7 @@ def create_document_viewer_tab(
         View your private Google Docs without needing to make them publicly shared.
 
         **First-time setup (5-10 minutes, completely free):**
-        1. Create Google Cloud credentials �+' See **`docs/GOOGLE_OAUTH_SIMPLE_SETUP.md`** for step-by-step guide
+        1. Create Google Cloud credentials [INFO] See **`docs/GOOGLE_OAUTH_SIMPLE_SETUP.md`** for step-by-step guide
         2. Click "Authorize with Google" below
         3. Load any Google Doc you have access to!
 
@@ -124,7 +125,7 @@ def create_document_viewer_tab(
                     interactive=False,
                 )
             with gr.Column(scale=1):
-                setup_guide_btn = gr.Button("dY\"- Open Setup Guide", size="sm", variant="secondary")
+                setup_guide_btn = gr.Button("[GUIDE] Open Setup Guide", size="sm", variant="secondary")
                 setup_guide_result = gr.Textbox(
                     label="",
                     value="",
@@ -141,7 +142,7 @@ def create_document_viewer_tab(
                 Just approve access and return here. That's it!
                 """)
                 auto_auth_btn = gr.Button(
-                    "dY\"? Authorize with Google",
+                    "[AUTH] Authorize with Google",
                     variant="primary",
                     size="lg",
                 )
@@ -151,13 +152,15 @@ def create_document_viewer_tab(
                     interactive=False,
                 )
             with gr.Column(scale=1):
-                check_auth_btn = gr.Button("dY\", Check Status", size="sm")
-                revoke_auth_btn = gr.Button("dY-`�,? Revoke Authorization", variant="secondary", size="sm")
+                check_auth_btn = gr.Button("[STATUS] Check Status", size="sm")
+                revoke_auth_btn = gr.Button("[REVOKE] Revoke Authorization", variant="secondary", size="sm")
 
         with gr.Accordion("Advanced: Manual Authorization (if automatic doesn't work)", open=False):
-            gr.Markdown("""
+            gr.Markdown(
+                """
             Use this method if the automatic authorization doesn't work (e.g., browser doesn't open automatically).
-            """)
+            """
+            )
             with gr.Row():
                 with gr.Column():
                     start_auth_btn = gr.Button("Start Manual Authorization", variant="secondary")
@@ -234,7 +237,9 @@ def create_document_viewer_tab(
             outputs=[gdoc_output],
         )
 
-        blocks.load(
-            fn=check_auth_status,
-            outputs=[auth_status],
-        )
+        # Load auth status when tab is opened (if demo object is available)
+        if demo:
+            demo.load(
+                fn=check_auth_status,
+                outputs=[auth_status],
+            )

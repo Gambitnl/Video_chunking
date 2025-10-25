@@ -5,7 +5,12 @@
       "Bash(pip install google-auth google-auth-oauthlib google-api-python-client)",
       "Bash(python:*)",
       "Bash(ren \"c:\\Users\\Gambit\\Downloads\\client_secret_1045035940320-1pu5qnmu1uer6ug7lutlq94bgueaveee.apps.googleusercontent.com.json\" gdrive_credentials.json)",
-      "Bash(move \"c:\\Users\\Gambit\\Downloads\\client_secret_1045035940320-1pu5qnmu1uer6ug7lutlq94bgueaveee.apps.googleusercontent.com.json\" \"F:\\Repos\\VideoChunking\\gdrive_credentials.json\")"
+      "Bash(move \"c:\\Users\\Gambit\\Downloads\\client_secret_1045035940320-1pu5qnmu1uer6ug7lutlq94bgueaveee.apps.googleusercontent.com.json\" \"F:\\Repos\\VideoChunking\\gdrive_credentials.json\")",
+      "Bash(pip install:*)",
+      "Bash(pip show:*)",
+      "Bash(findstr:*)",
+      "Bash(dir /b IMPLEMENTATION_PLANS*.md)",
+      "Bash(git add:*)"
     ],
     "deny": [],
     "ask": []

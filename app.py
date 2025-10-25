@@ -325,12 +325,10 @@ with gr.Blocks(
         create_campaign_library_tab(demo, _refresh_campaign_names)
         create_character_profiles_tab(demo, available_parties)
         create_speaker_management_tab()
-        create_document_viewer_tab(PROJECT_ROOT, _set_notebook_context)
-        create_logs_tab(demo)
+        create_document_viewer_tab(PROJECT_ROOT, _set_notebook_context, demo)
         create_logs_tab(demo)
 
         create_social_insights_tab()
-        create_story_notebook_tab(
         create_story_notebook_tab(
             story_manager=story_manager,
             get_notebook_context=lambda: NOTEBOOK_CONTEXT,

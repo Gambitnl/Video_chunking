@@ -71,7 +71,7 @@ def create_social_insights_tab() -> None:
                     label="Session ID",
                     placeholder="Enter the ID of a completed session",
                 )
-                insight_btn = gr.Button("�~?�,? Analyze Banter", variant="primary")
+                insight_btn = gr.Button("[ANALYZE] Analyze Banter", variant="primary")
             with gr.Column():
                 keyword_output = gr.Markdown(label="Top Keywords")
         with gr.Row():

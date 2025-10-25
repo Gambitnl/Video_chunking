@@ -14,17 +14,17 @@ def create_configuration_tab() -> None:
             gpu_name = torch.cuda.get_device_name(0)
             gpu_count = torch.cuda.device_count()
             cuda_version = torch.version.cuda
-            gpu_status = f"�o. **{gpu_name}** (CUDA {cuda_version})"
+            gpu_status = f"[SUCCESS] **{gpu_name}** (CUDA {cuda_version})"
             if gpu_count > 1:
                 gpu_status += f" | {gpu_count} GPUs detected"
         else:
             pytorch_version = torch.__version__
             if "+cpu" in pytorch_version:
-                gpu_status = "dY\"� **CPU-only PyTorch installed** - No GPU acceleration"
+                gpu_status = "[INFO] **CPU-only PyTorch installed** - No GPU acceleration"
             else:
-                gpu_status = "dY\"? **No GPU detected** - Using CPU"
+                gpu_status = "[INFO] **No GPU detected** - Using CPU"
     except Exception as exc:
-        gpu_status = f"�?O **Error checking GPU**: {exc}"
+        gpu_status = f"[ERROR] **Error checking GPU**: {exc}"
 
     gr.Markdown(f"""
     ### Current Configuration

@@ -216,7 +216,7 @@ def create_campaign_chat_tab(project_root: Path) -> None:
     # Create the UI
     with gr.Tab("Campaign Chat"):
         gr.Markdown("""
-        ### 🗨️ Campaign Assistant
+        ### [CHAT] Campaign Assistant
 
         Ask questions about your campaign, sessions, NPCs, quests, and more!
 
@@ -319,7 +319,7 @@ def create_campaign_chat_tab(project_root: Path) -> None:
         # Initialize
         if not chat_client:
             gr.Markdown("""
-            ⚠️ **Warning:** LangChain dependencies not installed.
+            [WARNING] **Warning:** LangChain dependencies not installed.
 
             To use this feature, install:
             ```bash

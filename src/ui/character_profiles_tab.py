@@ -71,7 +71,7 @@ def create_character_profiles_tab(blocks: gr.Blocks, available_parties: List[str
                 import_char_status = gr.Textbox(label="Status", interactive=False)
 
         with gr.Row():
-            gr.Markdown("### dY- Automatic Profile Extraction")
+            gr.Markdown("### [AUTO] Automatic Profile Extraction")
 
         with gr.Row():
             with gr.Column():
@@ -105,7 +105,7 @@ def create_character_profiles_tab(blocks: gr.Blocks, available_parties: List[str
                     label="Session ID",
                     placeholder="e.g., Session 1",
                 )
-                extract_btn = gr.Button("dYs? Extract Character Data", variant="primary")
+                extract_btn = gr.Button("[EXTRACT] Extract Character Data", variant="primary")
                 extract_status = gr.Textbox(label="Extraction Status", lines=5, interactive=False)
 
         with gr.Row():
@@ -191,13 +191,13 @@ def create_character_profiles_tab(blocks: gr.Blocks, available_parties: List[str
 
         def extract_profiles_ui(transcript_file, party_id, session_id):
             if transcript_file is None:
-                return "�?O Please upload an IC-only transcript file"
+                return "[ERROR] Please upload an IC-only transcript file"
 
             if not party_id or party_id == "Manual Entry":
-                return "�?O Please select a party configuration (not Manual Entry)"
+                return "[ERROR] Please select a party configuration (not Manual Entry)"
 
             if not session_id:
-                return "�?O Please enter a session ID"
+                return "[ERROR] Please enter a session ID"
 
             try:
                 from src.profile_extractor import CharacterProfileExtractor
@@ -208,7 +208,7 @@ def create_character_profiles_tab(blocks: gr.Blocks, available_parties: List[str
                 profile_mgr = CharacterProfileManager()
                 party_mgr = PartyConfigManager()
 
-                status = "dY\", Extracting character data from transcript...\n"
+                status = "[INFO] Extracting character data from transcript...\n"
                 status += f"Party: {party_id}\n"
                 status += f"Session: {session_id}\n\n"
 
@@ -220,7 +220,7 @@ def create_character_profiles_tab(blocks: gr.Blocks, available_parties: List[str
                     party_manager=party_mgr,
                 )
 
-                status += "�o. Extraction complete!\n\n"
+                status += "[SUCCESS] Extraction complete!\n\n"
                 status += f"Updated {len(results)} character profile(s):\n"
 
                 for char_name, extracted_data in results.items():
@@ -231,14 +231,14 @@ def create_character_profiles_tab(blocks: gr.Blocks, available_parties: List[str
                     status += f"  - Quotes: {len(extracted_data.memorable_quotes)}\n"
                     status += f"  - Developments: {len(extracted_data.character_development)}\n"
 
-                status += "\n�o. Click 'Refresh Character List' to see updates!"
+                status += "\n[SUCCESS] Click 'Refresh Character List' to see updates!"
                 return status
 
             except Exception as exc:
                 import traceback
 
                 error_details = traceback.format_exc()
-                return f"�?O Extraction failed:\n{exc}\n\nDetails:\n{error_details}"
+                return f"[ERROR] Extraction failed:\n{exc}\n\nDetails:\n{error_details}"
 
         def on_table_select(evt: gr.SelectData):
             if evt.index[0] >= 0:

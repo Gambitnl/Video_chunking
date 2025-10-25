@@ -37,32 +37,33 @@ This planning system is split across multiple documents:
 
 ### P0: Critical / Immediate
 **Total Effort**: 5.5 days
-**Status**: 4 complete, 1 in progress, 1 not started
+**Status**: 6 complete, 1 not started
 
 | Item | Effort | Status | Document |
 |------|--------|--------|----------|
 | P0-BUG-001: Stale Clip Cleanup | 0.5 days | [DONE] Complete | PLANS.md:100 |
-| P0-BUG-002: Safe Type Casting | 0.5 days | [LOOP] Revisions Needed | PLANS.md:217 |
+| P0-BUG-002: Safe Type Casting | 0.5 days | [DONE] Complete | PLANS.md:217 |
 | P0-BUG-003: Checkpoint System | 2 days | [DONE] Complete | PLANS.md:407 |
 | P0-REFACTOR-001: Extract Campaign Dashboard | 2 days | [DONE] Complete | PLANS.md:427 |
 | P0-REFACTOR-002: Extract Story Generation | 1 day | [DONE] Completed 2025-10-24 | PLANS.md:447 |
 | P0-REFACTOR-003: Split app.py into UI Modules | 3-4 days | [DONE] Completed 2025-10-24 | PLANS.md:463 |
 
-**Recommendation**: Complete P0-BUG-002 revisions immediately, then prioritize refactoring to enable parallel development.
+**Recommendation**: All P0 tasks are complete.
 
 ---
 
 ### P1: High Impact
-**Status**: 1 complete, 3 not started
+**Status**: 1 complete, 4 not started
 
 | Item | Effort | Status | Document |
 |------|--------|--------|----------|
 | P1-FEATURE-001: Character Profile Extraction | 3-5 days | NOT STARTED | PART2.md:31 |
 | P1-FEATURE-002: Streaming Snippet Export | 2 days | NOT STARTED | PART2.md:138 |
-| P1-FEATURE-003: Batch Processing | 1 day | NOT STARTED | PART2.md:251 |
+| P1-FEATURE-003: Batch Processing | 1 day | [DONE] Complete | PART2.md:251 |
+| P1-FEATURE-004: Gradio UI Modernization | 5-7 days | NOT STARTED | PART2.md:386 |
 | P1-MAINTENANCE-001: Session Cleanup | 2-3 days | NOT STARTED | PART2.md:330 |
 
-**Recommendation**: Start with P1-FEATURE-003 (Batch Processing) - quick win with high user value.
+**Recommendation**: Kick off P1-FEATURE-001 (Character Profile Extraction) while grooming P1-FEATURE-004 design spikes so UI work can start immediately after.
 
 ---
 
@@ -115,7 +116,7 @@ This planning system is split across multiple documents:
 
 **Week 1**:
 - [x] Complete P0-BUG-002 revisions (0.5 days)
-- [ ] P1-FEATURE-003: Batch Processing (1 day)
+- [x] P1-FEATURE-003: Batch Processing (1 day)
 - [x] P0-REFACTOR-001: Extract Campaign Dashboard (2 days)
 - [x] Start P0-REFACTOR-003: Split app.py (1 day progress)
 
@@ -136,14 +137,17 @@ This planning system is split across multiple documents:
 **Week 1**:
 - [ ] P1-FEATURE-002: Streaming Snippet Export (2 days)
 - [ ] P1-MAINTENANCE-001: Session Cleanup (3 days)
+- [ ] P1-FEATURE-004: Gradio UI Modernization (discovery + wireframes, 1 day)
 
 **Week 2**:
 - [ ] P1-FEATURE-001: Character Profile Extraction (5 days start)
+- [ ] P1-FEATURE-004: Gradio UI Modernization (sidebar + hero panel implementation, 2 days)
 
 **Deliverables**:
 - Streaming export (early clips available)
 - Session cleanup tools
 - Character profile extraction (partial)
+- UI modernization foundation (sidebar nav, refreshed landing panel)
 
 ---
 
@@ -152,14 +156,17 @@ This planning system is split across multiple documents:
 
 **Week 1**:
 - [ ] Complete P1-FEATURE-001: Character Profile Extraction (2 days remaining)
-- [ ] Start P2-LANGCHAIN-001: Conversational Interface (3 days progress)
+- [ ] P1-FEATURE-004: Gradio UI Modernization (workflow stepper, guided mode)
+- [x] Start P2-LANGCHAIN-001: Conversational Interface (3 days progress)
 
 **Week 2-3**:
-- [ ] Complete P2-LANGCHAIN-001: Conversational Interface (7 days remaining)
-- [ ] P2-LANGCHAIN-002: Semantic Search with RAG (5-7 days)
+- [x] Complete P2-LANGCHAIN-001: Conversational Interface (7 days remaining)
+- [x] P2-LANGCHAIN-002: Semantic Search with RAG (5-7 days)
+- [ ] P1-FEATURE-004: Gradio UI Modernization (polish, theming, QA)
 
 **Deliverables**:
 - Character profile extraction complete
+- Modernized Gradio UI with guided workflows
 - Conversational campaign interface
 - Semantic search
 
@@ -199,6 +206,8 @@ P0-REFACTOR-003 (Split app.py)
     |         |
     |         v
     |     P3-FEATURE-001 (Real-time Processing)
+    |
+    +---> P1-FEATURE-004 (Gradio UI Modernization)
     |
     +---> P1-FEATURE-003 (Batch Processing)
             |
@@ -250,6 +259,7 @@ P4-DOCS-001 (API Docs)
 | 2-3 days | P4-DOCS-001 | P4 | Docs |
 | 3-4 days | P0-REFACTOR-003 | P0 | Refactor |
 | 3-5 days | P1-FEATURE-001 | P1 | Feature |
+| 5-7 days | P1-FEATURE-004 | P1 | Feature |
 | 3-5 days | P4-INFRA-001 | P4 | Infra |
 | 5-7 days | P2-LANGCHAIN-002 | P2 | Feature |
 | 5-7 days | P3-FEATURE-001 | P3 | Feature |
@@ -264,7 +274,9 @@ P4-DOCS-001 (API Docs)
 | `src/snipper.py` | P0-BUG-001, P1-FEATURE-002 |
 | `src/config.py` | P0-BUG-002, P3-FEATURE-002 |
 | `src/pipeline.py` | P0-BUG-003 |
-| `app.py` | P0-REFACTOR-001, P0-REFACTOR-002, P0-REFACTOR-003 |
+| `app.py` | P0-REFACTOR-001, P0-REFACTOR-002, P0-REFACTOR-003, P1-FEATURE-004 |
+| `src/ui/` | P0-REFACTOR-003, P1-FEATURE-004 |
+| `docs/UI_STATUS.md` | P1-FEATURE-004 |
 | `src/character_profile.py` | P1-FEATURE-001 |
 | `cli.py` | P1-FEATURE-003, P2-LANGCHAIN-002 (ingest) |
 | `src/langchain/` (new) | P2-LANGCHAIN-001, P2-LANGCHAIN-002 |
@@ -284,10 +296,12 @@ P4-DOCS-001 (API Docs)
 **For Sprint 1-2** (Foundation & Quick Wins):
 - **1x Full-stack Developer**: P0 refactoring, P1-FEATURE-003
 - **1x Backend Developer**: P1-FEATURE-002, P1-MAINTENANCE-001
+- **1x UI/UX Engineer**: P1-FEATURE-004 discovery, navigation redesign, guided mode
 
 **For Sprint 3** (Advanced Features):
 - **1x AI/ML Developer**: P1-FEATURE-001, P2-LANGCHAIN-001
 - **1x Backend Developer**: P2-LANGCHAIN-002
+- **1x UI/UX Engineer**: P1-FEATURE-004 polish, theming, QA
 
 **For Sprint 4** (Polish & Infrastructure):
 - **1x QA/DevOps Engineer**: P4-INFRA-001, P4-INFRA-002
@@ -303,6 +317,7 @@ P4-DOCS-001 (API Docs)
 | P1-FEATURE-001 | Python, LLM prompting, NLP |
 | P1-FEATURE-002 | Python, threading, file I/O |
 | P1-FEATURE-003 | Python, CLI design, batch processing |
+| P1-FEATURE-004 | UI/UX design, Gradio Blocks, front-end architecture |
 | P2-LANGCHAIN-001 | Python, LangChain, conversational AI |
 | P2-LANGCHAIN-002 | Python, vector databases, RAG |
 | P3-FEATURE-001 | Python, real-time audio, WebSockets |
@@ -349,21 +364,21 @@ P4-DOCS-001 (API Docs)
 ## Success Metrics
 
 ### P0 Completion Criteria
-- [ ] All P0 bugs fixed and tested
-- [ ] `app.py` reduced to < 1000 lines
+- [x] All P0 bugs fixed and tested
+- [x] `app.py` reduced to < 1000 lines
 - [x] Campaign Dashboard in separate module
-- [ ] All refactored code has tests
+- [x] All refactored code has tests
 
 ### P1 Completion Criteria
-- [ ] Batch processing supports 10+ sessions
+- [x] Batch processing supports 10+ sessions
 - [ ] Streaming export works for 4-hour sessions
 - [ ] Character extraction > 80% accuracy
 - [ ] Session cleanup recovers > 1GB disk space
 
 ### P2 Completion Criteria
-- [ ] Conversational interface answers 90% of queries correctly
-- [ ] Semantic search finds relevant results in < 1 second
-- [ ] RAG system cites sources accurately
+- [x] Conversational interface answers 90% of queries correctly
+- [x] Semantic search finds relevant results in < 1 second
+- [x] RAG system cites sources accurately
 
 ### P4 Completion Criteria
 - [ ] > 80% code coverage
@@ -391,16 +406,11 @@ P4-DOCS-001 (API Docs)
 
 ### Immediate Actions (This Week)
 
-1. **Complete P0-BUG-002 revisions** (0.5 days)
-   - Fix Bool/Int inconsistency (Issue #2)
-   - Address API design (Issue #1)
-   - Add whitespace tests
-
-2. **Plan Sprint 1 kickoff**
-   - Assign P1-FEATURE-003 (Batch Processing) to developer
+1. **Plan Sprint 2 kickoff**
+   - Assign P1-FEATURE-002 (Streaming Snippet Export) to developer
    - Review refactoring approach for app.py
 
-3. **Set up tracking**
+2. **Set up tracking**
    - Create project board (GitHub Projects)
    - Add all items from this summary
 
@@ -423,6 +433,6 @@ P4-DOCS-001 (API Docs)
 
 ---
 
-**Document Version**: 1.0
-**Last Updated**: 2025-10-22
-**Next Review**: After Sprint 1 completion
+**Document Version**: 1.1
+**Last Updated**: 2025-10-25
+**Next Review**: After Sprint 2 completion

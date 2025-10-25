@@ -26,24 +26,6 @@ def create_story_notebook_tab(
     get_notebook_context: Callable[[], str],
     get_notebook_status: Callable[[], str],
 ) -> None:
-    initial_sessions = story_manager.list_sessions()
-    (
-        initial_session_update,
-        initial_character_update,
-        initial_message,
-        initial_session_state,
-        initial_notebook_status,
-    ) = _prepare_session_outputs(None, initial_sessions)
-
-    initial_dropdown_choices = getattr(initial_session_update, "choices", initial_sessions)
-    initial_dropdown_value = getattr(initial_session_update, "value", initial_sessions[0] if initial_sessions else None)
-
-    initial_character_choices = getattr(initial_character_update, "choices", [])
-    initial_character_value = getattr(initial_character_update, "value", None)
-    initial_character_interactive = getattr(initial_character_update, "interactive", bool(initial_character_choices))
-
-    story_session_state = gr.State(initial_session_state)
-
     def _prepare_session_outputs(
         session_id: Optional[str],
         session_choices: List[str],
@@ -130,6 +112,24 @@ def create_story_notebook_tab(
             session_state,
             notebook_status,
         )
+
+    initial_sessions = story_manager.list_sessions()
+    (
+        initial_session_update,
+        initial_character_update,
+        initial_message,
+        initial_session_state,
+        initial_notebook_status,
+    ) = _prepare_session_outputs(None, initial_sessions)
+
+    initial_dropdown_choices = getattr(initial_session_update, "choices", initial_sessions)
+    initial_dropdown_value = getattr(initial_session_update, "value", initial_sessions[0] if initial_sessions else None)
+
+    initial_character_choices = getattr(initial_character_update, "choices", [])
+    initial_character_value = getattr(initial_character_update, "value", None)
+    initial_character_interactive = getattr(initial_character_update, "interactive", bool(initial_character_choices))
+
+    story_session_state = gr.State(initial_session_state)
 
     def story_refresh_sessions_ui() -> Tuple[dict, dict, str, Dict, str]:
         sessions = story_manager.list_sessions()

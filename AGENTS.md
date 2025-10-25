@@ -17,6 +17,24 @@ Core Python modules live in `src/`, with `pipeline.py` orchestrating the audio c
 ## Coding Style & Naming Conventions
 Use Python 3.10+ with 4-space indentation, `snake_case` for functions and modules, and `PascalCase` for classes. Mirror the existing type-hinted, docstring-heavy style (see `src/pipeline.py`) and keep functions under ~50 lines by extracting helpers. Prefer `pathlib.Path` over raw strings, surface logs through `src/logger.py`, and load settings via `Config.from_env` rather than reading `.env` directly. Keep CLI options declarative in `cli.py`, and gate experimental features behind clearly named flags.
 
+## UI Character Encoding Best Practices
+
+**Issue:**
+The application UI has been displaying strange or garbled characters (e.g., ``, `dY"?`) instead of the intended icons or symbols.
+
+**Cause:**
+This issue is caused by the use of non-ASCII Unicode characters (such as emojis or special symbols) in the source code for UI elements. While these characters may render correctly on some development machines, they are not guaranteed to be compatible with all operating systems and terminal encodings, particularly the `cp1252` encoding used on Windows. This leads to incorrect rendering and a poor user experience.
+
+**Fix:**
+All non-ASCII characters in the UI source code have been replaced with ASCII-compatible equivalents. For example, emojis like `✅` and `🔴` have been replaced with text-based indicators like `[SUCCESS]` and `[ERROR]`.
+
+**Best Practice:**
+To prevent this issue from recurring, all contributors **must** adhere to the following best practice:
+
+**Use only ASCII characters for all UI text, labels, and icons.**
+
+Instead of using Unicode symbols, use the pre-defined ASCII-art indicators from `src.ui.constants.StatusIndicators` or create new ASCII-art indicators as needed. This ensures that the UI will render correctly and consistently across all platforms.
+
 ## Testing Guidelines
 Write unit tests beside related functionality in `tests/test_*.py`, mocking external services and using small WAV fixtures. Aim for meaningful coverage on new logic (roughly >85% branch coverage on touched modules) and assert both happy-path results and failure modes. Run `pytest -q` before committing; when altering the pipeline, add smoke tests for `DDSessionProcessor` that validate generated artifacts end up under `output/`.
 

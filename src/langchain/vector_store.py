@@ -9,6 +9,9 @@ from typing import List, Dict, Optional
 
 logger = logging.getLogger("DDSessionProcessor.vector_store")
 
+# Batch size for embedding generation to prevent OOM
+EMBEDDING_BATCH_SIZE = 100
+
 
 class CampaignVectorStore:
     """Vector database for semantic search of campaign data."""
@@ -73,29 +76,39 @@ class CampaignVectorStore:
             return
 
         try:
-            texts = [seg["text"] for seg in segments]
-            embeddings = self.embedding.embed_batch(texts)
-            ids = [f"{session_id}_seg_{i}" for i in range(len(segments))]
+            total_segments = len(segments)
+            logger.info(f"Adding {total_segments} segments from session {session_id}")
 
-            metadatas = [
-                {
-                    "session_id": session_id,
-                    "speaker": seg.get("speaker", "Unknown"),
-                    "start": float(seg.get("start", 0)),
-                    "end": float(seg.get("end", 0)),
-                    "type": "transcript"
-                }
-                for seg in segments
-            ]
+            # Process in batches to prevent OOM on large datasets
+            for batch_start in range(0, total_segments, EMBEDDING_BATCH_SIZE):
+                batch_end = min(batch_start + EMBEDDING_BATCH_SIZE, total_segments)
+                batch_segments = segments[batch_start:batch_end]
 
-            self.transcript_collection.add(
-                documents=texts,
-                embeddings=embeddings,
-                ids=ids,
-                metadatas=metadatas
-            )
+                texts = [seg["text"] for seg in batch_segments]
+                embeddings = self.embedding.embed_batch(texts, batch_size=32)
+                ids = [f"{session_id}_seg_{batch_start + i}" for i in range(len(batch_segments))]
 
-            logger.info(f"Added {len(segments)} segments from session {session_id}")
+                metadatas = [
+                    {
+                        "session_id": session_id,
+                        "speaker": seg.get("speaker", "Unknown"),
+                        "start": float(seg.get("start", 0)),
+                        "end": float(seg.get("end", 0)),
+                        "type": "transcript"
+                    }
+                    for seg in batch_segments
+                ]
+
+                self.transcript_collection.add(
+                    documents=texts,
+                    embeddings=embeddings,
+                    ids=ids,
+                    metadatas=metadatas
+                )
+
+                logger.debug(f"Added batch {batch_start}-{batch_end} ({len(batch_segments)} segments)")
+
+            logger.info(f"Successfully added all {total_segments} segments from session {session_id}")
 
         except Exception as e:
             logger.error(f"Error adding transcript segments: {e}", exc_info=True)
@@ -113,28 +126,38 @@ class CampaignVectorStore:
             return
 
         try:
-            texts = [doc["text"] for doc in documents]
-            embeddings = self.embedding.embed_batch(texts)
+            total_docs = len(documents)
+            logger.info(f"Adding {total_docs} knowledge documents")
 
-            # Generate IDs based on document type and name
-            ids = []
-            for i, doc in enumerate(documents):
-                doc_type = doc["metadata"].get("type", "unknown")
-                name = doc["metadata"].get("name", f"doc_{i}")
-                # Sanitize name for ID
-                safe_name = name.replace(" ", "_").replace("/", "_")
-                ids.append(f"{doc_type}_{safe_name}_{i}")
+            # Process in batches to prevent OOM on large datasets
+            for batch_start in range(0, total_docs, EMBEDDING_BATCH_SIZE):
+                batch_end = min(batch_start + EMBEDDING_BATCH_SIZE, total_docs)
+                batch_docs = documents[batch_start:batch_end]
 
-            metadatas = [doc["metadata"] for doc in documents]
+                texts = [doc["text"] for doc in batch_docs]
+                embeddings = self.embedding.embed_batch(texts, batch_size=32)
 
-            self.knowledge_collection.add(
-                documents=texts,
-                embeddings=embeddings,
-                ids=ids,
-                metadatas=metadatas
-            )
+                # Generate IDs based on document type and name
+                ids = []
+                for i, doc in enumerate(batch_docs):
+                    doc_type = doc["metadata"].get("type", "unknown")
+                    name = doc["metadata"].get("name", f"doc_{batch_start + i}")
+                    # Sanitize name for ID
+                    safe_name = name.replace(" ", "_").replace("/", "_")
+                    ids.append(f"{doc_type}_{safe_name}_{batch_start + i}")
 
-            logger.info(f"Added {len(documents)} knowledge documents")
+                metadatas = [doc["metadata"] for doc in batch_docs]
+
+                self.knowledge_collection.add(
+                    documents=texts,
+                    embeddings=embeddings,
+                    ids=ids,
+                    metadatas=metadatas
+                )
+
+                logger.debug(f"Added batch {batch_start}-{batch_end} ({len(batch_docs)} documents)")
+
+            logger.info(f"Successfully added all {total_docs} knowledge documents")
 
         except Exception as e:
             logger.error(f"Error adding knowledge documents: {e}", exc_info=True)

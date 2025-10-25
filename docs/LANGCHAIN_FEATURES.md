@@ -43,15 +43,17 @@ Semantic similarity search across transcripts and knowledge bases using AI embed
 ### Install Dependencies
 
 ```bash
-pip install langchain langchain-community chromadb sentence-transformers
+pip install langchain langchain-community langchain-classic langchain-ollama chromadb sentence-transformers
 ```
+
+**Note**: As of LangChain 1.0, memory and chain classes have been moved to `langchain-classic`, and the Ollama integration is now in `langchain-ollama`.
 
 ### Verify Installation
 
 Check that all dependencies are installed:
 
 ```bash
-python -c "import langchain; import chromadb; import sentence_transformers; print('✓ All dependencies installed')"
+python -c "import langchain; import langchain_classic; import langchain_ollama; import chromadb; import sentence_transformers; print('✓ All dependencies installed')"
 ```
 
 ---
@@ -298,8 +300,25 @@ VideoChunking/
 
 **Solution:**
 ```bash
-pip install langchain langchain-community chromadb sentence-transformers
+pip install langchain langchain-community langchain-classic langchain-ollama chromadb sentence-transformers
 ```
+
+### Issue: "No module named 'langchain.memory'" or deprecation warnings
+
+**Solution:**
+
+This occurs when using LangChain 1.0+. The memory and chain classes have been moved to `langchain-classic`:
+
+```bash
+pip install langchain-classic
+```
+
+For Ollama integration without deprecation warnings:
+```bash
+pip install langchain-ollama
+```
+
+The codebase automatically handles these imports with fallback support for older versions.
 
 ### Issue: "Error loading embedding model"
 
@@ -442,5 +461,27 @@ For issues or questions:
 
 ---
 
-**Last Updated**: 2025-10-25
-**Status**: ✅ Production Ready
+## Version Compatibility
+
+### LangChain 1.0+ Changes
+
+As of LangChain 1.0 (released January 2025), several breaking changes were introduced:
+
+1. **Memory Classes Moved**: `ConversationBufferMemory` and other memory classes moved from `langchain.memory` to `langchain-classic` package
+2. **Chain Classes Moved**: `ConversationalRetrievalChain` moved to `langchain-classic.chains`
+3. **Ollama Integration**: Ollama LLM moved from `langchain_community.llms` to dedicated `langchain-ollama` package
+
+**Our Implementation**: The codebase includes automatic fallback logic to support both old and new import paths, ensuring compatibility across LangChain versions.
+
+### Recommended Migration Path
+
+For new projects in 2025, LangChain recommends migrating to:
+- **LangGraph persistence** instead of ConversationBufferMemory
+- **RunnableWithMessageHistory** with LCEL chains
+
+However, for this project, we continue using the classic memory classes (via `langchain-classic`) as they remain functional and well-suited for our use case.
+
+---
+
+**Last Updated**: 2025-10-25 (Updated for LangChain 1.0 compatibility)
+**Status**: ✅ Production Ready (LangChain 1.0.2 compatible)

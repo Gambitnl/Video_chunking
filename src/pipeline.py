@@ -86,6 +86,7 @@ class DDSessionProcessor:
         """
         self.session_id = session_id
         self.safe_session_id = sanitize_filename(session_id)
+        self.is_test_run = False  # Default to not being a test run
         self.logger = get_logger(f"pipeline.{self.safe_session_id}")
         self.resume_enabled = resume
 
@@ -142,9 +143,11 @@ class DDSessionProcessor:
         skip_diarization: bool = False,
         skip_classification: bool = False,
         skip_snippets: bool = False,
-        skip_knowledge: bool = False
+        skip_knowledge: bool = False,
+        is_test_run: bool = False
     ) -> Dict:
         """Process a complete D&D session recording and return output metadata."""
+        self.is_test_run = is_test_run
         # Create or reuse session-specific output directory with optional checkpoint resume
         base_output_dir = Path(output_dir or Config.OUTPUT_DIR)
         resume_stage: Optional[str] = None
@@ -314,13 +317,13 @@ class DDSessionProcessor:
 
                 chunks = self.chunker.chunk_audio(wav_file, progress_callback=_chunk_progress_callback)
                 if not chunks:
-                    if _Mock is not None and isinstance(self.transcriber, _Mock):
-                        dummy_chunk = _Mock(spec=AudioChunk) if _Mock is not None else None
-                        try:
-                            self.transcriber.transcribe_chunk(dummy_chunk, language="nl")
-                        except Exception as exc:
-                            raise
-                    self.logger.warning("Chunker returned no segments; continuing with downstream mocks")
+                    if not self.is_test_run:
+                        raise RuntimeError(
+                            "Audio chunking resulted in zero segments. This can happen if the audio is completely silent, "
+                            "corrupt, or too short. Please check the input audio file."
+                        )
+                    # For test runs, we might want to continue with an empty list of chunks
+                    self.logger.warning("Chunker returned no segments; continuing with downstream mocks for test run.")
                 StatusTracker.update_stage(
                     self.session_id, 2, "completed", f"Created {len(chunks)} chunks"
                 )

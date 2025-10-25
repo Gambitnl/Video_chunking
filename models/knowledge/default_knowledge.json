@@ -1,8 +1,9 @@
 {
   "campaign_id": "default",
-  "last_updated": "2025-10-22T01:22:24.228096",
+  "last_updated": "2025-10-25T22:35:15.691023",
   "sessions_processed": [
-    "test_sep19_5m"
+    "test_sep19_5m",
+    "test"
   ],
   "quests": [
     {

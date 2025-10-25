@@ -5,10 +5,16 @@ from __future__ import annotations
 
 import json
 import logging
+import time
+from functools import lru_cache
 from pathlib import Path
-from typing import List, Dict
+from typing import List, Dict, Tuple
 
 logger = logging.getLogger("DDSessionProcessor.retriever")
+
+# Cache settings
+KB_CACHE_SIZE = 128  # Maximum number of cached knowledge bases
+KB_CACHE_TTL = 300  # Time-to-live in seconds (5 minutes)
 
 
 class Document:
@@ -38,6 +44,9 @@ class CampaignRetriever:
         """
         self.kb_dir = Path(knowledge_base_dir)
         self.transcript_dir = Path(transcript_dir)
+
+        # Cache for knowledge bases: {file_path: (data, timestamp)}
+        self._kb_cache: Dict[str, Tuple[Dict, float]] = {}
 
         logger.info(
             f"Initialized CampaignRetriever with KB dir: {self.kb_dir}, "
@@ -209,9 +218,52 @@ class CampaignRetriever:
         return results[:top_k]
 
     def _load_knowledge_base(self, kb_file: Path) -> Dict:
-        """Load a knowledge base JSON file."""
+        """
+        Load a knowledge base JSON file with caching.
+
+        Args:
+            kb_file: Path to knowledge base file
+
+        Returns:
+            Knowledge base dict
+        """
+        file_path_str = str(kb_file)
+        current_time = time.time()
+
+        # Check cache
+        if file_path_str in self._kb_cache:
+            cached_data, cached_time = self._kb_cache[file_path_str]
+
+            # Check if cache is still valid
+            if current_time - cached_time < KB_CACHE_TTL:
+                logger.debug(f"Using cached knowledge base: {kb_file.name}")
+                return cached_data
+            else:
+                # Cache expired, remove it
+                logger.debug(f"Cache expired for {kb_file.name}, reloading")
+                del self._kb_cache[file_path_str]
+
+        # Load from disk
+        logger.debug(f"Loading knowledge base from disk: {kb_file.name}")
         with open(kb_file, "r", encoding="utf-8") as f:
-            return json.load(f)
+            data = json.load(f)
+
+        # Store in cache with timestamp
+        self._kb_cache[file_path_str] = (data, current_time)
+
+        # Evict oldest entries if cache is too large
+        if len(self._kb_cache) > KB_CACHE_SIZE:
+            # Remove the oldest entry
+            oldest_key = min(self._kb_cache.keys(), key=lambda k: self._kb_cache[k][1])
+            del self._kb_cache[oldest_key]
+            logger.debug(f"Evicted oldest cache entry: {oldest_key}")
+
+        return data
+
+    def clear_cache(self):
+        """Clear the knowledge base cache (useful after updates)."""
+        self._kb_cache.clear()
+        logger.info("Knowledge base cache cleared")
 
     def _matches_query(self, query: str, *fields: str) -> bool:
         """Check if query matches any of the fields."""

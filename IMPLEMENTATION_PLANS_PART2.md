@@ -19,6 +19,7 @@ This document contains P1 (High Impact) feature implementation plans.
 - [P1-FEATURE-001: Automatic Character Profile Extraction](#p1-feature-001-automatic-character-profile-extraction)
 - [P1-FEATURE-002: Streaming Snippet Export](#p1-feature-002-streaming-snippet-export)
 - [P1-FEATURE-003: Batch Processing](#p1-feature-003-batch-processing)
+- [P1-FEATURE-004: Gradio UI Modernization](#p1-feature-004-gradio-ui-modernization)
 - [P1-MAINTENANCE-001: Session Cleanup & Validation](#p1-maintenance-001-session-cleanup--validation)
 
 ---
@@ -379,6 +380,78 @@ None. The implementation follows the plan and the existing code structure. The t
 #### Verdict
 **Overall Assessment**: The feature is implemented correctly and is ready for use.
 **Merge Recommendation**: [DONE] **Ready for Merge**
+
+---
+
+## P1-FEATURE-004: Gradio UI Modernization
+
+**Owner**: ChatGPT (Codex)  
+**Effort**: 5-7 days  
+**Priority**: HIGH  
+**Dependencies**: P0-REFACTOR-003 (completed modular UI)  
+**Status**: NOT STARTED  
+
+### Problem Statement
+The current Gradio UI is cluttered, text-heavy, and inconsistent. New users struggle to find core actions, while returning users want faster feedback, richer previews, and shortcuts. We need a cohesive overhaul that simplifies navigation, adds contextual guidance, and improves visual clarity without sacrificing advanced workflows.
+
+### Success Criteria
+- [_] Sidebar navigation with icons replaces the long tab bar and improves discoverability (validated in internal walkthrough)
+- [_] Hero panel, guided mode overlay, and tooltip pattern reduce reliance on long-form helper text
+- [_] Workflow stepper and status toasts cover upload -> process -> review -> export lifecycle
+- [_] Inline validation, confirmation modals with undo, and keyboard shortcuts implemented for key flows
+- [_] Light/dark themes plus documented design tokens ensure consistent spacing, typography, and components
+
+### Implementation Plan
+
+#### Subtask 4.1: Navigation Refresh
+- Implement sidebar navigation with compact labels and tooltips
+- Add breadcrumb header when drilling into campaign/session-specific views
+- Ensure layout scales down gracefully to 1280px width by collapsing sections
+
+#### Subtask 4.2: Guided Onboarding
+- Build hero panel with value proposition, quick-start CTA, and doc/demo links
+- Add guided mode overlay with dismissible hotspots covering primary workflow actions
+- Replace static helper paragraphs with tooltip/info bubble pattern across tabs
+
+#### Subtask 4.3: Workflow Feedback
+- Introduce inline workflow stepper highlighting upload, process, review, export stages
+- Emit toast notifications for async tasks (processing, errors, successes) with “View log” shortcut
+- Add notification inbox summarizing recent runs, errors, and shared artifacts
+
+#### Subtask 4.4: Data Presentation Enhancements
+- Add search, quick filters, and chips to campaign and character tables
+- Render session timelines with diarization markers, zoom, and speaker hover states
+- Use slide-out drawers for waveform and transcript previews to cut tab hopping
+
+#### Subtask 4.5: Visual System and Accessibility
+- Define spacing, typography, and button tokens; document in `docs/UI_STATUS.md`
+- Add light/dark themes with preference persistence
+- Implement inline validation, confirmation modals with undo, and keyboard shortcut cheat sheet
+- Surface health metrics (queue length, model status, storage usage) in dashboard card
+
+#### Subtask 4.6: Documentation and QA
+- Record UI walkthrough for onboarding and changelog
+- Update `docs/DEVELOPMENT.md`, `docs/USAGE.md`, and `docs/QUICKREF.md`
+- Add guided mode overview to `docs/STATUS_INDICATORS.md` or relevant doc
+- Run `pytest -q` and manual regression through sample campaign workflow
+
+### Open Questions
+- Should we introduce per-user settings storage to sync theme/shortcuts across browsers?
+- Do we need to support tablet portrait mode for in-session note takers?
+- What telemetry do we need to measure improved discoverability post-launch?
+
+### Risks & Mitigations
+- **Risk**: Major layout changes may disorient existing users  
+  **Mitigation**: Provide changelog banner, offer temporary “classic view”, capture feedback via in-app survey
+- **Risk**: Increased interactivity could slow load times  
+  **Mitigation**: Lazy-load heavy components, profile Gradio Blocks, cache expensive lookups
+- **Risk**: Additional notifications might overwhelm users  
+  **Mitigation**: Aggregate messages into inbox with filters and allow user preference toggles
+
+### Validation
+- `pytest -q`
+- Manual regression of upload -> process -> review -> export workflow
+- Internal usability session notes stored in `docs/UI_STATUS.md`
 
 ---
 

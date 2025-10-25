@@ -4,12 +4,66 @@ Conversational interface for querying campaign data using LangChain.
 from __future__ import annotations
 
 import logging
+import re
 from pathlib import Path
 from typing import Dict, List, Optional
 
 from src.config import Config
 
 logger = logging.getLogger("DDSessionProcessor.campaign_chat")
+
+# Maximum lengths to prevent abuse
+MAX_QUESTION_LENGTH = 2000
+MAX_CONTEXT_DOCS_LENGTH = 10000
+
+def sanitize_input(text: str, max_length: int = MAX_QUESTION_LENGTH) -> str:
+    """
+    Sanitize user input to prevent prompt injection attacks.
+
+    Args:
+        text: User input text
+        max_length: Maximum allowed length
+
+    Returns:
+        Sanitized text
+
+    Raises:
+        ValueError: If input is invalid
+    """
+    if not text or not isinstance(text, str):
+        raise ValueError("Input must be a non-empty string")
+
+    # Remove null bytes
+    text = text.replace('\x00', '')
+
+    # Limit length to prevent excessive token usage
+    if len(text) > max_length:
+        logger.warning(f"Input truncated from {len(text)} to {max_length} characters")
+        text = text[:max_length]
+
+    # Remove or escape potential prompt injection patterns
+    # Remove system-like instructions (attempts to override the system prompt)
+    injection_patterns = [
+        r'ignore\s+(all\s+)?previous\s+instructions',
+        r'disregard\s+(all\s+)?previous\s+instructions',
+        r'forget\s+(all\s+)?previous\s+instructions',
+        r'system\s*:',
+        r'assistant\s*:',
+        r'<\|im_start\|>',
+        r'<\|im_end\|>',
+    ]
+
+    for pattern in injection_patterns:
+        if re.search(pattern, text, re.IGNORECASE):
+            logger.warning(f"Potential prompt injection detected and sanitized: {pattern}")
+            text = re.sub(pattern, '[REDACTED]', text, flags=re.IGNORECASE)
+
+    # Final check: after stripping, ensure we still have content
+    sanitized = text.strip()
+    if not sanitized:
+        raise ValueError("Input cannot be empty after sanitization")
+
+    return sanitized
 
 
 class CampaignChatClient:
@@ -51,11 +105,19 @@ class CampaignChatClient:
         """Initialize the LLM based on provider configuration."""
         try:
             if self.llm_provider == "ollama":
-                from langchain_community.llms import Ollama
-                return Ollama(
-                    model=self.model_name,
-                    base_url=Config.OLLAMA_BASE_URL
-                )
+                try:
+                    from langchain_ollama import OllamaLLM
+                    return OllamaLLM(
+                        model=self.model_name,
+                        base_url=Config.OLLAMA_BASE_URL
+                    )
+                except ImportError:
+                    # Fallback to deprecated import
+                    from langchain_community.llms import Ollama
+                    return Ollama(
+                        model=self.model_name,
+                        base_url=Config.OLLAMA_BASE_URL
+                    )
             elif self.llm_provider == "openai":
                 from langchain_community.llms import OpenAI
                 return OpenAI(
@@ -68,14 +130,43 @@ class CampaignChatClient:
             logger.error(f"Failed to import LangChain dependencies: {e}")
             raise RuntimeError(
                 "LangChain dependencies not installed. "
-                "Run: pip install langchain langchain-community"
+                "Run: pip install langchain langchain-community langchain-ollama"
             ) from e
 
     def _initialize_memory(self):
-        """Initialize conversation memory."""
-        from langchain.memory import ConversationBufferMemory
+        """
+        Initialize conversation memory with bounded window.
 
-        return ConversationBufferMemory(
+        Uses ConversationBufferWindowMemory to prevent unbounded memory growth
+        by keeping only the last N conversation exchanges.
+        """
+        try:
+            from langchain_classic.memory import ConversationBufferWindowMemory
+        except ImportError:
+            try:
+                # Fallback for older langchain versions
+                from langchain.memory import ConversationBufferWindowMemory
+            except ImportError:
+                # Final fallback to unbounded memory (not ideal)
+                logger.warning("ConversationBufferWindowMemory not available, using unbounded memory")
+                try:
+                    from langchain_classic.memory import ConversationBufferMemory
+                    return ConversationBufferMemory(
+                        memory_key="chat_history",
+                        return_messages=True,
+                        output_key="answer"
+                    )
+                except ImportError:
+                    from langchain.memory import ConversationBufferMemory
+                    return ConversationBufferMemory(
+                        memory_key="chat_history",
+                        return_messages=True,
+                        output_key="answer"
+                    )
+
+        # Keep last 10 exchanges (20 messages total) to prevent memory growth
+        return ConversationBufferWindowMemory(
+            k=10,
             memory_key="chat_history",
             return_messages=True,
             output_key="answer"
@@ -111,12 +202,23 @@ class CampaignChatClient:
             Dictionary containing 'answer' and 'sources'
         """
         try:
+            # Sanitize user input to prevent prompt injection
+            try:
+                sanitized_question = sanitize_input(question, max_length=MAX_QUESTION_LENGTH)
+            except ValueError as e:
+                logger.error(f"Invalid input: {e}")
+                return {
+                    "answer": "Error: Invalid input. Please provide a valid question.",
+                    "sources": []
+                }
+
             # If retriever is available, get relevant documents
             sources = []
             context_docs = ""
 
             if self.retriever:
-                relevant_docs = self.retriever.retrieve(question, top_k=5)
+                # Use sanitized question for retrieval
+                relevant_docs = self.retriever.retrieve(sanitized_question, top_k=5)
                 sources = [
                     {
                         "content": doc.page_content if hasattr(doc, 'page_content') else str(doc),
@@ -125,26 +227,52 @@ class CampaignChatClient:
                     for doc in relevant_docs
                 ]
 
-                # Build context string for LLM
-                context_docs = "\n\n".join([
-                    f"Source {i+1}:\n{doc['content']}"
-                    for i, doc in enumerate(sources)
-                ])
+                # Build context string for LLM with length limits
+                context_parts = []
+                total_length = 0
+                for i, doc in enumerate(sources):
+                    content = doc['content']
+                    if total_length + len(content) > MAX_CONTEXT_DOCS_LENGTH:
+                        # Truncate to fit within limit
+                        remaining = MAX_CONTEXT_DOCS_LENGTH - total_length
+                        if remaining > 100:  # Only add if meaningful length remains
+                            content = content[:remaining] + "... [truncated]"
+                            context_parts.append(f"Source {i+1}:\n{content}")
+                        break
+                    context_parts.append(f"Source {i+1}:\n{content}")
+                    total_length += len(content)
 
-            # Build full prompt with system message, context, and question
-            full_prompt = f"{self.system_prompt}\n\n"
+                context_docs = "\n\n".join(context_parts)
+
+            # Use structured prompt format to prevent injection
+            # Separate system prompt, context, and user question clearly
+            prompt_parts = [
+                f"SYSTEM INSTRUCTIONS:\n{self.system_prompt}",
+                ""
+            ]
 
             if context_docs:
-                full_prompt += f"Relevant Information:\n{context_docs}\n\n"
+                prompt_parts.extend([
+                    "RELEVANT INFORMATION:",
+                    context_docs,
+                    ""
+                ])
 
-            full_prompt += f"Question: {question}\n\nAnswer:"
+            prompt_parts.extend([
+                "USER QUESTION:",
+                sanitized_question,
+                "",
+                "ASSISTANT RESPONSE:"
+            ])
+
+            full_prompt = "\n".join(prompt_parts)
 
             # Generate response
             response = self.llm(full_prompt)
 
-            # Store in memory
+            # Store in memory (use sanitized question)
             self.memory.save_context(
-                {"input": question},
+                {"input": sanitized_question},
                 {"answer": response}
             )
 
@@ -177,8 +305,13 @@ class CampaignChatChain:
             llm: Language model instance
             retriever: Retriever for fetching relevant documents
         """
-        from langchain.chains import ConversationalRetrievalChain
-        from langchain.memory import ConversationBufferMemory
+        try:
+            from langchain_classic.chains import ConversationalRetrievalChain
+            from langchain_classic.memory import ConversationBufferMemory
+        except ImportError:
+            # Fallback for older langchain versions
+            from langchain.chains import ConversationalRetrievalChain
+            from langchain.memory import ConversationBufferMemory
 
         self.llm = llm
         self.retriever = retriever

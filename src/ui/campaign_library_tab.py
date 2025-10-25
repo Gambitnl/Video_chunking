@@ -36,8 +36,8 @@ def create_campaign_library_tab(
                     placeholder="Search across all quests, NPCs, locations, items, and plot hooks...",
                 )
             with gr.Column(scale=1):
-                kb_search_btn = gr.Button("dY\"? Search", size="sm")
-                kb_refresh_btn = gr.Button("dY\", Refresh", size="sm")
+                kb_search_btn = gr.Button("[SEARCH] Search", size="sm")
+                kb_refresh_btn = gr.Button("[REFRESH] Refresh", size="sm")
 
         kb_output = gr.Markdown(value="Select a campaign and click Refresh to load knowledge.")
 
@@ -65,13 +65,13 @@ def create_campaign_library_tab(
 
         def format_npc(npc):
             role_emoji = {
-                "quest_giver": "dY\"o",
-                "merchant": "dY>'",
-                "enemy": "�s\"�,?",
-                "ally": "dY?",
-                "unknown": "dY`",
+                "quest_giver": "[QUEST GIVER]",
+                "merchant": "[MERCHANT]",
+                "enemy": "[ENEMY]",
+                "ally": "[ALLY]",
+                "unknown": "[UNKNOWN]",
             }
-            emoji = role_emoji.get(npc.role, "dY`")
+            emoji = role_emoji.get(npc.role, "[UNKNOWN]")
 
             md = f"**{emoji} {npc.name}** ({npc.role or 'unknown'})\n\n"
             md += f"{npc.description}\n\n"
@@ -92,7 +92,7 @@ def create_campaign_library_tab(
             return md
 
         def format_plot_hook(hook):
-            status = "dY\"' Resolved" if hook.resolved else "dY\"\" Unresolved"
+            status = "[RESOLVED] Resolved" if hook.resolved else "[UNRESOLVED] Unresolved"
 
             md = f"**{status}: {hook.summary}**\n\n"
             md += f"{hook.details}\n\n"
@@ -109,13 +109,13 @@ def create_campaign_library_tab(
 
         def format_location(location):
             type_emoji = {
-                "city": "dY?T�,?",
-                "dungeon": "dY?�",
-                "wilderness": "dYO�",
-                "building": "dY?>�,?",
-                "unknown": "dY\"?",
+                "city": "[CITY]",
+                "dungeon": "[DUNGEON]",
+                "wilderness": "[WILDERNESS]",
+                "building": "[BUILDING]",
+                "unknown": "[LOCATION]",
             }
-            emoji = type_emoji.get(location.type, "dY\"?")
+            emoji = type_emoji.get(location.type, "[LOCATION]")
 
             md = f"**{emoji} {location.name}** ({location.type or 'unknown'})\n\n"
             md += f"{location.description}\n\n"
@@ -129,7 +129,7 @@ def create_campaign_library_tab(
             return md
 
         def format_item(item):
-            md = f"**�s� {item.name}**\n\n"
+            md = f"**[ITEM] {item.name}**\n\n"
             md += f"{item.description}\n\n"
 
             if item.owner:
@@ -164,7 +164,7 @@ def create_campaign_library_tab(
 
                 active_quests = kb.get_active_quests()
                 if active_quests:
-                    output += f"## dYZ_ Active Quests ({len(active_quests)})\n\n"
+                    output += f"## [QUEST] Active Quests ({len(active_quests)})\n\n"
                     for quest in active_quests:
                         output += format_quest(quest) + "\n\n---\n\n"
 
@@ -173,42 +173,42 @@ def create_campaign_library_tab(
                 failed = [quest for quest in all_quests if quest.status == "failed"]
 
                 if completed:
-                    output += f"## �o. Completed Quests ({len(completed)})\n\n"
+                    output += f"## [COMPLETED] Completed Quests ({len(completed)})\n\n"
                     for quest in completed:
                         output += format_quest(quest) + "\n\n---\n\n"
 
                 if failed:
-                    output += f"## �?O Failed Quests ({len(failed)})\n\n"
+                    output += f"## [FAILED] Failed Quests ({len(failed)})\n\n"
                     for quest in failed:
                         output += format_quest(quest) + "\n\n---\n\n"
 
                 npcs = kb.get_all_npcs()
                 if npcs:
-                    output += f"## dY`� Non-Player Characters ({len(npcs)})\n\n"
+                    output += f"## [NPC] Non-Player Characters ({len(npcs)})\n\n"
                     for npc in npcs:
                         output += format_npc(npc) + "\n\n---\n\n"
 
                 plot_hooks = kb.get_unresolved_plot_hooks()
                 if plot_hooks:
-                    output += f"## dY\"\" Unresolved Plot Hooks ({len(plot_hooks)})\n\n"
+                    output += f"## [UNRESOLVED] Unresolved Plot Hooks ({len(plot_hooks)})\n\n"
                     for hook in plot_hooks:
                         output += format_plot_hook(hook) + "\n\n---\n\n"
 
                 resolved_hooks = [hook for hook in kb.knowledge["plot_hooks"] if hook.resolved]
                 if resolved_hooks:
-                    output += f"## dY\"' Resolved Plot Hooks ({len(resolved_hooks)})\n\n"
+                    output += f"## [RESOLVED] Resolved Plot Hooks ({len(resolved_hooks)})\n\n"
                     for hook in resolved_hooks:
                         output += format_plot_hook(hook) + "\n\n---\n\n"
 
                 locations = kb.get_all_locations()
                 if locations:
-                    output += f"## dY\"? Locations ({len(locations)})\n\n"
+                    output += f"## [LOCATION] Locations ({len(locations)})\n\n"
                     for location in locations:
                         output += format_location(location) + "\n\n---\n\n"
 
                 items = kb.knowledge["items"]
                 if items:
-                    output += f"## �s� Important Items ({len(items)})\n\n"
+                    output += f"## [ITEM] Important Items ({len(items)})\n\n"
                     for item in items:
                         output += format_item(item) + "\n\n---\n\n"
 
@@ -234,27 +234,27 @@ def create_campaign_library_tab(
                 output = f"# Search Results for `{query}`\n\n"
 
                 if results["quests"]:
-                    output += f"## dYZ_ Quests ({len(results['quests'])})\n\n"
+                    output += f"## [QUEST] Quests ({len(results['quests'])})\n\n"
                     for quest in results["quests"]:
                         output += format_quest(quest) + "\n\n---\n\n"
 
                 if results["npcs"]:
-                    output += f"## dY`� NPCs ({len(results['npcs'])})\n\n"
+                    output += f"## [NPC] NPCs ({len(results['npcs'])})\n\n"
                     for npc in results["npcs"]:
                         output += format_npc(npc) + "\n\n---\n\n"
 
                 if results["plot_hooks"]:
-                    output += f"## dY\"\" Plot Hooks ({len(results['plot_hooks'])})\n\n"
+                    output += f"## [UNRESOLVED] Plot Hooks ({len(results['plot_hooks'])})\n\n"
                     for hook in results["plot_hooks"]:
                         output += format_plot_hook(hook) + "\n\n---\n\n"
 
                 if results["locations"]:
-                    output += f"## dY\"? Locations ({len(results['locations'])})\n\n"
+                    output += f"## [LOCATION] Locations ({len(results['locations'])})\n\n"
                     for location in results["locations"]:
                         output += format_location(location) + "\n\n---\n\n"
 
                 if results["items"]:
-                    output += f"## �s� Items ({len(results['items'])})\n\n"
+                    output += f"## [ITEM] Items ({len(results['items'])})\n\n"
                     for item in results["items"]:
                         output += format_item(item) + "\n\n---\n\n"
 

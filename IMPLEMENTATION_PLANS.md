@@ -594,4 +594,63 @@ src/ui/
 
 ---
 
+## P1-FEATURE-004: Gradio UI Modernization
+
+**Owner**: ChatGPT (Codex)  
+**Effort**: 5-7 days  
+**Priority**: HIGH  
+**Status**: NOT STARTED  
+**Dependencies**: P0-REFACTOR-003 (complete)  
+
+### Problem Statement
+The current Gradio interface is dense, text-heavy, and hard to navigate. Power workflows exist but are difficult for new or infrequent users to discover, leading to poor adoption and frequent clarifying questions.
+
+### Goals
+- Simplify navigation and reduce cognitive load without removing advanced functionality.
+- Provide contextual guidance so users do not rely on long-form instructions.
+- Establish consistent visual patterns that can scale with new features.
+
+### Success Criteria
+- [ ] Average tab length reduced by 30 percent through collapsible sections and drawers.
+- [ ] Primary workflow (upload -> process -> review -> export) documented in a guided stepper.
+- [ ] Inline help converted from paragraphs to tooltip or modal patterns across all tabs.
+- [ ] Usability smoke test with at least two internal users confirms easier discovery of processing actions.
+
+### Implementation Plan
+1. **Layout and Navigation**
+   - Move primary navigation into a left sidebar with icons and compact labels.
+   - Add breadcrumb header when users drill into campaign or notebook detail views.
+2. **Onboarding and Guidance**
+   - Build a concise hero panel on load summarizing value prop, quick start button, and links to docs or demo data.
+   - Implement guided mode overlay with dismissible hotspots walking through the main workflow.
+   - Replace static helper text with hover or focus tooltips and info bubbles.
+3. **Workflow Enhancements**
+   - Create inline stepper showing upload -> process -> review -> export progress.
+   - Surface real-time status toasts for async work, each linking directly to detailed logs.
+   - Add notification inbox summarizing recent runs, errors, and shared artifacts.
+4. **Data Display Improvements**
+   - Introduce quick filters, search, and filter chips on campaign and character tables.
+   - Render session timelines with diarization markers and zoom controls.
+   - Provide slide-out drawers for audio waveform and transcript previews.
+5. **Visual System and Accessibility**
+   - Standardize typography, spacing, and button sizes through a lightweight style guide.
+   - Add light and dark themes with stored user preference.
+   - Implement inline validation patterns for every form field.
+   - Require confirmation modals (with undo links) for destructive actions.
+6. **Operational Transparency**
+   - Surface health metrics (queue length, model status, storage usage) inside a dashboard status card.
+   - Expose keyboard shortcuts for frequent actions and document them via a cheat sheet modal.
+
+### Validation
+- UI walkthrough recorded for documentation updates.
+- `pytest -q` to ensure refactors do not break existing tests.
+- Manual regression test of primary workflow (process sample session, inspect outputs, export).
+
+### Documentation Updates
+- Update `docs/DEVELOPMENT.md` and `docs/USAGE.md` with new screenshots and navigation overview.
+- Add guided mode instructions to `docs/QUICKREF.md`.
+- Record design system tokens or spacing rules in `docs/UI_STATUS.md`.
+
+---
+
 **See ROADMAP.md for complete P0-P4 feature list**

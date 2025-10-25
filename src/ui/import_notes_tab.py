@@ -11,35 +11,35 @@ from src.party_config import PartyConfigManager
 def create_import_notes_tab(refresh_campaign_names: Callable[[], Dict[str, str]]) -> None:
     with gr.Tab("Import Session Notes"):
         gr.Markdown("""
-        ### dY"? Import Session Notes
+        ### [IMPORT] Import Session Notes
 
         **Backfill your campaign with sessions you didn't record!**
 
         This tool automatically extracts:
-        - dYZ_ **Quests** - Started, progressed, or completed
-        - dY`� **NPCs** - Characters the party met
-        - dY"? **Locations** - Places visited
-        - �s� **Items** - Important objects found
-        - dY"" **Plot Hooks** - Mysteries and future threads
+        - [QUEST] **Quests** - Started, progressed, or completed
+        - [NPC] **NPCs** - Characters the party met
+        - [LOCATION] **Locations** - Places visited
+        - [ITEM] **Items** - Important objects found
+        - [HOOK] **Plot Hooks** - Mysteries and future threads
 
         Perfect for importing sessions 1-5 before you started recording!
         """)
 
-        with gr.Accordion("dY\"- Quick Start Guide & Example Format", open=False):
+        with gr.Accordion("[GUIDE] Quick Start Guide & Example Format", open=False):
             gr.Markdown("""
             ### How to Use This Tool:
 
-            1. **Enter Session ID** (e.g., `Session_01`) - Required �s��,?
+            1. **Enter Session ID** (e.g., `Session_01`) - Required [REQUIRED]
             2. **Select Campaign** - Choose which campaign these notes belong to
             3. **Paste Your Notes** - Copy/paste from your document OR upload a .txt/.md file
             4. **Check Options**:
-               - �o. **Extract Knowledge** (Recommended) - Finds NPCs, quests, locations automatically
-               - �~? **Generate Narrative** (Optional) - Creates a story-style summary
+               - [EXTRACT] **Extract Knowledge** (Recommended) - Finds NPCs, quests, locations automatically
+               - [NARRATIVE] **Generate Narrative** (Optional) - Creates a story-style summary
             5. **Click "Import Session Notes"**
 
             ---
 
-            ### dY"< Example Notes Format:
+            ### [EXAMPLE] Example Notes Format:
 
             ```markdown
             Session 1 - The Adventure Begins
@@ -71,39 +71,39 @@ def create_import_notes_tab(refresh_campaign_names: Callable[[], Dict[str, str]]
         with gr.Row():
             with gr.Column(scale=2):
                 notes_session_id = gr.Textbox(
-                    label="1�,?��� Session ID (Required)",
+                    label="[1] Session ID (Required)",
                     placeholder="e.g., Session_01, Session_02, Direlambs_Session_01",
-                    info="dY'� Tip: Use a consistent naming scheme like 'Session_01', 'Session_02', etc."
+                    info="[TIP] Tip: Use a consistent naming scheme like 'Session_01', 'Session_02', etc."
                 )
                 notes_campaign_choices = ["default"] + list(refresh_campaign_names().keys())
                 notes_campaign = gr.Dropdown(
                     choices=notes_campaign_choices,
                     value="default",
-                    label="2�,?��� Campaign (Required)",
+                    label="[2] Campaign (Required)",
                     info="Select which campaign these notes belong to. 'default' works if you only have one campaign."
                 )
             with gr.Column(scale=1):
                 gr.Markdown("### Options:")
                 notes_extract_knowledge = gr.Checkbox(
-                    label="�o. Extract Knowledge (Recommended)",
+                    label="[EXTRACT] Extract Knowledge (Recommended)",
                     value=True,
                     info="AI will automatically find: NPCs, quests, locations, items, plot hooks"
                 )
                 notes_generate_narrative = gr.Checkbox(
-                    label="dY\"- Generate Narrative Summary",
+                    label="[NARRATIVE] Generate Narrative Summary",
                     value=False,
                     info="Creates a story-style summary (takes extra time)"
                 )
 
         notes_input = gr.Textbox(
-            label="3�,?��� Session Notes (Required)",
-            placeholder="Paste your session notes here...\n\nExample:\n'Session 1 - The party met at the tavern. They spoke with Guard Captain Thorne who gave them a quest to find Marcus, a missing merchant. They traveled to the Waterdeep Road and found...'\n\nClick 'Quick Start Guide' above for more examples!",
+            label="[3] Session Notes (Required)",
+            placeholder="Paste your session notes here...\n\nExample:\n'Session 1 - The party met at the tavern. They spoke with Guard Captain Thorne who gave them a quest to find Marcus, a missing merchant. They traveled to the Waterdeep Road and found...\n\nClick 'Quick Start Guide' above for more examples!",
             lines=15,
             max_lines=30
         )
 
         notes_file_upload = gr.File(
-            label="dY\"Z Or Upload Notes File (.txt or .md)",
+            label="[UPLOAD] Or Upload Notes File (.txt or .md)",
             file_types=[".txt", ".md"],
             type="filepath"
         )
@@ -112,13 +112,13 @@ def create_import_notes_tab(refresh_campaign_names: Callable[[], Dict[str, str]]
 
         with gr.Row():
             notes_import_btn = gr.Button(
-                "dY\"� Import Session Notes",
+                "[IMPORT] Import Session Notes",
                 variant="primary",
                 size="lg",
                 scale=3
             )
             notes_clear_btn = gr.Button(
-                "dY-`�,? Clear All Fields",
+                "[CLEAR] Clear All Fields",
                 variant="secondary",
                 scale=1
             )
@@ -139,22 +139,22 @@ def create_import_notes_tab(refresh_campaign_names: Callable[[], Dict[str, str]]
             has_notes = notes_text and notes_text.strip()
 
             if has_session_id and has_notes:
-                return "�o. **Ready to import!** All required fields are filled. Click the button below to start."
+                return "[SUCCESS] **Ready to import!** All required fields are filled. Click the button below to start."
             if has_session_id and not has_notes:
-                return "�s��,? **Missing**: Session notes are required. Paste your notes or upload a file."
+                return "[ERROR] **Missing**: Session notes are required. Paste your notes or upload a file."
             if not has_session_id and has_notes:
-                return "�s��,? **Missing**: Session ID is required. Enter an ID like 'Session_01'."
-            return "�,1�,? Fill in the required fields above to get started."
+                return "[ERROR] **Missing**: Session ID is required. Enter an ID like 'Session_01'."
+            return "[INFO] Fill in the required fields above to get started."
 
         def clear_import_fields():
             return "", "default", "", None, ""
 
         def import_session_notes(session_id, campaign_id, notes_text, extract_knowledge, generate_narrative):
             if not session_id or not session_id.strip():
-                return "�s��,? **Error**: Please provide a Session ID"
+                return "[ERROR] **Error**: Please provide a Session ID"
 
             if not notes_text or not notes_text.strip():
-                return "�s��,? **Error**: Please provide session notes (paste text or upload a file)"
+                return "[ERROR] **Error**: Please provide session notes (paste text or upload a file)"
 
             session_id_clean = session_id.strip()
             results = f"# Import Results: {session_id_clean}\n\n"
@@ -165,7 +165,7 @@ def create_import_notes_tab(refresh_campaign_names: Callable[[], Dict[str, str]]
                 try:
                     from src.knowledge_base import KnowledgeExtractor, CampaignKnowledgeBase
 
-                    results += "## dY\"s Knowledge Extraction\n\n"
+                    results += "## [EXTRACT] Knowledge Extraction\n\n"
                     results += "Analyzing your notes with LLM...\n\n"
 
                     party_context_dict = None
@@ -197,51 +197,52 @@ def create_import_notes_tab(refresh_campaign_names: Callable[[], Dict[str, str]]
                     }
                     total = sum(counts.values())
 
-                    results += f"�o. **Extracted {total} entities:**\n\n"
+                    results += f"[SUCCESS] **Extracted {total} entities:**\n\n"
                     if counts["quests"] > 0:
-                        results += f"- dYZ_ **Quests**: {counts['quests']}\n"
+                        results += f"- [QUEST] **Quests**: {counts['quests']}\n"
                         for quest in extracted["quests"]:
                             results += f"  - {quest.title} ({quest.status})\n"
                         results += "\n"
 
                     if counts["npcs"] > 0:
-                        results += f"- dY`� **NPCs**: {counts['npcs']}\n"
+                        results += f"- [NPC] **NPCs**: {counts['npcs']}\n"
                         for npc in extracted["npcs"]:
                             results += f"  - {npc.name} ({npc.role or 'unknown'})\n"
                         results += "\n"
 
                     if counts["plot_hooks"] > 0:
-                        results += f"- dY\"\" **Plot Hooks**: {counts['plot_hooks']}\n"
+                        results += f"- [HOOK] **Plot Hooks**: {counts['plot_hooks']}\n"
                         for hook in extracted["plot_hooks"]:
                             results += f"  - {hook.summary}\n"
                         results += "\n"
 
                     if counts["locations"] > 0:
-                        results += f"- dY\"? **Locations**: {counts['locations']}\n"
+                        results += f"- [LOCATION] **Locations**: {counts['locations']}\n"
                         for loc in extracted["locations"]:
                             results += f"  - {loc.name} ({loc.type or 'unknown'})\n"
                         results += "\n"
 
                     if counts["items"] > 0:
-                        results += f"- �s� **Items**: {counts['items']}\n"
+                        results += f"- [ITEM] **Items**: {counts['items']}\n"
                         for item in extracted["items"]:
                             results += f"  - {item.name}\n"
                         results += "\n"
 
                     results += f"\n**Knowledge saved to**: `{kb.knowledge_file}`\n\n"
-                    results += "dY'� *Visit the Campaign Library tab to view all extracted knowledge!*\n\n"
+                    results += "[TIP] *Visit the Campaign Library tab to view all extracted knowledge!*
+\n"
 
                 except Exception as exc:
                     import traceback
 
-                    results += f"�?O **Knowledge extraction failed**: {exc}\n\n"
+                    results += f"[ERROR] **Knowledge extraction failed**: {exc}\n\n"
                     results += f"```\n{traceback.format_exc()}\n```\n\n"
 
             if generate_narrative:
                 try:
                     import ollama
 
-                    results += "---\n\n## dY\"- Narrative Generation\n\n"
+                    results += "---\n\n## [NARRATIVE] Narrative Generation\n\n"
                     results += "Generating narrative summary...\n\n"
 
                     prompt = f"""You are a D&D session narrator. Based on the following session notes, create a concise narrative summary (3-5 paragraphs) capturing the key events, character actions, and story developments.
@@ -279,10 +280,10 @@ Narrative:"""
                     results += f"**Narrative saved to**: `{narrative_file}`\n\n"
 
                 except Exception as exc:
-                    results += f"�?O **Narrative generation failed**: {exc}\n\n"
+                    results += f"[ERROR] **Narrative generation failed**: {exc}\n\n"
 
             results += "---\n\n"
-            results += "## �o. Import Complete!\n\n"
+            results += "## [SUCCESS] Import Complete!\n\n"
             if extract_knowledge:
                 results += "- Check the **Campaign Library** tab to view extracted knowledge\n"
             if generate_narrative:

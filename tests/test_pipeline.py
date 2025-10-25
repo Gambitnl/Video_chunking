@@ -169,7 +169,8 @@ class TestPipelineStageExecution:
                 skip_diarization=True,
                 skip_classification=True,
                 skip_snippets=True,
-                skip_knowledge=True
+                skip_knowledge=True,
+                is_test_run=True
             )
 
             # Verify audio conversion was called
@@ -248,7 +249,8 @@ class TestPipelineStageExecution:
                 skip_diarization=False,  # Enable diarization
                 skip_classification=True,
                 skip_snippets=True,
-                skip_knowledge=True
+                skip_knowledge=True,
+                is_test_run=True
             )
 
             # Verify diarization was called
@@ -298,7 +300,8 @@ class TestPipelineStageExecution:
                 skip_diarization=True,  # Skip diarization
                 skip_classification=True,
                 skip_snippets=True,
-                skip_knowledge=True
+                skip_knowledge=True,
+                is_test_run=True
             )
 
             # Verify diarizer was NOT called
@@ -353,7 +356,8 @@ class TestPipelineStageExecution:
                 skip_diarization=True,
                 skip_classification=False,  # Enable classification
                 skip_snippets=True,
-                skip_knowledge=True
+                skip_knowledge=True,
+                is_test_run=True
             )
 
             # Verify classification was called
@@ -400,7 +404,8 @@ class TestPipelineStageExecution:
                 skip_diarization=True,
                 skip_classification=True,  # Skip classification
                 skip_snippets=True,
-                skip_knowledge=True
+                skip_knowledge=True,
+                is_test_run=True
             )
 
             # Verify classifier was NOT called
@@ -455,7 +460,8 @@ class TestPipelineCheckpointResume:
                 skip_diarization=True,
                 skip_classification=True,
                 skip_snippets=True,
-                skip_knowledge=True
+                skip_knowledge=True,
+                is_test_run=True
             )
 
             # Verify checkpoint manager save was called (at least for audio conversion stage)
@@ -514,7 +520,8 @@ class TestPipelineCheckpointResume:
                 skip_diarization=True,
                 skip_classification=True,
                 skip_snippets=True,
-                skip_knowledge=True
+                skip_knowledge=True,
+                is_test_run=True
             )
 
             # Verify audio conversion was NOT called (skipped due to checkpoint)
@@ -565,7 +572,8 @@ class TestPipelineCheckpointResume:
                 skip_diarization=True,
                 skip_classification=True,
                 skip_snippets=True,
-                skip_knowledge=True
+                skip_knowledge=True,
+                is_test_run=True
             )
 
             # Verify audio conversion WAS called (no checkpoint resume)
@@ -615,7 +623,8 @@ class TestPipelineCheckpointResume:
                 skip_diarization=True,
                 skip_classification=True,
                 skip_snippets=True,
-                skip_knowledge=True
+                skip_knowledge=True,
+                is_test_run=True
             )
 
             # Verify audio conversion was called (restart from beginning)
@@ -677,7 +686,8 @@ class TestPipelineErrorHandling:
                 skip_diarization=False,  # Enable diarization (but it will fail)
                 skip_classification=True,
                 skip_snippets=True,
-                skip_knowledge=True
+                skip_knowledge=True,
+                is_test_run=True
             )
 
             # Verify diarization was attempted
@@ -732,7 +742,8 @@ class TestPipelineErrorHandling:
                 skip_diarization=True,
                 skip_classification=False,  # Enable classification (but it will fail)
                 skip_snippets=True,
-                skip_knowledge=True
+                skip_knowledge=True,
+                is_test_run=True
             )
 
             # Verify classification was attempted
@@ -767,7 +778,8 @@ class TestPipelineErrorHandling:
                     skip_diarization=True,
                     skip_classification=True,
                     skip_snippets=True,
-                    skip_knowledge=True
+                    skip_knowledge=True,
+                    is_test_run=True
                 )
 
     def test_abort_on_transcription_failure(self, monkeypatch, tmp_path):
@@ -804,8 +816,69 @@ class TestPipelineErrorHandling:
                     skip_diarization=True,
                     skip_classification=True,
                     skip_snippets=True,
-                    skip_knowledge=True
+                    skip_knowledge=True,
+                    is_test_run=True
                 )
+
+    def test_abort_on_zero_chunks(self, monkeypatch, tmp_path):
+        """Test pipeline aborts if chunker returns zero chunks for a real run."""
+        # Create test input file
+        input_file = tmp_path / "test.m4a"
+        input_file.touch()
+        wav_file = tmp_path / "test.wav"
+        wav_file.touch()
+
+        # Mock all components
+        with patch('src.pipeline.AudioProcessor') as mock_audio_cls, \
+                patch('src.pipeline.HybridChunker') as mock_chunker_cls, \
+                patch('src.pipeline.StatusTracker'):
+
+            mock_audio = mock_audio_cls.return_value
+            mock_audio.convert_to_wav.return_value = wav_file
+            mock_audio.get_duration.return_value = 60.0
+
+            mock_chunker = mock_chunker_cls.return_value
+            mock_chunker.chunk_audio.return_value = []
+
+            processor = DDSessionProcessor("test", resume=False)
+
+            # Process should raise exception (critical failure)
+            with pytest.raises(RuntimeError, match="Audio chunking resulted in zero segments"):
+                processor.process(
+                    input_file=input_file,
+                    output_dir=tmp_path,
+                    is_test_run=False  # This is a real run
+                )
+
+    def test_continue_on_zero_chunks_for_test_run(self, monkeypatch, tmp_path):
+        """Test pipeline continues if chunker returns zero chunks for a test run."""
+        # Create test input file
+        input_file = tmp_path / "test.m4a"
+        input_file.touch()
+        wav_file = tmp_path / "test.wav"
+        wav_file.touch()
+
+        # Mock all components
+        with patch('src.pipeline.AudioProcessor') as mock_audio_cls, \
+                patch('src.pipeline.HybridChunker') as mock_chunker_cls, \
+                patch('src.pipeline.TranscriberFactory'), \
+                patch('src.pipeline.StatusTracker'):
+
+            mock_audio = mock_audio_cls.return_value
+            mock_audio.convert_to_wav.return_value = wav_file
+            mock_audio.get_duration.return_value = 60.0
+
+            mock_chunker = mock_chunker_cls.return_value
+            mock_chunker.chunk_audio.return_value = []
+
+            processor = DDSessionProcessor("test", resume=False)
+
+            # Process should not raise exception
+            processor.process(
+                input_file=input_file,
+                output_dir=tmp_path,
+                is_test_run=True  # This is a test run
+            )
 
 
 # ============================================================================
@@ -867,7 +940,8 @@ class TestPipelineOutputs:
                 skip_diarization=True,
                 skip_classification=True,
                 skip_snippets=True,
-                skip_knowledge=True
+                skip_knowledge=True,
+                is_test_run=True
             )
 
             # Verify formatter was called
@@ -952,7 +1026,8 @@ class TestPipelineOutputs:
                 skip_diarization=True,
                 skip_classification=True,
                 skip_snippets=True,
-                skip_knowledge=True
+                skip_knowledge=True,
+                is_test_run=True
             )
 
             # Verify statistics were generated
@@ -1005,7 +1080,8 @@ class TestPipelineStatusTracking:
                 skip_diarization=True,
                 skip_classification=True,
                 skip_snippets=True,
-                skip_knowledge=True
+                skip_knowledge=True,
+                is_test_run=True
             )
 
             # Verify StatusTracker.start_session was called
@@ -1049,7 +1125,8 @@ class TestPipelineStatusTracking:
                 skip_diarization=True,
                 skip_classification=True,
                 skip_snippets=True,
-                skip_knowledge=True
+                skip_knowledge=True,
+                is_test_run=True
             )
 
             # Verify StatusTracker.update_stage was called multiple times
@@ -1091,7 +1168,8 @@ class TestPipelineStatusTracking:
                 skip_diarization=True,
                 skip_classification=True,
                 skip_snippets=True,
-                skip_knowledge=True
+                skip_knowledge=True,
+                is_test_run=True
             )
 
             # Verify update_stage was called with stage numbers
@@ -1162,7 +1240,8 @@ class TestPipelineKnowledgeExtraction:
                 skip_diarization=True,
                 skip_classification=True,
                 skip_snippets=True,
-                skip_knowledge=False  # Enable knowledge extraction
+                skip_knowledge=False,  # Enable knowledge extraction
+                is_test_run=True
             )
 
             # Verify knowledge extraction was called
@@ -1210,7 +1289,8 @@ class TestPipelineKnowledgeExtraction:
                 skip_diarization=True,
                 skip_classification=True,
                 skip_snippets=True,
-                skip_knowledge=True  # Skip knowledge extraction
+                skip_knowledge=True,  # Skip knowledge extraction
+                is_test_run=True
             )
 
             # Verify knowledge extractor was NOT called
@@ -1264,14 +1344,14 @@ class TestPipelineKnowledgeExtraction:
             processor.formatter.format_ic_only = MagicMock(return_value="IC text")
             processor.snipper.export_segments = MagicMock(return_value={'segments_dir': None, 'manifest': None})
 
-            # Process with knowledge extraction enabled
             result = processor.process(
                 input_file=input_file,
                 output_dir=tmp_path,
                 skip_diarization=True,
                 skip_classification=True,
                 skip_snippets=True,
-                skip_knowledge=False
+                skip_knowledge=False,
+                is_test_run=True
             )
 
             # Verify knowledge was merged with campaign KB
@@ -1378,7 +1458,8 @@ class TestPipelineResume:
                     skip_diarization=True,
                     skip_classification=True,
                     skip_snippets=True,
-                    skip_knowledge=True
+                    skip_knowledge=True,
+                    is_test_run=True
                 )
             assert mock_chunker.chunk_audio.call_count == 1
 
@@ -1395,7 +1476,8 @@ class TestPipelineResume:
                 skip_diarization=True,
                 skip_classification=True,
                 skip_snippets=True,
-                skip_knowledge=False
+                skip_knowledge=False,
+                is_test_run=True
             )
 
             assert result["success"] is True

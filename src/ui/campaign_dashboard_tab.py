@@ -11,10 +11,10 @@ def create_dashboard_tab():
         
         with gr.Row():
             dashboard_campaign = gr.Dropdown(
-                label="📋 Select Campaign to Review",
+                label="[CAMPAIGN] Select Campaign to Review",
                 info="Choose which campaign to inspect"
             )
-            dashboard_refresh = gr.Button("🔄 Refresh Dashboard", variant="secondary", size="sm")
+            dashboard_refresh = gr.Button("[REFRESH] Refresh Dashboard", variant="secondary", size="sm")
 
         dashboard_output = gr.Markdown()
 

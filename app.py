@@ -33,6 +33,7 @@ from src.ui.speaker_management_tab import create_speaker_management_tab
 from src.ui.document_viewer_tab import create_document_viewer_tab
 from src.ui.social_insights_tab import create_social_insights_tab
 from src.ui.llm_chat_tab import create_llm_chat_tab
+from src.ui.campaign_chat_tab import create_campaign_chat_tab
 from src.ui.configuration_tab import create_configuration_tab
 from src.ui.help_tab import create_help_tab
 from src.google_drive_auth import (
@@ -339,6 +340,7 @@ with gr.Blocks(
         create_diagnostics_tab(PROJECT_ROOT)
 
         create_llm_chat_tab(PROJECT_ROOT)
+        create_campaign_chat_tab(PROJECT_ROOT)
         create_configuration_tab()
         create_help_tab()
 

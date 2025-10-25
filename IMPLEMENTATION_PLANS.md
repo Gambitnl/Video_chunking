@@ -430,6 +430,82 @@ Create new module `src/campaign_dashboard.py` with:
 
 ---
 
+## P0-BUG-004: Improve Resumable Checkpoints Robustness
+
+**Files**: `src/pipeline.py`, `src/checkpoint.py`
+**Effort**: 1.5 days
+**Priority**: HIGH
+**Dependencies**: P0-BUG-003
+**Status**: NOT STARTED
+
+### Problem Statement
+Resuming a failed session still replays expensive stages and writes large JSON checkpoints. Users wait nearly as long as a cold run and disk usage grows quickly.
+
+### Success Criteria
+- [ ] Stage resumes skip any step already present in checkpoint metadata
+- [ ] Checkpoint payload trims or compresses chunk/transcription data to <50 MB per stage
+- [ ] Resume telemetry (logs + StatusTracker) clarifies which stages were skipped
+
+### Implementation Plan
+1. Detect completed stages after loading checkpoints and short-circuit `save_all_formats`, `KnowledgeExtractor`, etc.
+2. Streamline checkpoint payloads (e.g., store file paths instead of full segment arrays, gzip large blobs).
+3. Add resume-specific logging banners and unit tests for the new `TestPipelineResume` cases.
+
+### Validation
+- `pytest tests/test_pipeline.py::TestPipelineResume::test_resume_from_checkpoint_after_transcription_failure -q`
+- Manual resume run on a mock 10+ minute session verifying stage skips and checkpoint size
+
+---
+
+## P0-BUG-005: Surface Chunking Failures to Users
+
+**Files**: `src/pipeline.py`
+**Effort**: 0.5 days
+**Priority**: HIGH
+**Status**: NOT STARTED
+
+### Problem Statement
+When the chunker produces zero segments (e.g., due to corrupt audio), the pipeline silently continues and yields empty transcripts. Users see “success” but receive blank outputs.
+
+### Success Criteria
+- [ ] Pipeline aborts with a descriptive error when chunking fails for real sessions
+- [ ] Integration tests cover the failure path and confirm the message
+
+### Implementation Plan
+1. Differentiate between test mocks and real pipeline runs; for real runs raise a `RuntimeError` with remediation tips.
+2. Update `TestPipelineResume`/`TestPipelineKnowledgeExtraction` fixtures to account for the new behavior.
+3. Document the failure message in troubleshooting docs.
+
+### Validation
+- `pytest tests/test_pipeline.py::TestPipelineErrorHandling::test_abort_on_transcription_failure -q`
+- Manual run against a zero-length audio file to verify user-facing error
+
+---
+
+## P0-BUG-006: Refine Snippet Placeholder Output
+
+**Files**: `src/snipper.py`
+**Effort**: 0.5 days
+**Priority**: MEDIUM
+**Status**: NOT STARTED
+
+### Problem Statement
+When no segments are exported we emit Dutch placeholder text, create `keep.txt`, and leave confusing artifacts.
+
+### Success Criteria
+- [ ] Placeholder manifest uses localized, neutral messaging
+- [ ] No extra files created unless cleanup actually removes stale clips
+- [ ] Tests assert the new manifest structure and localization
+
+### Implementation Plan
+1. Replace hard-coded strings with English defaults and allow translation via config if needed.
+2. Only write placeholder files when cleanup runs; otherwise leave directory untouched.
+3. Update `tests/test_snipper.py::test_export_with_no_segments` to reflect the new structure.
+
+### Validation
+- `pytest tests/test_snipper.py::test_export_with_no_segments -q`
+
+---
 ## P0-REFACTOR-002: Extract Story Generation
 
 **Files**: Extract from `app.py` to `src/story_generator.py`

@@ -23,7 +23,6 @@ try:  # pragma: no cover - convenience for test environment
     from unittest.mock import Mock as _Mock  # type: ignore
 except ImportError:  # pragma: no cover
     _Mock = None
-from .chunker import AudioChunk # Added for checkpoint loading
 
 
 def create_session_output_dir(base_output_dir: Path, session_id: str) -> Path:

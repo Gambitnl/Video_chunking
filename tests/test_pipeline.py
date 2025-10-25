@@ -8,9 +8,12 @@ Status: Template - Not Implemented
 See docs/TEST_PLANS.md for detailed specifications.
 """
 import pytest
+import numpy as np
 from pathlib import Path
 from unittest.mock import Mock, patch, MagicMock
 from src.pipeline import DDSessionProcessor, create_session_output_dir
+from src.chunker import AudioChunk
+from src.transcriber import ChunkTranscription, TranscriptionSegment
 
 
 # ============================================================================
@@ -1274,6 +1277,130 @@ class TestPipelineKnowledgeExtraction:
             # Verify knowledge was merged with campaign KB
             mock_kb.merge_new_knowledge.assert_called_once_with(test_knowledge, "test")
 
+
+class TestPipelineResume:
+    """Tests for pipeline checkpoint resume behaviour."""
+
+    def test_resume_from_checkpoint_after_transcription_failure(self, monkeypatch, tmp_path):
+        """Ensure pipeline resumes from checkpoint without rerunning earlier stages."""
+        input_file = tmp_path / "test.m4a"
+        input_file.touch()
+        wav_file = tmp_path / "test.wav"
+        wav_file.touch()
+
+        audio_chunk = AudioChunk(
+            audio=np.zeros(16000, dtype=np.float32),
+            start_time=0.0,
+            end_time=1.0,
+            sample_rate=16000,
+            chunk_index=0
+        )
+        transcription_segment = TranscriptionSegment(
+            text="hello",
+            start_time=0.0,
+            end_time=1.0,
+            confidence=0.9,
+            words=[]
+        )
+        chunk_transcription = ChunkTranscription(
+            chunk_index=0,
+            chunk_start=0.0,
+            chunk_end=1.0,
+            segments=[transcription_segment],
+            language="nl"
+        )
+
+        with patch('src.pipeline.AudioProcessor') as mock_audio_cls, \
+             patch('src.pipeline.HybridChunker') as mock_chunker_cls, \
+             patch('src.pipeline.TranscriberFactory') as mock_transcriber_factory, \
+             patch('src.pipeline.TranscriptionMerger') as mock_merger_cls, \
+             patch('src.pipeline.TranscriptFormatter') as mock_formatter_cls, \
+             patch('src.pipeline.AudioSnipper') as mock_snipper_cls, \
+             patch('src.pipeline.StatusTracker'), \
+             patch('src.pipeline.KnowledgeExtractor') as mock_extractor_cls, \
+             patch('src.pipeline.CampaignKnowledgeBase') as mock_kb_cls, \
+             patch('src.pipeline.SpeakerDiarizer') as mock_diarizer_cls, \
+             patch('src.pipeline.ClassifierFactory') as mock_classifier_factory:
+
+            mock_audio = mock_audio_cls.return_value
+            mock_audio.convert_to_wav.return_value = wav_file
+            mock_audio.get_duration.return_value = 60.0
+            mock_audio.load_audio_segment.return_value = (np.zeros(1600, dtype=np.float32), 16000)
+
+            mock_chunker = mock_chunker_cls.return_value
+            mock_chunker.chunk_audio.return_value = [audio_chunk]
+
+            mock_transcriber = MagicMock()
+            mock_transcriber_factory.create.return_value = mock_transcriber
+            mock_transcriber.transcribe_chunk.side_effect = RuntimeError("bang")
+
+            mock_merger = mock_merger_cls.return_value
+            mock_merger.merge_transcriptions.return_value = [transcription_segment]
+
+            mock_diarizer = mock_diarizer_cls.return_value
+            mock_diarizer.diarize_segments.return_value = [{
+                "text": "hello",
+                "start_time": 0.0,
+                "end_time": 1.0,
+                "speaker": "SPEAKER_00"
+            }]
+
+            mock_classifier = MagicMock()
+            mock_classifier.classify_segments.return_value = []
+            mock_classifier_factory.create.return_value = mock_classifier
+
+            mock_formatter = mock_formatter_cls.return_value
+            mock_formatter.save_all_formats.return_value = {
+                "full": tmp_path / "full.txt",
+                "ic_only": tmp_path / "ic.txt",
+                "ooc_only": tmp_path / "ooc.txt",
+                "json": tmp_path / "data.json",
+                "srt_full": tmp_path / "full.srt",
+                "srt_ic": tmp_path / "ic.srt",
+                "srt_ooc": tmp_path / "ooc.srt",
+            }
+            mock_formatter.format_ic_only.return_value = "IC transcript"
+
+            mock_snipper = mock_snipper_cls.return_value
+            mock_snipper.export_segments.return_value = {'segments_dir': None, 'manifest': None}
+
+            mock_extractor = mock_extractor_cls.return_value
+            mock_extractor.extract_knowledge.return_value = {}
+            mock_kb = mock_kb_cls.return_value
+
+            processor = DDSessionProcessor("resume_test", resume=True)
+
+            # First run should fail during transcription and leave checkpoints for earlier stages.
+            with pytest.raises(RuntimeError, match="bang"):
+                processor.process(
+                    input_file=input_file,
+                    output_dir=tmp_path,
+                    skip_diarization=True,
+                    skip_classification=True,
+                    skip_snippets=True,
+                    skip_knowledge=True
+                )
+            assert mock_chunker.chunk_audio.call_count == 1
+
+            # Configure mocks for resumed run
+            mock_transcriber.transcribe_chunk.side_effect = None
+            mock_transcriber.transcribe_chunk.return_value = chunk_transcription
+            mock_chunker.chunk_audio.reset_mock()
+            mock_chunker.chunk_audio.side_effect = AssertionError("chunker should not be called when resuming")
+
+            # Run again; should resume from checkpoint and complete without chunker invocation.
+            result = processor.process(
+                input_file=input_file,
+                output_dir=tmp_path,
+                skip_diarization=True,
+                skip_classification=True,
+                skip_snippets=True,
+                skip_knowledge=False
+            )
+
+            assert result["success"] is True
+            mock_extractor.extract_knowledge.assert_called_once()
+            mock_kb.merge_new_knowledge.assert_called_once()
 
 # ============================================================================
 # Integration Tests (Slow)

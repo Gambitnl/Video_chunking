@@ -41,7 +41,7 @@ class StoryNotebookManager:
         seen: set[str] = set()
         candidates = sorted(
             self.output_dir.glob("**/*_data.json"),
-            key=lambda path: path.stat().st_mtime,
+            key=lambda path: (path.stat().st_mtime, path.name),
             reverse=True,
         )
         for candidate in candidates:

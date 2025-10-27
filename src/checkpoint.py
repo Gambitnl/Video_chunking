@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+import gzip
 import shutil
 from dataclasses import asdict, dataclass, field, is_dataclass
 from datetime import datetime
@@ -54,6 +55,11 @@ class CheckpointManager:
         safe_stage = stage.replace("/", "_")
         return self.checkpoint_dir / f"checkpoint_{safe_stage}.json"
 
+    def _blob_path(self, stage: str, name: str) -> Path:
+        safe_stage = stage.replace("/", "_")
+        safe_name = name.replace("/", "_")
+        return self.checkpoint_dir / f"{safe_stage}_{safe_name}.json.gz"
+
     def save(
         self,
         stage: str,
@@ -75,6 +81,24 @@ class CheckpointManager:
         path.write_text(json.dumps(serializable, indent=2), encoding="utf-8")
         self.logger.info("Checkpoint saved for stage '%s' at %s", stage, path)
         return path
+
+    def write_blob(self, stage: str, name: str, payload: Any) -> str:
+        """Persist large payloads as compressed JSON and return relative blob path."""
+        blob_path = self._blob_path(stage, name)
+        blob_path.parent.mkdir(parents=True, exist_ok=True)
+        with gzip.open(blob_path, "wt", encoding="utf-8") as handle:
+            json.dump(payload, handle, ensure_ascii=False)
+        return blob_path.name
+
+    def read_blob(self, blob_reference: str) -> Any:
+        """Load a previously stored compressed payload."""
+        path = Path(blob_reference)
+        if not path.is_absolute():
+            path = self.checkpoint_dir / path
+        if not path.exists():
+            raise FileNotFoundError(f"Checkpoint blob not found at {path}")
+        with gzip.open(path, "rt", encoding="utf-8") as handle:
+            return json.load(handle)
 
     def load(self, stage: str) -> Optional[CheckpointRecord]:
         """Load checkpoint record for a specific stage."""

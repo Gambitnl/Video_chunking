@@ -6,23 +6,30 @@ import gradio as gr
 
 from src.config import Config
 from src.party_config import PartyConfigManager
+from src.ui.constants import StatusIndicators as SI
+from src.ui.helpers import (
+    StatusMessages,
+    UIComponents,
+    Placeholders,
+    InfoText,
+)
 
 
 def create_import_notes_tab(refresh_campaign_names: Callable[[], Dict[str, str]]) -> None:
     with gr.Tab("Import Session Notes"):
         gr.Markdown("""
-        ### [IMPORT] Import Session Notes
+        ### Import Session Notes
 
-        **Backfill your campaign with sessions you didn't record!**
+        **Backfill your campaign with sessions you did not record.**
 
         This tool automatically extracts:
-        - [QUEST] **Quests** - Started, progressed, or completed
-        - [NPC] **NPCs** - Characters the party met
-        - [LOCATION] **Locations** - Places visited
-        - [ITEM] **Items** - Important objects found
-        - [HOOK] **Plot Hooks** - Mysteries and future threads
+        - Quests (started, progressed, completed)
+        - NPCs (roles, descriptions, relationships)
+        - Locations (visited or referenced)
+        - Items (important finds and rewards)
+        - Plot hooks (unresolved mysteries and threads)
 
-        Perfect for importing sessions 1-5 before you started recording!
+        Perfect for importing early sessions before you began recording.
         """)
 
         with gr.Accordion("[GUIDE] Quick Start Guide & Example Format", open=False):
@@ -66,38 +73,36 @@ def create_import_notes_tab(refresh_campaign_names: Callable[[], Dict[str, str]]
             Even a simple paragraph describing what happened works fine.
             """)
 
-        validation_status = gr.Markdown(value="", visible=False)
-
         with gr.Row():
             with gr.Column(scale=2):
                 notes_session_id = gr.Textbox(
-                    label="[1] Session ID (Required)",
-                    placeholder="e.g., Session_01, Session_02, Direlambs_Session_01",
-                    info="[TIP] Tip: Use a consistent naming scheme like 'Session_01', 'Session_02', etc."
+                    label="Session ID",
+                    placeholder=Placeholders.SESSION_ID,
+                    info=InfoText.SESSION_ID
                 )
                 notes_campaign_choices = ["default"] + list(refresh_campaign_names().keys())
                 notes_campaign = gr.Dropdown(
                     choices=notes_campaign_choices,
                     value="default",
-                    label="[2] Campaign (Required)",
-                    info="Select which campaign these notes belong to. 'default' works if you only have one campaign."
+                    label="Campaign",
+                    info=InfoText.CAMPAIGN_SELECT
                 )
             with gr.Column(scale=1):
-                gr.Markdown("### Options:")
                 notes_extract_knowledge = gr.Checkbox(
-                    label="[EXTRACT] Extract Knowledge (Recommended)",
+                    label="Extract Knowledge (Recommended)",
                     value=True,
                     info="AI will automatically find: NPCs, quests, locations, items, plot hooks"
                 )
                 notes_generate_narrative = gr.Checkbox(
-                    label="[NARRATIVE] Generate Narrative Summary",
+                    label="Generate Narrative Summary",
                     value=False,
                     info="Creates a story-style summary (takes extra time)"
                 )
 
         notes_input = gr.Textbox(
-            label="[3] Session Notes (Required)",
-            placeholder="Paste your session notes here...\n\nExample:\n'Session 1 - The party met at the tavern. They spoke with Guard Captain Thorne who gave them a quest to find Marcus, a missing merchant. They traveled to the Waterdeep Road and found...\n\nClick 'Quick Start Guide' above for more examples!",
+            label="Session Notes",
+            placeholder=Placeholders.SESSION_NOTES,
+            info=InfoText.SESSION_NOTES,
             lines=15,
             max_lines=30
         )
@@ -108,22 +113,33 @@ def create_import_notes_tab(refresh_campaign_names: Callable[[], Dict[str, str]]
             type="filepath"
         )
 
-        ready_indicator = gr.Markdown(value="", visible=True)
+        ready_indicator = gr.Markdown(
+            value=StatusMessages.info(
+                "Ready",
+                "Fill in the required fields above to begin."
+            )
+        )
 
         with gr.Row():
-            notes_import_btn = gr.Button(
-                "[IMPORT] Import Session Notes",
+            notes_import_btn = UIComponents.create_action_button(
+                f"{SI.ACTION_IMPORT} Session Notes",
                 variant="primary",
                 size="lg",
-                scale=3
+                full_width=True
             )
-            notes_clear_btn = gr.Button(
-                "[CLEAR] Clear All Fields",
+            notes_clear_btn = UIComponents.create_action_button(
+                f"{SI.ACTION_CLEAR} All Fields",
                 variant="secondary",
-                scale=1
+                size="md"
             )
 
-        notes_output = gr.Markdown(label="Import Results")
+        notes_output = gr.Markdown(
+            label="Import Results",
+            value=StatusMessages.info(
+                "Import Session Notes",
+                "Results will appear here after you import a session."
+            )
+        )
 
         def load_notes_from_file(file_path):
             if not file_path:
@@ -132,41 +148,85 @@ def create_import_notes_tab(refresh_campaign_names: Callable[[], Dict[str, str]]
                 with open(file_path, "r", encoding="utf-8") as handle:
                     return handle.read()
             except Exception as exc:
-                return f"Error reading file: {exc}"
+                return StatusMessages.error(
+                    "Unable to Read File",
+                    "The uploaded notes file could not be read.",
+                    str(exc),
+                )
 
         def validate_import_inputs(session_id, notes_text):
             has_session_id = session_id and session_id.strip()
             has_notes = notes_text and notes_text.strip()
 
             if has_session_id and has_notes:
-                return "[SUCCESS] **Ready to import!** All required fields are filled. Click the button below to start."
+                return StatusMessages.success(
+                    "Ready to Import",
+                    "All required fields are filled. Click Import Session Notes to begin."
+                )
             if has_session_id and not has_notes:
-                return "[ERROR] **Missing**: Session notes are required. Paste your notes or upload a file."
+                return StatusMessages.warning(
+                    "Missing Notes",
+                    "Session notes are required before importing.",
+                    "Paste your notes or upload a supported file."
+                )
             if not has_session_id and has_notes:
-                return "[ERROR] **Missing**: Session ID is required. Enter an ID like 'Session_01'."
-            return "[INFO] Fill in the required fields above to get started."
+                return StatusMessages.warning(
+                    "Missing Session ID",
+                    "A session ID is required before importing.",
+                    "Enter an identifier such as 'Session_01'."
+                )
+            return StatusMessages.info(
+                "Ready",
+                "Provide a session ID and notes to enable importing."
+            )
 
         def clear_import_fields():
-            return "", "default", "", None, ""
+            ready_message = StatusMessages.info(
+                "Ready",
+                "Fill in the required fields above to begin."
+            )
+            output_message = StatusMessages.info(
+                "Import Session Notes",
+                "Results will appear here after you import a session."
+            )
+            return (
+                "",
+                "default",
+                "",
+                None,
+                ready_message,
+                output_message,
+            )
+
+        def _begin_import_placeholder():
+            return StatusMessages.loading("Importing session notes")
 
         def import_session_notes(session_id, campaign_id, notes_text, extract_knowledge, generate_narrative):
             if not session_id or not session_id.strip():
-                return "[ERROR] **Error**: Please provide a Session ID"
+                return StatusMessages.error(
+                    "Session ID Required",
+                    "Please provide a session ID before importing."
+                )
 
             if not notes_text or not notes_text.strip():
-                return "[ERROR] **Error**: Please provide session notes (paste text or upload a file)"
+                return StatusMessages.error(
+                    "Session Notes Required",
+                    "Please paste session notes or upload a notes file before importing."
+                )
 
             session_id_clean = session_id.strip()
-            results = f"# Import Results: {session_id_clean}\n\n"
-            results += f"**Campaign**: {campaign_id}\n\n"
-            results += "---\n\n"
+            sections = [
+                f"# Import Results: {session_id_clean}",
+                f"**Campaign**: {campaign_id}",
+                "---",
+            ]
 
             if extract_knowledge:
                 try:
                     from src.knowledge_base import KnowledgeExtractor, CampaignKnowledgeBase
 
-                    results += "## [EXTRACT] Knowledge Extraction\n\n"
-                    results += "Analyzing your notes with LLM...\n\n"
+                    sections.append("## Knowledge Extraction")
+                    sections.append("Analyzing notes and updating the campaign knowledge base...")
 
                     party_context_dict = None
                     if campaign_id and campaign_id != "default":
@@ -197,53 +257,57 @@ def create_import_notes_tab(refresh_campaign_names: Callable[[], Dict[str, str]]
                     }
                     total = sum(counts.values())
 
-                    results += f"[SUCCESS] **Extracted {total} entities:**\n\n"
+                    knowledge_lines = [
+                        f"{SI.SUCCESS} Extracted {total} entities:",
+                        "",
+                    ]
                     if counts["quests"] > 0:
-                        results += f"- [QUEST] **Quests**: {counts['quests']}\n"
+                        knowledge_lines.append(f"- Quests: {counts['quests']}")
                         for quest in extracted["quests"]:
-                            results += f"  - {quest.title} ({quest.status})\n"
-                        results += "\n"
+                            knowledge_lines.append(f"  - {quest.title} ({quest.status})")
 
                     if counts["npcs"] > 0:
-                        results += f"- [NPC] **NPCs**: {counts['npcs']}\n"
+                        knowledge_lines.append(f"- NPCs: {counts['npcs']}")
                         for npc in extracted["npcs"]:
-                            results += f"  - {npc.name} ({npc.role or 'unknown'})\n"
-                        results += "\n"
+                            knowledge_lines.append(f"  - {npc.name} ({npc.role or 'unknown'})")
 
                     if counts["plot_hooks"] > 0:
-                        results += f"- [HOOK] **Plot Hooks**: {counts['plot_hooks']}\n"
+                        knowledge_lines.append(f"- Plot Hooks: {counts['plot_hooks']}")
                         for hook in extracted["plot_hooks"]:
-                            results += f"  - {hook.summary}\n"
-                        results += "\n"
+                            knowledge_lines.append(f"  - {hook.summary}")
 
                     if counts["locations"] > 0:
-                        results += f"- [LOCATION] **Locations**: {counts['locations']}\n"
+                        knowledge_lines.append(f"- Locations: {counts['locations']}")
                         for loc in extracted["locations"]:
-                            results += f"  - {loc.name} ({loc.type or 'unknown'})\n"
-                        results += "\n"
+                            knowledge_lines.append(f"  - {loc.name} ({loc.type or 'unknown'})")
 
                     if counts["items"] > 0:
-                        results += f"- [ITEM] **Items**: {counts['items']}\n"
+                        knowledge_lines.append(f"- Items: {counts['items']}")
                         for item in extracted["items"]:
-                            results += f"  - {item.name}\n"
-                        results += "\n"
+                            knowledge_lines.append(f"  - {item.name}")
 
-                    results += f"\n**Knowledge saved to**: `{kb.knowledge_file}`\n\n"
-                    results += "[TIP] *Visit the Campaign Library tab to view all extracted knowledge!*"
-                    results += "\n\n"
+                    knowledge_lines.append("")
+                    knowledge_lines.append(f"Knowledge saved to `{kb.knowledge_file}`.")
+                    knowledge_lines.append("Visit the Campaign Library tab to review the extracted entities.")
+
+                    sections.extend(knowledge_lines)
 
                 except Exception as exc:
-                    import traceback
-
-                    results += f"[ERROR] **Knowledge extraction failed**: {exc}\n\n"
-                    results += f"```\n{traceback.format_exc()}\n```\n\n"
+                    sections.append(
+                        StatusMessages.error(
+                            "Knowledge Extraction Failed",
+                            "An error occurred while extracting knowledge.",
+                            str(exc),
+                        )
+                    )
 
             if generate_narrative:
                 try:
                     import ollama
 
-                    results += "---\n\n## [NARRATIVE] Narrative Generation\n\n"
-                    results += "Generating narrative summary...\n\n"
+                    sections.append("---")
+                    sections.append("## Narrative Generation")
+                    sections.append("Generating narrative summary from the provided session notes...")
 
                     prompt = f"""You are a D&D session narrator. Based on the following session notes, create a concise narrative summary (3-5 paragraphs) capturing the key events, character actions, and story developments.
 
@@ -277,19 +341,31 @@ Narrative:"""
                     narrative_file = narratives_dir / f"{session_id_clean}_narrator.md"
                     narrative_file.write_text(narrative, encoding="utf-8")
 
-                    results += f"**Narrative saved to**: `{narrative_file}`\n\n"
+                    sections.append(f"**Narrative saved to**: `{narrative_file}`")
 
                 except Exception as exc:
-                    results += f"[ERROR] **Narrative generation failed**: {exc}\n\n"
+                    sections.append(
+                        StatusMessages.error(
+                            "Narrative Generation Failed",
+                            "The narrative could not be generated.",
+                            str(exc),
+                        )
+                    )
 
-            results += "---\n\n"
-            results += "## [SUCCESS] Import Complete!\n\n"
+            summary_lines = []
             if extract_knowledge:
-                results += "- Check the **Campaign Library** tab to view extracted knowledge\n"
+                summary_lines.append("- Review the **Campaign Library** tab to see the new knowledge.")
             if generate_narrative:
-                results += "- Narrative saved to `output/imported_narratives/`\n"
+                summary_lines.append("- The generated narrative is available under `output/imported_narratives/`.")
 
-            return results
+            sections.append(
+                StatusMessages.success(
+                    "Import Complete",
+                    "Session notes were processed successfully." + ("\n\n" + "\n".join(summary_lines) if summary_lines else "")
+                )
+            )
+
+            return "\n\n".join(sections)
 
         notes_file_upload.change(
             fn=load_notes_from_file,
@@ -310,6 +386,10 @@ Narrative:"""
         )
 
         notes_import_btn.click(
+            fn=_begin_import_placeholder,
+            outputs=[notes_output],
+            queue=True,
+        ).then(
             fn=import_session_notes,
             inputs=[
                 notes_session_id,
@@ -319,9 +399,17 @@ Narrative:"""
                 notes_generate_narrative,
             ],
             outputs=[notes_output],
+            queue=True,
         )
 
         notes_clear_btn.click(
             fn=clear_import_fields,
-            outputs=[notes_session_id, notes_campaign, notes_input, notes_file_upload, notes_output],
+            outputs=[
+                notes_session_id,
+                notes_campaign,
+                notes_input,
+                notes_file_upload,
+                ready_indicator,
+                notes_output,
+            ],
         )

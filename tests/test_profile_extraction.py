@@ -1,9 +1,13 @@
 import pytest
+from pathlib import Path
+from tempfile import TemporaryDirectory
 
 from src.character_profile import (
     PROFILE_UPDATE_CATEGORIES,
     ProfileUpdate,
     ProfileUpdateBatch,
+    CharacterProfile,
+    CharacterProfileManager,
 )
 from src.profile_extractor import ProfileExtractor
 
@@ -81,3 +85,55 @@ def test_profile_extractor_normalizes_segments():
     assert len(normalized) == 1
     assert normalized[0]["text"] == "Hello"
     assert normalized[0]["speaker"] == "A"
+
+
+def test_merge_updates_goal_and_background():
+    with TemporaryDirectory() as tmpdir:
+        profiles_dir = Path(tmpdir) / "profiles"
+        manager = CharacterProfileManager(profiles_dir=profiles_dir)
+        manager.backup_dir = Path(tmpdir) / "backups"
+        manager.backup_dir.mkdir(exist_ok=True)
+        base_profile = CharacterProfile(
+            name="Aria",
+            player="Player1",
+            race="Elf",
+            class_name="Paladin",
+        )
+        manager.add_profile("Aria", base_profile)
+
+        updates = {
+            "goal_progress": [
+                ProfileUpdate(
+                    character="Aria",
+                    category="goal_progress",
+                    content="Cleanse the corrupted temple",
+                    type="active",
+                    session_id="session_001",
+                ),
+                ProfileUpdate(
+                    character="Aria",
+                    category="goal_progress",
+                    content="Cleanse the corrupted temple",
+                    type="completed",
+                    session_id="session_002",
+                ),
+            ],
+            "character_background": [
+                ProfileUpdate(
+                    character="Aria",
+                    category="character_background",
+                    content="Raised by the Silver Order",
+                    type="origin",
+                    session_id="session_001",
+                )
+            ],
+        }
+
+        manager.merge_updates("Aria", updates)
+        updated_profile = manager.get_profile("Aria")
+        assert updated_profile is not None
+        assert "Cleanse the corrupted temple" in updated_profile.completed_goals
+        assert "Cleanse the corrupted temple" not in updated_profile.current_goals
+        assert any(
+            note.note == "Raised by the Silver Order" for note in updated_profile.development_notes
+        )

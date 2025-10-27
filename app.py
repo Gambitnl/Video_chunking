@@ -178,20 +178,18 @@ def process_session(
 ):
     """
     Process a D&D session through the Gradio interface.
-
-    Yields:
-        Dict with progress updates.
     """
     try:
         if audio_file is None:
-            yield {"status": "Error: Please upload an audio file"}
-            return
+            return {"status": "error", "message": "Please upload an audio file."}
+
+        resolved_session_id = session_id or "session"
 
         # Determine if using party config or manual entry
         if party_selection and party_selection != "Manual Entry":
             # Use party configuration
             processor = DDSessionProcessor(
-                session_id=session_id or "session",
+                session_id=resolved_session_id,
                 num_speakers=int(num_speakers),
                 party_id=party_selection
             )
@@ -202,45 +200,58 @@ def process_session(
 
             # Create processor
             processor = DDSessionProcessor(
-                session_id=session_id or "session",
+                session_id=resolved_session_id,
                 character_names=chars,
                 player_names=players,
                 num_speakers=int(num_speakers)
             )
 
-        # Process and yield progress
-        for progress in processor.process(
+        pipeline_result = processor.process(
             input_file=_resolve_audio_path(audio_file),
             skip_diarization=skip_diarization,
             skip_classification=skip_classification,
             skip_snippets=skip_snippets,
             skip_knowledge=skip_knowledge
-        ):
-            yield progress
+        )
+
+        output_files = pipeline_result.get("output_files") or {}
+
+        def _read_output_file(key: str) -> str:
+            path = output_files.get(key)
+            if not path:
+                return ""
+            try:
+                return Path(path).read_text(encoding="utf-8")
+            except Exception:
+                return ""
+
+        snippet_export = pipeline_result.get("audio_segments") or {}
+        snippet_payload = {
+            "segments_dir": str(snippet_export.get("segments_dir")) if snippet_export.get("segments_dir") else None,
+            "manifest": str(snippet_export.get("manifest")) if snippet_export.get("manifest") else None,
+        }
+
+        return {
+            "status": "success",
+            "message": "Session processed successfully.",
+            "full": _read_output_file("full"),
+            "ic": _read_output_file("ic_only"),
+            "ooc": _read_output_file("ooc_only"),
+            "stats": pipeline_result.get("statistics") or {},
+            "snippet": snippet_payload,
+            "knowledge": pipeline_result.get("knowledge_extraction") or {},
+            "output_files": output_files,
+        }
 
     except Exception as e:
-        error_msg = f"Error: {e}\nSee log: {get_log_file_path()}"
         import traceback
-        traceback.print_exc()
-        yield {"status": error_msg}
 
-    # The following .then() call is intended to be chained with process_btn.click
-    # which is defined within the create_process_session_tab function.
-    # This modification cannot be applied directly in app.py as process_btn is not in scope here.
-    # This part of the replace string is included as per the original instruction's replace parameter,
-    # but it will not function correctly without further modifications to src/ui/process_session_tab.py
-    # and the return values of create_process_session_tab.
-    # For a functional change, the process_btn.click().then(...) logic should be moved
-    # into src/ui/process_session_tab.py where process_btn is defined and accessible.
-    # Additionally, 'snippet_progress_output' would need to be defined and returned by create_process_session_tab.
-    # This placeholder is provided to fulfill the request of fixing the search string, 
-    # but highlights a deeper architectural issue for the intended functionality.
-    # .then(
-    #     fn=update_snippet_progress,
-    #     inputs=[session_id_input],
-    #     outputs=[snippet_progress_output],
-    #     every=1
-    # )
+        traceback.print_exc()
+        return {
+            "status": "error",
+            "message": str(e),
+            "details": f"See log for details: {get_log_file_path()}",
+        }
 
 
 # Create Gradio interface
@@ -301,7 +312,7 @@ with gr.Blocks(
             outputs=[dashboard_output]
         )
 
-        available_parties, snippet_progress_output = create_process_session_tab(
+        available_parties = create_process_session_tab(
             refresh_campaign_names=_refresh_campaign_names,
             process_session_fn=process_session,
             campaign_manager=campaign_manager,
@@ -346,9 +357,12 @@ if __name__ == "__main__":
         print("=" * 80)
         print("\nAnother instance of the application is already running.")
         print("Please close the existing instance before starting a new one.")
-        print("\nTo kill existing instances:")
-        print("  1. Check running processes: netstat -ano | findstr :7860")
-        print("  2. Kill the process: taskkill /PID <process_id> /F")
+        print("To kill the existing process:")
+        print("  1. Find the process ID (PID) of the application that is listening on port 7860:")
+        print("     netstat -ano | findstr :7860 | findstr LISTENING")
+        print("  2. The PID will be in the last column of the output. Look for the line with \"LISTENING\" in the \"State\" column.")
+        print("  3. Kill the process using its PID:")
+        print("     taskkill /PID <process_id> /F")
         print("=" * 80)
         sys.exit(1)
 

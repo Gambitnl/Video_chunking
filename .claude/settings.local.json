@@ -1,7 +1,9 @@
 {
   "permissions": {
     "allow": [
-      "Bash(git push:*)"
+      "Bash(git push:*)",
+      "Bash(timeout 5 python app.py:*)",
+      "Read(//f/**)"
     ],
     "deny": [],
     "ask": []

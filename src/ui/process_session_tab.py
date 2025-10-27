@@ -5,6 +5,13 @@ from typing import Any, Callable, Dict, List
 
 import gradio as gr
 
+from src.ui.constants import StatusIndicators as SI
+from src.ui.helpers import (
+    InfoText,
+    Placeholders,
+    StatusMessages,
+    UIComponents,
+)
 from src.party_config import PartyConfigManager
 
 
@@ -37,7 +44,7 @@ def create_process_session_tab(
                     choices=campaign_choices,
                     value="Manual Setup",
                     label="Campaign Profile",
-                    info="Select your campaign to auto-fill all settings, or choose 'Manual Setup' to configure manually",
+                    info="Select your campaign to auto-fill settings, or choose Manual Setup to configure manually.",
                 )
 
                 batch_mode = gr.Checkbox(
@@ -54,27 +61,27 @@ def create_process_session_tab(
 
                 session_id_input = gr.Textbox(
                     label="Session ID",
-                    placeholder="e.g., session_2024_01_15",
-                    info="Unique identifier for this session",
+                    placeholder=Placeholders.SESSION_ID,
+                    info=InfoText.SESSION_ID,
                 )
 
                 party_selection_input = gr.Dropdown(
                     choices=available_parties,
                     value="default",
                     label="Party Configuration",
-                    info="Select your party or choose 'Manual Entry' to enter names manually",
+                    info="Select your party or choose Manual Entry to enter names manually.",
                 )
 
                 character_names_input = gr.Textbox(
                     label="Character Names (comma-separated)",
-                    placeholder="e.g., Thorin, Elara, Zyx",
-                    info="Names of player characters in the campaign (only used if Manual Entry selected)",
+                    placeholder=Placeholders.CHARACTER_NAME,
+                    info="Names of player characters (used when Manual Entry is selected).",
                 )
 
                 player_names_input = gr.Textbox(
                     label="Player Names (comma-separated)",
-                    placeholder="e.g., Alice, Bob, Charlie, DM",
-                    info="Names of actual players (only used if Manual Entry selected)",
+                    placeholder=Placeholders.PLAYER_NAME,
+                    info="Names of actual players (used when Manual Entry is selected).",
                 )
 
                 num_speakers_input = gr.Slider(
@@ -89,34 +96,53 @@ def create_process_session_tab(
                 with gr.Row():
                     skip_diarization_input = gr.Checkbox(
                         label="Skip Speaker Diarization",
-                        info="Skip identifying who is speaking. Faster processing (~30% time saved), but all speakers labeled as 'UNKNOWN'. Requires HuggingFace token if enabled.",
+                        info="Skip identifying individual speakers. Saves time, but all transcript lines will be labeled UNKNOWN.",
                     )
                     skip_classification_input = gr.Checkbox(
                         label="Skip IC/OOC Classification",
-                        info="Skip separating in-character dialogue from out-of-character banter. Faster processing (~20% time saved), but no IC/OOC filtering. All content labeled as IC.",
+                        info="Skip separating in-character dialogue from out-of-character banter. All segments will be marked IC.",
                     )
                     skip_snippets_input = gr.Checkbox(
                         label="Skip Audio Snippets",
-                        info="Skip exporting individual WAV files for each dialogue segment. Saves disk space and processing time (~10% time saved). You'll still get all transcripts (TXT, SRT, JSON).",
+                        info="Skip exporting individual WAV files. Saves disk space; transcripts will still be generated.",
                     )
                     skip_knowledge_input = gr.Checkbox(
                         label="Skip Campaign Knowledge Extraction",
-                        info="Skip automatic extraction of quests, NPCs, plot hooks, locations, and items from the session. Saves processing time (~5% time saved), but campaign library won't be updated.",
+                        info="Skip automatic extraction of quests, NPCs, locations, and items. Recommended to leave enabled.",
                         value=False,
                     )
 
-                process_btn = gr.Button("Process Session", variant="primary", size="lg")
-
-            with gr.Column():
-                status_output = gr.Textbox(
-                    label="Status",
-                    lines=2,
-                    interactive=False,
+                process_btn = UIComponents.create_action_button(
+                    "Process Session",
+                    variant="primary",
+                    size="lg",
+                    full_width=True,
                 )
 
-                stats_output = gr.Markdown(label="Statistics")
+            with gr.Column():
+                status_output = gr.Markdown(
+                    label="Status",
+                    value=StatusMessages.info(
+                        "Ready",
+                        "Upload an audio file and click Process Session to begin."
+                    )
+                )
 
-                snippet_progress_output = gr.Markdown(label="Snippet Export Progress")
+                stats_output = gr.Markdown(
+                    label="Statistics",
+                    value=StatusMessages.info(
+                        "Statistics",
+                        "No session has been processed yet."
+                    )
+                )
+
+                snippet_progress_output = gr.Markdown(
+                    label="Snippet Export Progress",
+                    value=StatusMessages.info(
+                        "Snippet Export",
+                        "Snippet export results will appear here after processing."
+                    )
+                )
 
         with gr.Row():
             with gr.Tab("Full Transcript"):
@@ -174,6 +200,125 @@ def create_process_session_tab(
                 skip_knowledge_input: campaign.settings.skip_knowledge,
             }
 
+        def _prepare_processing_outputs():
+            return (
+                StatusMessages.loading("Processing session"),
+                "",
+                "",
+                "",
+                StatusMessages.info("Statistics", "Processing session..."),
+                StatusMessages.info("Snippet Export", "Analyzing audio snippets..."),
+            )
+
+        def _format_statistics(stats: Dict[str, Any], knowledge: Dict[str, Any]) -> str:
+            if not stats:
+                return StatusMessages.info("Statistics", "No statistics available.")
+
+            lines: List[str] = ["### Session Statistics"]
+
+            total_duration = stats.get("total_duration_formatted")
+            ic_duration = stats.get("ic_duration_formatted")
+            ic_percentage = stats.get("ic_percentage")
+            total_segments = stats.get("total_segments")
+            ic_segments = stats.get("ic_segments")
+            ooc_segments = stats.get("ooc_segments")
+
+            if total_duration:
+                lines.append(f"- Total Duration: {total_duration}")
+            if ic_duration:
+                duration_line = f"- IC Duration: {ic_duration}"
+                if isinstance(ic_percentage, (int, float)):
+                    duration_line += f" ({ic_percentage:.1f}% IC)"
+                lines.append(duration_line)
+            if total_segments is not None:
+                lines.append(f"- Segments: {total_segments} total")
+            if ic_segments is not None and ooc_segments is not None:
+                lines.append(f"  - IC Segments: {ic_segments}")
+                lines.append(f"  - OOC Segments: {ooc_segments}")
+
+            speaker_dist = stats.get("speaker_distribution") or {}
+            if speaker_dist:
+                lines.append("- Speaker Distribution:")
+                for speaker, count in speaker_dist.items():
+                    lines.append(f"  - {speaker}: {count}")
+
+            character_appearances = stats.get("character_appearances") or {}
+            if character_appearances:
+                lines.append("- Character Appearances:")
+                for character, count in sorted(character_appearances.items(), key=lambda item: -item[1]):
+                    lines.append(f"  - {character}: {count}")
+
+            extracted = (knowledge or {}).get("extracted") or {}
+            if extracted:
+                lines.append("")
+                lines.append("### Knowledge Extraction")
+                for key, value in extracted.items():
+                    label = key.replace("_", " ").title()
+                    lines.append(f"- {label}: {value}")
+
+            return "\n".join(lines)
+
+        def _format_snippet_export(snippet: Dict[str, Any]) -> str:
+            if not snippet or not snippet.get("segments_dir"):
+                return StatusMessages.info("Snippet Export", "Audio snippets were not generated for this run.")
+
+            segments_dir = str(snippet.get("segments_dir"))
+            manifest = snippet.get("manifest")
+
+            lines = [
+                "### Snippet Export",
+                f"{SI.SUCCESS} Audio clips saved to `{segments_dir}`.",
+            ]
+
+            if manifest:
+                lines.append(f"- Manifest: `{manifest}`")
+
+            return "\n".join(lines)
+
+        def _render_processing_response(response: Dict[str, Any]):
+            default_stats = StatusMessages.info("Statistics", "No statistics available.")
+            default_snippets = StatusMessages.info("Snippet Export", "No snippet information available.")
+
+            if not isinstance(response, dict):
+                return (
+                    StatusMessages.error("Processing Failed", "An unexpected response was returned by the pipeline."),
+                    "",
+                    "",
+                    "",
+                    default_stats,
+                    default_snippets,
+                )
+
+            if response.get("status") != "success":
+                return (
+                    StatusMessages.error(
+                        "Processing Failed",
+                        response.get("message", "Unable to process session."),
+                        response.get("details", ""),
+                    ),
+                    "",
+                    "",
+                    "",
+                    default_stats,
+                    default_snippets,
+                )
+
+            stats_markdown = _format_statistics(response.get("stats") or {}, response.get("knowledge") or {})
+            snippet_markdown = _format_snippet_export(response.get("snippet") or {})
+
+            return (
+                StatusMessages.success("Processing Complete", response.get("message", "Session processed successfully.")),
+                response.get("full", ""),
+                response.get("ic", ""),
+                response.get("ooc", ""),
+                stats_markdown,
+                snippet_markdown,
+            )
+
+        def process_session_handler(*handler_args):
+            response = process_session_fn(*handler_args)
+            return _render_processing_response(response)
+
         campaign_selector.change(
             fn=load_campaign_settings,
             inputs=[campaign_selector],
@@ -188,7 +333,18 @@ def create_process_session_tab(
         )
 
         process_btn.click(
-            fn=process_session_fn,
+            fn=_prepare_processing_outputs,
+            outputs=[
+                status_output,
+                full_output,
+                ic_output,
+                ooc_output,
+                stats_output,
+                snippet_progress_output,
+            ],
+            queue=True,
+        ).then(
+            fn=process_session_handler,
             inputs=[
                 audio_input,
                 session_id_input,
@@ -207,8 +363,9 @@ def create_process_session_tab(
                 ic_output,
                 ooc_output,
                 stats_output,
-                snippet_progress_output
-            ]
+                snippet_progress_output,
+            ],
+            queue=True,
         )
 
-    return available_parties, snippet_progress_output
+    return available_parties

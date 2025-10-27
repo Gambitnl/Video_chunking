@@ -5,7 +5,8 @@
 > **For**: Development Team
 > **Source**: ROADMAP.md
 
-This document provides detailed implementation plans for each roadmap item, broken down into actionable subtasks.
+This document provides detailed implementation plans for each roadmap item, broken down into actionable subtasks.  
+_Need the one-line overview? See `docs/OUTSTANDING_TASKS.md` for the consolidated to-do list._
 
 ---
 
@@ -436,7 +437,7 @@ Create new module `src/campaign_dashboard.py` with:
 **Effort**: 1.5 days
 **Priority**: HIGH
 **Dependencies**: P0-BUG-003
-**Status**: NOT STARTED
+**Status**: [DONE] Completed 2025-10-26
 
 ### Problem Statement
 Resuming a failed session still replays expensive stages and writes large JSON checkpoints. Users wait nearly as long as a cold run and disk usage grows quickly.
@@ -451,6 +452,14 @@ Resuming a failed session still replays expensive stages and writes large JSON c
 2. Streamline checkpoint payloads (e.g., store file paths instead of full segment arrays, gzip large blobs).
 3. Add resume-specific logging banners and unit tests for the new `TestPipelineResume` cases.
 
+### Implementation Notes & Reasoning (2025-10-26)
+**Implementer**: Codex (GPT-5)
+
+- **Stage Skipping**: Refactored `DDSessionProcessor.process` to detect completed stages up front and skip heavy operations (transcription, merging, diarization, classification, output generation, snippet export, knowledge extraction) while updating `StatusTracker` with resumed messages.
+- **Checkpoint Trimming**: Added compressed blob storage via `CheckpointManager.write_blob/read_blob` for large payloads (transcriptions, merged segments, diarization labels, classifications) to keep per-stage checkpoints under 50 MB.
+- **Telemetry Improvements**: Resume logs and status updates now call out when data is restored from checkpoint, avoiding misleading “running” states.
+- **Testing**: `pytest tests/test_profile_extraction.py -q` and `pytest tests/test_pipeline.py::TestPipelineResume::test_resume_from_checkpoint_after_transcription_failure tests/test_pipeline.py::TestPipelineResume::test_resume_skips_completed_stages -q`
+
 ### Validation
 - `pytest tests/test_pipeline.py::TestPipelineResume::test_resume_from_checkpoint_after_transcription_failure -q`
 - Manual resume run on a mock 10+ minute session verifying stage skips and checkpoint size
@@ -462,7 +471,7 @@ Resuming a failed session still replays expensive stages and writes large JSON c
 **Files**: `src/pipeline.py`
 **Effort**: 0.5 days
 **Priority**: HIGH
-**Status**: NOT STARTED
+**Status**: [DONE] Completed 2025-10-24
 
 ### Problem Statement
 When the chunker produces zero segments (e.g., due to corrupt audio), the pipeline silently continues and yields empty transcripts. Users see “success” but receive blank outputs.
@@ -480,6 +489,11 @@ When the chunker produces zero segments (e.g., due to corrupt audio), the pipeli
 - `pytest tests/test_pipeline.py::TestPipelineErrorHandling::test_abort_on_transcription_failure -q`
 - Manual run against a zero-length audio file to verify user-facing error
 
+### Implementation Notes & Reasoning (2025-10-24)
+**Implementer**: Codex (GPT-5)
+
+- The chunking stage now raises a `RuntimeError` when no segments are produced (see `src/pipeline.py:321-333`), preventing silent success states.
+- Tests and manual repro confirmed the exception surfaces clearly to users; later work (P0-BUG-004) reused the same guard to keep resume logic intact.
 ---
 
 ## P0-BUG-006: Refine Snippet Placeholder Output

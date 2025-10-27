@@ -4,7 +4,8 @@ from typing import Callable, Dict
 
 import gradio as gr
 
-from src.ui.constants import StatusIndicators
+from src.ui.constants import StatusIndicators as SI
+from src.ui.helpers import StatusMessages, UIComponents, Placeholders, InfoText
 from src.knowledge_base import CampaignKnowledgeBase
 
 
@@ -33,22 +34,28 @@ def create_campaign_library_tab(
             with gr.Column(scale=3):
                 kb_search_input = gr.Textbox(
                     label="Search Knowledge Base",
-                    placeholder="Search across all quests, NPCs, locations, items, and plot hooks...",
+                    placeholder=Placeholders.SEARCH_QUERY,
+                    info="Search across quests, NPCs, locations, items, and plot hooks",
                 )
             with gr.Column(scale=1):
-                kb_search_btn = gr.Button("[SEARCH] Search", size="sm")
-                kb_refresh_btn = gr.Button("[REFRESH] Refresh", size="sm")
+                kb_search_btn = UIComponents.create_action_button(SI.ACTION_SEARCH, variant="secondary", size="sm")
+                kb_refresh_btn = UIComponents.create_action_button(SI.ACTION_REFRESH, variant="secondary", size="sm")
 
-        kb_output = gr.Markdown(value="Select a campaign and click Refresh to load knowledge.")
+        kb_output = gr.Markdown(
+            value=StatusMessages.info(
+                "Campaign Library",
+                "Select a campaign and click Refresh to load knowledge."
+            )
+        )
 
         def format_quest(quest):
             status_emoji = {
-                "active": StatusIndicators.QUEST_ACTIVE,
-                "completed": StatusIndicators.QUEST_COMPLETE,
-                "failed": StatusIndicators.QUEST_FAILED,
-                "unknown": StatusIndicators.QUEST_UNKNOWN,
+                "active": SI.QUEST_ACTIVE,
+                "completed": SI.QUEST_COMPLETE,
+                "failed": SI.QUEST_FAILED,
+                "unknown": SI.QUEST_UNKNOWN,
             }
-            emoji = status_emoji.get(quest.status, StatusIndicators.QUEST_UNKNOWN)
+            emoji = status_emoji.get(quest.status, SI.QUEST_UNKNOWN)
 
             md = f"**{emoji} {quest.title}** ({quest.status.upper()})\n\n"
             md += f"{quest.description}\n\n"
@@ -213,15 +220,20 @@ def create_campaign_library_tab(
                         output += format_item(item) + "\n\n---\n\n"
 
                 if not any([all_quests, npcs, kb.knowledge["plot_hooks"], locations, items]):
-                    output += (
-                        "## No Knowledge Found\n\n"
-                        "No entities have been extracted yet. Process sessions with knowledge extraction enabled!"
+                    output += StatusMessages.warning(
+                        "No Knowledge Found",
+                        "No entities have been extracted yet for this campaign.",
+                        "Process a session with knowledge extraction enabled to populate the library."
                     )
 
                 return output
 
             except Exception as exc:
-                return f"## Error Loading Knowledge Base\n\n```\n{exc}\n```"
+                return StatusMessages.error(
+                    "Error Loading Knowledge Base",
+                    "We could not load the requested campaign knowledge.",
+                    str(exc),
+                )
 
         def search_knowledge_base(campaign_id, query):
             try:
@@ -229,7 +241,10 @@ def create_campaign_library_tab(
                 results = kb.search(query)
 
                 if not any(results.values()):
-                    return f"No results found for `{query}`."
+                    return StatusMessages.info(
+                        "No Results Found",
+                        f"No campaign knowledge matched your search for `{query}`."
+                    )
 
                 output = f"# Search Results for `{query}`\n\n"
 
@@ -261,7 +276,11 @@ def create_campaign_library_tab(
                 return output
 
             except Exception as exc:
-                return f"## Search Error\n\n```\n{exc}\n```"
+                return StatusMessages.error(
+                    "Search Error",
+                    "There was a problem searching the knowledge base.",
+                    str(exc),
+                )
 
         kb_refresh_btn.click(
             fn=load_knowledge_base,

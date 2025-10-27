@@ -5,7 +5,8 @@
 > **For**: Development Team
 > **Source**: ROADMAP.md
 
-This document contains P1 (High Impact) feature implementation plans.
+This document contains P1 (High Impact) feature implementation plans.  
+_For a quick summary of outstanding work, refer to `docs/OUTSTANDING_TASKS.md`._
 
 **See IMPLEMENTATION_PLANS.md for**:
 - Templates (Implementation Notes & Reasoning, Code Review Findings)
@@ -32,7 +33,7 @@ This document contains P1 (High Impact) feature implementation plans.
 **Effort**: 3-5 days
 **Priority**: HIGH
 **Dependencies**: None
-**Status**: NOT STARTED
+**Status**: IN PROGRESS (Schema & extractor scaffolding complete)
 
 ### Problem Statement
 Users manually update character profiles after each session. The system should automatically extract character development data from transcripts and suggest profile updates.

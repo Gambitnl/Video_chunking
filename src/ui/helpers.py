@@ -253,6 +253,7 @@ class Placeholders:
     SESSION_ID = "e.g., session_001 or my_campaign_2024_10_25"
     CAMPAIGN_NAME = "e.g., Curse of Strahd or My Custom Campaign"
     CHARACTER_NAME = "e.g., Thorin Ironforge"
+    PLAYER_NAME = "e.g., Alice B."
     NPC_NAME = "e.g., Strahd von Zarovich"
     LOCATION_NAME = "e.g., Castle Ravenloft"
     QUEST_NAME = "e.g., Find the Holy Symbol of Ravenkind"
@@ -261,6 +262,9 @@ class Placeholders:
     API_KEY = "Enter your API key (optional)"
     MODEL_NAME = "e.g., gpt-4 or llama2"
     CONVERSATION_TITLE = "Untitled Conversation"
+    CAMPAIGN_QUESTION = "e.g., What happened in session 5? Who is the Shadow Lord?"
+    SESSION_NOTES = "Paste session notes here (Markdown supported)."
+    PARTY_ID = "e.g., my_campaign_party"
 
 
 # Common info/helper text
@@ -274,3 +278,4 @@ class InfoText:
     PROCESSING_TIME = "Processing time varies: ~30-60 min for 4-hour session"
     API_KEY_OPTIONAL = "Leave blank to use default configuration"
     LLM_BACKEND = "Choose between local (Ollama) or cloud (OpenAI) processing"
+    SESSION_NOTES = "Provide detailed session notes (Markdown supported)."

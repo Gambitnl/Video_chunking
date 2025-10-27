@@ -47,8 +47,11 @@ This planning system is split across multiple documents:
 | P0-REFACTOR-001: Extract Campaign Dashboard | 2 days | [DONE] Complete | PLANS.md:427 |
 | P0-REFACTOR-002: Extract Story Generation | 1 day | [DONE] Completed 2025-10-24 | PLANS.md:447 |
 | P0-REFACTOR-003: Split app.py into UI Modules | 3-4 days | [DONE] Completed 2025-10-24 | PLANS.md:463 |
+| P0-BUG-004: Improve Resumable Checkpoints | 1.5 days | [DONE] Completed 2025-10-26 | PLANS.md:433 |
+| P0-BUG-005: Surface Chunking Failures | 0.5 days | [DONE] Completed 2025-10-24 | PLANS.md:460 |
+| P0-BUG-006: Refine Snippet Placeholder Output | 0.5 days | NOT STARTED | PLANS.md:485 |
 
-**Recommendation**: All P0 tasks are complete.
+**Recommendation**: With chunking errors now surfaced, tackle P0-BUG-006 next to clean up placeholder exports.
 
 ---
 

@@ -7,8 +7,10 @@ Status: Template - Not Implemented
 
 See docs/TEST_PLANS.md for detailed specifications.
 """
+import json
 import pytest
 import numpy as np
+from src.config import Config
 from pathlib import Path
 from unittest.mock import Mock, patch, MagicMock
 from src.pipeline import DDSessionProcessor, create_session_output_dir
@@ -1483,6 +1485,161 @@ class TestPipelineResume:
             assert result["success"] is True
             mock_extractor.extract_knowledge.assert_called_once()
             mock_kb.merge_new_knowledge.assert_called_once()
+
+    def test_resume_skips_completed_stages(self, tmp_path):
+        """Completed stages should not re-run and should load data from checkpoint blobs."""
+
+        class DummyLock:
+            def __enter__(self):
+                return self
+
+            def __exit__(self, exc_type, exc, tb):
+                return False
+
+        input_file = tmp_path / "complete.m4a"
+        input_file.touch()
+        wav_file = tmp_path / "complete.wav"
+        wav_file.touch()
+
+        audio_chunk = AudioChunk(
+            audio=np.zeros(16000, dtype=np.float32),
+            start_time=0.0,
+            end_time=1.0,
+            sample_rate=16000,
+            chunk_index=0,
+        )
+        transcription_segment = TranscriptionSegment(
+            text="hello",
+            start_time=0.0,
+            end_time=1.0,
+            confidence=0.9,
+            words=[],
+        )
+        chunk_transcription = ChunkTranscription(
+            chunk_index=0,
+            chunk_start=0.0,
+            chunk_end=1.0,
+            segments=[transcription_segment],
+            language="nl",
+        )
+
+        def init_manifest(target_path: Path) -> Path:
+            target_path.parent.mkdir(parents=True, exist_ok=True)
+            target_path.write_text(json.dumps({"status": "in_progress", "segments": []}), encoding="utf-8")
+            return target_path
+
+        def noop_export(*args, **kwargs):
+            return None
+
+        with patch('src.pipeline.AudioProcessor') as mock_audio_cls, \
+             patch('src.pipeline.HybridChunker') as mock_chunker_cls, \
+             patch('src.pipeline.TranscriberFactory') as mock_transcriber_factory, \
+             patch('src.pipeline.TranscriptionMerger') as mock_merger_cls, \
+             patch('src.pipeline.TranscriptFormatter') as mock_formatter_cls, \
+             patch('src.pipeline.AudioSnipper') as mock_snipper_cls, \
+             patch('src.pipeline.StatusTracker'), \
+             patch('src.pipeline.KnowledgeExtractor') as mock_extractor_cls, \
+             patch('src.pipeline.CampaignKnowledgeBase') as mock_kb_cls, \
+             patch('src.pipeline.SpeakerDiarizer'), \
+             patch('src.pipeline.ClassifierFactory'):
+
+            mock_audio = mock_audio_cls.return_value
+            mock_audio.convert_to_wav.return_value = wav_file
+            mock_audio.get_duration.return_value = 60.0
+            mock_audio.load_audio_segment.return_value = (np.zeros(1600, dtype=np.float32), 16000)
+
+            mock_chunker = mock_chunker_cls.return_value
+            mock_chunker.chunk_audio.return_value = [audio_chunk]
+
+            mock_transcriber = MagicMock()
+            mock_transcriber_factory.create.return_value = mock_transcriber
+            mock_transcriber.transcribe_chunk.return_value = chunk_transcription
+
+            mock_merger = mock_merger_cls.return_value
+            mock_merger.merge_transcriptions.return_value = [transcription_segment]
+
+            mock_formatter = mock_formatter_cls.return_value
+            mock_formatter.save_all_formats.return_value = {
+                "full": str(tmp_path / "full.txt"),
+                "ic_only": str(tmp_path / "ic.txt"),
+                "ooc_only": str(tmp_path / "ooc.txt"),
+                "json": str(tmp_path / "data.json"),
+                "srt_full": str(tmp_path / "full.srt"),
+                "srt_ic": str(tmp_path / "ic.srt"),
+                "srt_ooc": str(tmp_path / "ooc.srt"),
+            }
+            mock_formatter.format_ic_only.return_value = "IC transcript"
+
+            mock_snipper = mock_snipper_cls.return_value
+            mock_snipper.initialize_manifest.side_effect = init_manifest
+            mock_snipper.export_incremental.side_effect = noop_export
+            mock_snipper._manifest_lock = DummyLock()
+
+            mock_extractor = mock_extractor_cls.return_value
+            mock_extractor.extract_knowledge.return_value = {
+                "quests": [],
+                "npcs": [],
+                "plot_hooks": [],
+                "locations": [],
+                "items": [],
+            }
+            mock_kb = mock_kb_cls.return_value
+            mock_kb.knowledge_file = tmp_path / "knowledge.json"
+
+            processor = DDSessionProcessor("resume_skip_test", resume=True)
+            processor.checkpoint_manager.clear = MagicMock()
+
+            first_result = processor.process(
+                input_file=input_file,
+                output_dir=tmp_path,
+                skip_diarization=True,
+                skip_classification=True,
+                skip_snippets=False,
+                skip_knowledge=False,
+                is_test_run=True,
+            )
+            assert first_result["success"] is True
+            processor.checkpoint_manager.clear.assert_called_once()
+            blob_files = list((Config.OUTPUT_DIR / "_checkpoints" / processor.safe_session_id).glob("*.json.gz"))
+            assert blob_files, "Expected compressed checkpoint payloads to be created"
+
+            # Configure mocks to fail if any completed stage runs again.
+            mock_chunker.chunk_audio.reset_mock()
+            mock_transcriber.transcribe_chunk.reset_mock()
+            mock_merger.merge_transcriptions.reset_mock()
+            mock_formatter.save_all_formats.reset_mock()
+            mock_snipper.initialize_manifest.reset_mock()
+            mock_snipper.export_incremental.reset_mock()
+            initial_extract_calls = mock_extractor.extract_knowledge.call_count
+
+            mock_chunker.chunk_audio.side_effect = AssertionError("chunker should not run on resume")
+            mock_transcriber.transcribe_chunk.side_effect = AssertionError("transcribe should not run on resume")
+            mock_merger.merge_transcriptions.side_effect = AssertionError("merge should not run on resume")
+            mock_formatter.save_all_formats.side_effect = AssertionError("formatter should not run on resume")
+            mock_snipper.initialize_manifest.side_effect = AssertionError("manifest should not be created on resume")
+            mock_snipper.export_incremental.side_effect = AssertionError("snipper should not run on resume")
+
+            processor_resume = DDSessionProcessor("resume_skip_test", resume=True)
+            resume_result = processor_resume.process(
+                input_file=input_file,
+                output_dir=tmp_path,
+                skip_diarization=True,
+                skip_classification=True,
+                skip_snippets=False,
+                skip_knowledge=False,
+                is_test_run=True,
+            )
+
+            assert resume_result["success"] is True
+            mock_chunker.chunk_audio.assert_not_called()
+            mock_transcriber.transcribe_chunk.assert_not_called()
+            mock_merger.merge_transcriptions.assert_not_called()
+            mock_formatter.save_all_formats.assert_not_called()
+            mock_snipper.export_incremental.assert_not_called()
+            assert mock_extractor.extract_knowledge.call_count == initial_extract_calls
+
+            # Cleanup checkpoints created for the session.
+            processor_resume.checkpoint_manager.clear()
 
 # ============================================================================
 # Integration Tests (Slow)

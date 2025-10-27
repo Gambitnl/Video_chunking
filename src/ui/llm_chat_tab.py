@@ -6,6 +6,8 @@ from pathlib import Path
 import gradio as gr
 
 from src.config import Config
+from src.ui.helpers import Placeholders, InfoText, StatusMessages, UIComponents
+from src.ui.constants import StatusIndicators as SI
 
 
 def create_llm_chat_tab(project_root: Path) -> None:

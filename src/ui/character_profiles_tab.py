@@ -5,6 +5,9 @@ from typing import List
 
 import gradio as gr
 
+from src.ui.constants import StatusIndicators as SI
+from src.ui.helpers import StatusMessages, UIComponents, Placeholders, InfoText
+
 
 def create_character_profiles_tab(blocks: gr.Blocks, available_parties: List[str]) -> None:
     from src.character_profile import CharacterProfileManager
@@ -35,7 +38,11 @@ def create_character_profiles_tab(blocks: gr.Blocks, available_parties: List[str
         with gr.Row():
             with gr.Column():
                 gr.Markdown("#### View Characters")
-                char_refresh_btn = gr.Button("Refresh Character List", size="sm")
+                char_refresh_btn = UIComponents.create_action_button(
+                    SI.ACTION_REFRESH,
+                    variant="secondary",
+                    size="sm",
+                )
                 char_table = gr.Dataframe(
                     headers=["Character", "Player", "Race/Class", "Level", "Sessions"],
                     datatype=["str", "str", "str", "number", "number"],
@@ -50,7 +57,10 @@ def create_character_profiles_tab(blocks: gr.Blocks, available_parties: List[str
                     value=initial_chars[0] if initial_chars else None,
                     interactive=True,
                 )
-                view_char_btn = gr.Button("View Character Overview", variant="primary")
+                view_char_btn = UIComponents.create_action_button(
+                    "View Character Overview",
+                    variant="primary",
+                )
 
             with gr.Column():
                 gr.Markdown("#### Export/Import")
@@ -60,15 +70,25 @@ def create_character_profiles_tab(blocks: gr.Blocks, available_parties: List[str
                     value=initial_chars[0] if initial_chars else None,
                     interactive=True,
                 )
-                export_char_btn = gr.Button("Export Character")
+                export_char_btn = UIComponents.create_action_button("Export Character", variant="secondary")
                 export_char_file = gr.File(label="Download Character Profile")
-                export_char_status = gr.Textbox(label="Status", interactive=False)
+                export_char_status = gr.Markdown(
+                    value=StatusMessages.info(
+                        "Export Character Profile",
+                        "Select a character and click Export to download their profile."
+                    )
+                )
 
                 gr.Markdown("---")
 
                 import_char_file = gr.File(label="Upload Character JSON", file_types=[".json"])
-                import_char_btn = gr.Button("Import Character")
-                import_char_status = gr.Textbox(label="Status", interactive=False)
+                import_char_btn = UIComponents.create_action_button("Import Character", variant="primary")
+                import_char_status = gr.Markdown(
+                    value=StatusMessages.info(
+                        "Import Character Profile",
+                        "Upload a character JSON export to add it to the campaign."
+                    )
+                )
 
         with gr.Row():
             gr.Markdown("### [AUTO] Automatic Profile Extraction")
@@ -103,15 +123,28 @@ def create_character_profiles_tab(blocks: gr.Blocks, available_parties: List[str
                 )
                 extract_session_id = gr.Textbox(
                     label="Session ID",
-                    placeholder="e.g., Session 1",
+                    placeholder=Placeholders.SESSION_ID,
+                    info=InfoText.SESSION_ID,
                 )
-                extract_btn = gr.Button("[EXTRACT] Extract Character Data", variant="primary")
-                extract_status = gr.Textbox(label="Extraction Status", lines=5, interactive=False)
+                extract_btn = UIComponents.create_action_button(
+                    "Extract Character Data",
+                    variant="primary",
+                )
+                extract_status = gr.Markdown(
+                    label="Extraction Status",
+                    value=StatusMessages.info(
+                        "Automatic Profile Extraction",
+                        "Upload an IC-only transcript and click Extract to update character profiles."
+                    ),
+                )
 
         with gr.Row():
             char_overview_output = gr.Markdown(
                 label="Character Overview",
-                value="Select a character to view their profile.",
+                value=StatusMessages.info(
+                    "Character Overview",
+                    "Select a character to view their profile summary."
+                ),
                 elem_classes="character-overview-scrollable",
             )
 
@@ -151,16 +184,28 @@ def create_character_profiles_tab(blocks: gr.Blocks, available_parties: List[str
 
         def view_character_profile(character_name):
             if not character_name:
-                return "Please select a character."
+                return StatusMessages.warning(
+                    "No Character Selected",
+                    "Choose a character to view their profile summary."
+                )
 
             from src.character_profile import CharacterProfileManager
 
             manager = CharacterProfileManager()
-            return manager.generate_character_overview(character_name, format="markdown")
+            overview = manager.generate_character_overview(character_name, format="markdown")
+            if not overview:
+                return StatusMessages.warning(
+                    "No Profile Data",
+                    "No information is available for this character yet."
+                )
+            return overview
 
         def export_character_ui(character_name):
             if not character_name:
-                return None, "Please select a character"
+                return None, StatusMessages.warning(
+                    "No Character Selected",
+                    "Choose a character to export its profile."
+                )
 
             try:
                 from src.character_profile import CharacterProfileManager
@@ -172,32 +217,64 @@ def create_character_profiles_tab(blocks: gr.Blocks, available_parties: List[str
                 temp_file.close()
 
                 manager.export_profile(character_name, temp_path)
-                return temp_path, f"Exported '{character_name}'"
+                return temp_path, StatusMessages.success(
+                    "Export Complete",
+                    f"Character '{character_name}' exported successfully."
+                )
             except Exception as exc:
-                return None, f"Error: {exc}"
+                return None, StatusMessages.error(
+                    "Export Failed",
+                    "The character profile could not be exported.",
+                    str(exc),
+                )
+
+        def _begin_extract_placeholder():
+            return StatusMessages.loading(
+                "Extracting character data"
+            )
+
 
         def import_character_ui(file_obj):
             if file_obj is None:
-                return "Please upload a file"
+                return StatusMessages.warning(
+                    "No File Uploaded",
+                    "Upload a character JSON export before importing."
+                )
 
             try:
                 from src.character_profile import CharacterProfileManager
 
                 manager = CharacterProfileManager()
                 imported_name = manager.import_profile(Path(file_obj.name))
-                return f"Successfully imported character '{imported_name}'. Click Refresh to see it."
+                return StatusMessages.success(
+                    "Import Complete",
+                    f"Character '{imported_name}' imported successfully. Click Refresh to update the list."
+                )
             except Exception as exc:
-                return f"Error: {exc}"
+                return StatusMessages.error(
+                    "Import Failed",
+                    "The character profile could not be imported.",
+                    str(exc),
+                )
 
         def extract_profiles_ui(transcript_file, party_id, session_id):
             if transcript_file is None:
-                return "[ERROR] Please upload an IC-only transcript file"
+                return StatusMessages.error(
+                    "Transcript Required",
+                    "Upload an IC-only transcript before running extraction."
+                )
 
             if not party_id or party_id == "Manual Entry":
-                return "[ERROR] Please select a party configuration (not Manual Entry)"
+                return StatusMessages.error(
+                    "Party Configuration Required",
+                    "Select a saved party configuration before extracting data."
+                )
 
             if not session_id:
-                return "[ERROR] Please enter a session ID"
+                return StatusMessages.error(
+                    "Session ID Required",
+                    "Provide a session ID so the updates can be tracked."
+                )
 
             try:
                 from src.profile_extractor import CharacterProfileExtractor
@@ -208,10 +285,6 @@ def create_character_profiles_tab(blocks: gr.Blocks, available_parties: List[str
                 profile_mgr = CharacterProfileManager()
                 party_mgr = PartyConfigManager()
 
-                status = "[INFO] Extracting character data from transcript...\n"
-                status += f"Party: {party_id}\n"
-                status += f"Session: {session_id}\n\n"
-
                 results = extractor.batch_extract_and_update(
                     transcript_path=Path(transcript_file.name),
                     party_id=party_id,
@@ -220,25 +293,41 @@ def create_character_profiles_tab(blocks: gr.Blocks, available_parties: List[str
                     party_manager=party_mgr,
                 )
 
-                status += "[SUCCESS] Extraction complete!\n\n"
-                status += f"Updated {len(results)} character profile(s):\n"
+                summary_lines = [
+                    StatusMessages.success(
+                        "Extraction Complete",
+                        f"Updated {len(results)} character profile(s)."
+                    ),
+                    f"**Party**: {party_id}",
+                    f"**Session**: {session_id}",
+                    "",
+                    "### Character Updates",
+                ]
 
-                for char_name, extracted_data in results.items():
-                    status += f"\n**{char_name}**:\n"
-                    status += f"  - Actions: {len(extracted_data.notable_actions)}\n"
-                    status += f"  - Items: {len(extracted_data.items_acquired)}\n"
-                    status += f"  - Relationships: {len(extracted_data.relationships_mentioned)}\n"
-                    status += f"  - Quotes: {len(extracted_data.memorable_quotes)}\n"
-                    status += f"  - Developments: {len(extracted_data.character_development)}\n"
+                if not results:
+                    summary_lines.append("No characters were updated in this extraction run.")
+                else:
+                    for char_name, extracted_data in results.items():
+                        summary_lines.append(f"**{char_name}**")
+                        summary_lines.append(f"- Actions: {len(extracted_data.notable_actions)}")
+                        summary_lines.append(f"- Items: {len(extracted_data.items_acquired)}")
+                        summary_lines.append(f"- Relationships: {len(extracted_data.relationships_mentioned)}")
+                        summary_lines.append(f"- Quotes: {len(extracted_data.memorable_quotes)}")
+                        summary_lines.append(f"- Developments: {len(extracted_data.character_development)}")
+                        summary_lines.append("")
 
-                status += "\n[SUCCESS] Click 'Refresh Character List' to see updates!"
-                return status
+                summary_lines.append("Refresh the character list to view the latest changes.")
+                return "\n".join(summary_lines)
 
             except Exception as exc:
                 import traceback
 
                 error_details = traceback.format_exc()
-                return f"[ERROR] Extraction failed:\n{exc}\n\nDetails:\n{error_details}"
+                return StatusMessages.error(
+                    "Extraction Failed",
+                    str(exc),
+                    error_details,
+                )
 
         def on_table_select(evt: gr.SelectData):
             if evt.index[0] >= 0:
@@ -279,12 +368,18 @@ def create_character_profiles_tab(blocks: gr.Blocks, available_parties: List[str
         )
 
         extract_btn.click(
+            fn=_begin_extract_placeholder,
+            outputs=[extract_status],
+            queue=True,
+        ).then(
             fn=extract_profiles_ui,
             inputs=[extract_transcript_file, extract_party_dropdown, extract_session_id],
             outputs=[extract_status],
+            queue=True,
         )
 
         blocks.load(
             fn=load_character_list,
             outputs=[char_table, char_select, export_char_dropdown],
         )
+

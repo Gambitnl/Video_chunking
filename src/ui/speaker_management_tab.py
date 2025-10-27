@@ -3,6 +3,8 @@ from __future__ import annotations
 import gradio as gr
 
 from src.diarizer import SpeakerProfileManager
+from src.ui.helpers import Placeholders, InfoText, StatusMessages, UIComponents
+from src.ui.constants import StatusIndicators as SI
 
 
 def create_speaker_management_tab() -> None:
@@ -48,12 +50,12 @@ def create_speaker_management_tab() -> None:
                     label="Person Name",
                     placeholder="e.g., Alice",
                 )
-                map_btn = gr.Button("Map Speaker", variant="primary")
+                map_btn = UIComponents.create_action_button("Map Speaker", variant="primary")
                 map_status = gr.Textbox(label="Status", interactive=False)
 
             with gr.Column():
                 view_session_id = gr.Textbox(label="Session ID")
-                view_btn = gr.Button("View Speaker Profiles")
+                view_btn = UIComponents.create_action_button("View Speaker Profiles")
                 profiles_output = gr.Markdown(label="Profiles")
 
         map_btn.click(

@@ -5,7 +5,8 @@
 > **For**: Development Team
 > **Source**: ROADMAP.md
 
-This document contains P2 (Important Enhancements) implementation plans for LangChain-powered features.
+This document contains P2 (Important Enhancements) implementation plans for LangChain-powered features.  
+_See `docs/OUTSTANDING_TASKS.md` for the condensed list of open items._
 
 **See IMPLEMENTATION_PLANS.md for**:
 - Templates (Implementation Notes & Reasoning, Code Review Findings)

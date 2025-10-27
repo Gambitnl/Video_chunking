@@ -7,6 +7,7 @@ import gradio as gr
 
 from src.config import Config
 from src.ui.constants import StatusIndicators
+from src.ui.helpers import StatusMessages, Placeholders
 from src.story_notebook import StoryNotebookManager, StorySessionData
 
 STORY_NO_DATA = "No transcription data available for this session yet."
@@ -156,7 +157,12 @@ def create_story_notebook_tab(
             )
             return story, str(file_path) if file_path else ""
         except Exception as exc:
-            return f"Error generating narrative: {exc}", ""
+            error_msg = StatusMessages.error(
+                "Narrative Generation Failed",
+                "Unable to generate the narrator perspective for this session.",
+                str(exc)
+            )
+            return error_msg, ""
 
     def story_generate_character(session_state: Dict, character_name: str, temperature: float) -> Tuple[str, str]:
         if not session_state or not session_state.get("segments"):
@@ -178,7 +184,12 @@ def create_story_notebook_tab(
             )
             return story, str(file_path) if file_path else ""
         except Exception as exc:
-            return f"Error generating narrative: {exc}", ""
+            error_msg = StatusMessages.error(
+                "Character Narrative Failed",
+                f"Unable to generate the narrative from {character_name}'s perspective.",
+                str(exc)
+            )
+            return error_msg, ""
 
     def refresh_notebook_status() -> str:
         return get_notebook_status()

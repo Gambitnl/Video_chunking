@@ -5,7 +5,8 @@
 > **For**: Development Team
 > **Source**: ROADMAP.md
 
-This document contains P3 (Future Enhancements) and P4 (Infrastructure & Quality) implementation plans.
+This document contains P3 (Future Enhancements) and P4 (Infrastructure & Quality) implementation plans.  
+_For a high-level checklist, consult `docs/OUTSTANDING_TASKS.md`._
 
 **See IMPLEMENTATION_PLANS.md for**:
 - Templates (Implementation Notes & Reasoning, Code Review Findings)

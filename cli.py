@@ -486,6 +486,88 @@ def check_setup():
         console.print("\n[bold yellow]⚠ Some dependencies are missing. Please install them.[/bold yellow]")
         console.print("\nRun: pip install -r requirements.txt")
 
+@click.group()
+def sessions():
+    """Manage and audit processed sessions."""
+    pass
+
+@sessions.command()
+def audit():
+    """Audit all processed sessions for issues."""
+    from src.session_manager import SessionManager
+
+    console.print("[bold]Auditing sessions...[/bold]\n")
+    manager = SessionManager()
+    report = manager.audit_sessions()
+
+    if not any(report):
+        console.print("[bold green]✓ All sessions are in good condition.[/bold green]")
+        return
+
+    table = Table(title="Session Audit Report")
+    table.add_column("Session ID", style="cyan")
+    table.add_column("Issue", style="red")
+    table.add_column("Details", style="dim")
+
+    for session in report.orphaned:
+        table.add_row(session.session_id, "Orphaned", f"Directory is empty. Path: {session.path}")
+    for session in report.incomplete:
+        table.add_row(session.session_id, "Incomplete", f"Missing required files. Path: {session.path}")
+    for session in report.stale_checkpoints:
+        table.add_row(session.session_id, "Stale Checkpoint", f"Checkpoint is older than 7 days. Path: {session.path}")
+
+    console.print(table)
+
+@sessions.command()
+@click.option("--interactive", is_flag=True, help="Prompt before deleting each item.")
+@click.option("--dry-run", is_flag=True, help="Show what would be deleted without actually deleting anything.")
+@click.option("--force", is_flag=True, help="Delete all problematic sessions without prompting.")
+def cleanup(interactive, dry_run, force):
+    """Clean up orphaned, incomplete, and stale sessions."""
+    from src.session_manager import SessionManager
+
+    manager = SessionManager()
+    report = manager.audit_sessions()
+
+    if not any(report):
+        console.print("[bold green]✓ All sessions are in good condition. No cleanup needed.[/bold green]")
+        return
+
+    mode = "dry_run" if dry_run else "force" if force else "interactive" if interactive else None
+
+    if not mode:
+        console.print("Please specify a cleanup mode: --interactive, --dry-run, or --force")
+        return
+
+    actions = manager.cleanup_sessions(report, mode)
+
+    if mode == "dry_run":
+        console.print("[bold yellow]-- Dry Run Mode --[/bold yellow]")
+        table = Table(title="Items to be Deleted")
+        table.add_column("Type", style="cyan")
+        table.add_column("Path", style="dim")
+        for path in actions["orphaned"]:
+            table.add_row("Orphaned Session", str(path))
+        for path in actions["incomplete"]:
+            table.add_row("Incomplete Session", str(path))
+        for path in actions["stale_checkpoints"]:
+            table.add_row("Stale Checkpoint", str(path))
+        console.print(table)
+    else:
+        console.print("[bold green]✓ Cleanup complete![/bold green]")
+        table = Table(title="Cleanup Report")
+        table.add_column("Action", style="cyan")
+        table.add_column("Path", style="dim")
+        for path in actions["deleted_orphaned"]:
+            table.add_row("Deleted Orphaned Session", str(path))
+        for path in actions["deleted_incomplete"]:
+            table.add_row("Deleted Incomplete Session", str(path))
+        for path in actions["deleted_stale_checkpoints"]:
+            table.add_row("Deleted Stale Checkpoint", str(path))
+        console.print(table)
+
+cli.add_command(sessions)
+
 
 @cli.command()
 @click.option(

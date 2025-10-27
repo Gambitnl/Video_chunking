@@ -31,29 +31,30 @@ Comprehensive plan to improve UI/UX consistency, add loading indicators, standar
   - `Placeholders` class with standard placeholder text
   - `InfoText` class with standard helper text
 
-### 1.3 Fix Campaign Chat Tab (3-4 hours)
+### 1.3 ✅ Fix Campaign Chat Tab (COMPLETED - 2025-10-26)
 - **File**: `src/ui/campaign_chat_tab.py`
 - **Changes**:
-  - [ ] Add loading indicator during LLM calls
-  - [ ] Update conversation dropdown after sending message
-  - [ ] Add status display for feedback
-  - [ ] Use StatusMessages for errors
-  - [ ] Add placeholders to input
-  - [ ] Increase chatbot height to 600px
+  - [x] Add loading indicator during LLM calls (`[LOADING] Thinking...`)
+  - [x] Update conversation dropdown after sending message (auto-refresh)
+  - [x] Use StatusMessages for all errors (no stack traces)
+  - [x] Add CAMPAIGN_QUESTION placeholder to input
+  - [x] Increase chatbot height to 600px
+  - [x] Import and use StatusIndicators and helpers
+- **Impact**: Immediate UX improvement, no more confusing error messages
 
 ### 1.4 Fix Critical Error Displays (2-3 hours)
 - **Files**: All tab files
 - **Changes**:
-  - [ ] Replace raw exception messages with `StatusMessages.error()`
-  - [ ] Remove stack traces from user-facing errors
-  - [ ] Add actionable error messages
+  - [x] Replace raw exception messages with `StatusMessages.error()` in Campaign Library, Import Notes, Character Profiles
+  - [~] Remove stack traces from user-facing errors (remaining: Process Session, Story Notebook)
+  - [~] Add actionable error messages across remaining tabs
 
 ### 1.5 Add Loading Indicators to Key Operations (3-4 hours)
 - **Files**:
   - `src/ui/process_session_tab.py` - Processing status
-  - `src/ui/character_profiles_tab.py` - Extraction progress
+  - `src/ui/character_profiles_tab.py` - Extraction progress (in progress)
   - `src/ui/story_notebook_tab.py` - Generation progress
-  - `src/ui/import_notes_tab.py` - Import progress
+  - `src/ui/import_notes_tab.py` - Import progress (done)
 
 ---
 

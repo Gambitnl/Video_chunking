@@ -32,6 +32,9 @@ class StatusIndicators:
     ACTION_NEW = "New"
     ACTION_CANCEL = "Cancel"
     ACTION_CONFIRM = "Confirm"
+    ACTION_PROCESS = "Process"
+    ACTION_CLEAR = "Clear"
+    ACTION_IMPORT = "Import"
 
     # Health indicators
     HEALTH_EXCELLENT = "[HEALTH-GREEN]"  # 90-100%

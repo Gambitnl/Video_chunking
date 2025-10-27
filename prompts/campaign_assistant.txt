@@ -24,8 +24,8 @@ Campaign Context:
 
 Source Citation Format:
 When citing sources, use this format:
-- From transcript: "[Session {session_id}, {timestamp}] {speaker}: {quote}"
-- From knowledge base: "[{type}: {name}] {information}"
+- From transcript: "[Session {{session_id}}, {{timestamp}}] {{speaker}}: {{quote}}"
+- From knowledge base: "[{{type}}: {{name}}] {{information}}"
 
 Example Responses:
 

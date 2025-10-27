@@ -7,7 +7,10 @@ from typing import List, Tuple
 
 import gradio as gr
 
+from src.ui.helpers import Placeholders, UIComponents
 from src.party_config import PartyConfigManager
+from src.ui.helpers import Placeholders, InfoText, StatusMessages, UIComponents
+from src.ui.constants import StatusIndicators as SI
 
 
 def create_party_management_tab(available_parties: List[str]) -> None:
@@ -41,7 +44,7 @@ def create_party_management_tab(available_parties: List[str]) -> None:
                         else (export_party_choices[0] if export_party_choices else None)
                     ),
                 )
-                export_btn = gr.Button("Export Party", variant="primary")
+                export_btn = UIComponents.create_action_button("Export Party", variant="primary")
                 export_output = gr.File(label="Download Party File")
                 export_status = gr.Textbox(label="Status", interactive=False)
 
@@ -53,9 +56,9 @@ def create_party_management_tab(available_parties: List[str]) -> None:
                 )
                 import_party_id = gr.Textbox(
                     label="Party ID (optional)",
-                    placeholder="Leave empty to use ID from file",
+                    placeholder=Placeholders.PARTY_ID,
                 )
-                import_btn = gr.Button("Import Party", variant="primary")
+                import_btn = UIComponents.create_action_button("Import Party", variant="primary")
                 import_status = gr.Textbox(label="Status", interactive=False)
 
         def export_party_ui(party_id: str) -> Tuple[Path | None, str]:

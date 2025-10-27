@@ -1,4 +1,5 @@
 """Main processing pipeline orchestrating all components"""
+import json
 from pathlib import Path
 from time import perf_counter
 from typing import Optional, List, Dict, Tuple, Any
@@ -8,7 +9,7 @@ from .config import Config
 from .checkpoint import CheckpointManager
 from .audio_processor import AudioProcessor
 from .chunker import HybridChunker, AudioChunk
-from .transcriber import TranscriberFactory, ChunkTranscription
+from .transcriber import TranscriberFactory, ChunkTranscription, TranscriptionSegment
 from .merger import TranscriptionMerger
 from .diarizer import SpeakerDiarizer, SpeakerProfileManager
 from .classifier import ClassifierFactory, ClassificationResult
@@ -278,8 +279,6 @@ class DDSessionProcessor:
             )
 
             self.logger.info("Stage 2/9: Chunking audio with VAD...")
-            StatusTracker.update_stage(self.session_id, 2, "running", "Detecting speech regions")
-
             if "audio_chunked" in completed_stages:
                 chunk_checkpoint = self.checkpoint_manager.load("audio_chunked")
                 chunks = chunk_checkpoint.data.get("chunks") if chunk_checkpoint else []
@@ -292,7 +291,7 @@ class DDSessionProcessor:
                     self.logger.warning("Checkpoint for audio chunks found but data is empty; re-running chunking")
                     completed_stages.discard("audio_chunked")
                     # Fall through to re-run chunking
-            
+
             if "audio_chunked" not in completed_stages: # Only run if not loaded from checkpoint or checkpoint was empty
                 chunk_progress = {"count": 0}
 
@@ -318,6 +317,7 @@ class DDSessionProcessor:
                     except Exception as progress_error:
                         self.logger.debug("Chunk progress callback skipped: %s", progress_error)
 
+                StatusTracker.update_stage(self.session_id, 2, "running", "Detecting speech regions")
                 chunks = self.chunker.chunk_audio(wav_file, progress_callback=_chunk_progress_callback)
                 if not chunks:
                     if not self.is_test_run:
@@ -360,26 +360,40 @@ class DDSessionProcessor:
 
             self.logger.info("Stage 2/9 %s: %d chunks processed", "resumed" if "audio_chunked" in completed_stages else "complete", len(chunks))
 
-            self.logger.info("Stage 3/9: Transcribing chunks (this may take a while)...")
-            StatusTracker.update_stage(
-                self.session_id, 3, "running", f"Transcribing {len(chunks)} chunks"
-            )
             chunk_transcriptions: List[ChunkTranscription] = []
 
             if "audio_transcribed" in completed_stages:
                 transcription_checkpoint = self.checkpoint_manager.load("audio_transcribed")
-                transcriptions_data = transcription_checkpoint.data.get("chunk_transcriptions") if transcription_checkpoint else []
+                transcriptions_data: List[Dict[str, Any]] = []
+                if transcription_checkpoint:
+                    data_dict = transcription_checkpoint.data
+                    if "chunk_transcriptions_path" in data_dict:
+                        blob_ref = data_dict.get("chunk_transcriptions_path")
+                        try:
+                            transcriptions_data = self.checkpoint_manager.read_blob(blob_ref)
+                        except FileNotFoundError:
+                            self.logger.warning("Chunk transcription blob missing at %s; re-running transcription", blob_ref)
+                            completed_stages.discard("audio_transcribed")
+                    else:
+                        transcriptions_data = data_dict.get("chunk_transcriptions", [])
                 if transcriptions_data:
                     chunk_transcriptions = [ChunkTranscription.from_dict(td) for td in transcriptions_data]
-                    self.logger.info("Stage 3/9: Using chunk transcriptions from checkpoint (%d transcriptions)", len(chunk_transcriptions))
+                    self.logger.info(
+                        "Stage 3/9: Using chunk transcriptions from checkpoint (%d transcriptions)",
+                        len(chunk_transcriptions)
+                    )
                     StatusTracker.update_stage(
                         self.session_id, 3, "completed", f"Loaded {len(chunk_transcriptions)} chunk transcriptions (checkpoint)"
                     )
-                else:
+                elif "audio_transcribed" in completed_stages:
                     self.logger.warning("Checkpoint for chunk transcriptions found but data is empty; re-running transcription")
                     completed_stages.discard("audio_transcribed")
 
             if "audio_transcribed" not in completed_stages:
+                self.logger.info("Stage 3/9: Transcribing chunks (this may take a while)...")
+                StatusTracker.update_stage(
+                    self.session_id, 3, "running", f"Transcribing {len(chunks)} chunks"
+                )
                 for chunk in tqdm(chunks, desc="Transcribing"):
                     transcription = self.transcriber.transcribe_chunk(chunk, language="nl")
                     chunk_transcriptions.append(transcription)
@@ -388,65 +402,104 @@ class DDSessionProcessor:
                 )
                 self.logger.info("Stage 3/9 complete: transcription finished")
                 completed_stages.add("audio_transcribed")
+                blob_ref = self.checkpoint_manager.write_blob(
+                    "audio_transcribed",
+                    "chunk_transcriptions",
+                    [ct.to_dict() for ct in chunk_transcriptions],
+                )
                 self.checkpoint_manager.save(
                     "audio_transcribed",
-                    {"chunk_transcriptions": [ct.to_dict() for ct in chunk_transcriptions]},
+                    {
+                        "chunk_transcriptions_path": blob_ref,
+                        "transcription_count": len(chunk_transcriptions),
+                    },
                     completed_stages=sorted(completed_stages),
                     metadata=checkpoint_metadata,
                 )
 
             self.logger.info("Stage 3/9 %s: %d chunk transcriptions processed", "resumed" if "audio_transcribed" in completed_stages else "complete", len(chunk_transcriptions))
 
-            self.logger.info("Stage 4/9: Merging overlapping chunks...")
-            StatusTracker.update_stage(self.session_id, 4, "running", "Aligning overlapping transcripts")
             merged_segments: List[TranscriptionSegment] = []
 
             if "transcription_merged" in completed_stages:
                 merge_checkpoint = self.checkpoint_manager.load("transcription_merged")
-                merged_segments_data = merge_checkpoint.data.get("merged_segments") if merge_checkpoint else []
+                merged_segments_data: List[Dict[str, Any]] = []
+                if merge_checkpoint:
+                    data_dict = merge_checkpoint.data
+                    if "merged_segments_path" in data_dict:
+                        blob_ref = data_dict.get("merged_segments_path")
+                        try:
+                            merged_segments_data = self.checkpoint_manager.read_blob(blob_ref)
+                        except FileNotFoundError:
+                            self.logger.warning("Merged segments blob missing at %s; re-running merging", blob_ref)
+                            completed_stages.discard("transcription_merged")
+                    else:
+                        merged_segments_data = data_dict.get("merged_segments", [])
                 if merged_segments_data:
                     merged_segments = [TranscriptionSegment.from_dict(msd) for msd in merged_segments_data]
                     self.logger.info("Stage 4/9: Using merged segments from checkpoint (%d segments)", len(merged_segments))
                     StatusTracker.update_stage(
                         self.session_id, 4, "completed", f"Loaded {len(merged_segments)} merged segments (checkpoint)"
                     )
-                else:
+                elif "transcription_merged" in completed_stages:
                     self.logger.warning("Checkpoint for merged segments found but data is empty; re-running merging")
                     completed_stages.discard("transcription_merged")
 
             if "transcription_merged" not in completed_stages:
+                self.logger.info("Stage 4/9: Merging overlapping chunks...")
+                StatusTracker.update_stage(self.session_id, 4, "running", "Aligning overlapping transcripts")
                 merged_segments = self.merger.merge_transcriptions(chunk_transcriptions)
                 StatusTracker.update_stage(
                     self.session_id, 4, "completed", f"Merged into {len(merged_segments)} segments"
                 )
                 self.logger.info("Stage 4/9 complete: %d merged segments", len(merged_segments))
                 completed_stages.add("transcription_merged")
+                blob_ref = self.checkpoint_manager.write_blob(
+                    "transcription_merged",
+                    "merged_segments",
+                    [ms.to_dict() for ms in merged_segments],
+                )
                 self.checkpoint_manager.save(
                     "transcription_merged",
-                    {"merged_segments": [ms.to_dict() for ms in merged_segments]},
+                    {
+                        "merged_segments_path": blob_ref,
+                        "merged_segment_count": len(merged_segments),
+                    },
                     completed_stages=sorted(completed_stages),
                     metadata=checkpoint_metadata,
                 )
 
             self.logger.info("Stage 4/9 %s: %d merged segments processed", "resumed" if "transcription_merged" in completed_stages else "complete", len(merged_segments))
 
-            self.logger.info("Stage 5/9: Speaker diarization%s", " (skipped)" if skip_diarization else "...")
             speaker_segments_with_labels: List[Dict] = []
 
             if "speaker_diarized" in completed_stages:
                 diarization_checkpoint = self.checkpoint_manager.load("speaker_diarized")
-                speaker_segments_with_labels = diarization_checkpoint.data.get("speaker_segments_with_labels") if diarization_checkpoint else []
-                if speaker_segments_with_labels:
+                speaker_data: List[Dict[str, Any]] = []
+                if diarization_checkpoint:
+                    data_dict = diarization_checkpoint.data
+                    if "speaker_segments_path" in data_dict:
+                        blob_ref = data_dict.get("speaker_segments_path")
+                        try:
+                            speaker_data = self.checkpoint_manager.read_blob(blob_ref)
+                        except FileNotFoundError:
+                            self.logger.warning("Speaker segment blob missing at %s; re-running diarization", blob_ref)
+                            completed_stages.discard("speaker_diarized")
+                    else:
+                        speaker_data = data_dict.get("speaker_segments_with_labels", [])
+                if speaker_data:
+                    speaker_segments_with_labels = speaker_data
                     self.logger.info("Stage 5/9: Using speaker segments from checkpoint (%d segments)", len(speaker_segments_with_labels))
                     StatusTracker.update_stage(
                         self.session_id, 5, "completed", f"Loaded {len(speaker_segments_with_labels)} speaker segments (checkpoint)"
                     )
-                else:
+                elif "speaker_diarized" in completed_stages:
                     self.logger.warning("Checkpoint for speaker segments found but data is empty; re-running diarization")
                     completed_stages.discard("speaker_diarized")
 
             if "speaker_diarized" not in completed_stages:
                 if not skip_diarization:
+                    self.logger.info("Stage 5/9: Speaker diarization...")
                     StatusTracker.update_stage(self.session_id, 5, "running", "Performing speaker diarization")
                     try:
                         speaker_segments = self.diarizer.diarize(wav_file)
@@ -496,33 +549,52 @@ class DDSessionProcessor:
                         for seg in merged_segments
                     ]
                 completed_stages.add("speaker_diarized")
+                blob_ref = self.checkpoint_manager.write_blob(
+                    "speaker_diarized",
+                    "speaker_segments",
+                    speaker_segments_with_labels,
+                )
                 self.checkpoint_manager.save(
                     "speaker_diarized",
-                    {"speaker_segments_with_labels": speaker_segments_with_labels},
+                    {
+                        "speaker_segments_path": blob_ref,
+                        "speaker_segment_count": len(speaker_segments_with_labels),
+                    },
                     completed_stages=sorted(completed_stages),
                     metadata=checkpoint_metadata,
                 )
 
             self.logger.info("Stage 5/9 %s: %d speaker segments processed", "resumed" if "speaker_diarized" in completed_stages else "complete", len(speaker_segments_with_labels))
 
-            self.logger.info("Stage 6/9: IC/OOC classification%s", " (skipped)" if skip_classification else "...")
             classifications: List[ClassificationResult] = []
 
             if "segments_classified" in completed_stages:
                 classification_checkpoint = self.checkpoint_manager.load("segments_classified")
-                classifications_data = classification_checkpoint.data.get("classifications") if classification_checkpoint else []
+                classifications_data: List[Dict[str, Any]] = []
+                if classification_checkpoint:
+                    data_dict = classification_checkpoint.data
+                    if "classifications_path" in data_dict:
+                        blob_ref = data_dict.get("classifications_path")
+                        try:
+                            classifications_data = self.checkpoint_manager.read_blob(blob_ref)
+                        except FileNotFoundError:
+                            self.logger.warning("Classification blob missing at %s; re-running classification", blob_ref)
+                            completed_stages.discard("segments_classified")
+                    else:
+                        classifications_data = data_dict.get("classifications", [])
                 if classifications_data:
                     classifications = [ClassificationResult.from_dict(cd) for cd in classifications_data]
                     self.logger.info("Stage 6/9: Using classifications from checkpoint (%d classifications)", len(classifications))
                     StatusTracker.update_stage(
                         self.session_id, 6, "completed", f"Loaded {len(classifications)} classifications (checkpoint)"
                     )
-                else:
+                elif "segments_classified" in completed_stages:
                     self.logger.warning("Checkpoint for classifications found but data is empty; re-running classification")
                     completed_stages.discard("segments_classified")
 
             if "segments_classified" not in completed_stages:
                 if not skip_classification:
+                    self.logger.info("Stage 6/9: IC/OOC classification...")
                     StatusTracker.update_stage(self.session_id, 6, "running", "Classifying IC/OOC segments")
                     try:
                         classifications = self.classifier.classify_segments(
@@ -577,191 +649,257 @@ class DDSessionProcessor:
                         len(speaker_segments_with_labels)
                     )
                 completed_stages.add("segments_classified")
+                blob_ref = self.checkpoint_manager.write_blob(
+                    "segments_classified",
+                    "classifications",
+                    [c.to_dict() for c in classifications],
+                )
                 self.checkpoint_manager.save(
                     "segments_classified",
-                    {"classifications": [c.to_dict() for c in classifications]},
+                    {
+                        "classifications_path": blob_ref,
+                        "classification_count": len(classifications),
+                    },
                     completed_stages=sorted(completed_stages),
                     metadata=checkpoint_metadata,
                 )
 
             self.logger.info("Stage 6/9 %s: %d classifications processed", "resumed" if "segments_classified" in completed_stages else "complete", len(classifications))
 
-            self.logger.info("Stage 7/9: Generating transcript outputs...")
-            StatusTracker.update_stage(self.session_id, 7, "running", "Rendering transcripts")
             speaker_profiles: Dict[str, str] = {}
-            for speaker_id in {seg['speaker'] for seg in speaker_segments_with_labels}:
-                person_name = self.speaker_profile_manager.get_person_name(self.session_id, speaker_id)
-                if person_name:
-                    speaker_profiles[speaker_id] = person_name
+            stats: Dict[str, Any] = {}
+            output_files: Dict[str, Any] = {}
 
-            stats = StatisticsGenerator.generate_stats(
-                speaker_segments_with_labels,
-                classifications
-            )
-
-            metadata = {
-                'session_id': self.session_id,
-                'input_file': str(input_file),
-                'character_names': self.character_names,
-                'player_names': self.player_names,
-                'statistics': stats
-            }
-
-            output_files = self.formatter.save_all_formats(
-                speaker_segments_with_labels,
-                classifications,
-                output_dir,
-                self.safe_session_id,
-                speaker_profiles,
-                metadata
-            )
-
-            for format_name, file_path in output_files.items():
-                self.logger.info("Stage 7/9 output generated (%s): %s", format_name, file_path)
-            StatusTracker.update_stage(self.session_id, 7, "completed", "Transcript outputs saved")
-            completed_stages.add("outputs_generated")
-            self.checkpoint_manager.save(
-                "outputs_generated",
-                {
-                    "output_files": output_files,
-                    "statistics": stats,
-                    "speaker_profiles": speaker_profiles,
-                },
-                completed_stages=sorted(completed_stages),
-                metadata=checkpoint_metadata,
-            )
-
-            segments_output_base = output_dir / "segments"
-            if skip_snippets:
-                self.logger.info("Stage 8/9: Audio segment export skipped")
-                StatusTracker.update_stage(self.session_id, 8, "skipped", "Snippet export skipped")
-                segment_export = {'segments_dir': None, 'manifest': None}
-            else:
-                self.logger.info("Stage 8/9: Exporting audio segments...")
-                StatusTracker.update_stage(self.session_id, 8, "running", "Writing per-segment audio clips")
-                try:
-                    manifest_path = self.snipper.initialize_manifest(segments_output_base / self.safe_session_id)
-                    for i, segment in enumerate(speaker_segments_with_labels):
-                        classification = classifications[i] if classifications and i < len(classifications) else None
-                        self.snipper.export_incremental(wav_file, segment, i + 1, segments_output_base / self.safe_session_id, manifest_path, classification)
-
-                    with self.snipper._manifest_lock:
-                        manifest_data = json.loads(manifest_path.read_text(encoding="utf-8"))
-                        manifest_data["status"] = "complete"
-                        manifest_path.write_text(json.dumps(manifest_data, indent=2, ensure_ascii=False), encoding="utf-8")
-
-                    segments_dir = segments_output_base / self.safe_session_id
-                    self.logger.info("Stage 8/9 complete: segments stored in %s", segments_dir)
+            if "outputs_generated" in completed_stages:
+                outputs_checkpoint = self.checkpoint_manager.load("outputs_generated")
+                checkpoint_data = outputs_checkpoint.data if outputs_checkpoint else {}
+                if checkpoint_data:
+                    output_files = checkpoint_data.get("output_files", {})
+                    stats = checkpoint_data.get("statistics", {})
+                    speaker_profiles = checkpoint_data.get("speaker_profiles", {})
                     StatusTracker.update_stage(
-                        self.session_id, 8, "completed", f"Exported {len(speaker_segments_with_labels)} clips"
+                        self.session_id,
+                        7,
+                        "completed",
+                        f"Transcript outputs restored from checkpoint ({outputs_checkpoint.timestamp})" if outputs_checkpoint else "Transcript outputs restored from checkpoint",
                     )
-                    segment_export = {
-                        'segments_dir': segments_dir,
-                        'manifest': manifest_path
-                    }
+                    self.logger.info("Stage 7/9: Reusing transcript outputs from checkpoint; skipping regeneration")
+                else:
+                    self.logger.warning("Checkpoint for outputs generated is empty; re-running output generation")
+                    completed_stages.discard("outputs_generated")
 
-                except Exception as export_error:
-                    self.logger.warning("Audio segment export failed: %s", export_error)
-                    StatusTracker.update_stage(self.session_id, 8, "failed", f"Export failed: {export_error}")
-                    segment_export = {
-                        'segments_dir': None,
-                        'manifest': None
-                    }
-                completed_stages.add("audio_segments_exported")
+            if "outputs_generated" not in completed_stages:
+                self.logger.info("Stage 7/9: Generating transcript outputs...")
+                StatusTracker.update_stage(self.session_id, 7, "running", "Rendering transcripts")
+                for speaker_id in {seg['speaker'] for seg in speaker_segments_with_labels}:
+                    person_name = self.speaker_profile_manager.get_person_name(self.session_id, speaker_id)
+                    if person_name:
+                        speaker_profiles[speaker_id] = person_name
+
+                stats = StatisticsGenerator.generate_stats(
+                    speaker_segments_with_labels,
+                    classifications
+                )
+
+                metadata = {
+                    'session_id': self.session_id,
+                    'input_file': str(input_file),
+                    'character_names': self.character_names,
+                    'player_names': self.player_names,
+                    'statistics': stats
+                }
+
+                output_files = self.formatter.save_all_formats(
+                    speaker_segments_with_labels,
+                    classifications,
+                    output_dir,
+                    self.safe_session_id,
+                    speaker_profiles,
+                    metadata
+                )
+
+                for format_name, file_path in output_files.items():
+                    self.logger.info("Stage 7/9 output generated (%s): %s", format_name, file_path)
+                StatusTracker.update_stage(self.session_id, 7, "completed", "Transcript outputs saved")
+                completed_stages.add("outputs_generated")
                 self.checkpoint_manager.save(
-                    "audio_segments_exported",
-                    {"segment_export": segment_export},
+                    "outputs_generated",
+                    {
+                        "output_files": output_files,
+                        "statistics": stats,
+                        "speaker_profiles": speaker_profiles,
+                    },
                     completed_stages=sorted(completed_stages),
                     metadata=checkpoint_metadata,
                 )
 
-            # Stage 9/9: Campaign Knowledge Extraction
-            knowledge_data = {}
-            if skip_knowledge:
-                self.logger.info("Stage 9/9: Campaign knowledge extraction skipped")
-                StatusTracker.update_stage(self.session_id, 9, "skipped", "Knowledge extraction skipped")
-            else:
-                self.logger.info("Stage 9/9: Extracting campaign knowledge from IC transcript...")
-                StatusTracker.update_stage(self.session_id, 9, "running", "Analyzing IC transcript for entities")
-                try:
-                    # Initialize knowledge extraction components
-                    extractor = KnowledgeExtractor()
-                    campaign_id = self.party_id or "default"
-                    campaign_kb = CampaignKnowledgeBase(campaign_id=campaign_id)
+            segment_export: Dict[str, Any] = {'segments_dir': None, 'manifest': None}
 
-                    # Get IC-only transcript text
-                    ic_text = self.formatter.format_ic_only(
-                        speaker_segments_with_labels,
-                        classifications,
-                        speaker_profiles
-                    )
-
-                    # Build party context for better extraction
-                    party_context_dict = None
-                    if self.party_id:
-                        party = self.party_manager.get_party(self.party_id)
-                        if party:
-                            party_context_dict = {
-                                'character_names': self.character_names,
-                                'campaign': party.campaign or 'Unknown'
-                            }
-
-                    # Extract knowledge from IC transcript
-                    new_knowledge = extractor.extract_knowledge(
-                        ic_text,
+            if "audio_segments_exported" in completed_stages:
+                segments_checkpoint = self.checkpoint_manager.load("audio_segments_exported")
+                checkpoint_data = segments_checkpoint.data if segments_checkpoint else {}
+                export_data = checkpoint_data.get("segment_export") if checkpoint_data else None
+                if export_data:
+                    segment_export = export_data
+                    StatusTracker.update_stage(
                         self.session_id,
-                        party_context_dict
+                        8,
+                        "completed",
+                        f"Audio segments restored from checkpoint ({segments_checkpoint.timestamp})" if segments_checkpoint else "Audio segments restored from checkpoint",
+                    )
+                    self.logger.info("Stage 8/9: Reusing audio segment export from checkpoint; skipping regeneration")
+                else:
+                    self.logger.warning("Checkpoint for audio segments is empty; re-running snippet export")
+                    completed_stages.discard("audio_segments_exported")
+
+            segments_output_base = output_dir / "segments"
+            if "audio_segments_exported" not in completed_stages:
+                if skip_snippets:
+                    self.logger.info("Stage 8/9: Audio segment export skipped")
+                    StatusTracker.update_stage(self.session_id, 8, "skipped", "Snippet export skipped")
+                else:
+                    self.logger.info("Stage 8/9: Exporting audio segments...")
+                    StatusTracker.update_stage(self.session_id, 8, "running", "Writing per-segment audio clips")
+                    try:
+                        manifest_path = self.snipper.initialize_manifest(segments_output_base / self.safe_session_id)
+                        for i, segment in enumerate(speaker_segments_with_labels):
+                            classification = classifications[i] if classifications and i < len(classifications) else None
+                            self.snipper.export_incremental(wav_file, segment, i + 1, segments_output_base / self.safe_session_id, manifest_path, classification)
+
+                        with self.snipper._manifest_lock:
+                            manifest_data = json.loads(manifest_path.read_text(encoding="utf-8"))
+                            manifest_data["status"] = "complete"
+                            manifest_path.write_text(json.dumps(manifest_data, indent=2, ensure_ascii=False), encoding="utf-8")
+
+                        segments_dir = segments_output_base / self.safe_session_id
+                        self.logger.info("Stage 8/9 complete: segments stored in %s", segments_dir)
+                        StatusTracker.update_stage(
+                            self.session_id, 8, "completed", f"Exported {len(speaker_segments_with_labels)} clips"
+                        )
+                        segment_export = {
+                            'segments_dir': str(segments_dir),
+                            'manifest': str(manifest_path)
+                        }
+
+                    except Exception as export_error:
+                        self.logger.warning("Audio segment export failed: %s", export_error)
+                        StatusTracker.update_stage(self.session_id, 8, "failed", f"Export failed: {export_error}")
+                        segment_export = {
+                            'segments_dir': None,
+                            'manifest': None
+                        }
+                    completed_stages.add("audio_segments_exported")
+                    self.checkpoint_manager.save(
+                        "audio_segments_exported",
+                        {"segment_export": segment_export},
+                        completed_stages=sorted(completed_stages),
+                        metadata=checkpoint_metadata,
                     )
 
-                    # Merge into campaign knowledge base
-                    campaign_kb.merge_new_knowledge(new_knowledge, self.session_id)
-
-                    # Count extracted entities
-                    entity_counts = {
-                        'quests': len(new_knowledge.get('quests', [])),
-                        'npcs': len(new_knowledge.get('npcs', [])),
-                        'plot_hooks': len(new_knowledge.get('plot_hooks', [])),
-                        'locations': len(new_knowledge.get('locations', [])),
-                        'items': len(new_knowledge.get('items', []))
-                    }
-                    total_entities = sum(entity_counts.values())
-
-                    knowledge_data = {
-                        'extracted': entity_counts,
-                        'knowledge_file': str(campaign_kb.knowledge_file)
-                    }
-
-                    self.logger.info(
-                        "Stage 9/9 complete: Extracted %d entities (Q:%d, NPC:%d, Plot:%d, Loc:%d, Item:%d)",
-                        total_entities,
-                        entity_counts['quests'],
-                        entity_counts['npcs'],
-                        entity_counts['plot_hooks'],
-                        entity_counts['locations'],
-                        entity_counts['items']
-                    )
+            # Stage 9/9: Campaign Knowledge Extraction
+            knowledge_data: Dict[str, Any] = {}
+            if "knowledge_extracted" in completed_stages:
+                knowledge_checkpoint = self.checkpoint_manager.load("knowledge_extracted")
+                checkpoint_data = knowledge_checkpoint.data if knowledge_checkpoint else {}
+                if checkpoint_data:
+                    knowledge_data = checkpoint_data.get("knowledge_data", {})
                     StatusTracker.update_stage(
                         self.session_id,
                         9,
                         "completed",
-                        f"Extracted {total_entities} campaign entities"
+                        f"Knowledge extraction restored from checkpoint ({knowledge_checkpoint.timestamp})" if knowledge_checkpoint else "Knowledge extraction restored from checkpoint",
                     )
-                except Exception as knowledge_error:
-                    self.logger.warning("Knowledge extraction failed: %s", knowledge_error)
-                    StatusTracker.update_stage(
-                        self.session_id,
-                        9,
-                        "failed",
-                        f"Extraction failed: {knowledge_error}"
+                    self.logger.info("Stage 9/9: Reusing knowledge extraction results from checkpoint")
+                else:
+                    self.logger.warning("Checkpoint for knowledge extraction is empty; re-running extraction")
+                    completed_stages.discard("knowledge_extracted")
+
+            if "knowledge_extracted" not in completed_stages:
+                if skip_knowledge:
+                    self.logger.info("Stage 9/9: Campaign knowledge extraction skipped")
+                    StatusTracker.update_stage(self.session_id, 9, "skipped", "Knowledge extraction skipped")
+                else:
+                    self.logger.info("Stage 9/9: Extracting campaign knowledge from IC transcript...")
+                    StatusTracker.update_stage(self.session_id, 9, "running", "Analyzing IC transcript for entities")
+                    try:
+                        # Initialize knowledge extraction components
+                        extractor = KnowledgeExtractor()
+                        campaign_id = self.party_id or "default"
+                        campaign_kb = CampaignKnowledgeBase(campaign_id=campaign_id)
+
+                        # Get IC-only transcript text
+                        ic_text = self.formatter.format_ic_only(
+                            speaker_segments_with_labels,
+                            classifications,
+                            speaker_profiles
+                        )
+
+                        # Build party context for better extraction
+                        party_context_dict = None
+                        if self.party_id:
+                            party = self.party_manager.get_party(self.party_id)
+                            if party:
+                                party_context_dict = {
+                                    'character_names': self.character_names,
+                                    'campaign': party.campaign or 'Unknown'
+                                }
+
+                        # Extract knowledge from IC transcript
+                        new_knowledge = extractor.extract_knowledge(
+                            ic_text,
+                            self.session_id,
+                            party_context_dict
+                        )
+
+                        # Merge into campaign knowledge base
+                        campaign_kb.merge_new_knowledge(new_knowledge, self.session_id)
+
+                        # Count extracted entities
+                        entity_counts = {
+                            'quests': len(new_knowledge.get('quests', [])),
+                            'npcs': len(new_knowledge.get('npcs', [])),
+                            'plot_hooks': len(new_knowledge.get('plot_hooks', [])),
+                            'locations': len(new_knowledge.get('locations', [])),
+                            'items': len(new_knowledge.get('items', []))
+                        }
+                        total_entities = sum(entity_counts.values())
+
+                        knowledge_data = {
+                            'extracted': entity_counts,
+                            'knowledge_file': str(campaign_kb.knowledge_file)
+                        }
+
+                        self.logger.info(
+                            "Stage 9/9 complete: Extracted %d entities (Q:%d, NPC:%d, Plot:%d, Loc:%d, Item:%d)",
+                            total_entities,
+                            entity_counts['quests'],
+                            entity_counts['npcs'],
+                            entity_counts['plot_hooks'],
+                            entity_counts['locations'],
+                            entity_counts['items']
+                        )
+                        StatusTracker.update_stage(
+                            self.session_id,
+                            9,
+                            "completed",
+                            f"Extracted {total_entities} campaign entities"
+                        )
+                    except Exception as knowledge_error:
+                        self.logger.warning("Knowledge extraction failed: %s", knowledge_error)
+                        StatusTracker.update_stage(
+                            self.session_id,
+                            9,
+                            "failed",
+                            f"Extraction failed: {knowledge_error}"
+                        )
+                        knowledge_data = {'error': str(knowledge_error)}
+                    completed_stages.add("knowledge_extracted")
+                    self.checkpoint_manager.save(
+                        "knowledge_extracted",
+                        {"knowledge_data": knowledge_data},
+                        completed_stages=sorted(completed_stages),
+                        metadata=checkpoint_metadata,
                     )
-                    knowledge_data = {'error': str(knowledge_error)}
-                completed_stages.add("knowledge_extracted")
-                self.checkpoint_manager.save(
-                    "knowledge_extracted",
-                    {"knowledge_data": knowledge_data},
-                    completed_stages=sorted(completed_stages),
-                    metadata=checkpoint_metadata,
-                )
 
             self.logger.info("Processing complete for session '%s'", self.session_id)
             self.logger.info(

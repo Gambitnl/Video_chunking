@@ -1,4 +1,6 @@
 import gradio as gr
+from src.ui.helpers import Placeholders, InfoText, StatusMessages, UIComponents
+from src.ui.constants import StatusIndicators as SI
 
 def create_dashboard_tab():
     """Creates the Campaign Dashboard tab and returns its components."""

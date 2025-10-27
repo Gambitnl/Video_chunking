@@ -66,6 +66,16 @@ def sanitize_input(text: str, max_length: int = MAX_QUESTION_LENGTH) -> str:
     return sanitized
 
 
+class SafeFormatDict(dict):
+    def __missing__(self, key):
+        return f'{{{key}}}'
+
+
+class SafeFormatDict(dict):
+    def __missing__(self, key):
+        return f"{{{key}}}"
+
+
 class CampaignChatClient:
     """LangChain-powered conversational interface for campaign data."""
 
@@ -180,12 +190,14 @@ class CampaignChatClient:
             with open(prompt_file, "r", encoding="utf-8") as f:
                 template = f.read()
 
-            # TODO: Replace placeholders with actual campaign data
-            return template.format(
+            context = SafeFormatDict(
                 campaign_name="Unknown",
                 num_sessions=0,
-                pc_names="Unknown"
+                pc_names="Unknown",
             )
+
+            # TODO: Replace placeholders with actual campaign data
+            return template.format_map(context)
         except FileNotFoundError:
             logger.warning(f"System prompt file not found: {prompt_file}")
             return "You are a helpful D&D campaign assistant."
@@ -359,3 +371,4 @@ class CampaignChatChain:
                 "answer": f"Error: {str(e)}",
                 "sources": []
             }
+

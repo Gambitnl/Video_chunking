@@ -745,6 +745,22 @@ class CharacterProfileManager:
                         session_acquired=session_value,
                         category=moment_type
                     ))
+                elif category == "goal_progress":
+                    goal_text = moment.content
+                    if moment_type == "completed":
+                        if goal_text in profile.current_goals:
+                            profile.current_goals.remove(goal_text)
+                        if goal_text not in profile.completed_goals:
+                            profile.completed_goals.append(goal_text)
+                    else:
+                        if goal_text not in profile.current_goals:
+                            profile.current_goals.append(goal_text)
+                elif category == "character_background":
+                    profile.development_notes.append(CharacterDevelopment(
+                        session=session_value,
+                        note=moment.content,
+                        category=moment_type or "background"
+                    ))
                 else:
                     self.logger.debug("Unhandled profile update category '%s' for '%s'", category, character_name)
         

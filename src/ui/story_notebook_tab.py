@@ -38,10 +38,10 @@ def create_story_notebook_tab(
         session_dropdown = gr.update(choices=session_choices, value=selected)
 
         if not selected:
-            message = (
-                f"## {StatusIndicators.WARNING} No Sessions Available\n\n"
-                f"{STORY_NO_DATA}\n\n"
-                "Process a session with the pipeline, then click **Refresh Sessions**."
+            message = StatusMessages.warning(
+                "No Sessions Available",
+                STORY_NO_DATA,
+                "Process a session with the pipeline, then click Refresh Sessions."
             )
             return (
                 session_dropdown,
@@ -54,11 +54,10 @@ def create_story_notebook_tab(
         try:
             session = story_manager.load_session(selected)
         except FileNotFoundError:
-            message = (
-                f"## {StatusIndicators.WARNING} Session Not Found\n\n"
-                f"{STORY_NO_DATA}\n\n"
-                f"Could not locate processed data for `{selected}`. Re-run the "
-                "session processing and refresh."
+            message = StatusMessages.warning(
+                "Session Not Found",
+                STORY_NO_DATA,
+                f"Could not locate processed data for {selected!r}. Re-run the pipeline and refresh."
             )
             return (
                 session_dropdown,
@@ -68,9 +67,10 @@ def create_story_notebook_tab(
                 notebook_status,
             )
         except Exception as exc:
-            message = (
-                f"## {StatusIndicators.ERROR} Failed to Load Session\n\n"
-                f"An unexpected error occurred while loading `{selected}`: {exc}"
+            message = StatusMessages.error(
+                "Failed to Load Session",
+                f"An unexpected error occurred while loading {selected!r}.",
+                str(exc)
             )
             return (
                 session_dropdown,
@@ -88,16 +88,14 @@ def create_story_notebook_tab(
         )
 
         if not session.segments:
-            message = (
-                f"## {StatusIndicators.WARNING} {STORY_NO_DATA}\n\n"
+            message = StatusMessages.warning(
+                "No Segment Data",
+                STORY_NO_DATA,
                 "The selected session file is missing segment data."
             )
         else:
             details = story_manager.build_session_info(session)
-            message = (
-                f"### {StatusIndicators.SUCCESS} Session Ready\n\n"
-                f"{details}"
-            )
+            message = StatusMessages.success("Session Ready", details)
 
         session_state: Dict = {
             "session_id": session.session_id,
@@ -143,8 +141,10 @@ def create_story_notebook_tab(
     def story_generate_narrator(session_state: Dict, temperature: float) -> Tuple[str, str]:
         if not session_state or not session_state.get("segments"):
             return (
-                f"## {StatusIndicators.WARNING} No Session Loaded\n\n"
-                "Please select a session from the dropdown above, then try again.",
+                StatusMessages.warning(
+                    "No Session Loaded",
+                    "Please select a session from the dropdown above, then try again."
+                ),
                 "",
             )
 
@@ -167,12 +167,20 @@ def create_story_notebook_tab(
     def story_generate_character(session_state: Dict, character_name: str, temperature: float) -> Tuple[str, str]:
         if not session_state or not session_state.get("segments"):
             return (
-                f"## {StatusIndicators.WARNING} No Session Loaded\n\n"
-                "Please select a session from the dropdown at the top of this tab, then try again.",
+                StatusMessages.warning(
+                    "No Session Loaded",
+                    "Please select a session from the dropdown at the top of this tab, then try again."
+                ),
                 "",
             )
         if not character_name:
-            return "Select a character perspective to generate.", ""
+            return (
+                StatusMessages.warning(
+                    "No Character Selected",
+                    "Choose a character perspective before generating the narrative."
+                ),
+                "",
+            )
 
         try:
             session = _session_from_state(session_state)
@@ -231,7 +239,7 @@ def create_story_notebook_tab(
             interactive=True,
             info="Select which processed session to summarize",
         )
-        refresh_story_btn = gr.Button("Refresh Sessions", variant="secondary")
+        refresh_story_btn = UIComponents.create_action_button(SI.ACTION_REFRESH, variant="secondary")
         story_temperature = gr.Slider(
             minimum=0.1,
             maximum=1.0,
@@ -245,9 +253,15 @@ def create_story_notebook_tab(
         story_session_info = gr.Markdown(initial_message)
 
         with gr.Accordion("Narrator Perspective", open=True):
-            narrator_btn = gr.Button("Generate Narrator Summary", variant="primary")
-            narrator_story = gr.Markdown("Narrator perspective will appear here once generated.")
-            narrator_path = gr.Textbox(label="Saved Narrative Path", interactive=False)
+            narrator_btn = UIComponents.create_action_button("Generate Narrator Summary", variant="primary")
+            narrator_story = gr.Markdown(
+                StatusMessages.info("Narrator Perspective", "Narrator perspective will appear here once generated.")
+            )
+            narrator_path = gr.Textbox(
+                label="Saved Narrative Path",
+                interactive=False,
+                placeholder="Path will appear after generation",
+            )
 
         with gr.Accordion("Character Perspectives", open=False):
             character_dropdown = gr.Dropdown(
@@ -257,11 +271,32 @@ def create_story_notebook_tab(
                 interactive=initial_character_interactive,
                 info="Choose which character voice to write from",
             )
-            character_btn = gr.Button("Generate Character Narrative", variant="primary")
-            character_story = gr.Markdown("Pick a character and generate to see their POV recap.")
-            character_path = gr.Textbox(label="Saved Narrative Path", interactive=False)
+            character_btn = UIComponents.create_action_button("Generate Character Narrative", variant="primary")
+            character_story = gr.Markdown(
+                StatusMessages.info(
+                    "Character Narrative",
+                    "Pick a character and generate to see their perspective."
+                )
+            )
+            character_path = gr.Textbox(
+                label="Saved Narrative Path",
+                interactive=False,
+                placeholder="Path will appear after generation",
+            )
 
-        refresh_notebook_btn = gr.Button("Refresh Notebook Context", variant="secondary")
+        def _prepare_narrator_generation():
+            return (
+                StatusMessages.loading("Generating narrator summary"),
+                ""
+            )
+
+        def _prepare_character_generation():
+            return (
+                StatusMessages.loading("Generating character narrative"),
+                ""
+            )
+
+        refresh_notebook_btn = UIComponents.create_action_button("Refresh Notebook Context", variant="secondary")
 
         refresh_story_btn.click(
             fn=story_refresh_sessions_ui,
@@ -286,15 +321,25 @@ def create_story_notebook_tab(
         )
 
         narrator_btn.click(
+            fn=_prepare_narrator_generation,
+            outputs=[narrator_story, narrator_path],
+            queue=True,
+        ).then(
             fn=story_generate_narrator,
             inputs=[story_session_state, story_temperature],
             outputs=[narrator_story, narrator_path],
+            queue=True,
         )
 
         character_btn.click(
+            fn=_prepare_character_generation,
+            outputs=[character_story, character_path],
+            queue=True,
+        ).then(
             fn=story_generate_character,
             inputs=[story_session_state, character_dropdown, story_temperature],
             outputs=[character_story, character_path],
+            queue=True,
         )
 
         refresh_notebook_btn.click(

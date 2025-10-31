@@ -349,11 +349,11 @@ def create_campaign_chat_tab(project_root: Path) -> None:
                         scale=4,
                         lines=2
                     )
-                    send_btn = gr.Button("Send", scale=1, variant="primary")
+                    send_btn = gr.Button(SI.ACTION_SEND, scale=1, variant="primary")
 
                 with gr.Row():
-                    clear_btn = gr.Button("Clear Chat", size="sm")
-                    new_conv_btn = gr.Button("New Conversation", size="sm", variant="primary")
+                    clear_btn = gr.Button(f"{SI.ACTION_CLEAR} Chat", size="sm")
+                    new_conv_btn = gr.Button(f"{SI.ACTION_NEW} Conversation", size="sm", variant="primary")
 
             with gr.Column(scale=1):
                 gr.Markdown("### Conversations")
@@ -364,7 +364,7 @@ def create_campaign_chat_tab(project_root: Path) -> None:
                     interactive=True
                 )
 
-                load_conv_btn = gr.Button("Load Selected", size="sm")
+                load_conv_btn = gr.Button(f"{SI.ACTION_LOAD} Selected", size="sm")
 
                 gr.Markdown("---")
 

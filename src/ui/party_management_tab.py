@@ -69,9 +69,14 @@ def create_party_management_tab(available_parties: List[str]) -> None:
                 temp_path = Path(temp_file.name)
                 temp_file.close()
                 party_manager.export_party(party_id, temp_path)
-                return temp_path, f"Exported '{party_id}'."
+                return temp_path, StatusMessages.success("Party Exported", f"Successfully exported '{party_id}'.")
             except Exception as exc:  # pragma: no cover - UI handler
-                return None, f"Error exporting party: {exc}"
+                error_msg = StatusMessages.error(
+                    "Export Failed",
+                    f"Unable to export party '{party_id}'.",
+                    str(exc)
+                )
+                return None, error_msg
 
         def import_party_ui(file_obj, party_id_override: str | None) -> str:
             if file_obj is None:
@@ -81,12 +86,16 @@ def create_party_management_tab(available_parties: List[str]) -> None:
                     Path(file_obj.name),
                     party_id_override or None,
                 )
-                return (
-                    f"Successfully imported party '{imported_id}'. "
-                    "Refresh the page to use the updated list."
+                return StatusMessages.success(
+                    "Party Imported",
+                    f"Successfully imported party '{imported_id}'. Refresh the page to use the updated list."
                 )
             except Exception as exc:  # pragma: no cover - UI handler
-                return f"Error importing party: {exc}"
+                return StatusMessages.error(
+                    "Import Failed",
+                    "Unable to import party configuration.",
+                    str(exc)
+                )
 
         export_btn.click(
             fn=export_party_ui,

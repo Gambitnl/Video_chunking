@@ -82,24 +82,27 @@ Transform long-form D&D session recordings into rich, searchable transcripts wit
   - Prevent data loss on 4+ hour sessions
   - Estimated effort: 2 days
   - Impact: HIGH - prevents hours of lost work
-- [ ] **Improve resumable checkpoints robustness**
+- [x] **Improve resumable checkpoints robustness**
   - Files: `src/pipeline.py`, `src/checkpoint.py`
   - Issue: Resume still re-executes completed stages and checkpoints can become very large
   - Fix: Skip already completed stages, compress/trim checkpoint payloads, and re-run only necessary steps
   - Estimated effort: 1.5 days
   - Impact: HIGH - faster recovery for long sessions
-- [ ] **Surface chunking failures to users**
+  - Status: [DONE] Completed 2025-10-26 (Codex GPT-5)
+- [x] **Surface chunking failures to users**
   - Files: `src/pipeline.py`
   - Issue: When chunking yields zero segments the pipeline silently proceeds, leading to empty transcripts
   - Fix: Detect real sessions vs. test mocks and abort with actionable errors for users
   - Estimated effort: 0.5 days
   - Impact: HIGH - avoids confusing empty outputs
-- [ ] **Refine snippet placeholder output**
+  - Status: [DONE] Completed 2025-10-24 (Codex GPT-5)
+- [x] **Refine snippet placeholder output**
   - File: `src/snipper.py`
   - Issue: Placeholder manifests use hard-coded Dutch text and leave stray files even when no snippets are produced
   - Fix: Localize placeholder strings, only create markers when needed, and make the manifest structure explicit
   - Estimated effort: 0.5 days
   - Impact: MEDIUM - clearer UX for empty sessions
+  - Status: [DONE] Completed 2025-10-26 (Codex GPT-5)
 
 #### 2. Code Refactoring (Maintainability)
 **Owner**: Open

@@ -12,9 +12,16 @@ def create_speaker_management_tab() -> None:
         try:
             manager = SpeakerProfileManager()
             manager.map_speaker(session_id, speaker_id, person_name)
-            return f"Mapped {speaker_id} -> {person_name}"
+            return StatusMessages.success(
+                "Speaker Mapped",
+                f"Successfully mapped {speaker_id} to {person_name}."
+            )
         except Exception as exc:
-            return f"Error: {exc}"
+            return StatusMessages.error(
+                "Mapping Failed",
+                f"Unable to map speaker {speaker_id}.",
+                str(exc)
+            )
 
     def get_speaker_profiles(session_id):
         try:
@@ -29,7 +36,11 @@ def create_speaker_management_tab() -> None:
 
             return result
         except Exception as exc:
-            return f"Error: {exc}"
+            return StatusMessages.error(
+                "Profile Loading Failed",
+                "Unable to load speaker profiles for this session.",
+                str(exc)
+            )
 
     with gr.Tab("Speaker Management"):
         gr.Markdown("""
@@ -41,7 +52,10 @@ def create_speaker_management_tab() -> None:
 
         with gr.Row():
             with gr.Column():
-                map_session_id = gr.Textbox(label="Session ID")
+                map_session_id = gr.Textbox(
+                    label="Session ID",
+                    placeholder=Placeholders.SESSION_ID
+                )
                 map_speaker_id = gr.Textbox(
                     label="Speaker ID",
                     placeholder="e.g., SPEAKER_00",
@@ -54,7 +68,10 @@ def create_speaker_management_tab() -> None:
                 map_status = gr.Textbox(label="Status", interactive=False)
 
             with gr.Column():
-                view_session_id = gr.Textbox(label="Session ID")
+                view_session_id = gr.Textbox(
+                    label="Session ID",
+                    placeholder=Placeholders.SESSION_ID
+                )
                 view_btn = UIComponents.create_action_button("View Speaker Profiles")
                 profiles_output = gr.Markdown(label="Profiles")
 

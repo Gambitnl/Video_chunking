@@ -16,6 +16,8 @@ class AudioSnipper:
     def __init__(self):
         self.logger = get_logger('snipper')
         self.clean_stale_clips = Config.CLEAN_STALE_CLIPS
+        self.placeholder_message = Config.SNIPPET_PLACEHOLDER_MESSAGE
+        self._last_cleanup_count = 0
         self._manifest_lock = threading.Lock()
 
     def _clear_session_directory(self, session_dir: Path) -> int:
@@ -50,8 +52,10 @@ class AudioSnipper:
         session_dir.mkdir(parents=True, exist_ok=True)
         manifest_path = session_dir / "manifest.json"
         with self._manifest_lock:
+            removed = 0
             if self.clean_stale_clips:
-                self._clear_session_directory(session_dir)
+                removed = self._clear_session_directory(session_dir)
+            self._last_cleanup_count = removed
             manifest = {
                 "session_id": session_dir.name,
                 "status": "in_progress",
@@ -108,15 +112,38 @@ class AudioSnipper:
     ) -> Dict[str, Optional[Path]]:
         base_output_dir = Path(base_output_dir)
         session_dir = base_output_dir / session_id
-        manifest_path = self.initialize_manifest(session_dir)
 
         if not segments:
-            self.logger.warning("No transcription segments provided; generating placeholder manifest")
             with self._manifest_lock:
-                manifest_data = json.loads(manifest_path.read_text(encoding="utf-8"))
-                manifest_data["status"] = "complete"
-                manifest_path.write_text(json.dumps(manifest_data, indent=2, ensure_ascii=False), encoding="utf-8")
-            return {"segments_dir": session_dir, "manifest": manifest_path}
+                cleanup_count = 0
+                if self.clean_stale_clips:
+                    cleanup_count = self._clear_session_directory(session_dir)
+                if cleanup_count:
+                    session_dir.mkdir(parents=True, exist_ok=True)
+                    manifest_path = session_dir / "manifest.json"
+                    manifest = {
+                        "session_id": session_dir.name,
+                        "status": "no_snippets",
+                        "total_clips": 0,
+                        "clips": [],
+                        "placeholder": {
+                            "message": self.placeholder_message,
+                            "reason": "no_segments",
+                            "removed_clips": cleanup_count
+                        }
+                    }
+                    manifest_path.write_text(json.dumps(manifest, indent=2, ensure_ascii=False), encoding="utf-8")
+                    self.logger.info(
+                        "No transcription segments provided; removed %d stale clips and wrote placeholder manifest to %s",
+                        cleanup_count,
+                        manifest_path
+                    )
+                    return {"segments_dir": session_dir, "manifest": manifest_path}
+
+            self.logger.warning("No transcription segments provided; no new snippet manifest created")
+            return {"segments_dir": session_dir if session_dir.exists() else None, "manifest": None}
+
+        manifest_path = self.initialize_manifest(session_dir)
 
         self.logger.info(
             "Exporting %d audio snippets to %s (audio=%s)",

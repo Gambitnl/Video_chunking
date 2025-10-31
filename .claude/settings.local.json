@@ -3,7 +3,9 @@
     "allow": [
       "Bash(git push:*)",
       "Bash(timeout 5 python app.py:*)",
-      "Read(//f/**)"
+      "Read(//f/**)",
+      "Bash(python:*)",
+      "Bash(pytest:*)"
     ],
     "deny": [],
     "ask": []

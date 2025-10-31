@@ -35,7 +35,11 @@ def create_document_viewer_tab(
                 set_notebook_context(content)
             return content
         except Exception as exc:
-            return f"Error downloading document: {exc}"
+            return StatusMessages.error(
+                "Document Download Failed",
+                "Unable to download the Google Doc content.",
+                str(exc)
+            )
 
     def check_auth_status():
         if is_authenticated():
@@ -58,9 +62,19 @@ def create_document_viewer_tab(
             )
             return instructions, flow
         except FileNotFoundError as exc:
-            return str(exc), None
+            error_msg = StatusMessages.error(
+                "Credentials File Missing",
+                "Could not find Google OAuth credentials file.",
+                str(exc)
+            )
+            return error_msg, None
         except Exception as exc:
-            return f"Error starting OAuth flow: {exc}", None
+            error_msg = StatusMessages.error(
+                "OAuth Flow Failed",
+                "Unable to start the authorization process.",
+                str(exc)
+            )
+            return error_msg, None
 
     def complete_oauth_flow(flow_object, auth_code: str):
         if not flow_object:
@@ -127,7 +141,7 @@ def create_document_viewer_tab(
                     interactive=False,
                 )
             with gr.Column(scale=1):
-                setup_guide_btn = gr.Button("[GUIDE] Open Setup Guide", size="sm", variant="secondary")
+                setup_guide_btn = gr.Button(f"{SI.INFO} Open Setup Guide", size="sm", variant="secondary")
                 setup_guide_result = gr.Textbox(
                     label="",
                     value="",
@@ -144,7 +158,7 @@ def create_document_viewer_tab(
                 Just approve access and return here. That's it!
                 """)
                 auto_auth_btn = gr.Button(
-                    "[AUTH] Authorize with Google",
+                    f"{SI.ACTION_CONFIRM} Authorize with Google",
                     variant="primary",
                     size="lg",
                 )
@@ -154,8 +168,8 @@ def create_document_viewer_tab(
                     interactive=False,
                 )
             with gr.Column(scale=1):
-                check_auth_btn = gr.Button("[STATUS] Check Status", size="sm")
-                revoke_auth_btn = gr.Button("[REVOKE] Revoke Authorization", variant="secondary", size="sm")
+                check_auth_btn = gr.Button(f"{SI.INFO} Check Status", size="sm")
+                revoke_auth_btn = gr.Button(f"{SI.WARNING} Revoke Authorization", variant="secondary", size="sm")
 
         with gr.Accordion("Advanced: Manual Authorization (if automatic doesn't work)", open=False):
             gr.Markdown(
@@ -165,8 +179,8 @@ def create_document_viewer_tab(
             )
             with gr.Row():
                 with gr.Column():
-                    start_auth_btn = gr.Button("Start Manual Authorization", variant="secondary")
-                    revoke_auth_btn_manual = gr.Button("Revoke Authorization", variant="secondary", size="sm")
+                    start_auth_btn = gr.Button(f"{SI.INFO} Start Manual Authorization", variant="secondary")
+                    revoke_auth_btn_manual = gr.Button(f"{SI.WARNING} Revoke Authorization", variant="secondary", size="sm")
                 with gr.Column():
                     auth_output = gr.Textbox(
                         label="Authorization Instructions",
@@ -181,7 +195,7 @@ def create_document_viewer_tab(
                         placeholder="Paste the full redirect URL from your browser (http://localhost:8080/?code=...)",
                         lines=2,
                     )
-                    complete_auth_btn = gr.Button("Complete Authorization", variant="primary")
+                    complete_auth_btn = gr.Button(f"{SI.ACTION_CONFIRM} Authorization", variant="primary")
                 with gr.Column():
                     auth_result = gr.Textbox(
                         label="Result",
@@ -194,7 +208,7 @@ def create_document_viewer_tab(
             label="Google Doc URL",
             placeholder="Paste a Google Docs link (must have access with your authenticated account).",
         )
-        gdoc_view_btn = gr.Button("Load Document", variant="primary")
+        gdoc_view_btn = gr.Button(SI.ACTION_LOAD, variant="primary")
         gdoc_output = gr.Markdown(label="Document Content")
 
         setup_guide_btn.click(

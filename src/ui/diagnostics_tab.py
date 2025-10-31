@@ -111,13 +111,13 @@ def create_diagnostics_tab(project_root: Path) -> None:
         - Output is capped to keep the UI responsive; open `logs/app_stdout.log` if you need the full trace.
         - Use this tab while iterating on pipeline components to validate fixes without leaving the dashboard.
         """)
-        discover_btn = gr.Button("Discover Tests", variant="secondary")
+        discover_btn = gr.Button(f"{SI.ACTION_SEARCH} Tests", variant="secondary")
         tests_list = gr.CheckboxGroup(label="Available Tests", choices=[], interactive=True)
         with gr.Row():
-            run_selected_btn = gr.Button("Run Selected Tests", variant="primary")
-            run_all_btn = gr.Button("Run All Tests", variant="secondary")
+            run_selected_btn = gr.Button(f"{SI.ACTION_PROCESS} Selected Tests", variant="primary")
+            run_all_btn = gr.Button(f"{SI.ACTION_PROCESS} All Tests", variant="secondary")
         test_status = gr.Markdown("")
-        test_output = gr.Textbox(label="Pytest Output", value="", lines=12, interactive=False)
+        test_output = gr.Textbox(label="Pytest Output", value="", lines=12, interactive=False, show_copy_button=True)
 
         discover_btn.click(
             fn=collect_pytest_tests_ui,

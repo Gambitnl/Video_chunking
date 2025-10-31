@@ -3,6 +3,7 @@ from pathlib import Path
 
 import pytest
 
+from src.config import Config
 from src.snipper import AudioSnipper
 
 
@@ -117,25 +118,47 @@ def test_export_segments_creates_files_and_manifest(monkeypatch, temp_output_dir
     monkeypatch.setattr("src.snipper.Config.CLEAN_STALE_CLIPS", True, raising=False)
 
 
-def test_export_with_no_segments(temp_output_dir, dummy_audio_path):
-    """Ensure empty segment lists are handled gracefully."""
-    snipper = AudioSnipper()
-    result = snipper.export_segments(dummy_audio_path, [], temp_output_dir, "test_empty_session")
+def test_export_with_no_segments(monkeypatch, temp_output_dir, dummy_audio_path):
+    """When cleanup removes stale clips, write a placeholder manifest with neutral messaging."""
+    monkeypatch.setattr("src.snipper.Config.CLEAN_STALE_CLIPS", True, raising=False)
 
-    session_dir = result["segments_dir"]
-    assert session_dir is not None
-    assert session_dir.exists()
-    assert not (session_dir / "old.wav").exists(), "Stale files should be removed"
-    assert (session_dir / "keep.txt").exists(), "Non-audio files should be preserved"
+    session_id = "test_empty_session"
+    session_dir = temp_output_dir / session_id
+    session_dir.mkdir(parents=True, exist_ok=True)
+    stale_file = session_dir / "old.wav"
+    stale_file.write_bytes(b"legacy-bytes")
+
+    snipper = AudioSnipper()
+    result = snipper.export_segments(dummy_audio_path, [], temp_output_dir, session_id)
+
+    assert not stale_file.exists(), "Stale clips should be removed when cleanup is enabled"
 
     manifest_path = result["manifest"]
     assert manifest_path is not None
+    session_dir = result["segments_dir"]
+    assert session_dir == temp_output_dir / session_id
+    assert session_dir.exists()
+
     data = json.loads(manifest_path.read_text(encoding="utf-8"))
-    assert data[0]["text"] == "Hallo wereld"
-    assert data[0]["classification"]["label"] == "IC"
-    assert data[0]["classification"]["confidence"] == 0.9
-    assert data[0]["classification"]["reasoning"] == "Unit test"
-    assert data[0]["classification"]["character"] == "DM"
+    assert data["status"] == "no_snippets"
+    assert data["total_clips"] == 0
+    assert data["clips"] == []
+    placeholder = data["placeholder"]
+    assert placeholder["message"] == Config.SNIPPET_PLACEHOLDER_MESSAGE
+    assert placeholder["reason"] == "no_segments"
+    assert placeholder["removed_clips"] == 1
+
+
+def test_export_with_no_segments_and_no_cleanup(monkeypatch, temp_output_dir, dummy_audio_path):
+    """When cleanup is disabled, no placeholder manifest or directories should be created."""
+    monkeypatch.setattr("src.snipper.Config.CLEAN_STALE_CLIPS", False, raising=False)
+
+    snipper = AudioSnipper()
+    result = snipper.export_segments(dummy_audio_path, [], temp_output_dir, "no_cleanup_session")
+
+    assert result["manifest"] is None
+    assert result["segments_dir"] is None
+    assert not (temp_output_dir / "no_cleanup_session").exists()
 
 
 def test_export_segments_skips_cleanup_when_disabled(tmp_path, monkeypatch):

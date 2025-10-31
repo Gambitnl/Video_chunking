@@ -14,16 +14,27 @@ def create_logs_tab(blocks: gr.Blocks) -> None:
                 return _logger_instance.get_error_logs(lines=int(num_lines))
             return _logger_instance.get_recent_logs(lines=int(num_lines))
         except Exception as exc:
-            return f"Error loading logs: {exc}"
+            return StatusMessages.error(
+                "Log Loading Failed",
+                "Unable to load log entries.",
+                str(exc)
+            )
 
     def clear_old_logs_ui():
         try:
             from src.logger import _logger_instance
 
             count = _logger_instance.clear_old_logs(days=7)
-            return f"Cleared {count} old log file(s)"
+            return StatusMessages.success(
+                "Logs Cleared",
+                f"Successfully cleared {count} old log file(s)."
+            )
         except Exception as exc:
-            return f"Error clearing logs: {exc}"
+            return StatusMessages.error(
+                "Log Clearing Failed",
+                "Unable to clear old log files.",
+                str(exc)
+            )
 
     with gr.Tab("Logs"):
         gr.Markdown("""
@@ -34,7 +45,7 @@ def create_logs_tab(blocks: gr.Blocks) -> None:
 
         with gr.Row():
             with gr.Column():
-                refresh_logs_btn = gr.Button("Refresh Logs", size="sm")
+                refresh_logs_btn = gr.Button(f"{SI.ACTION_REFRESH} Logs", size="sm")
                 show_errors_only = gr.Checkbox(label="Show Errors/Warnings Only", value=False)
                 log_lines = gr.Slider(
                     minimum=10,
@@ -45,7 +56,7 @@ def create_logs_tab(blocks: gr.Blocks) -> None:
                 )
 
             with gr.Column():
-                clear_old_logs_btn = gr.Button("Clear Old Logs (7+ days)", size="sm")
+                clear_old_logs_btn = gr.Button(f"{SI.ACTION_CLEAR} Old Logs (7+ days)", size="sm")
                 clear_logs_status = gr.Textbox(label="Status", interactive=False)
 
         logs_output = gr.Textbox(

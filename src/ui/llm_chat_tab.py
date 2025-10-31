@@ -58,9 +58,14 @@ def create_llm_chat_tab(project_root: Path) -> None:
 
         except Exception as exc:
             import traceback
-
             error_details = traceback.format_exc()
-            chat_history.append({"role": "assistant", "content": f"Error: {exc}\nDetails: {error_details}"})
+
+            error_msg = StatusMessages.error(
+                "LLM Response Failed",
+                "Unable to get a response from the language model.",
+                f"{str(exc)}\n\nStack trace:\n{error_details}"
+            )
+            chat_history.append({"role": "assistant", "content": error_msg})
             yield chat_history
 
     with gr.Tab("LLM Chat"):
@@ -78,9 +83,13 @@ def create_llm_chat_tab(project_root: Path) -> None:
                 info="Select a character to role-play as.",
             )
 
-        chatbot = gr.Chatbot(label="Chat History", type="messages")
-        msg = gr.Textbox(label="Your Message")
-        clear = gr.Button("Clear Chat")
+        chatbot = gr.Chatbot(label="Chat History", type="messages", height=600)
+        msg = gr.Textbox(
+            label="Your Message",
+            placeholder=Placeholders.CAMPAIGN_QUESTION,
+            lines=2
+        )
+        clear = gr.Button(f"{SI.ACTION_CLEAR} Chat")
 
         character_dropdown.change(lambda: [], None, [chatbot, msg])
         msg.submit(chat_with_llm, [msg, chatbot, character_dropdown], chatbot)

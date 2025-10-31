@@ -519,6 +519,23 @@ When no segments are exported we emit Dutch placeholder text, create `keep.txt`,
 ### Validation
 - `pytest tests/test_snipper.py::test_export_with_no_segments -q`
 
+### Implementation Notes & Reasoning
+**Implementer**: Codex (GPT-5)  
+**Date**: 2025-10-26
+
+1. **Placeholder Manifest Strategy**
+   - **Choice**: Emit a manifest only when cleanup removes stale clips, using a neutral `no_snippets` status and a configurable message.
+   - **Reasoning**: Avoid confusing Dutch placeholders and prevent empty manifests from appearing when nothing changed.
+   - **Alternatives Considered**: Always write a manifest with zero clips; rejected to keep disk noise low.
+   - **Trade-offs**: Consumers must handle `manifest=None` when cleanup is disabled, but this aligns with the absence of new artifacts.
+2. **Configurable Messaging**
+   - **Choice**: Added `SNIPPET_PLACEHOLDER_MESSAGE` to `Config`.
+   - **Reasoning**: Allows deployments to localize or customize placeholder copy without touching code.
+   - **Trade-offs**: Slightly larger config surface area; mitigated by sane default.
+
+#### Validation
+- `pytest tests/test_snipper.py -q`
+
 ---
 ## P0-REFACTOR-002: Extract Story Generation
 

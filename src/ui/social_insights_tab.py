@@ -49,7 +49,12 @@ def create_social_insights_tab() -> None:
             return keyword_md, temp_path
 
         except Exception as exc:
-            return f"Error during analysis: {exc}", None
+            error_msg = StatusMessages.error(
+                "Analysis Failed",
+                "Unable to complete social network analysis.",
+                str(exc)
+            )
+            return error_msg, None
 
     with gr.Tab("Social Insights"):
         gr.Markdown("""
@@ -71,9 +76,9 @@ def create_social_insights_tab() -> None:
             with gr.Column():
                 insight_session_id = gr.Textbox(
                     label="Session ID",
-                    placeholder="Enter the ID of a completed session",
+                    placeholder=Placeholders.SESSION_ID,
                 )
-                insight_btn = gr.Button("[ANALYZE] Analyze Banter", variant="primary")
+                insight_btn = gr.Button(f"{SI.ACTION_PROCESS} Analyze Banter", variant="primary")
             with gr.Column():
                 keyword_output = gr.Markdown(label="Top Keywords")
         with gr.Row():

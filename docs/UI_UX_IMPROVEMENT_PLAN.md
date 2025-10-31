@@ -53,7 +53,7 @@ Comprehensive plan to improve UI/UX consistency, add loading indicators, standar
 - **Files**:
   - `src/ui/process_session_tab.py` - Processing status
   - `src/ui/character_profiles_tab.py` - Extraction progress (in progress)
-  - `src/ui/story_notebook_tab.py` - Generation progress
+  - `src/ui/story_notebook_tab.py` - Generation progress (done)
   - `src/ui/import_notes_tab.py` - Import progress (done)
 
 ---

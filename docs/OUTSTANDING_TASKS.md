@@ -1,7 +1,7 @@
 # Outstanding Tasks Overview
 
 ## P0 (Critical / Immediate)
-- [ ] P0-BUG-006: Refine Snippet Placeholder Output - see IMPLEMENTATION_PLANS.md:485
+- [x] P0-BUG-006: Refine Snippet Placeholder Output - see IMPLEMENTATION_PLANS.md:485 (placeholder manifest now neutral + optional message env)
 
 ## P1 (High Impact)
 - [~] P1-FEATURE-001: Automatic Character Profile Extraction - see IMPLEMENTATION_PLANS_PART2.md:29

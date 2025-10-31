@@ -276,6 +276,7 @@ class TestPipelineStageExecution:
              patch('src.pipeline.AudioSnipper'), \
              patch('src.pipeline.CheckpointManager'), \
              patch('src.pipeline.StatusTracker'), \
+             patch('src.pipeline.ClassifierFactory'), \
              patch('src.pipeline.SpeakerDiarizer') as mock_diarizer_cls:
 
             mock_audio = mock_audio_cls.return_value
@@ -643,7 +644,8 @@ class TestPipelineCheckpointResume:
 class TestPipelineErrorHandling:
     """Test error handling and graceful degradation."""
 
-    def test_continue_on_diarization_failure(self, monkeypatch, tmp_path):
+    @patch('src.pipeline.ClassifierFactory')
+    def test_continue_on_diarization_failure(self, mock_classifier_factory, monkeypatch, tmp_path):
         """Test pipeline continues if diarization fails."""
         # Create test input file
         input_file = tmp_path / "test.m4a"
@@ -764,7 +766,8 @@ class TestPipelineErrorHandling:
         with patch('src.pipeline.AudioProcessor') as mock_audio_cls, \
              patch('src.pipeline.HybridChunker'), \
              patch('src.pipeline.TranscriberFactory'), \
-             patch('src.pipeline.StatusTracker'):
+             patch('src.pipeline.StatusTracker'), \
+             patch('src.pipeline.ClassifierFactory'):
 
             # Mock audio processor to raise an exception on conversion
             mock_audio = mock_audio_cls.return_value
@@ -796,7 +799,8 @@ class TestPipelineErrorHandling:
         with patch('src.pipeline.AudioProcessor') as mock_audio_cls, \
              patch('src.pipeline.HybridChunker'), \
              patch('src.pipeline.TranscriberFactory'), \
-             patch('src.pipeline.StatusTracker'):
+             patch('src.pipeline.StatusTracker'), \
+             patch('src.pipeline.ClassifierFactory'):
 
             mock_audio = mock_audio_cls.return_value
             mock_audio.convert_to_wav.return_value = wav_file
@@ -833,7 +837,8 @@ class TestPipelineErrorHandling:
         # Mock all components
         with patch('src.pipeline.AudioProcessor') as mock_audio_cls, \
                 patch('src.pipeline.HybridChunker') as mock_chunker_cls, \
-                patch('src.pipeline.StatusTracker'):
+                patch('src.pipeline.StatusTracker'), \
+                patch('src.pipeline.ClassifierFactory'):
 
             mock_audio = mock_audio_cls.return_value
             mock_audio.convert_to_wav.return_value = wav_file
@@ -864,7 +869,8 @@ class TestPipelineErrorHandling:
         with patch('src.pipeline.AudioProcessor') as mock_audio_cls, \
                 patch('src.pipeline.HybridChunker') as mock_chunker_cls, \
                 patch('src.pipeline.TranscriberFactory'), \
-                patch('src.pipeline.StatusTracker'):
+                patch('src.pipeline.StatusTracker'), \
+                patch('src.pipeline.ClassifierFactory'):
 
             mock_audio = mock_audio_cls.return_value
             mock_audio.convert_to_wav.return_value = wav_file

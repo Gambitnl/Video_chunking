@@ -18,7 +18,11 @@ The system can automatically analyze session transcripts to find and append new 
 - Upload an IC-only transcript.
 - Select the relevant party.
 - Provide the Session ID (e.g., "Session 5").
-The AI will then extract notable actions, items, quotes, and more, adding them directly to the character profiles.
+The AI will then extract notable actions, items, quotes, and more, adding them directly to the character profiles. Merged updates now:
+- Track session metadata to keep `sessions_appeared` and `total_sessions` accurate.
+- Deduplicate moments by session/content so rerunning extraction does not create duplicates.
+- Preserve manual edits while appending new inventory, relationships, and development notes.
+- Present a per-character summary so you can quickly review what changed.
 
 ### Character Data Tracked
 

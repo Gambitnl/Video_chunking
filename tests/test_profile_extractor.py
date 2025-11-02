@@ -1,84 +1,80 @@
-import unittest
-from unittest.mock import MagicMock
-from src.profile_extractor import ProfileExtractor, ProfileUpdate
-from src.config import Config
-from src.character_profile import CharacterProfile, CharacterAction, CharacterQuote
+import json
 
-class TestProfileExtractor(unittest.TestCase):
+from src.profile_extractor import ProfileExtractor
 
-    def setUp(self):
-        self.mock_llm_client = MagicMock()
-        self.config = Config()
-        self.extractor = ProfileExtractor(self.mock_llm_client, self.config)
 
-    def test_extract_moments_success(self):
-        """Test successful extraction of moments from a transcript."""
-        # Arrange
-        transcript = [
-            {'classification': 'IC', 'start_time': '00:01:00', 'speaker': 'Thorin', 'text': 'I will take the watch.'},
-            {'classification': 'OOC', 'start_time': '00:01:30', 'speaker': 'Alice', 'text': 'Pass the chips.'},
-            {'classification': 'IC', 'start_time': '00:02:00', 'speaker': 'Elara', 'text': 'I cast a light spell.'},
-        ]
-        
-        llm_response = {
-            'response': '[{"character": "Thorin", "category": "Critical Actions", "type": "taking_watch", "content": "I will take the watch.", "timestamp": "00:01:00", "confidence": 0.8, "context": "The party is setting up camp."}]'
+class StubLLM:
+    def __init__(self, content: dict | None):
+        self._content = content
+        self.calls = []
+
+    def chat(self, **kwargs):
+        self.calls.append(kwargs)
+        if self._content is None:
+            return {"message": {"content": "invalid json"}}
+        return {"message": {"content": json.dumps(self._content)}}
+
+
+def test_extract_profile_updates_empty_when_llm_unavailable():
+    extractor = ProfileExtractor(config=None, llm_client=None)
+    batch = extractor.extract_profile_updates(
+        session_id="session-1",
+        transcript_segments=[],
+        character_names=["Aria"],
+    )
+    assert batch.updates == []
+
+
+def test_extract_profile_updates_with_stub_llm():
+    llm = StubLLM(
+        {
+            "updates": [
+                {
+                    "character": "Aria",
+                    "category": "notable_actions",
+                    "content": "Aria unleashes a radiant smite",
+                    "timestamp": "00:12:34",
+                    "confidence": 0.9,
+                    "context": "The paladin finishes the duel",
+                    "type": "combat",
+                }
+            ]
         }
-        self.mock_llm_client.generate.return_value = llm_response
+    )
+    extractor = ProfileExtractor(config=None, llm_client=llm)
 
-        # Act
-        updates = self.extractor.extract_moments(transcript)
+    segments = [
+        {"text": "I unleash radiant justice!", "speaker": "Aria", "start": 12.0, "end": 14.0},
+    ]
 
-        # Assert
-        self.assertEqual(len(updates), 1)
-        self.assertIsInstance(updates[0], ProfileUpdate)
-        self.assertEqual(updates[0].character, 'Thorin')
-        self.assertEqual(updates[0].content, 'I will take the watch.')
+    batch = extractor.extract_profile_updates(
+        session_id="session-1",
+        transcript_segments=segments,
+        character_names=["Aria"],
+        campaign_context="Test Campaign",
+    )
 
-    def test_extract_moments_invalid_json(self):
-        """Test that an empty list is returned when the LLM provides invalid JSON."""
-        # Arrange
-        transcript = [
-            {'classification': 'IC', 'start_time': '00:01:00', 'speaker': 'Thorin', 'text': 'I will take the watch.'},
-        ]
-        
-        llm_response = {
-            'response': 'This is not JSON'
-        }
-        self.mock_llm_client.generate.return_value = llm_response
+    assert len(batch.updates) == 1
+    update = batch.updates[0]
+    assert update.character == "Aria"
+    assert update.category == "notable_actions"
+    assert update.session_id == "session-1"
+    assert update.content.startswith("Aria unleashes")
+    assert llm.calls, "Expected LLM to be invoked"
 
-        # Act
-        updates = self.extractor.extract_moments(transcript)
 
-        # Assert
-        self.assertEqual(len(updates), 0)
+def test_extract_profile_updates_handles_invalid_json():
+    llm = StubLLM(None)
+    extractor = ProfileExtractor(config=None, llm_client=llm)
 
-    def test_suggest_updates_filters_duplicates(self):
-        """Test that suggest_updates filters out duplicate moments."""
-        # Arrange
-        existing_profile = CharacterProfile(
-            name='Thorin',
-            player='Alice',
-            race='Dwarf',
-            class_name='Fighter',
-            notable_actions=[CharacterAction(session='s1', description='A duplicate action.')],
-            memorable_quotes=[CharacterQuote(session='s1', quote='A duplicate quote.')]
-        )
-        
-        moments = [
-            ProfileUpdate(character='Thorin', category='Critical Actions', type='any', content='A new action.', timestamp='s2', confidence=0.9, context=''),
-            ProfileUpdate(character='Thorin', category='Critical Actions', type='any', content='A duplicate action.', timestamp='s2', confidence=0.9, context=''),
-            ProfileUpdate(character='Thorin', category='Memorable Quotes', type='any', content='A new quote.', timestamp='s2', confidence=0.9, context=''),
-            ProfileUpdate(character='Thorin', category='Memorable Quotes', type='any', content='A duplicate quote.', timestamp='s2', confidence=0.9, context=''),
-        ]
+    segments = [
+        {"text": "For the Seekers!", "speaker": "Thorin", "start": 0.0, "end": 2.0},
+    ]
 
-        # Act
-        suggestions = self.extractor.suggest_updates(moments, existing_profile)
+    batch = extractor.extract_profile_updates(
+        session_id="session-2",
+        transcript_segments=segments,
+        character_names=["Thorin"],
+    )
 
-        # Assert
-        self.assertEqual(len(suggestions['notable_actions']), 1)
-        self.assertEqual(suggestions['notable_actions'][0].content, 'A new action.')
-        self.assertEqual(len(suggestions['memorable_quotes']), 1)
-        self.assertEqual(suggestions['memorable_quotes'][0].content, 'A new quote.')
-
-if __name__ == '__main__':
-    unittest.main()
+    assert batch.updates == []

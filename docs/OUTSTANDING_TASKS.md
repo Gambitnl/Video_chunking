@@ -4,14 +4,14 @@
 - [x] P0-BUG-006: Refine Snippet Placeholder Output - see IMPLEMENTATION_PLANS.md:485 (placeholder manifest now neutral + optional message env)
 
 ## P1 (High Impact)
-- [~] P1-FEATURE-001: Automatic Character Profile Extraction - see IMPLEMENTATION_PLANS_PART2.md:29
-- [ ] P1-FEATURE-002: Streaming Snippet Export - see IMPLEMENTATION_PLANS_PART2.md:202
-- [ ] P1-FEATURE-004: Gradio UI Modernization - see IMPLEMENTATION_PLANS_PART2.md:412
-- [ ] P1-FEATURE-005: Campaign Lifecycle Manager (CLM-A1..A7) - see IMPLEMENTATION_PLANS_PART2.md:642
-- [ ] P1-MAINTENANCE-001: Session Cleanup & Validation - see IMPLEMENTATION_PLANS_PART2.md:484
+- [x] P1-FEATURE-001: Automatic Character Profile Extraction - COMPLETE (2025-10-31) - see IMPLEMENTATION_PLANS_PART2.md:29
+- [x] P1-FEATURE-002: Streaming Snippet Export - COMPLETE (2025-11-01) - Incremental clip export with thread-safe manifest, see IMPLEMENTATION_PLANS_PART2.md:323
+- [x] P1-FEATURE-004: Gradio UI Modernization - COMPLETE (2025-11-01) - 16 tabs → 5 modern sections with visual workflow, see docs/UI_MODERNIZATION_PROPOSAL.md
+- [~] P1-FEATURE-005: Campaign Lifecycle Manager (CLM-A1..A7) - see IMPLEMENTATION_PLANS_PART2.md:642 (blank campaign creation wired into UI)
+- [x] P1-MAINTENANCE-001: Session Cleanup & Validation - COMPLETE (2025-11-01) - CLI audit/cleanup with dry-run, tests, docs, see IMPLEMENTATION_PLANS_PART2.md:704
 
 ## P3 (Future Features)
-- [ ] P3-FEATURE-001: Real-time Processing - see IMPLEMENTATION_PLANS_PART4.md:33
+- [~] P3-FEATURE-001: Real-time Processing - see IMPLEMENTATION_PLANS_PART4.md:33 (audio ingestion scaffolding in progress)
 - [ ] P3-FEATURE-002: Multi-language Support - see IMPLEMENTATION_PLANS_PART4.md:160
 - [ ] P3-FEATURE-003: Custom Speaker Labels - see IMPLEMENTATION_PLANS_PART4.md:256
 

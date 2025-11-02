@@ -37,7 +37,7 @@ _For a high-level checklist, consult `docs/OUTSTANDING_TASKS.md`._
 **Effort**: 5-7 days
 **Priority**: LOW
 **Dependencies**: P0-BUG-003 (Checkpoint System), P1-FEATURE-002 (Streaming Export)
-**Status**: NOT STARTED
+**Status**: IN PROGRESS (Subtask 1.1 completed 2025-10-31)
 
 ### Problem Statement
 Currently, processing happens after session recording completes. For live sessions, users could benefit from real-time transcription and diarization (e.g., live captions, auto-generated notes during play).
@@ -82,6 +82,8 @@ class AudioStreamIngester:
 ```
 
 **Files**: New `src/realtime/stream_ingester.py`
+
+_Status_: [DONE] 2025-10-31 (async ingester + buffer implemented)
 
 #### Subtask 1.2: Real-time Transcription
 **Effort**: 2 days
@@ -155,6 +157,25 @@ Test real-time processing with simulated streams.
 - Connection drops and recovery
 
 **Files**: `tests/test_realtime_processing.py`
+
+---
+
+### Implementation Notes & Reasoning (2025-10-31)
+**Implementer**: Codex (GPT-5)
+
+1. **Async Audio Buffering**
+   - **Choice**: Built `AudioBuffer` to accumulate float32 chunks until a configurable duration threshold before flushing.
+   - **Reasoning**: Keeps ingestion logic decoupled from downstream processing and ensures predictable latency windows.
+   - **Trade-offs**: Currently concatenates chunks in-memory; future work may stream to disk for very long buffers.
+
+2. **Stream Ingester Abstractions**
+   - **Choice**: Added `AudioStreamIngester` with consumer callback plus helpers for async iterables, WebSocket objects, and file tailing.
+   - **Reasoning**: Covers the plan’s ingestion variants while sharing the same buffer/flush logic.
+   - **Trade-offs**: File tailing assumes float32 frames; WAV decoding will need to be layered on in later subtasks.
+
+#### Validation
+- `pytest tests/test_realtime_stream_ingester.py tests/test_profile_extractor.py tests/test_character_profile_extractor.py -q`
+- `pytest tests/test_profile_extraction.py -q`
 
 ---
 

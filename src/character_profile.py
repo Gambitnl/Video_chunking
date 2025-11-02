@@ -177,7 +177,8 @@ class CharacterProfile:
     aliases: List[str] = field(default_factory=list)
 
     # Campaign Information
-    campaign: str = ""
+    campaign_id: Optional[str] = None  # NEW: Links to campaign in campaigns.json
+    campaign_name: str = ""  # RENAMED from 'campaign': Human-readable campaign name
     first_session: Optional[str] = None
     last_updated: Optional[str] = None
 
@@ -254,6 +255,15 @@ class CharacterProfileManager:
 
     def _parse_profile_data(self, profile_data: dict) -> CharacterProfile:
         """Parse a dictionary into a CharacterProfile object, handling nested dataclasses."""
+        # Handle backward compatibility: migrate old 'campaign' field to 'campaign_name'
+        if 'campaign' in profile_data and 'campaign_name' not in profile_data:
+            profile_data['campaign_name'] = profile_data.pop('campaign')
+            self.logger.info(f"Migrated 'campaign' → 'campaign_name' for profile '{profile_data.get('name')}'")
+
+        # Ensure campaign_id exists (may be None for legacy profiles)
+        if 'campaign_id' not in profile_data:
+            profile_data['campaign_id'] = None
+
         profile_data['notable_actions'] = [CharacterAction(**action) for action in profile_data.get('notable_actions', [])]
         profile_data['inventory'] = [CharacterItem(**item) for item in profile_data.get('inventory', [])]
         profile_data['relationships'] = [CharacterRelationship(**rel) for rel in profile_data.get('relationships', [])]
@@ -341,9 +351,40 @@ class CharacterProfileManager:
         self._save_single_profile(profile)
         self.logger.info(f"{'Added new' if is_new else 'Updated'} character profile: {character_name}")
 
-    def list_characters(self) -> List[str]:
-        """List all character names from the in-memory profiles."""
-        return sorted(list(self.profiles.keys()))
+    def list_characters(self, campaign_id: Optional[str] = None) -> List[str]:
+        """
+        List all character names from the in-memory profiles.
+
+        Args:
+            campaign_id: If provided, only return characters from this campaign.
+                        If None, return all characters.
+
+        Returns:
+            Sorted list of character names.
+        """
+        if campaign_id is None:
+            return sorted(list(self.profiles.keys()))
+
+        # Filter by campaign_id
+        return sorted([
+            name for name, profile in self.profiles.items()
+            if profile.campaign_id == campaign_id
+        ])
+
+    def get_profiles_by_campaign(self, campaign_id: str) -> Dict[str, CharacterProfile]:
+        """
+        Get all character profiles for a specific campaign.
+
+        Args:
+            campaign_id: Campaign identifier to filter by.
+
+        Returns:
+            Dictionary mapping character names to their profiles for the campaign.
+        """
+        return {
+            name: profile for name, profile in self.profiles.items()
+            if profile.campaign_id == campaign_id
+        }
 
     def export_profile(self, character_name: str, export_path: Path):
         """Export a single character profile to a JSON file at the specified path."""
@@ -698,53 +739,96 @@ class CharacterProfileManager:
         """Merge suggested updates into a character profile."""
         profile = self.get_profile(character_name)
         if not profile:
-            self.logger.error(f"Cannot merge updates - character '{character_name}' not found")
+            self.logger.error("Cannot merge updates - character '%s' not found", character_name)
             return None
+
+        session_ids: set[str] = set()
+        existing_actions = {(action.session, action.description) for action in profile.notable_actions}
+        existing_quotes = {(quote.session, quote.quote) for quote in profile.memorable_quotes}
+        existing_development = {(dev.session, dev.note) for dev in profile.development_notes}
+        existing_relationships = {(rel.name, rel.relationship_type) for rel in profile.relationships}
+        existing_items = {(item.name, item.category) for item in profile.inventory}
 
         for category, moments in updates.items():
             for moment in moments:
                 session_value = moment.session_id or moment.timestamp or "unknown_session"
+                if moment.session_id:
+                    session_ids.add(moment.session_id)
                 moment_type = moment.type or "general"
+
                 if category == "notable_actions":
+                    action_key = (session_value, moment.content)
+                    if action_key in existing_actions:
+                        continue
                     profile.notable_actions.append(CharacterAction(
                         session=session_value,
                         description=moment.content,
                         type=moment_type
                     ))
+                    existing_actions.add(action_key)
+
                 elif category == "memorable_quotes":
+                    quote_text = moment.quote or moment.content
+                    quote_key = (session_value, quote_text)
+                    if quote_key in existing_quotes:
+                        continue
                     profile.memorable_quotes.append(CharacterQuote(
                         session=session_value,
-                        quote=moment.content,
+                        quote=quote_text,
                         context=moment.context
                     ))
+                    existing_quotes.add(quote_key)
+
                 elif category == "development_notes":
+                    dev_key = (session_value, moment.content)
+                    if dev_key in existing_development:
+                        continue
                     profile.development_notes.append(CharacterDevelopment(
                         session=session_value,
                         note=moment.content,
                         category=moment_type
                     ))
+                    existing_development.add(dev_key)
+
                 elif category == "relationships":
                     if moment.relationships:
                         for relation in moment.relationships:
+                            rel_name = relation.get("character", moment.content)
+                            rel_type = relation.get("type", moment_type)
+                            rel_key = (rel_name, rel_type)
+                            if rel_key in existing_relationships:
+                                continue
                             profile.relationships.append(CharacterRelationship(
-                                name=relation.get("character", moment.content),
-                                relationship_type=relation.get("type", moment_type),
+                                name=rel_name,
+                                relationship_type=rel_type,
                                 description=relation.get("description"),
                                 first_met=session_value
                             ))
+                            existing_relationships.add(rel_key)
                     else:
+                        rel_key = (moment.content, moment_type)
+                        if rel_key in existing_relationships:
+                            continue
                         profile.relationships.append(CharacterRelationship(
                             name=moment.content,
                             relationship_type=moment_type,
                             first_met=session_value
                         ))
+                        existing_relationships.add(rel_key)
+
                 elif category == "inventory_changes":
+                    item_name = moment.metadata.get("item_name", moment.content) if moment.metadata else moment.content
+                    item_key = (item_name, moment_type)
+                    if item_key in existing_items:
+                        continue
                     profile.inventory.append(CharacterItem(
-                        name=moment.metadata.get("item_name", moment.content) if moment.metadata else moment.content,
+                        name=item_name,
                         description=moment.context,
                         session_acquired=session_value,
                         category=moment_type
                     ))
+                    existing_items.add(item_key)
+
                 elif category == "goal_progress":
                     goal_text = moment.content
                     if moment_type == "completed":
@@ -755,14 +839,28 @@ class CharacterProfileManager:
                     else:
                         if goal_text not in profile.current_goals:
                             profile.current_goals.append(goal_text)
+
                 elif category == "character_background":
+                    dev_key = (session_value, moment.content)
+                    if dev_key in existing_development:
+                        continue
                     profile.development_notes.append(CharacterDevelopment(
                         session=session_value,
                         note=moment.content,
                         category=moment_type or "background"
                     ))
+                    existing_development.add(dev_key)
+
                 else:
                     self.logger.debug("Unhandled profile update category '%s' for '%s'", category, character_name)
-        
+
+        if session_ids:
+            for session_id in sorted(session_ids):
+                if session_id not in profile.sessions_appeared:
+                    profile.sessions_appeared.append(session_id)
+            if profile.first_session is None:
+                profile.first_session = profile.sessions_appeared[0]
+            profile.total_sessions = len(profile.sessions_appeared)
+
         self.add_profile(character_name, profile)
         return profile

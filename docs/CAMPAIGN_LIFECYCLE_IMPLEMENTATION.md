@@ -1,6 +1,6 @@
 # Campaign Lifecycle Manager - Implementation Documentation
 
-## Status: IN PROGRESS
+## Status: IN PROGRESS (Updated 2025-11-02)
 
 **Author**: Claude Code
 **Started**: 2025-11-01
@@ -16,32 +16,32 @@
 
 | File/Directory | Has campaign_id? | Notes |
 |---|---|---|
-| `models/campaigns.json` | ✅ (keys) | Campaign profiles with settings |
-| `models/parties.json` | ❌ | Party configs, no campaign link |
-| `models/knowledge/*.json` | ✅ | Has `campaign_id` field |
-| `models/character_profiles/*.json` | ❌ | Has `campaign` text field, not ID |
-| `output/*/*/*_data.json` | ❌ | Metadata has `session_id` only |
-| `logs/session_status.json` | ❌ | No campaign context |
-| `src/character_profile.py` | ✅ | `ProfileUpdateBatch` has `campaign_id` |
-| `output/*/narratives/*.md` | ❌ | No campaign metadata |
-| `output/imported_narratives/*.md` | ❌ | No campaign metadata |
+| `models/campaigns.json` | Yes (keys) | Campaign profiles with settings |
+| `models/parties.json` | Partial | Party configs, no direct campaign link |
+| `models/knowledge/*.json` | Yes | Has campaign_id field |
+| `models/character_profiles/*.json` | Partial | Supports campaign_id field (migration in progress) |
+| `output/*/*/*_data.json` | Yes | Metadata includes campaign_id for new outputs |
+| `logs/session_status.json` | Yes | Status tracker stores campaign_id |
+| `src/character_profile.py` | Yes | ProfileUpdateBatch has campaign_id |
+| `output/*/narratives/*.md` | Partial | Campaign metadata available via narrative helpers |
+| `output/imported_narratives/*.md` | Partial | Campaign metadata pending |
 
 #### 2. Data Structures Needing Campaign ID
 
 **High Priority (P0):**
-- ✅ `models/knowledge/*.json` - Already has `campaign_id`
-- ❌ `output/*/*/*_data.json` - Session metadata needs `campaign_id`
-- ❌ `logs/session_status.json` - Status tracker needs `campaign_id`
-- ❌ Character profiles need `campaign_id` (currently has text `campaign` field)
+- [DONE] `models/knowledge/*.json` - Already has campaign_id
+- [DONE] `output/*/*/*_data.json` - Session metadata includes campaign_id (new runs)
+- [DONE] `logs/session_status.json` - Status tracker stores campaign_id
+- [ONGOING] Character profiles need campaign_id (migration helpers available)
 
 **Medium Priority (P1):**
-- ❌ `models/parties.json` - Should link to campaign(s)
-- ❌ Narrative files - Need campaign metadata in frontmatter
-- ❌ Story notebook manager - Needs campaign filtering
+- [LATER] `models/parties.json` - Parties remain campaign-agnostic (campaign references party_id)
+- [PLANNED] Narrative files - Campaign metadata to be embedded via narrative formatter
+- [DONE] Story notebook manager - Campaign filtering ready via list_sessions(campaign_id=...)
 
 **Low Priority (P2):**
-- ❌ Speaker profiles (if we add campaign-specific speaker models)
-- ❌ Checkpoint data (for resume functionality)
+- [TBD] Speaker profiles (if we add campaign-specific speaker models)
+- [TBD] Checkpoint data (for resume functionality)
 
 #### 3. Schema Change Details
 
@@ -213,7 +213,7 @@ generated_at: 2025-10-22T13:49:53Z
 
 **Reasoning:** YAML frontmatter enables:
 - Programmatic filtering of narratives by campaign
-- Story notebook manager to show campaign-specific stories
+- [DONE] Story notebook manager - Campaign filtering ready via list_sessions(campaign_id=...)
 - Export tools to bundle campaign materials
 
 **Migration Strategy:**
@@ -423,11 +423,80 @@ tests/test_campaign_migration.py::test_generate_migration_report_markdown PASSED
 **What This Enables:**
 - Users can safely migrate existing sessions to campaigns with dry-run preview
 - Character profiles can be bulk-assigned to campaigns
-- Narrative files get campaign metadata for filtering/organization
+- [PLANNED] Narrative files - Campaign metadata to be embedded via narrative formatter
 - Detailed reports help track migration progress
 - Non-destructive operations prevent data loss
 
+#### CLM-05: Tab-Level Campaign Filtering (Backend) 🔄
+**Status**: Backend Complete, UI Integration Pending
+
+**Files Modified:**
+- `src/story_notebook.py`:
+  - Added `campaign_id` and `include_unassigned` parameters to `list_sessions()` (lines 35-88)
+  - Enhanced `build_session_info()` to display campaign assignment status (lines 103-147)
+  - Graceful degradation for legacy sessions without campaign_id
+  - Comprehensive docstrings documenting filtering behavior
+
+**Files Created:**
+- `tests/test_story_notebook_campaign_filtering.py` (10 tests, all passing):
+  - Test filtering by campaign_id
+  - Test include/exclude unassigned sessions
+  - Test limit parameter with filtering
+  - Test session info display with/without campaign
+  - Test error handling (empty dirs, corrupted files)
+
+- `docs/CLM-05_TAB_FILTERING_IMPLEMENTATION.md` (detailed implementation guide):
+  - Backend implementation documentation
+  - Design patterns and best practices
+  - Remaining UI work breakdown
+  - Migration path for users
+  - Performance considerations
+
+**Features Implemented:**
+- **Campaign Filtering**: `list_sessions(campaign_id="my_campaign")` returns only matching sessions
+- **Graceful Degradation**: `include_unassigned=True` (default) shows legacy sessions in all campaign views
+- **Strict Filtering**: `include_unassigned=False` shows only explicitly assigned sessions
+- **Campaign Display**: Session info shows campaign assignment with migration hint for unassigned
+
+**What This Enables:**
+- Backend ready for UI integration - tabs can filter sessions by campaign
+- Backward compatible with legacy sessions (no breaking changes)
+- Users can see which sessions belong to which campaign
+- Clear path for incremental migration (unassigned sessions visible until migrated)
+
+**UI Integration Status** (Updated 2025-11-02):
+- ✅ Character Profiles tab - Campaign selector added (2 tests)
+- ✅ LLM Chat tab - Campaign-filtered profiles (3 tests)
+- ✅ Story Notebook tab - Campaign selector and session filtering (3 tests)
+- ⏳ Social Insights tab - Optional enhancement (1-2 hours)
+
+**Completion**: 3 of 4 tabs complete, 18 tests passing (10 backend + 8 UI)
+See [CLM-05_TAB_FILTERING_IMPLEMENTATION.md](CLM-05_TAB_FILTERING_IMPLEMENTATION.md) for details.
+
 ---
+
+
+## Implementation Notes & Reasoning (2025-11-02)
+
+1. **Campaign Launcher & State Propagation**
+   - **Choice**: Replaced the placeholder hero section in `app.py` with a campaign launcher that exposes load/create actions, campaign manifest, and shared state via `gr.State`.
+   - **Reasoning**: Centralises campaign selection and ensures every tab receives consistent updates when the active campaign changes.
+   - **Trade-offs**: Removes the earlier hero branding in favour of functional controls; modern styling remains to be iterated.
+
+2. **Process Tab Modernisation**
+   - **Choice**: Rebuilt `create_process_session_tab_modern` to call the real pipeline, preload campaign defaults, and surface campaign status badges.
+   - **Reasoning**: Aligns modern UI with working pipeline behaviour while keeping the wizard flow.
+   - **Trade-offs**: Batch processing and advanced layout elements are temporarily omitted until design catches up.
+
+3. **Tab-Level Campaign Filtering**
+   - **Choice**: Simplified campaign, characters, stories, and settings tabs to data-driven markdown summaries fed by new helper functions in `app.py`.
+   - **Reasoning**: Ensures end-to-end campaign awareness today, trading flashy cards for correct behaviour.
+   - **Trade-offs**: Visual richness was reduced; future iterations can reintroduce grids once datasets are wired.
+
+4. **Helper Utilities & Tests**
+   - **Choice**: Added helper renderers (campaign overviews, knowledge snippets, session listings) with unit coverage in `tests/test_campaign_ui_helpers.py`.
+   - **Reasoning**: Keeps presentation logic testable and documents expectations for future UI work.
+   - **Trade-offs**: Tests rely on existing fixture data; deeper fixtures may be required for edge cases later.
 
 ## Next Steps
 
@@ -435,8 +504,8 @@ tests/test_campaign_migration.py::test_generate_migration_report_markdown PASSED
 2. ✅ Implement schema updates to core modules (CLM-A2)
 3. ✅ Add campaign support to character profiles (CLM-A3)
 4. ✅ Build migration helpers (CLM-A4)
-5. ⏳ Update UI to support campaign selection (CLM-02)
-6. ⏳ Wire campaign filtering into tabs (CLM-05)
+5. ✅ Update UI to support campaign selection (CLM-02)
+6. ✅ Wire campaign filtering into tabs (CLM-05) - **3 of 4 tabs complete** (Social Insights optional)
 
 ---
 
@@ -455,6 +524,7 @@ tests/test_campaign_migration.py::test_generate_migration_report_markdown PASSED
 
 **Test Files:**
 - `tests/test_campaign_migration.py` - 9 tests, all passing ✅
+- `tests/test_story_notebook_campaign_filtering.py` - 10 tests, all passing ✅
 
 **Integration Tests:**
 - ⏳ Process session with campaign_id, verify all outputs include it
@@ -483,4 +553,4 @@ tests/test_campaign_migration.py::test_generate_migration_report_markdown PASSED
 
 ---
 
-*Last Updated: 2025-11-02 - CLM-A4 Migration Helpers Completed*
+*Last Updated: 2025-11-02 - CLM-05 Backend Complete (Campaign Filtering), UI Integration Pending*

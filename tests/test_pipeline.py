@@ -227,7 +227,7 @@ class TestPipelineStageExecution:
             mock_audio.get_duration.return_value = 60.0
 
             mock_diarizer = mock_diarizer_cls.return_value
-            mock_diarizer.diarize.return_value = [{'speaker': 'SPEAKER_00'}]
+            mock_diarizer.diarize.return_value = ([{'speaker': 'SPEAKER_00'}], {})  # Return tuple: (segments, embeddings)
             mock_diarizer.assign_speakers_to_transcription.return_value = [
                 {'text': 'test', 'speaker': 'SPEAKER_00', 'start_time': 0, 'end_time': 1,
                  'confidence': 0.9, 'words': []}

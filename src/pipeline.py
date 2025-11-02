@@ -137,7 +137,7 @@ class DDSessionProcessor:
         self.chunker = HybridChunker()
         self.transcriber = TranscriberFactory.create()
         self.merger = TranscriptionMerger()
-        self.diarizer = SpeakerDiarizer(num_speakers=num_speakers)
+        self.diarizer = SpeakerDiarizer()
         self.classifier = ClassifierFactory.create()
         self.formatter = TranscriptFormatter()
         self.speaker_profile_manager = SpeakerProfileManager()

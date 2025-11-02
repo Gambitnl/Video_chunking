@@ -26,11 +26,8 @@ class SpeakerDiarizer:
     only when it is first needed.
     """
 
-    def __init__(self, num_speakers: int = 4):
-        """
-        Args:
-            num_speakers: Expected number of speakers (helps accuracy)
-        """
+    def __init__(self):
+        """Initialize the diarizer with lazy model loading."""
         self.pipeline = None
         self.embedding_model = None
         self.model_load_lock = threading.Lock()
@@ -42,24 +39,27 @@ class SpeakerDiarizer:
                 return
 
             try:
-                from pyannote.audio import Pipeline
-                from pyannote.audio.features import Pretrained
+                from pyannote.audio import Pipeline, Model, Inference
                 import os
 
                 diarization_model_name = "pyannote/speaker-diarization-3.1"
                 embedding_model_name = "pyannote/embedding"
-                
+
                 print(f"Initializing PyAnnote pipeline for the first time (model: {diarization_model_name})...")
                 print("This is a one-time operation and may take a moment.")
 
                 # The pipeline automatically uses HF_TOKEN environment variable if available.
                 self.pipeline = Pipeline.from_pretrained(diarization_model_name)
-                self.embedding_model = Pretrained(embedding_model_name)
+
+                # Load embedding model for speaker identification
+                embedding_model = Model.from_pretrained(embedding_model_name, use_auth_token=True)
+                self.embedding_model = Inference(embedding_model, window="whole")
 
                 if torch.cuda.is_available():
                     self.pipeline = self.pipeline.to(torch.device("cuda"))
-                    self.embedding_model = self.embedding_model.to(torch.device("cuda"))
-                
+                    if hasattr(self.embedding_model, 'to'):
+                        self.embedding_model = self.embedding_model.to(torch.device("cuda"))
+
                 print("PyAnnote pipeline initialized successfully.")
 
             except Exception as e:
@@ -92,10 +92,7 @@ class SpeakerDiarizer:
             return segments, {}
 
         # Run diarization
-        diarization = self.pipeline(
-            str(audio_path),
-            num_speakers=self.num_speakers
-        )
+        diarization = self.pipeline(str(audio_path))
 
         # Convert to our format
         segments = []
@@ -106,25 +103,26 @@ class SpeakerDiarizer:
                 end_time=turn.end
             ))
 
-        # Extract speaker embeddings
+        # Extract speaker embeddings using the loaded model
         speaker_embeddings = {}
-        for speaker_id in diarization.labels():
-            # Get all segments for this speaker
-            speaker_segments = diarization.label_timeline(speaker_id)
-            # Extract the audio for this speaker
-            from pydub import AudioSegment
-            audio = AudioSegment.from_wav(str(audio_path))
-            speaker_audio = AudioSegment.empty()
-            for segment in speaker_segments:
-                speaker_audio += audio[segment.start * 1000:segment.end * 1000]
-            
-            # Get the embedding for this speaker
-            if len(speaker_audio) > 0:
-                # Convert to numpy array
-                samples = np.array(speaker_audio.get_array_of_samples()).astype(np.float32) / 32768.0
-                samples = torch.from_numpy(samples).unsqueeze(0)
-                embedding = self.embedding_model({"waveform": samples, "sample_rate": audio.frame_rate})
-                speaker_embeddings[speaker_id] = embedding.squeeze().numpy()
+        if self.embedding_model is not None:
+            for speaker_id in diarization.labels():
+                # Get all segments for this speaker
+                speaker_segments = diarization.label_timeline(speaker_id)
+                # Extract the audio for this speaker
+                from pydub import AudioSegment
+                audio = AudioSegment.from_wav(str(audio_path))
+                speaker_audio = AudioSegment.empty()
+                for segment in speaker_segments:
+                    speaker_audio += audio[segment.start * 1000:segment.end * 1000]
+
+                # Get the embedding for this speaker
+                if len(speaker_audio) > 0:
+                    # Convert to numpy array
+                    samples = np.array(speaker_audio.get_array_of_samples()).astype(np.float32) / 32768.0
+                    samples_tensor = torch.from_numpy(samples).unsqueeze(0)
+                    embedding = self.embedding_model({"waveform": samples_tensor, "sample_rate": audio.frame_rate})
+                    speaker_embeddings[speaker_id] = embedding.squeeze().numpy()
 
         return segments, speaker_embeddings
 

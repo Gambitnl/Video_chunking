@@ -6,7 +6,19 @@
       "Bash(pytest:*)",
       "Bash(git add:*)",
       "Bash(python cli.py:*)",
-      "Bash(python:*)"
+      "Bash(python:*)",
+      "Bash(git push)",
+      "WebSearch",
+      "Bash(node --version)",
+      "Bash(npm --version:*)",
+      "Bash(pip show:*)",
+      "Bash(pip install:*)",
+      "Bash(npx:*)",
+      "Bash(ls:*)",
+      "Bash(cat:*)",
+      "Bash(ffmpeg:*)",
+      "WebFetch(domain:www.anthropic.com)",
+      "WebFetch(domain:github.com)"
     ],
     "deny": [],
     "ask": []

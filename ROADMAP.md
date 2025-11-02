@@ -150,14 +150,14 @@ Transform long-form D&D session recordings into rich, searchable transcripts wit
 **Impact**: EXTREMELY HIGH - eliminates 80% of manual data entry
 
 **Implementation** (COMPLETE):
-- ✅ Created `ProfileExtractor` class with LLM integration
-- ✅ Created `CharacterProfileExtractor` workflow wrapper
-- ✅ Designed comprehensive D&D-specific extraction prompts
-- ✅ Ollama integration for IC-transcript analysis
-- ✅ Auto-extracts: actions, items, relationships, quotes, development notes, goals
-- ✅ UI integration in Character Profiles tab (upload transcript → extract → auto-apply)
-- ✅ 13 unit tests + 9 integration tests (all passing)
-- ⏳ Human review/approval workflow (future enhancement)
+- [DONE] Created `ProfileExtractor` class with LLM integration
+- [DONE] Created `CharacterProfileExtractor` workflow wrapper
+- [DONE] Designed comprehensive D&D-specific extraction prompts
+- [DONE] Ollama integration for IC-transcript analysis
+- [DONE] Auto-extracts: actions, items, relationships, quotes, development notes, goals
+- [DONE] UI integration in Character Profiles tab (upload transcript -> extract -> auto-apply)
+- [DONE] 13 unit tests + 9 integration tests (all passing)
+- [PENDING] Human review/approval workflow (future enhancement)
 
 **Benefits Delivered**:
 - Reduces manual data entry by 80%+ (extraction working)
@@ -167,29 +167,29 @@ Transform long-form D&D session recordings into rich, searchable transcripts wit
 
 **Files**: `src/profile_extractor.py`, `src/character_profile_extractor.py`, `prompts/profile_extraction.txt`, `schemas/profile_update.json`, `tests/test_profile_extraction.py`, `tests/test_character_profile_extractor.py`
 
-#### 2. UI Modernization (16 Tabs → 5 Sections)
+#### 2. UI Modernization (16 Tabs -> 5 Sections)
 **Owner**: Claude (Sonnet 4.5)
 **Status**: [DONE] Completed 2025-11-01
 **Effort**: 2-3 days (actual: ~5 hours)
 **Impact**: EXTREMELY HIGH - transforms user experience
 
 **Implementation** (COMPLETE):
-- ✅ Created modern theme system with Indigo/Cyan color palette (`src/ui/theme.py`)
-- ✅ Designed 5 consolidated tabs with clear workflow:
-  - 🎬 Process Session (workflow stepper: Upload → Configure → Process → Review)
-  - 📚 Campaign (dashboard, knowledge base, session library, party management)
-  - 👥 Characters (card-based browser with auto-extraction tool)
-  - 📖 Stories & Output (content viewer with export options)
-  - ⚙️ Settings & Tools (config, diagnostics, logs, speaker mgmt, LLM chat, help)
-- ✅ Progressive disclosure pattern (accordions, collapsible sections, tooltips)
-- ✅ Full-width responsive layout with proper horizontal spacing
-- ✅ Improved accordion indicators (animated indigo arrows)
-- ✅ Modern card-based layouts with hover effects and shadows
-- ✅ Visual workflow stepper for session processing
-- ✅ Replaced main `app.py` with modern UI (backed up to `app.py.backup`)
+- [DONE] Created modern theme system with Indigo/Cyan color palette (`src/ui/theme.py`)
+- [DONE] Designed 5 consolidated tabs with clear workflow:
+  - [PROCESS] Process Session (workflow stepper: Upload -> Configure -> Process -> Review)
+  - [CAMPAIGN] Campaign (dashboard, knowledge base, session library, party management)
+  - [PEOPLE] Characters (card-based browser with auto-extraction tool)
+  - [STORIES] Stories & Output (content viewer with export options)
+  - [TOOLS] Settings & Tools (config, diagnostics, logs, speaker mgmt, LLM chat, help)
+- [DONE] Progressive disclosure pattern (accordions, collapsible sections, tooltips)
+- [DONE] Full-width responsive layout with proper horizontal spacing
+- [DONE] Improved accordion indicators (animated indigo arrows)
+- [DONE] Modern card-based layouts with hover effects and shadows
+- [DONE] Visual workflow stepper for session processing
+- [DONE] Replaced main `app.py` with modern UI (backed up to `app.py.backup`)
 
 **Benefits Delivered**:
-- Reduced tab count by 69% (16 → 5 tabs)
+- Reduced tab count by 69% (16 -> 5 tabs)
 - Eliminated hidden overflow menu tabs
 - Clear entry point and workflow guidance
 - Modern, professional aesthetic (inspired by ElevenLabs, Linear)
@@ -256,7 +256,7 @@ Transform long-form D&D session recordings into rich, searchable transcripts wit
 - CLI ingestion commands
 - Persistent vector storage
 
-**Known Issues**: ✅ All critical security issues resolved! (P2.1 completed 2025-10-25)
+**Known Issues**: [DONE] All critical security issues resolved! (P2.1 completed 2025-10-25)
 - ~~Security vulnerabilities (path traversal, prompt injection)~~ **FIXED**
 - ~~Performance issues with large datasets~~ **FIXED**
 - Missing test coverage for some components (improved to 50%+ with security tests)
@@ -265,14 +265,14 @@ Transform long-form D&D session recordings into rich, searchable transcripts wit
 #### LangChain Quality & Security Fixes (P2.1)
 
 **Owner**: Claude (Sonnet 4.5)
-**Status**: ✅ **COMPLETED** (2025-10-25)
+**Status**: [DONE] **COMPLETED** (2025-10-25)
 **Priority**: HIGH (Critical security issues)
 **Effort**: 6 hours (originally estimated 5-7 days)
 **Test Coverage**: 17 comprehensive security tests (100% pass rate)
 **Documentation**: See [LANGCHAIN_SECURITY_FIXES.md](docs/LANGCHAIN_SECURITY_FIXES.md)
 
-**Critical Security Fixes** (ALL COMPLETED ✅):
-1. ✅ **Path Traversal Vulnerability** (ConversationStore)
+**Critical Security Fixes** (ALL COMPLETED [DONE]):
+1. [DONE] **Path Traversal Vulnerability** (ConversationStore)
    - File: `src/langchain/conversation_store.py`
    - Issue: User-controlled conversation IDs used in file paths
    - Impact: CRITICAL - arbitrary file read/write
@@ -280,7 +280,7 @@ Transform long-form D&D session recordings into rich, searchable transcripts wit
    - **Tests**: 3 tests verify path traversal protection
    - Completed: 2025-10-25
 
-2. ✅ **Prompt Injection** (CampaignChatClient)
+2. [DONE] **Prompt Injection** (CampaignChatClient)
    - File: `src/langchain/campaign_chat.py`
    - Issue: User input directly concatenated into prompts
    - Impact: CRITICAL - LLM manipulation
@@ -288,7 +288,7 @@ Transform long-form D&D session recordings into rich, searchable transcripts wit
    - **Tests**: 6 tests verify injection protection
    - Completed: 2025-10-25
 
-3. ✅ **Race Conditions** (Conversation Persistence)
+3. [DONE] **Race Conditions** (Conversation Persistence)
    - File: `src/langchain/conversation_store.py`
    - Issue: Load-modify-save pattern without locking
    - Impact: CRITICAL - data loss in concurrent writes
@@ -296,7 +296,7 @@ Transform long-form D&D session recordings into rich, searchable transcripts wit
    - **Tests**: 2 tests verify concurrent operation safety
    - Completed: 2025-10-25
 
-4. ✅ **Unsafe JSON Deserialization**
+4. [DONE] **Unsafe JSON Deserialization**
    - Files: `conversation_store.py`, `retriever.py`, `data_ingestion.py`
    - Issue: No schema validation on loaded JSON
    - Impact: HIGH - data corruption, injection attacks
@@ -304,8 +304,8 @@ Transform long-form D&D session recordings into rich, searchable transcripts wit
    - **Tests**: 3 tests verify schema validation
    - Completed: 2025-10-25
 
-**Performance Fixes** (ALL COMPLETED ✅):
-5. ✅ **Memory Leaks** (Vector Store)
+**Performance Fixes** (ALL COMPLETED [DONE]):
+5. [DONE] **Memory Leaks** (Vector Store)
    - File: `src/langchain/vector_store.py`
    - Issue: Batch embedding without batching (OOM on large datasets)
    - Impact: HIGH - crashes on 10k+ segments
@@ -313,7 +313,7 @@ Transform long-form D&D session recordings into rich, searchable transcripts wit
    - **Result**: Can process 100k+ segments with constant memory usage
    - Completed: 2025-10-25
 
-6. ✅ **Knowledge Base Caching**
+6. [DONE] **Knowledge Base Caching**
    - File: `src/langchain/retriever.py`
    - Issue: Disk I/O on every search query (~100ms penalty)
    - Impact: HIGH - poor search performance
@@ -322,7 +322,7 @@ Transform long-form D&D session recordings into rich, searchable transcripts wit
    - **Tests**: 3 tests verify caching behavior
    - Completed: 2025-10-25
 
-7. ✅ **Unbounded Memory Growth** (Conversation Memory)
+7. [DONE] **Unbounded Memory Growth** (Conversation Memory)
    - File: `src/langchain/campaign_chat.py`
    - Issue: ConversationBufferMemory grows indefinitely
    - Impact: MEDIUM - memory leak in long conversations
@@ -670,8 +670,8 @@ Transform long-form D&D session recordings into rich, searchable transcripts wit
 
 ## Success Metrics
 
-### Phase 1 (P0 Complete) ✅
-**Status**: ✅ **COMPLETE** (2025-10-26)
+### Phase 1 (P0 Complete) [DONE]
+**Status**: [DONE] **COMPLETE** (2025-10-26)
 
 - [x] App.py reduced to <1,000 lines via refactoring
 - [x] All existing tests pass
@@ -692,8 +692,8 @@ Transform long-form D&D session recordings into rich, searchable transcripts wit
 
 **Remaining**: Test coverage expansion, CLI validation
 
-### Phase 3 (P2 Complete) ⚠️
-**Status**: ⚠️ **CORE COMPLETE, POLISH REMAINING**
+### Phase 3 (P2 Complete) [WARNING]
+**Status**: [WARNING] **CORE COMPLETE, POLISH REMAINING**
 
 - [x] LangChain conversational interface operational
 - [x] Semantic search with RAG functional
@@ -707,8 +707,8 @@ Transform long-form D&D session recordings into rich, searchable transcripts wit
 
 **Remaining**: Test coverage expansion, analytics dashboard, session search, OOC analysis completion
 
-### Phase 4 (P3 Complete) ⏸️
-**Status**: ⏸️ **NOT STARTED** (Deferred pending P1/P2 completion)
+### Phase 4 (P3 Complete) [PAUSED]
+**Status**: [PAUSED] **NOT STARTED** (Deferred pending P1/P2 completion)
 
 - [ ] Live transcription mode functional
 - [ ] Visualization suite implemented
@@ -843,7 +843,10 @@ Transform long-form D&D session recordings into rich, searchable transcripts wit
 13. Improve UX (conversation management, better errors)
 14. Add performance tests and benchmarks
 15. Write security documentation
-16. Architecture refactoring (DI, interfaces)
+16. [ ] Architecture refactoring (DI, interfaces)
+17. [ ] Investigate duplicate tab headers appearing twice in modern UI and remove redundant renders
+18. [ ] Restore dynamic content in Stories & Output tab (currently static)
+19. [ ] Restore dynamic content in Settings & Tools tab (currently static)
 
 **Full Audit Reports Available**:
 - Visual Consistency Audit (28 specific UI issues)
@@ -874,20 +877,20 @@ See COLLECTIVE_ROADMAP.md "Recently Completed" section for:
 ## Quick Reference: What to Work On Next
 
 **Current Status** (2025-11-02):
-- ✅ P0 Complete: All critical bugs fixed, codebase refactored
-- ✅ Major P1 Complete: UI modernized, character extraction working
-- ✅ P2 Core Complete: LangChain working, security issues fixed
-- ⚠️ Polish Remaining: Test coverage, UX improvements, analytics
+- [DONE] P0 Complete: All critical bugs fixed, codebase refactored
+- [DONE] Major P1 Complete: UI modernized, character extraction working
+- [DONE] P2 Core Complete: LangChain working, security issues fixed
+- [WARNING] Polish Remaining: Test coverage, UX improvements, analytics
 
 **If you're an agent picking up work:**
 
 1. **High ROI Quick Wins** (Do these first):
-   - **P1-FEATURE-002**: Streaming snippet export (2 days)
-     - Reduces memory from 450MB → 50MB for 4-hour sessions
-     - Major performance improvement
    - **P2.1-UX**: LangChain UX improvements (1-2 days)
      - Loading indicators, better errors, conversation management
      - Improves user experience significantly
+   - **P2.1-TESTING**: LangChain test coverage expansion (2 days)
+     - Increase coverage from 35% to 80% for campaign chat modules
+     - Reduce regressions before future P3 features
 
 2. **Quality & Testing** (Build foundations):
    - **P2.1-TESTING**: LangChain test coverage expansion (2 days)
@@ -901,7 +904,6 @@ See COLLECTIVE_ROADMAP.md "Recently Completed" section for:
    - **P2-ANALYTICS**: Session analytics dashboard (2-3 days)
    - **P2-ANALYTICS**: Complete OOC topic analysis (in progress)
    - **P2-SEARCH**: Session search functionality (1 day)
-   - **P1-FEATURE-005**: Campaign Lifecycle Manager (5-6 days)
 
 4. **Documentation & Infrastructure**:
    - Logging telemetry improvements (funnel print() statements)

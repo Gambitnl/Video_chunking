@@ -44,6 +44,18 @@
 - **What to learn**: Common commands, directory structure, configuration
 - **Why read this**: Practical reference for day-to-day work
 
+#### 1.4: MCP Tools & Diagnostics
+**File**: [`docs/MCP_SERVERS.md`](./docs/MCP_SERVERS.md)
+- **What to learn**: Available MCP (Model Context Protocol) tools for file operations, diagnostics, and knowledge management
+- **Why read this**: MCP tools provide powerful capabilities for automation, testing, and knowledge graph operations
+- **Key sections**: "Available MCP Servers", "Agent Usage Scenarios"
+- **Quick overview**:
+  - **Filesystem**: Read/write files, search, directory operations
+  - **VideoChunking-Dev**: Project diagnostics (pipeline health, test coverage, session management)
+  - **Context7**: Fetch up-to-date library documentation
+  - **Memory**: Knowledge graph operations (create entities, relations, search)
+  - **IDE**: VS Code integration (diagnostics, Jupyter code execution)
+
 [DONE] **Stage 1 Complete**: You now understand WHAT this project does and HOW we work
 
 ---
@@ -135,6 +147,7 @@
 - [ ] Read `docs/PROJECT_SUMMARY.md`
 - [ ] Read `AGENTS.md` (focus on "Operator Workflow")
 - [ ] Read `docs/QUICKREF.md`
+- [ ] Read `docs/MCP_SERVERS.md` (understand available MCP tools)
 
 ### Next 15 Minutes
 - [ ] Read `docs/CRITICAL_REVIEW_WORKFLOW.md`
@@ -155,6 +168,7 @@
 ### Documentation
 - **Index**: `docs/README.md` - Complete documentation index
 - **All docs**: `docs/` directory
+- **MCP Tools**: `docs/MCP_SERVERS.md` - Available MCP servers and tools
 
 ### Code
 - **Main pipeline**: `src/pipeline.py`
@@ -171,6 +185,11 @@
 - **Repository guidelines**: `AGENTS.md` - Coding style, testing, **Operator Workflow**
 - **Critical Review**: `docs/CRITICAL_REVIEW_WORKFLOW.md`
 - **Review Agent**: `.claude/agents/critical-reviewer.md`
+
+### Tools & Diagnostics
+- **MCP Servers**: `docs/MCP_SERVERS.md` - 50+ tools for file ops, diagnostics, knowledge graphs
+- **Health Check**: Use `mcp__videochunking-dev__check_pipeline_health()`
+- **Run Tests**: Use `mcp__videochunking-dev__run_specific_test(test_path="...")`
 
 ---
 
@@ -255,14 +274,15 @@ Essential Context (5 min):
   1. docs/PROJECT_SUMMARY.md
   2. AGENTS.md (focus: Operator Workflow, ASCII-only)
   3. docs/QUICKREF.md
+  4. docs/MCP_SERVERS.md (MCP tools available)
 
 Development Standards (15 min):
-  4. docs/CRITICAL_REVIEW_WORKFLOW.md
-  5. .claude/agents/critical-reviewer.md
+  5. docs/CRITICAL_REVIEW_WORKFLOW.md
+  6. .claude/agents/critical-reviewer.md
 
 What to Build (20 min):
-  6. ROADMAP.md
-  7. IMPLEMENTATION_PLANS*.md (if they exist)
+  7. ROADMAP.md
+  8. IMPLEMENTATION_PLANS*.md (if they exist)
 ```
 
 ---

@@ -298,6 +298,7 @@ Save and load conversation history.
 - Save conversations as JSON in `conversations/` directory
 - Auto-save after each message
 - Load conversation list on UI startup
+- [ ] Refactor conversation storage to ensure source mappings remain consistent (see docs/CAMPAIGN_CHAT_BUGS_FOUND.md)
 
 **Files**: `src/langchain/conversation_store.py` (new)
 

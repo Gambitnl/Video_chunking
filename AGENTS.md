@@ -60,6 +60,7 @@ When adding a new documentation file or updating an existing one, the index file
 - Bullets: use `-`, `*`, or `1.` instead of decorative bullet glyphs
 - Status indicators: prefer `[DONE]`, `[TODO]`, `[BLOCKED]` instead of emoji checkmarks/crosses
 - Arrows in diagrams: use `->`, `<-`, `|`, `v` for flowcharts
+- Before editing existing files, scan for stray non-ASCII characters and normalize them to ASCII equivalents so future diffs and scripts stay reliable.
 
 **Allowed exceptions**:
 - User-facing UI text where Unicode is intentional
@@ -72,6 +73,7 @@ When adding a new documentation file or updating an existing one, the index file
 
 To stay aligned with the repository's planning cadence, follow this loop whenever you pick up work:
 
+0. **Reconcile planning artifacts** - cross-check status, dates, and metrics across roadmap, implementation plans, and summaries before making changes so documents stay in sync.
 1. **Start from the plan** - read the relevant section in `IMPLEMENTATION_PLANS*.md` (or ROADMAP) before touching code and confirm the subtasks you are executing.
 2. **Work in small steps** - implement one subtask at a time and update the plan immediately (status checkboxes, progress notes, new decisions). Do not leave documentation until the end.
 3. **Document reasoning** - add or append the "Implementation Notes & Reasoning" block as you make decisions so future reviewers see the "why", not just the "what".

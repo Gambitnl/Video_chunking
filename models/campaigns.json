@@ -1,16 +1,62 @@
 {
   "broken_seekers": {
     "name": "The Broken Seekers",
-    "description": "Main campaign with The Broken Seekers party",
     "party_id": "default",
     "settings": {
       "num_speakers": 4,
       "skip_diarization": false,
       "skip_classification": false,
       "skip_snippets": true,
+      "skip_knowledge": false,
       "session_id_prefix": "Session_",
       "auto_number_sessions": false
     },
+    "description": "Main campaign with The Broken Seekers party",
     "notes": "Full processing with speaker diarization and IC/OOC classification. Audio snippets skipped to save space."
+  },
+  "campaign_001": {
+    "name": "New Campaign",
+    "party_id": "",
+    "settings": {
+      "num_speakers": 4,
+      "skip_diarization": false,
+      "skip_classification": false,
+      "skip_snippets": true,
+      "skip_knowledge": false,
+      "session_id_prefix": "Session_",
+      "auto_number_sessions": false
+    },
+    "description": null,
+    "notes": null
+  },
+  "campaign_002": {
+    "name": "New Campaign 2",
+    "party_id": "",
+    "settings": {
+      "num_speakers": 4,
+      "skip_diarization": false,
+      "skip_classification": false,
+      "skip_snippets": true,
+      "skip_knowledge": false,
+      "session_id_prefix": "Session_",
+      "auto_number_sessions": false
+    },
+    "description": null,
+    "notes": null
+  },
+  "campaign_003": {
+    "name": "New Campaign 3",
+    "party_id": "",
+    "settings": {
+      "num_speakers": 4,
+      "skip_diarization": false,
+      "skip_classification": false,
+      "skip_snippets": true,
+      "skip_knowledge": false,
+      "session_id_prefix": "Session_",
+      "auto_number_sessions": false
+    },
+    "description": null,
+    "notes": null
   }
 }

@@ -74,7 +74,7 @@ def create_social_insights_tab(
     else:
         initial_sessions = story_manager.list_sessions()
 
-    def refresh_sessions_ui(campaign_name: str = "All Campaigns") -> gr.Dropdown:
+    def refresh_sessions_ui(campaign_name: str = "All Campaigns"):
         campaign_id = None
         if campaign_name != "All Campaigns":
             campaign_names_map = refresh_campaign_names()
@@ -83,7 +83,7 @@ def create_social_insights_tab(
                 None
             )
         sessions = story_manager.list_sessions(campaign_id=campaign_id)
-        return gr.Dropdown.update(choices=sessions, value=sessions[0] if sessions else None)
+        return gr.update(choices=sessions, value=sessions[0] if sessions else None)
 
     with gr.Tab("Social Insights"):
         gr.Markdown("""

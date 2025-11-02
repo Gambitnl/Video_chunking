@@ -37,7 +37,7 @@ This planning system is split across multiple documents:
 
 ### P0: Critical / Immediate
 **Total Effort**: 5.5 days
-**Status**: ✅ ALL COMPLETE (9 of 9)
+**Status**: [DONE] ALL COMPLETE (9 of 9)
 
 | Item | Effort | Status | Document |
 |------|--------|--------|----------|
@@ -51,12 +51,12 @@ This planning system is split across multiple documents:
 | P0-BUG-005: Surface Chunking Failures | 0.5 days | [DONE] Completed 2025-10-24 | PLANS.md:460 |
 | P0-BUG-006: Refine Snippet Placeholder Output | 0.5 days | [DONE] Completed 2025-10-26 | PLANS.md:485 |
 
-**Achievement**: ✅ All P0 critical tasks complete! Codebase is stable and refactored.
+**Achievement**: [DONE] All P0 critical tasks complete! Codebase is stable and refactored.
 
 ---
 
 ### P1: High Impact
-**Status**: 5 complete, 1 not started
+**Status**: 6 complete (100%)
 
 | Item | Effort | Status | Document |
 |------|--------|--------|----------|
@@ -64,12 +64,12 @@ This planning system is split across multiple documents:
 | P1-FEATURE-002: Streaming Snippet Export | 2 days | [DONE] Completed 2025-11-01 | PART2.md:138 |
 | P1-FEATURE-003: Batch Processing | 1 day | [DONE] Complete | PART2.md:251 |
 | P1-FEATURE-004: Gradio UI Modernization | 5-7 days | [DONE] Completed 2025-11-01 | PART2.md:386 |
-| P1-FEATURE-005: Campaign Lifecycle Manager | 5-6 days | NOT STARTED | PART2.md:452 |
+| P1-FEATURE-005: Campaign Lifecycle Manager | 5-6 days | [DONE] Completed 2025-11-02 | PART2.md:452 |
 | P1-MAINTENANCE-001: Session Cleanup | 2-3 days | [DONE] Completed 2025-11-01 | PART2.md:704 |
 
-**Achievement**: Streaming export verified for long sessions alongside major UI overhaul; character extraction with LLM; session management tools deployed.
+**Achievement**: Streaming export verified for long sessions alongside major UI overhaul; character extraction with LLM; session management tools deployed; campaign lifecycle manager delivered with campaign-aware UI, filtering, and migrations.
 
-**Recommendation**: Focus on P1-FEATURE-005 (Campaign Lifecycle Manager) and P2.1 polish items (LangChain test coverage, chat UX).
+**Recommendation**: Shift focus to P2.1 polish items (LangChain test coverage, chat UX) and remaining P2 analytics tasks.
 
 ---
 
@@ -82,10 +82,10 @@ This planning system is split across multiple documents:
 | P2-LANGCHAIN-001: Conversational Interface | 7-10 days | [DONE] Completed 2025-10-25 | PART3.md:31 |
 | P2-LANGCHAIN-002: Semantic Search with RAG | 5-7 days | [DONE] Completed 2025-10-25 | PART3.md:286 |
 | P2.1-SECURITY: LangChain Security Fixes | 1 day | [DONE] Completed 2025-10-25 | docs/LANGCHAIN_SECURITY_FIXES.md |
-| P2.1-TESTING: LangChain Test Coverage (35%→80%) | 2 days | SHOULD DO | ROADMAP.md:333 |
+| P2.1-TESTING: LangChain Test Coverage (35%->80%) | 2 days | SHOULD DO | ROADMAP.md:333 |
 | P2.1-UX: Campaign Chat UI Improvements | 1-2 days | SHOULD DO | ROADMAP.md:353 |
 
-**Achievement**: ✅ Core LangChain features working! All critical security vulnerabilities fixed!
+**Achievement**: [DONE] Core LangChain features working! All critical security vulnerabilities fixed!
 
 **Recommendation**: Consider P2.1 polish tasks (test coverage, UX improvements) before moving to P3 features.
 
@@ -142,58 +142,56 @@ This planning system is split across multiple documents:
 
 ---
 
-### Sprint 2: High-Value Features (2 weeks) ✅
-**Status**: ✅ **COMPLETE** (2025-11-01)
+### Sprint 2: High-Value Features (2 weeks) [DONE]
+**Status**: [DONE] **COMPLETE** (2025-11-01)
 **Focus**: User-facing P1 features
 
 **Completed**:
-- [x] P1-FEATURE-001: Character Profile Extraction ✅ (Completed 2025-10-31)
-- [x] P1-FEATURE-004: Gradio UI Modernization ✅ (Completed 2025-11-01)
-- [x] P1-FEATURE-003: Batch Processing ✅
+- [x] P1-FEATURE-001: Character Profile Extraction [DONE] (Completed 2025-10-31)
+- [x] P1-FEATURE-004: Gradio UI Modernization [DONE] (Completed 2025-11-01)
+- [x] P1-FEATURE-003: Batch Processing [DONE]
 - [x] P1-FEATURE-002: Streaming Snippet Export (Completed 2025-11-01)
-- [x] P1-MAINTENANCE-001: Session Cleanup ✅ (Completed 2025-11-01)
+- [x] P1-MAINTENANCE-001: Session Cleanup [DONE] (Completed 2025-11-01)
 
 **Deliverables Achieved**:
-- ✅ Character profile extraction with LLM integration
-- ✅ Modern UI (16 → 5 tabs, workflow stepper, progressive disclosure)
-- ✅ Batch processing for multiple sessions
-- ✅ Session cleanup & validation tools (audit, cleanup commands)
+- [DONE] Character profile extraction with LLM integration
+- [DONE] Modern UI (16 -> 5 tabs, workflow stepper, progressive disclosure)
+- [DONE] Batch processing for multiple sessions
+- [DONE] Session cleanup & validation tools (audit, cleanup commands)
 
-**Not Started**:
-- [ ] P1-FEATURE-005: Campaign Lifecycle Manager (deferred to Sprint 4)
+**Recently Completed**:
+- [x] P1-FEATURE-005: Campaign Lifecycle Manager (Campaign launcher, filtering, migrations finished 2025-11-02)
 
 ---
 
-### Sprint 3: Advanced Features (3 weeks) ✅
-**Status**: ✅ **COMPLETE** (2025-10-25)
+### Sprint 3: Advanced Features (3 weeks) [DONE]
+**Status**: [DONE] **COMPLETE** (2025-10-25)
 **Focus**: LangChain integration and security
 
 **Completed**:
-- [x] P2-LANGCHAIN-001: Conversational Interface ✅ (Completed 2025-10-25)
-- [x] P2-LANGCHAIN-002: Semantic Search with RAG ✅ (Completed 2025-10-25)
-- [x] P2.1-SECURITY: All critical security fixes ✅ (Completed 2025-10-25)
+- [x] P2-LANGCHAIN-001: Conversational Interface [DONE] (Completed 2025-10-25)
+- [x] P2-LANGCHAIN-002: Semantic Search with RAG [DONE] (Completed 2025-10-25)
+- [x] P2.1-SECURITY: All critical security fixes [DONE] (Completed 2025-10-25)
 
 **Deliverables Achieved**:
-- ✅ Conversational campaign assistant with source citations
-- ✅ Semantic search with ChromaDB and RAG
-- ✅ Path traversal, prompt injection, race condition fixes
-- ✅ Performance improvements (batching, caching)
+- [DONE] Conversational campaign assistant with source citations
+- [DONE] Semantic search with ChromaDB and RAG
+- [DONE] Path traversal, prompt injection, race condition fixes
+- [DONE] Performance improvements (batching, caching)
 
 **Not Started**:
-- [ ] P1-FEATURE-005: Campaign Lifecycle Manager (deferred to Sprint 4)
-- [ ] P2.1-TESTING: Test coverage expansion (35% → 80%)
+- [ ] P2.1-TESTING: Test coverage expansion (35% -> 80%)
 - [ ] P2.1-UX: Campaign Chat UI polish
 
 ---
 
-### Sprint 4: Polish & Remaining Features (2-3 weeks) 🚧
-**Status**: 🚧 **RECOMMENDED NEXT** (Starting 2025-11-02)
+### Sprint 4: Polish & Remaining Features (2-3 weeks) [BLOCKED]
+**Status**: [BLOCKED] **RECOMMENDED NEXT** (Starting 2025-11-02)
 **Focus**: High ROI features, quality improvements, polish
 
 **High Priority (Week 1-2)**:
-- [ ] P1-FEATURE-005: Campaign Lifecycle Manager (5-6 days) - Major feature
 - [ ] P2.1-UX: Campaign Chat UI Improvements (1-2 days) - Loading indicators, error handling
-- [ ] P2.1-TESTING: LangChain Test Coverage (2 days) - 35% → 80%
+- [ ] P2.1-TESTING: LangChain Test Coverage (2 days) - 35% -> 80%
 
 **Medium Priority (Week 2-3)**:
 - [ ] P2-ANALYTICS: Session Analytics Dashboard (2-3 days)
@@ -400,8 +398,8 @@ P4-DOCS-001 (API Docs)
 
 ## Success Metrics
 
-### P0 Completion Criteria ✅
-**Status**: ✅ **COMPLETE** (2025-10-26)
+### P0 Completion Criteria [DONE]
+**Status**: [DONE] **COMPLETE** (2025-10-26)
 
 - [x] All P0 bugs fixed and tested
 - [x] `app.py` reduced to < 1000 lines
@@ -410,27 +408,27 @@ P4-DOCS-001 (API Docs)
 - [x] Checkpoint system working reliably
 
 ### P1 Completion Criteria
-**Status**: **PARTIALLY COMPLETE** (5 of 6 done, 83%)
+**Status**: **COMPLETE** (6 of 6 done, 100%)
 
 - [x] Batch processing supports 10+ sessions
-- [x] Character extraction implemented and working ✅ (Completed 2025-10-31)
-- [x] Modern UI with improved workflows ✅ (Completed 2025-11-01)
-- [x] Session cleanup recovers > 1GB disk space ✅ (Completed 2025-11-01)
+- [x] Character extraction implemented and working [DONE] (Completed 2025-10-31)
+- [x] Modern UI with improved workflows [DONE] (Completed 2025-11-01)
+- [x] Session cleanup recovers > 1GB disk space [DONE] (Completed 2025-11-01)
 - [x] Streaming export works for 4-hour sessions (verified 2025-11-01)
-- [ ] Campaign Lifecycle Manager operational (not started)
+- [x] Campaign Lifecycle Manager operational (Completed 2025-11-02)
 
-### P2 Completion Criteria ✅
-**Status**: ✅ **CORE COMPLETE** (Security + Features done, polish remains)
+### P2 Completion Criteria [DONE]
+**Status**: [DONE] **CORE COMPLETE** (Security + Features done, polish remains)
 
 - [x] Conversational interface answers queries correctly
 - [x] Semantic search finds relevant results in < 1 second
 - [x] RAG system cites sources accurately
-- [x] All critical security vulnerabilities fixed ✅ (Completed 2025-10-25)
+- [x] All critical security vulnerabilities fixed [DONE] (Completed 2025-10-25)
 - [ ] LangChain test coverage > 80% (currently 35% - needs work)
 - [ ] Session analytics operational (in progress)
 
-### P4 Completion Criteria ⏸️
-**Status**: ⏸️ **DEFERRED** (Focus on P1/P2 completion first)
+### P4 Completion Criteria [PAUSED]
+**Status**: [PAUSED] **DEFERRED** (Focus on P1/P2 completion first)
 
 - [ ] > 80% code coverage (currently lower)
 - [ ] CI/CD runs on every PR
@@ -458,8 +456,8 @@ P4-DOCS-001 (API Docs)
 ### Immediate Actions (This Week)
 
 1. **Plan Sprint 2 kickoff**
-   - Assign P1-FEATURE-005 (Campaign Lifecycle Manager) to developer
-   - Review refactoring approach for app.py
+   - [ ] Record completion of P1-FEATURE-005 (Campaign Lifecycle Manager)
+   - [ ] Review refactoring approach for app.py monolith helpers and shared state
 
 2. **Set up tracking**
    - Create project board (GitHub Projects)

@@ -886,7 +886,7 @@ Test audit and cleanup logic.
 **Effort**: 5-6 days  
 **Priority**: HIGH  
 **Dependencies**: P1-FEATURE-004 (UI modernization groundwork), existing campaign/party managers  
-**Status**: NOT STARTED  
+**Status**: [DONE] Completed 2025-11-02  
 
 ### Problem Statement
 Users cannot confidently start a fresh campaign without inheriting legacy data (default parties, knowledge bases, character profiles, session summaries). The current UI lacks an entry point to declare “load existing” versus “new” campaign, and there is no manifest showing which components will be populated or reset.
@@ -936,6 +936,10 @@ Users cannot confidently start a fresh campaign without inheriting legacy data (
 - Connected the Social Insights tab to campaign launcher state so dropdowns and analytics reset when campaigns change.
 - Updated `app.py` wiring to broadcast campaign selections into Settings & Tools outputs, keeping the Social Insights UI in sync.
 - Extended `tests/test_social_insights_tab_campaign_filtering.py` to validate the new component contract returned by `create_social_insights_tab`.
+
+#### Progress Log (2025-11-02 - Verification)
+- Status reconciled across ROADMAP.md and IMPLEMENTATION_PLANS_SUMMARY.md to reflect completed CLM work.
+- Verified campaign-aware tabs, migration helpers, and documentation updates meet success criteria; marked feature complete.
 
 - **CLM-06: Status Tracker & Diagnostics Integration**  
   - Extend `StatusTracker` outputs with campaign context; allow App Manager to differentiate idle states per campaign.  

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-import json
 from pathlib import Path
+from typing import Optional
 
 import gradio as gr
 
@@ -10,14 +10,30 @@ from src.ui.helpers import Placeholders, InfoText, StatusMessages, UIComponents
 from src.ui.constants import StatusIndicators as SI
 
 
-def create_llm_chat_tab(project_root: Path) -> None:
-    try:
-        with open(project_root / "models" / "character_profiles.json", "r", encoding="utf-8") as handle:
-            character_profiles = json.load(handle)
-        character_names = ["None"] + list(character_profiles.keys())
-    except (FileNotFoundError, json.JSONDecodeError):
-        character_profiles = {}
-        character_names = ["None"]
+def create_llm_chat_tab(project_root: Path, campaign_id: Optional[str] = None) -> None:
+    from src.character_profile import CharacterProfileManager
+
+    manager = CharacterProfileManager()
+
+    # Get characters for the campaign (or all if no campaign specified)
+    if campaign_id:
+        profiles_dict = manager.get_profiles_by_campaign(campaign_id)
+    else:
+        # Get all characters
+        all_names = manager.list_characters()
+        profiles_dict = {name: manager.get_profile(name) for name in all_names}
+
+    # Convert to dict format expected by chat function
+    character_profiles = {}
+    for name, profile in profiles_dict.items():
+        character_profiles[name] = {
+            "name": profile.name,
+            "description": getattr(profile, "description", ""),
+            "personality": getattr(profile, "personality", ""),
+            "backstory": getattr(profile, "backstory", ""),
+        }
+
+    character_names = ["None"] + list(character_profiles.keys())
 
     def chat_with_llm(message: str, chat_history: list, character_name: str):
         try:
@@ -74,6 +90,15 @@ def create_llm_chat_tab(project_root: Path) -> None:
 
         Interact with the configured Ollama model, optionally as a specific character.
         """)
+
+        # Show info message if filtering by campaign with no characters
+        if campaign_id and len(character_profiles) == 0:
+            gr.Markdown(
+                StatusMessages.info(
+                    "No Characters in Campaign",
+                    f"This campaign has no character profiles yet. Create character profiles to enable role-play chat."
+                )
+            )
 
         with gr.Row():
             character_dropdown = gr.Dropdown(

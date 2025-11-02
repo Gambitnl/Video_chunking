@@ -207,7 +207,58 @@ tests/test_story_notebook_campaign_filtering.py::test_list_sessions_corrupted_me
 **Test Coverage**: [`tests/test_character_profiles_tab_campaign_filtering.py`](../tests/test_character_profiles_tab_campaign_filtering.py)
 **Status**: Implementation complete, 2 tests passing
 
+---
+
+### LLM Chat Tab ✅ Complete
+
+**Files Modified**: [`src/ui/llm_chat_tab.py`](../src/ui/llm_chat_tab.py)
+**Test Coverage**: [`tests/test_llm_chat_tab_campaign_filtering.py`](../tests/test_llm_chat_tab_campaign_filtering.py)
+**Status**: Implementation complete, 3 tests passing
+
 #### Changes Implemented
+
+1. **Function Signature Update**:
+   - Added `campaign_id: Optional[str] = None` parameter
+   - Allows tab to filter characters by campaign
+
+2. **Character Loading Refactor**:
+   - Replaced direct JSON file loading with CharacterProfileManager
+   - Uses `get_profiles_by_campaign(campaign_id)` when campaign is specified
+   - Falls back to all characters when no campaign specified (backward compatible)
+
+3. **Empty State Handling**:
+   ```python
+   if campaign_id and len(character_profiles) == 0:
+       gr.Markdown(StatusMessages.info(
+           "No Characters in Campaign",
+           "This campaign has no character profiles yet."
+       ))
+   ```
+
+4. **Profile Data Conversion**:
+   - Converts CharacterProfile objects to dict format for chat function
+   - Extracts description, personality, and backstory fields
+   - Maintains compatibility with existing chat_with_llm() function
+
+#### Implementation Notes
+
+**Backward Compatibility**:
+- Default `campaign_id=None` shows all characters (existing behavior)
+- Tab works seamlessly whether campaign filtering is used or not
+
+**Character Profile Integration**:
+- Now uses centralized CharacterProfileManager instead of direct file access
+- Benefits from campaign-aware filtering built into the manager
+- More maintainable and consistent with rest of codebase
+
+**Test Coverage**:
+- Campaign ID parameter acceptance validated
+- Backward compatibility without campaign_id tested
+- Component creation verified
+
+---
+
+#### Changes Implemented (Character Profiles Tab)
 
 1. **Function Signature Update**:
    - Added `refresh_campaign_names: Callable[[], Dict[str, str]]` parameter
@@ -411,21 +462,22 @@ else:
 
 **Status Summary**:
 - ✅ **Backend Implementation**: Complete and tested
-- ✅ **Test Coverage**: 12 tests, all passing (10 backend + 2 UI)
+- ✅ **Test Coverage**: 15 tests, all passing (10 backend + 5 UI)
 - ✅ **Documentation**: Implementation documented
 - ✅ **Character Profiles Tab**: Complete (legacy tab ready for modern UI)
-- ⏳ **UI Integration**: 3 tabs remaining (LLM Chat, Story Notebook, Social Insights)
+- ✅ **LLM Chat Tab**: Complete (campaign-aware character filtering)
+- ⏳ **UI Integration**: 2 tabs remaining (Story Notebook, Social Insights)
 
 **Completed Work (2025-11-02)**:
 1. ✅ Character Profile tab - Campaign filtering implemented and tested
+2. ✅ LLM Chat tab - Campaign-aware character loading and filtering
 
 **Next Steps**:
-1. Update LLM Chat tab (depends on character profiles)
-2. Update Story Notebook tab (most complex)
-3. Update Social Insights tab (optional)
-4. Integrate legacy character_profiles_tab into modern UI when placeholders are replaced
+1. Update Story Notebook tab (most complex)
+2. Update Social Insights tab (optional)
+3. Integrate legacy character_profiles_tab into modern UI when placeholders are replaced
 
-**Estimated Remaining Effort**: 2-4 hours for remaining UI integration
+**Estimated Remaining Effort**: 1-3 hours for remaining UI integration
 
 ---
 

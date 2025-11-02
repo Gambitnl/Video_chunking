@@ -680,16 +680,17 @@ Transform long-form D&D session recordings into rich, searchable transcripts wit
 - [x] All P0 bugs fixed and deployed
 
 ### Phase 2 (P1 Complete) ⚠️
-**Status**: ⚠️ **PARTIALLY COMPLETE** (3 of 6 features done)
+**Status**: ⚠️ **PARTIALLY COMPLETE** (4 of 6 features done, 67%)
 
 - [x] Character profiles auto-populate from transcripts (80% reduction in manual work) - **COMPLETED 2025-10-31**
 - [ ] Memory footprint reduced to <500MB (needs P1-FEATURE-002 Streaming Export)
 - [x] Batch processing supports 10+ sessions
+- [x] Session cleanup & management tools operational - **COMPLETED 2025-11-01**
 - [ ] Test coverage >60% (currently lower, needs work)
 - [x] Story notebook tab responsive on large archives (modern UI completed 2025-11-01)
 - [ ] CLI story generation reports failures clearly (needs validation)
 
-**Remaining**: Streaming export, test coverage, CLI validation
+**Remaining**: Streaming export, test coverage expansion, CLI validation
 
 ### Phase 3 (P2 Complete) ⚠️
 **Status**: ⚠️ **CORE COMPLETE, POLISH REMAINING**
@@ -887,9 +888,6 @@ See COLLECTIVE_ROADMAP.md "Recently Completed" section for:
    - **P2.1-UX**: LangChain UX improvements (1-2 days)
      - Loading indicators, better errors, conversation management
      - Improves user experience significantly
-   - **P1-MAINTENANCE-001**: Session cleanup tools (2-3 days)
-     - Disk space recovery utilities
-     - Session management improvements
 
 2. **Quality & Testing** (Build foundations):
    - **P2.1-TESTING**: LangChain test coverage expansion (2 days)

@@ -56,7 +56,7 @@ This planning system is split across multiple documents:
 ---
 
 ### P1: High Impact
-**Status**: 3 complete, 3 not started
+**Status**: 4 complete, 2 not started
 
 | Item | Effort | Status | Document |
 |------|--------|--------|----------|
@@ -65,11 +65,11 @@ This planning system is split across multiple documents:
 | P1-FEATURE-003: Batch Processing | 1 day | [DONE] Complete | PART2.md:251 |
 | P1-FEATURE-004: Gradio UI Modernization | 5-7 days | [DONE] Completed 2025-11-01 | PART2.md:386 |
 | P1-FEATURE-005: Campaign Lifecycle Manager | 5-6 days | NOT STARTED | PART2.md:452 |
-| P1-MAINTENANCE-001: Session Cleanup | 2-3 days | NOT STARTED | PART2.md:330 |
+| P1-MAINTENANCE-001: Session Cleanup | 2-3 days | [DONE] Completed 2025-11-01 | PART2.md:704 |
 
-**Achievement**: ✅ Major UI overhaul complete (16 → 5 tabs)! Character profile extraction working with LLM!
+**Achievement**: ✅ Major UI overhaul complete! Character extraction with LLM! Session management tools deployed!
 
-**Recommendation**: Focus on P1-FEATURE-002 (Streaming Export) for memory optimization, then P1-MAINTENANCE-001 and P1-FEATURE-005.
+**Recommendation**: Focus on P1-FEATURE-002 (Streaming Export) for memory optimization, then P1-FEATURE-005 (Campaign Lifecycle Manager).
 
 ---
 
@@ -143,23 +143,24 @@ This planning system is split across multiple documents:
 ---
 
 ### Sprint 2: High-Value Features (2 weeks) ✅
-**Status**: ✅ **COMPLETE** (2025-10-31)
+**Status**: ✅ **COMPLETE** (2025-11-01)
 **Focus**: User-facing P1 features
 
 **Completed**:
 - [x] P1-FEATURE-001: Character Profile Extraction ✅ (Completed 2025-10-31)
 - [x] P1-FEATURE-004: Gradio UI Modernization ✅ (Completed 2025-11-01)
 - [x] P1-FEATURE-003: Batch Processing ✅
+- [x] P1-MAINTENANCE-001: Session Cleanup ✅ (Completed 2025-11-01)
 
 **Deliverables Achieved**:
 - ✅ Character profile extraction with LLM integration
 - ✅ Modern UI (16 → 5 tabs, workflow stepper, progressive disclosure)
 - ✅ Batch processing for multiple sessions
+- ✅ Session cleanup & validation tools (audit, cleanup commands)
 
 **Not Started**:
-- [ ] P1-FEATURE-002: Streaming Snippet Export (deferred)
-- [ ] P1-MAINTENANCE-001: Session Cleanup (deferred)
-- [ ] P1-FEATURE-005: Campaign Lifecycle Manager (deferred)
+- [ ] P1-FEATURE-002: Streaming Snippet Export (deferred to Sprint 4)
+- [ ] P1-FEATURE-005: Campaign Lifecycle Manager (deferred to Sprint 4)
 
 ---
 
@@ -192,7 +193,6 @@ This planning system is split across multiple documents:
 **High Priority (Week 1-2)**:
 - [ ] P1-FEATURE-002: Streaming Snippet Export (2 days) - Memory optimization
 - [ ] P2.1-UX: Campaign Chat UI Improvements (1-2 days) - Loading indicators, error handling
-- [ ] P1-MAINTENANCE-001: Session Cleanup (2-3 days) - Disk space recovery
 - [ ] P2.1-TESTING: LangChain Test Coverage (2 days) - 35% → 80%
 
 **Medium Priority (Week 2-3)**:
@@ -412,13 +412,13 @@ P4-DOCS-001 (API Docs)
 - [x] Checkpoint system working reliably
 
 ### P1 Completion Criteria ⚠️
-**Status**: ⚠️ **PARTIALLY COMPLETE** (3 of 6 done)
+**Status**: ⚠️ **PARTIALLY COMPLETE** (4 of 6 done, 67%)
 
 - [x] Batch processing supports 10+ sessions
 - [x] Character extraction implemented and working ✅ (Completed 2025-10-31)
 - [x] Modern UI with improved workflows ✅ (Completed 2025-11-01)
+- [x] Session cleanup recovers > 1GB disk space ✅ (Completed 2025-11-01)
 - [ ] Streaming export works for 4-hour sessions (not started)
-- [ ] Session cleanup recovers > 1GB disk space (not started)
 - [ ] Campaign Lifecycle Manager operational (not started)
 
 ### P2 Completion Criteria ✅

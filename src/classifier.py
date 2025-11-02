@@ -63,7 +63,10 @@ class OllamaClassifier(BaseClassifier):
         self.logger = get_logger("classifier.ollama")
 
         # Load prompt template
-        prompt_path = Config.PROJECT_ROOT / "src" / "prompts" / "classifier_prompt.txt"
+        prompt_path = Config.PROJECT_ROOT / "src" / "prompts" / f"classifier_prompt_{Config.WHISPER_LANGUAGE}.txt"
+        if not prompt_path.exists():
+            self.logger.warning(f"Prompt file for language '{Config.WHISPER_LANGUAGE}' not found. Falling back to English.")
+            prompt_path = Config.PROJECT_ROOT / "src" / "prompts" / "classifier_prompt_en.txt"
         try:
             with open(prompt_path, 'r', encoding='utf-8') as f:
                 self.prompt_template = f.read()

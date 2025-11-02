@@ -512,6 +512,7 @@ def process_session(
     character_names: str,
     player_names: str,
     num_speakers: int,
+    language: str,
     skip_diarization: bool,
     skip_classification: bool,
     skip_snippets: bool,
@@ -532,7 +533,8 @@ def process_session(
                 session_id=resolved_session_id,
                 campaign_id=campaign_id,
                 num_speakers=int(num_speakers),
-                party_id=party_selection
+                party_id=party_selection,
+                language=language
             )
         else:
             # Parse names manually
@@ -545,7 +547,8 @@ def process_session(
                 campaign_id=campaign_id,
                 character_names=chars,
                 player_names=players,
-                num_speakers=int(num_speakers)
+                num_speakers=int(num_speakers),
+                language=language
             )
 
         pipeline_result = processor.process(
@@ -666,7 +669,12 @@ with gr.Blocks(
         campaign_tab_refs = create_campaign_tab_modern(demo)
         characters_tab_refs = create_characters_tab_modern(demo, available_parties)
         stories_tab_refs = create_stories_output_tab_modern(demo)
-        settings_tab_refs = create_settings_tools_tab_modern(demo, story_manager=story_manager, refresh_campaign_names=_refresh_campaign_names)
+        settings_tab_refs = create_settings_tools_tab_modern(
+            demo,
+            story_manager=story_manager,
+            refresh_campaign_names=_refresh_campaign_names,
+            initial_campaign_id=initial_campaign_id,
+        )
 
     def _compute_process_updates(campaign_id: Optional[str]) -> Tuple:
         settings = _process_defaults_for_campaign(campaign_id)
@@ -721,6 +729,32 @@ with gr.Blocks(
         diagnostics_update = gr.update(value=_diagnostics_markdown(campaign_id))
         chat_update = gr.update(value=_chat_status_markdown(campaign_id))
 
+        social_campaign_choices = ["All Campaigns"] + list(campaign_names_map.values())
+        social_campaign_value = campaign_names_map.get(campaign_id) if campaign_id else "All Campaigns"
+        if not social_campaign_value:
+            social_campaign_value = "All Campaigns"
+        social_campaign_update = gr.update(
+            choices=social_campaign_choices,
+            value=social_campaign_value,
+        )
+
+        social_sessions = (
+            story_manager.list_sessions(campaign_id=campaign_id)
+            if campaign_id
+            else story_manager.list_sessions()
+        )
+        social_session_update = gr.update(
+            choices=social_sessions,
+            value=social_sessions[0] if social_sessions else None,
+        )
+        social_keyword_update = gr.update(
+            value=StatusMessages.info(
+                "Social Insights",
+                "Select a session and run Analyze Banter for the current campaign.",
+            )
+        )
+        social_nebula_update = gr.update(value=None)
+
         return (
             campaign_id,
             summary,
@@ -735,6 +769,10 @@ with gr.Blocks(
             narrative_hint_update,
             diagnostics_update,
             chat_update,
+            social_campaign_update,
+            social_session_update,
+            social_keyword_update,
+            social_nebula_update,
         )
 
     def _create_new_campaign(name: str):
@@ -766,6 +804,20 @@ with gr.Blocks(
         diagnostics_update = gr.update(value=_diagnostics_markdown(new_campaign_id))
         chat_update = gr.update(value=_chat_status_markdown(new_campaign_id))
 
+        social_campaign_choices = ["All Campaigns"] + list(campaign_names_map.values())
+        social_campaign_update = gr.update(
+            choices=social_campaign_choices,
+            value=campaign_names_map.get(new_campaign_id),
+        )
+        social_session_update = gr.update(choices=[], value=None)
+        social_keyword_update = gr.update(
+            value=StatusMessages.info(
+                "Social Insights",
+                "No sessions available yet for this campaign. Process a session, then rerun analysis.",
+            )
+        )
+        social_nebula_update = gr.update(value=None)
+
         return (
             new_campaign_id,
             summary,
@@ -781,6 +833,10 @@ with gr.Blocks(
             narrative_hint_update,
             diagnostics_update,
             chat_update,
+            social_campaign_update,
+            social_session_update,
+            social_keyword_update,
+            social_nebula_update,
         )
 
     shared_outputs_load = [
@@ -814,6 +870,10 @@ with gr.Blocks(
         stories_tab_refs["narrative_hint"],
         settings_tab_refs["diagnostics"],
         settings_tab_refs["chat"],
+        settings_tab_refs["social_campaign_selector"],
+        settings_tab_refs["social_session_dropdown"],
+        settings_tab_refs["social_keyword_output"],
+        settings_tab_refs["social_nebula_output"],
     ]
 
     load_campaign_btn.click(
@@ -854,6 +914,10 @@ with gr.Blocks(
         stories_tab_refs["narrative_hint"],
         settings_tab_refs["diagnostics"],
         settings_tab_refs["chat"],
+        settings_tab_refs["social_campaign_selector"],
+        settings_tab_refs["social_session_dropdown"],
+        settings_tab_refs["social_keyword_output"],
+        settings_tab_refs["social_nebula_output"],
     ]
 
     start_new_campaign_btn.click(

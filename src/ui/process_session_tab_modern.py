@@ -158,6 +158,13 @@ def create_process_session_tab_modern(
                 info="Helps diarization accuracy. Typical table is 3 players + 1 DM.",
             )
 
+            language_input = gr.Dropdown(
+                label="Language",
+                choices=["en", "nl"],
+                value="en",
+                info="Select the language spoken in the session.",
+            )
+
             character_names_input = gr.Textbox(
                 label="Character Names (comma-separated)",
                 placeholder=Placeholders.CHARACTER_NAME,
@@ -340,6 +347,7 @@ def create_process_session_tab_modern(
             character_names,
             player_names,
             num_speakers,
+            language,
             skip_diarization,
             skip_classification,
             skip_snippets,
@@ -353,6 +361,7 @@ def create_process_session_tab_modern(
                 character_names,
                 player_names,
                 num_speakers,
+                language,
                 skip_diarization,
                 skip_classification,
                 skip_snippets,
@@ -390,6 +399,7 @@ def create_process_session_tab_modern(
                 character_names_input,
                 player_names_input,
                 num_speakers_input,
+                language_input,
                 skip_diarization_input,
                 skip_classification_input,
                 skip_snippets_input,

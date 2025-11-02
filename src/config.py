@@ -47,6 +47,7 @@ class Config:
     WHISPER_MODEL: str = os.getenv("WHISPER_MODEL", "large-v3")
     WHISPER_BACKEND: str = os.getenv("WHISPER_BACKEND", "local")  # local, groq, openai
     LLM_BACKEND: str = os.getenv("LLM_BACKEND", "ollama")  # ollama, openai
+    WHISPER_LANGUAGE: str = os.getenv("WHISPER_LANGUAGE", "en")  # Supported: en, nl
 
     # Processing Settings
     CHUNK_LENGTH_SECONDS: int = get_env_as_int("CHUNK_LENGTH_SECONDS", 600)

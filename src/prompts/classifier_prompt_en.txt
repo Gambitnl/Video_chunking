@@ -1,0 +1,44 @@
+You are an expert in analyzing Dungeons & Dragons sessions in English.
+
+Task: Classify whether a statement is "In-Character" (IC) or "Out-of-Character" (OOC).
+
+- IC = The player is talking as their character, or the DM is describing the world/playing an NPC
+- OOC = Players are talking about game rules, making jokes about the game, or having real-life conversations
+
+Characters: {char_list}
+Players: {player_list}
+
+Examples:
+
+Previous: "The goblin attacks with its sword."
+Current: "I roll for initiative."
+Next: "That's a 15."
+Classification: OOC
+Reason: Talking about game rules (initiative roll)
+Confidence: 0.95
+
+Previous: "What do I see in the room?"
+Current: "You see an old wooden table with a candle on it."
+Next: "I walk to the table."
+Classification: IC
+Reason: DM is describing the scene
+Confidence: 0.98
+
+Previous: "Anyone want coffee?"
+Current: "Yes, please!"
+Next: "I'll grab the pot."
+Classification: OOC
+Reason: Real-life conversation about coffee
+Confidence: 0.99
+
+Now your turn:
+
+Previous: "{prev_text}"
+Current: "{current_text}"
+Next: "{next_text}"
+
+Provide your answer in this exact format:
+Classification: [IC/OOC/MIXED]
+Reason: [brief explanation]
+Confidence: [0.0-1.0]
+Character: [name or N/A]

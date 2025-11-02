@@ -74,11 +74,10 @@ class ChunkTranscription:
 class BaseTranscriber(ABC):
     """Abstract base class for transcription backends"""
 
-    @abstractmethod
     def transcribe_chunk(
         self,
         chunk: AudioChunk,
-        language: str = "nl"
+        language: str = Config.WHISPER_LANGUAGE
     ) -> ChunkTranscription:
         """
         Transcribe a single audio chunk.
@@ -137,7 +136,7 @@ class FasterWhisperTranscriber(BaseTranscriber):
     def transcribe_chunk(
         self,
         chunk: AudioChunk,
-        language: str = "nl"
+        language: str = Config.WHISPER_LANGUAGE
     ) -> ChunkTranscription:
         """Transcribe using local faster-whisper"""
         self._load_model_if_needed()
@@ -228,7 +227,7 @@ class GroqTranscriber(BaseTranscriber):
     def transcribe_chunk(
         self,
         chunk: AudioChunk,
-        language: str = "nl"
+        language: str = Config.WHISPER_LANGUAGE
     ) -> ChunkTranscription:
         """Transcribe using Groq API"""
         import soundfile as sf

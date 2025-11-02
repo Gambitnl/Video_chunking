@@ -76,6 +76,7 @@ class DDSessionProcessor:
         player_names: Optional[List[str]] = None,
         num_speakers: int = 4,
         party_id: Optional[str] = None,
+        language: str = "en",
         resume: bool = True
     ):
         """
@@ -91,6 +92,7 @@ class DDSessionProcessor:
         self.session_id = session_id
         self.safe_session_id = sanitize_filename(session_id)
         self.campaign_id = campaign_id  # Store campaign_id for metadata and filtering
+        self.language = language
         self.is_test_run = False  # Default to not being a test run
         self.logger = get_logger(f"pipeline.{self.safe_session_id}")
         self.resume_enabled = resume
@@ -400,7 +402,7 @@ class DDSessionProcessor:
                     self.session_id, 3, "running", f"Transcribing {len(chunks)} chunks"
                 )
                 for chunk in tqdm(chunks, desc="Transcribing"):
-                    transcription = self.transcriber.transcribe_chunk(chunk, language="nl")
+                    transcription = self.transcriber.transcribe_chunk(chunk, language=self.language)
                     chunk_transcriptions.append(transcription)
                 StatusTracker.update_stage(
                     self.session_id, 3, "completed", f"Received {len(chunk_transcriptions)} chunk transcriptions"

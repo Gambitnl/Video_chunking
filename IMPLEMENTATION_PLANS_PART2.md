@@ -932,6 +932,11 @@ Users cannot confidently start a fresh campaign without inheriting legacy data (
   - Fix LLM Chat tab to consume the new profile source.  
   - _Deliverables_: Updated services/tests, migration scripts, documentation.
 
+#### Progress Log (2025-11-02 - Codex GPT-5)
+- Connected the Social Insights tab to campaign launcher state so dropdowns and analytics reset when campaigns change.
+- Updated `app.py` wiring to broadcast campaign selections into Settings & Tools outputs, keeping the Social Insights UI in sync.
+- Extended `tests/test_social_insights_tab_campaign_filtering.py` to validate the new component contract returned by `create_social_insights_tab`.
+
 - **CLM-06: Status Tracker & Diagnostics Integration**  
   - Extend `StatusTracker` outputs with campaign context; allow App Manager to differentiate idle states per campaign.  
   - Update diagnostics/log tabs to highlight the active campaign and warn about stale logs from other campaigns.  

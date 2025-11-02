@@ -679,18 +679,18 @@ Transform long-form D&D session recordings into rich, searchable transcripts wit
 - [x] Zero data loss on long sessions (checkpoint robustness improved)
 - [x] All P0 bugs fixed and deployed
 
-### Phase 2 (P1 Complete) ⚠️
-**Status**: ⚠️ **PARTIALLY COMPLETE** (4 of 6 features done, 67%)
+### Phase 2 (P1 Complete)
+**Status**: **PARTIALLY COMPLETE** (5 of 6 features done, 83%)
 
 - [x] Character profiles auto-populate from transcripts (80% reduction in manual work) - **COMPLETED 2025-10-31**
-- [ ] Memory footprint reduced to <500MB (needs P1-FEATURE-002 Streaming Export)
+- [x] Memory footprint reduced to <500MB (streaming export verified 2025-11-01)
 - [x] Batch processing supports 10+ sessions
 - [x] Session cleanup & management tools operational - **COMPLETED 2025-11-01**
 - [ ] Test coverage >60% (currently lower, needs work)
 - [x] Story notebook tab responsive on large archives (modern UI completed 2025-11-01)
 - [ ] CLI story generation reports failures clearly (needs validation)
 
-**Remaining**: Streaming export, test coverage expansion, CLI validation
+**Remaining**: Test coverage expansion, CLI validation
 
 ### Phase 3 (P2 Complete) ⚠️
 **Status**: ⚠️ **CORE COMPLETE, POLISH REMAINING**

@@ -6,6 +6,11 @@ from .realtime_transcriber import (
     RealtimeTranscriptionResult,
     RealtimeTranscriptSegment,
 )
+from .realtime_diarizer import (
+    RealtimeDiarizer,
+    RealtimeDiarizationResult,
+    RealtimeSpeakerSegment,
+)
 
 __all__ = [
     "AudioBuffer",
@@ -13,4 +18,7 @@ __all__ = [
     "RealtimeTranscriber",
     "RealtimeTranscriptionResult",
     "RealtimeTranscriptSegment",
+    "RealtimeDiarizer",
+    "RealtimeDiarizationResult",
+    "RealtimeSpeakerSegment",
 ]

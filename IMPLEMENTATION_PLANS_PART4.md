@@ -100,6 +100,7 @@ Adapt transcriber for streaming mode.
 
 #### Subtask 1.3: Real-time Diarization
 **Effort**: 1 day
+**Status**: [DONE 2025-11-02]
 
 Evaluate if PyAnnote can handle real-time diarization.
 
@@ -177,8 +178,15 @@ Test real-time processing with simulated streams.
    - **Reasoning**: Allows the existing `AudioStreamIngester` to wire up the transcriber directly without blocking the event loop.
    - **Trade-offs**: Thread offloading introduces minimal overhead; protects UI responsiveness.
 
+4. **Energy-Based Realtime Diarizer**
+   - **Choice**: Added `RealtimeDiarizer` with pluggable speaker classifier (defaulting to energy thresholding) to maintain incremental speaker segments while sharing the ingestion interface.
+   - **Reasoning**: Provides a deterministic fallback when PyAnnote streaming is unavailable and keeps downstream consumers synchronized with transcript timing.
+   - **Alternatives Considered**: Calling PyAnnote per chunk; deferred until we can benchmark latency and GPU requirements.
+   - **Trade-offs**: Energy heuristic is simplistic but testable; models can be swapped by supplying a different classifier.
+
 #### Validation
 - `pytest tests/test_realtime_transcriber.py tests/test_realtime_stream_ingester.py -q`
+- `pytest tests/test_realtime_diarizer.py tests/test_realtime_transcriber.py tests/test_realtime_stream_ingester.py -q`
 
 ---
 

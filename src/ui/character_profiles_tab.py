@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import List
+from typing import Callable, Dict, List, Optional
 
 import gradio as gr
 
@@ -9,7 +9,11 @@ from src.ui.constants import StatusIndicators as SI
 from src.ui.helpers import StatusMessages, UIComponents, Placeholders, InfoText
 
 
-def create_character_profiles_tab(blocks: gr.Blocks, available_parties: List[str]) -> None:
+def create_character_profiles_tab(
+    blocks: gr.Blocks,
+    available_parties: List[str],
+    refresh_campaign_names: Callable[[], Dict[str, str]],
+) -> None:
     from src.character_profile import CharacterProfileManager
 
     with gr.Tab("Character Profiles"):
@@ -34,6 +38,18 @@ def create_character_profiles_tab(blocks: gr.Blocks, available_parties: List[str
 
         char_mgr = CharacterProfileManager()
         initial_chars = char_mgr.list_characters()
+
+        # Campaign selector for filtering characters
+        with gr.Row():
+            campaign_names = refresh_campaign_names()
+            campaign_choices = ["All Campaigns"] + list(campaign_names.values())
+            campaign_selector = gr.Dropdown(
+                choices=campaign_choices,
+                value="All Campaigns",
+                label="Filter by Campaign",
+                info="Show only characters from the selected campaign",
+                scale=3,
+            )
 
         with gr.Row():
             with gr.Column():
@@ -160,11 +176,22 @@ def create_character_profiles_tab(blocks: gr.Blocks, available_parties: List[str
 }
 """
 
-        def load_character_list():
+        def load_character_list(campaign_name: str = "All Campaigns"):
             from src.character_profile import CharacterProfileManager
 
             manager = CharacterProfileManager()
-            characters = manager.list_characters()
+
+            # Map campaign name to campaign_id for filtering
+            campaign_id = None
+            if campaign_name != "All Campaigns":
+                campaign_names = refresh_campaign_names()
+                # Find campaign_id by matching campaign_name
+                campaign_id = next(
+                    (cid for cid, cname in campaign_names.items() if cname == campaign_name),
+                    None
+                )
+
+            characters = manager.list_characters(campaign_id=campaign_id)
 
             if not characters:
                 return [], [], []
@@ -329,23 +356,41 @@ def create_character_profiles_tab(blocks: gr.Blocks, available_parties: List[str
                     error_details,
                 )
 
-        def on_table_select(evt: gr.SelectData):
+        def on_table_select(evt: gr.SelectData, campaign_name: str):
             if evt.index[0] >= 0:
                 from src.character_profile import CharacterProfileManager
 
                 manager = CharacterProfileManager()
-                characters = manager.list_characters()
+
+                # Map campaign name to campaign_id
+                campaign_id = None
+                if campaign_name != "All Campaigns":
+                    campaign_names = refresh_campaign_names()
+                    campaign_id = next(
+                        (cid for cid, cname in campaign_names.items() if cname == campaign_name),
+                        None
+                    )
+
+                characters = manager.list_characters(campaign_id=campaign_id)
                 if evt.index[0] < len(characters):
                     return characters[evt.index[0]]
             return None
 
         char_refresh_btn.click(
             fn=load_character_list,
+            inputs=[campaign_selector],
+            outputs=[char_table, char_select, export_char_dropdown],
+        )
+
+        campaign_selector.change(
+            fn=load_character_list,
+            inputs=[campaign_selector],
             outputs=[char_table, char_select, export_char_dropdown],
         )
 
         char_table.select(
             fn=on_table_select,
+            inputs=[campaign_selector],
             outputs=[char_select],
         )
 

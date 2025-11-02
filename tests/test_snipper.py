@@ -127,11 +127,14 @@ def test_export_with_no_segments(monkeypatch, temp_output_dir, dummy_audio_path)
     session_dir.mkdir(parents=True, exist_ok=True)
     stale_file = session_dir / "old.wav"
     stale_file.write_bytes(b"legacy-bytes")
+    keep_file = session_dir / "keep.txt"
+    keep_file.write_text("legacy placeholder", encoding="utf-8")
 
     snipper = AudioSnipper()
     result = snipper.export_segments(dummy_audio_path, [], temp_output_dir, session_id)
 
     assert not stale_file.exists(), "Stale clips should be removed when cleanup is enabled"
+    assert not keep_file.exists(), "Placeholder artifacts should be removed during cleanup"
 
     manifest_path = result["manifest"]
     assert manifest_path is not None

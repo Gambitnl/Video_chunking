@@ -501,20 +501,20 @@ When the chunker produces zero segments (e.g., due to corrupt audio), the pipeli
 **Files**: `src/snipper.py`
 **Effort**: 0.5 days
 **Priority**: MEDIUM
-**Status**: NOT STARTED
+**Status**: [DONE] Completed 2025-11-02
 
 ### Problem Statement
 When no segments are exported we emit Dutch placeholder text, create `keep.txt`, and leave confusing artifacts.
 
 ### Success Criteria
-- [ ] Placeholder manifest uses localized, neutral messaging
-- [ ] No extra files created unless cleanup actually removes stale clips
-- [ ] Tests assert the new manifest structure and localization
+- [x] Placeholder manifest uses localized, neutral messaging
+- [x] No extra files created unless cleanup actually removes stale clips
+- [x] Tests assert the new manifest structure and localization
 
 ### Implementation Plan
-1. Replace hard-coded strings with English defaults and allow translation via config if needed.
-2. Only write placeholder files when cleanup runs; otherwise leave directory untouched.
-3. Update `tests/test_snipper.py::test_export_with_no_segments` to reflect the new structure.
+1. Replace hard-coded strings with English defaults and allow translation via config if needed. `[DONE 2025-10-26]`
+2. Only write placeholder files when cleanup runs; otherwise leave directory untouched. `[DONE 2025-11-02]`
+3. Update `tests/test_snipper.py::test_export_with_no_segments` to reflect the new structure. `[DONE 2025-11-02]`
 
 ### Validation
 - `pytest tests/test_snipper.py::test_export_with_no_segments -q`
@@ -532,6 +532,25 @@ When no segments are exported we emit Dutch placeholder text, create `keep.txt`,
    - **Choice**: Added `SNIPPET_PLACEHOLDER_MESSAGE` to `Config`.
    - **Reasoning**: Allows deployments to localize or customize placeholder copy without touching code.
    - **Trade-offs**: Slightly larger config surface area; mitigated by sane default.
+
+#### Validation
+- `pytest tests/test_snipper.py -q`
+
+### Implementation Notes & Reasoning (2025-11-02)
+**Implementer**: Codex (GPT-5)
+
+#### Design Decisions
+1. **Placeholder Artifact Cleanup**
+   - **Choice**: Remove legacy placeholder markers such as `keep.txt` during cleanup while keeping the `removed_clips` count limited to audio files.
+   - **Reasoning**: Ensures directories are free of confusing artifacts without overstating clip deletions in the manifest payload.
+   - **Alternatives Considered**: Treating placeholder files as clip deletions; rejected to avoid misreporting removal counts.
+   - **Trade-offs**: Adds a small maintenance list of known placeholder artifacts, but keeps cleanup deterministic.
+
+2. **Test Coverage for Empty Sessions**
+   - **Choice**: Extend `test_export_with_no_segments` to assert placeholder artifact removal alongside manifest expectations.
+   - **Reasoning**: Prevents regressions where stale artifacts sneak back in and documents the intended cleanup behavior.
+   - **Alternatives Considered**: Creating a dedicated test case; merged assertions into the existing scenario to keep test runtime minimal.
+   - **Trade-offs**: Slightly longer test, but still focused on the empty-segment path.
 
 #### Validation
 - `pytest tests/test_snipper.py -q`

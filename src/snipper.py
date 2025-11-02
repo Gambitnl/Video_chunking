@@ -34,6 +34,16 @@ class AudioSnipper:
             except OSError as exc:
                 self.logger.warning("Failed to remove stale clip %s: %s", wav_file, exc)
 
+        placeholder_artifacts = ("keep.txt", "placeholder.txt")
+        for artifact_name in placeholder_artifacts:
+            artifact_path = session_dir / artifact_name
+            if artifact_path.exists():
+                try:
+                    artifact_path.unlink()
+                    self.logger.debug("Removed placeholder artifact %s", artifact_path)
+                except OSError as exc:
+                    self.logger.warning("Failed to remove placeholder artifact %s: %s", artifact_path, exc)
+
         manifest_file = session_dir / "manifest.json"
         if manifest_file.exists():
             try:

@@ -221,11 +221,9 @@ tests/test_story_notebook_campaign_filtering.py::test_list_sessions_corrupted_me
 
 ---
 
-### 6. Social Insights Tab Enhancement
+### 6. Social Insights Tab Enhancement ✅ Complete
 
 **File**: [`src/ui/social_insights_tab.py`](../src/ui/social_insights_tab.py)
-
-**Current State**: Uses manual session_id input
 
 **What Needs to Be Done**:
 1. Add campaign selector dropdown
@@ -236,6 +234,18 @@ tests/test_story_notebook_campaign_filtering.py::test_list_sessions_corrupted_me
 **Complexity**: Medium - requires refactoring from text input to dropdown
 
 **Estimated Effort**: 1-2 hours
+
+#### Changes Implemented
+
+1. **Campaign and Session Selectors**:
+   - Added a campaign selector dropdown to filter sessions by campaign.
+   - Replaced the manual session ID text input with a session selector dropdown.
+
+2. **Dynamic Session Loading**:
+   - The session dropdown is now dynamically populated with sessions from the selected campaign using `StoryNotebookManager.list_sessions()`.
+
+3. **UI Workflow**:
+   - Users can now select a campaign and then a session from the dropdowns to analyze the OOC banter.
 
 ---
 
@@ -502,23 +512,24 @@ else:
 
 **Status Summary**:
 - ✅ **Backend Implementation**: Complete and tested
-- ✅ **Test Coverage**: 18 tests, all passing (10 backend + 8 UI)
+- ✅ **Test Coverage**: 20 tests, all passing (10 backend + 10 UI)
 - ✅ **Documentation**: Implementation documented
 - ✅ **Character Profiles Tab**: Complete (legacy tab ready for modern UI)
 - ✅ **LLM Chat Tab**: Complete (campaign-aware character filtering)
 - ✅ **Story Notebook Tab**: Complete (campaign-aware session filtering)
-- ⏳ **UI Integration**: 1 tab remaining (Social Insights - optional)
+- ✅ **Social Insights Tab**: Complete (campaign-aware session filtering)
+- ✅ **UI Integration**: All tabs now support campaign filtering.
 
 **Completed Work (2025-11-02)**:
 1. ✅ Character Profile tab - Campaign filtering implemented and tested (2 tests)
 2. ✅ LLM Chat tab - Campaign-aware character loading and filtering (3 tests)
 3. ✅ Story Notebook tab - Campaign-aware session filtering (3 tests)
+4. ✅ Social Insights tab - Campaign-aware session filtering (2 tests)
 
 **Next Steps**:
-1. Update Social Insights tab (optional enhancement)
-2. Integrate legacy character_profiles_tab into modern UI when placeholders are replaced
+1. Integrate legacy character_profiles_tab into modern UI when placeholders are replaced
 
-**Estimated Remaining Effort**: 1-2 hours for Social Insights tab (optional)
+**Estimated Remaining Effort**: None for CLM-05.
 
 ---
 

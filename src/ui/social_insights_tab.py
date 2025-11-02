@@ -1,11 +1,16 @@
 from __future__ import annotations
 
+from typing import Callable, Dict, List, Tuple
 import gradio as gr
 from src.ui.helpers import Placeholders, InfoText, StatusMessages, UIComponents
 from src.ui.constants import StatusIndicators as SI
+from src.story_notebook import StoryNotebookManager
 
 
-def create_social_insights_tab() -> None:
+def create_social_insights_tab(
+    story_manager: StoryNotebookManager,
+    refresh_campaign_names: Callable[[], Dict[str, str]],
+) -> None:
     def analyze_ooc_ui(session_id):
         try:
             from src.analyzer import OOCAnalyzer
@@ -56,6 +61,17 @@ def create_social_insights_tab() -> None:
             )
             return error_msg, None
 
+    def refresh_sessions_ui(campaign_name: str = "All Campaigns") -> gr.Dropdown:
+        campaign_id = None
+        if campaign_name != "All Campaigns":
+            campaign_names = refresh_campaign_names()
+            campaign_id = next(
+                (cid for cid, cname in campaign_names.items() if cname == campaign_name),
+                None
+            )
+        sessions = story_manager.list_sessions(campaign_id=campaign_id)
+        return gr.Dropdown.update(choices=sessions, value=sessions[0] if sessions else None)
+
     with gr.Tab("Social Insights"):
         gr.Markdown("""
         ### OOC Keyword Analysis (Topic Nebula)
@@ -63,7 +79,7 @@ def create_social_insights_tab() -> None:
         Analyze the out-of-character banter to find the most common topics and keywords.
 
         **Workflow**
-        - Enter the session ID that matches the processed output folder (e.g., `session_2024_05_01`).
+        - Select a campaign and session from the dropdowns below.
         - Click **Analyze Banter** to compute TF-IDF keywords from the saved OOC transcript and render the nebula word cloud.
         - If no OOC transcript exists yet, run the main pipeline first or verify the session ID matches the generated files.
 
@@ -74,15 +90,32 @@ def create_social_insights_tab() -> None:
         """)
         with gr.Row():
             with gr.Column():
-                insight_session_id = gr.Textbox(
+                campaign_names = refresh_campaign_names()
+                campaign_choices = ["All Campaigns"] + list(campaign_names.values())
+                campaign_selector = gr.Dropdown(
+                    choices=campaign_choices,
+                    value="All Campaigns",
+                    label="Filter by Campaign",
+                    info="Show only sessions from the selected campaign",
+                )
+                initial_sessions = story_manager.list_sessions()
+                insight_session_id = gr.Dropdown(
                     label="Session ID",
-                    placeholder=Placeholders.SESSION_ID,
+                    choices=initial_sessions,
+                    value=initial_sessions[0] if initial_sessions else None,
+                    interactive=True,
                 )
                 insight_btn = gr.Button(f"{SI.ACTION_PROCESS} Analyze Banter", variant="primary")
             with gr.Column():
                 keyword_output = gr.Markdown(label="Top Keywords")
         with gr.Row():
             nebula_output = gr.Image(label="Topic Nebula")
+
+        campaign_selector.change(
+            fn=refresh_sessions_ui,
+            inputs=[campaign_selector],
+            outputs=[insight_session_id],
+        )
 
         insight_btn.click(
             fn=analyze_ooc_ui,

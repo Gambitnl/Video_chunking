@@ -4,9 +4,9 @@ from typing import Dict
 import gradio as gr
 
 from src.ui.helpers import StatusMessages
+from src.ui.social_insights_tab import create_social_insights_tab
 
-
-def create_settings_tools_tab_modern(blocks: gr.Blocks) -> Dict[str, gr.components.Component]:
+def create_settings_tools_tab_modern(blocks: gr.Blocks, story_manager, refresh_campaign_names) -> Dict[str, gr.components.Component]:
     """Create the Settings & Tools tab and return components requiring campaign updates."""
 
     with gr.Tab("Settings & Tools"):
@@ -32,7 +32,10 @@ def create_settings_tools_tab_modern(blocks: gr.Blocks) -> Dict[str, gr.componen
             )
         )
 
+        create_social_insights_tab(story_manager=story_manager, refresh_campaign_names=refresh_campaign_names)
+
     return {
         "diagnostics": diagnostics_md,
         "chat": chat_md,
     }
+

@@ -666,7 +666,7 @@ with gr.Blocks(
         campaign_tab_refs = create_campaign_tab_modern(demo)
         characters_tab_refs = create_characters_tab_modern(demo, available_parties)
         stories_tab_refs = create_stories_output_tab_modern(demo)
-        settings_tab_refs = create_settings_tools_tab_modern(demo)
+        settings_tab_refs = create_settings_tools_tab_modern(demo, story_manager=story_manager, refresh_campaign_names=_refresh_campaign_names)
 
     def _compute_process_updates(campaign_id: Optional[str]) -> Tuple:
         settings = _process_defaults_for_campaign(campaign_id)

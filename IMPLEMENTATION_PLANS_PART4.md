@@ -37,7 +37,7 @@ _For a high-level checklist, consult `docs/OUTSTANDING_TASKS.md`._
 **Effort**: 5-7 days
 **Priority**: LOW
 **Dependencies**: P0-BUG-003 (Checkpoint System), P1-FEATURE-002 (Streaming Export)
-**Status**: IN PROGRESS (Subtasks 1.1-1.2 completed by 2025-11-02)
+**Status**: IN PROGRESS (Subtasks 1.1-1.4 completed by 2025-11-02)
 
 ### Problem Statement
 Currently, processing happens after session recording completes. For live sessions, users could benefit from real-time transcription and diarization (e.g., live captions, auto-generated notes during play).
@@ -113,6 +113,7 @@ Evaluate if PyAnnote can handle real-time diarization.
 
 #### Subtask 1.4: WebSocket UI Integration
 **Effort**: 2 days
+**Status**: [DONE 2025-11-02]
 
 Add live transcript view to UI.
 
@@ -184,9 +185,16 @@ Test real-time processing with simulated streams.
    - **Alternatives Considered**: Calling PyAnnote per chunk; deferred until we can benchmark latency and GPU requirements.
    - **Trade-offs**: Energy heuristic is simplistic but testable; models can be swapped by supplying a different classifier.
 
+5. **Live Session UI Scaffolding**
+   - **Choice**: Created a dedicated Live Session tab with start/stop controls, status badges, and placeholders for transcript, speaker timeline, and audio levels.
+   - **Reasoning**: Exposes realtime capture workflow early so downstream integrations (transcriber, diarizer) can connect without reshaping the UI.
+   - **Alternatives Considered**: Extending Process tab with live mode toggle; split tab keeps streaming UX focused and avoids overloading existing workflow.
+   - **Trade-offs**: Currently uses placeholder messaging rather than wiring to backend; acceptable until streaming pipeline lands.
+
 #### Validation
 - `pytest tests/test_realtime_transcriber.py tests/test_realtime_stream_ingester.py -q`
 - `pytest tests/test_realtime_diarizer.py tests/test_realtime_transcriber.py tests/test_realtime_stream_ingester.py -q`
+- `pytest tests/test_live_session_tab.py tests/test_realtime_diarizer.py tests/test_realtime_transcriber.py tests/test_realtime_stream_ingester.py -q`
 
 ---
 

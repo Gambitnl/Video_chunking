@@ -80,6 +80,16 @@ To stay aligned with the repository's planning cadence, follow this loop wheneve
 
 This keep-the-plan-in-sync workflow is required for both human contributors and AI agents; it ensures that implementation documents remain the single source of truth and that critical review can proceed without guesswork.
 
+### Prompt & Changelog Formatting
+
+Every status update or hand-off message must follow these communication rules:
+
+- Begin the response with a **Date/Time line** in UTC, including a short note (example: `Date: 2025-11-02 15:42 UTC — Resumed CLM-02 implementation`).
+- Include a **Changelog** section in the message body that groups work by calendar date. Add a new bullet (e.g., `2025-11-02 – Added campaign launcher requirements to AGENTS.md`) for each change completed that day.
+- Maintain the changelog incrementally as work progresses so reviewers can trace actions without diff hunting.
+
+These formatting requirements apply to all agents and humans interacting through the repo workflow.
+
 ## AI Agent Workflows
 
 ### Critical Reviewer Agent

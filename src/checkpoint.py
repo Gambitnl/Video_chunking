@@ -86,8 +86,9 @@ class CheckpointManager:
         """Persist large payloads as compressed JSON and return relative blob path."""
         blob_path = self._blob_path(stage, name)
         blob_path.parent.mkdir(parents=True, exist_ok=True)
+        serializable = _make_json_safe(payload)
         with gzip.open(blob_path, "wt", encoding="utf-8") as handle:
-            json.dump(payload, handle, ensure_ascii=False)
+            json.dump(serializable, handle, ensure_ascii=False)
         return blob_path.name
 
     def read_blob(self, blob_reference: str) -> Any:

@@ -412,6 +412,7 @@ class DDSessionProcessor:
                     "chunk_transcriptions",
                     [ct.to_dict() for ct in chunk_transcriptions],
                 )
+                blob_ref = str(blob_ref)
                 self.checkpoint_manager.save(
                     "audio_transcribed",
                     {
@@ -464,6 +465,7 @@ class DDSessionProcessor:
                     "merged_segments",
                     [ms.to_dict() for ms in merged_segments],
                 )
+                blob_ref = str(blob_ref)
                 self.checkpoint_manager.save(
                     "transcription_merged",
                     {
@@ -559,6 +561,7 @@ class DDSessionProcessor:
                     "speaker_segments",
                     speaker_segments_with_labels,
                 )
+                blob_ref = str(blob_ref)
                 self.checkpoint_manager.save(
                     "speaker_diarized",
                     {
@@ -659,6 +662,7 @@ class DDSessionProcessor:
                     "classifications",
                     [c.to_dict() for c in classifications],
                 )
+                blob_ref = str(blob_ref)
                 self.checkpoint_manager.save(
                     "segments_classified",
                     {

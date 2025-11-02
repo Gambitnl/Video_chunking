@@ -25,6 +25,13 @@ Then:
 # Basic processing
 python cli.py process recording.m4a
 
+## Campaign Launcher (Web UI)
+
+- Start the Gradio app with `python app.py`.
+- Use the **Campaign Launcher** heading at the top of the UI to load an existing campaign or create a new one.
+- The launcher shows a manifest summarising party linkage, knowledge files, processed sessions, and outstanding gaps.
+- Once loaded, every tab (Process Session, Campaign, Characters, Stories, Settings) updates automatically to reflect the active campaign context.
+
 # With party configuration (easiest for recurring campaigns)
 python cli.py process recording.m4a \
   --party default \

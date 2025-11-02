@@ -33,10 +33,11 @@
 **File**: [`AGENTS.md`](./AGENTS.md)
 - **What to learn**: Repository guidelines, coding style, testing standards, **Operator Workflow**
 - **Why read this**: This defines HOW we work - required for all contributors
-- **Key sections**:
-  - "Operator Workflow" (lines 53-62) - **CRITICAL**: The plan -> implement -> document -> test loop
-  - "AI Agent Workflows" - Critical Reviewer methodology
-  - "Character Encoding: cp1252-compatible" - Avoid non-cp1252 characters to ensure broad compatibility across systems and editors. Note: This is a broader set than strict ASCII.
+  - **Key sections**:
+    - "Operator Workflow" (lines 53-62) - **CRITICAL**: The plan -> implement -> document -> test loop
+    - "AI Agent Workflows" - Critical Reviewer methodology
+    - "Character Encoding: cp1252-compatible" - Avoid non-cp1252 characters to ensure broad compatibility across systems and editors. Note: This is a broader set than strict ASCII.
+    - "Prompt & Changelog Formatting" - **NEW REQUIREMENT**: Every update must include a UTC timestamp line plus a dated changelog summary.
 
 #### 1.3: Quick Reference
 **File**: [`docs/QUICKREF.md`](./docs/QUICKREF.md)
@@ -86,6 +87,8 @@
 ## [LOOP] The Operator Workflow Loop
 
 **CRITICAL**: This is how ALL work is done in this repository. The pipeline now supports **checkpointing and resume**, meaning you can restart a process from the last completed stage if it's interrupted.
+
+> **Remember:** Every status reply must start with a UTC date/time + note line and include a dated changelog section summarizing the work completed that day.
 
 ```
 1. START FROM THE PLAN

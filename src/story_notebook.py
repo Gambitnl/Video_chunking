@@ -32,8 +32,23 @@ class StoryNotebookManager:
         self.output_dir = Path(output_dir or Config.OUTPUT_DIR)
         self._generator = StoryGenerator()
 
-    def list_sessions(self, limit: Optional[int] = 25) -> List[str]:
-        """Return recent session IDs based on available *_data.json outputs."""
+    def list_sessions(
+        self,
+        limit: Optional[int] = 25,
+        campaign_id: Optional[str] = None,
+        include_unassigned: bool = True,
+    ) -> List[str]:
+        """Return recent session IDs based on available *_data.json outputs.
+
+        Args:
+            limit: Maximum number of sessions to return (None for unlimited)
+            campaign_id: Filter sessions by campaign_id. None returns all sessions.
+            include_unassigned: If campaign_id is specified, whether to include
+                               sessions without campaign_id metadata (legacy sessions)
+
+        Returns:
+            List of session IDs matching the filter criteria, sorted by modification time
+        """
         if not self.output_dir.exists():
             return []
 
@@ -46,9 +61,28 @@ class StoryNotebookManager:
         )
         for candidate in candidates:
             session_id = self._extract_session_id(candidate)
-            if session_id and session_id not in seen:
-                seen.add(session_id)
-                session_ids.append(session_id)
+            if not session_id or session_id in seen:
+                continue
+
+            # Apply campaign filtering if specified
+            if campaign_id is not None:
+                try:
+                    data = json.loads(candidate.read_text(encoding="utf-8"))
+                    metadata = data.get("metadata") or {}
+                    session_campaign_id = metadata.get("campaign_id")
+
+                    # Skip if doesn't match campaign
+                    if session_campaign_id != campaign_id:
+                        # Include unassigned sessions (None) if include_unassigned is True
+                        if not (session_campaign_id is None and include_unassigned):
+                            continue
+                except Exception:
+                    # If we can't read metadata, skip this session when filtering
+                    if not include_unassigned:
+                        continue
+
+            seen.add(session_id)
+            session_ids.append(session_id)
             if limit is not None and len(session_ids) >= limit:
                 break
         return session_ids
@@ -81,14 +115,27 @@ class StoryNotebookManager:
 
         details = [
             f"- **Session ID**: `{session.session_id}`",
+        ]
+
+        # Show campaign info if available
+        campaign_id = metadata.get("campaign_id")
+        campaign_name = metadata.get("campaign_name")
+        if campaign_id and campaign_name:
+            details.append(f"- **Campaign**: {campaign_name} (`{campaign_id}`)")
+        elif campaign_id:
+            details.append(f"- **Campaign ID**: `{campaign_id}`")
+        else:
+            details.append(f"- **Campaign**: *Unassigned* (use migration tools to assign)")
+
+        details.extend([
             f"- **Segments**: {total_segments} total ({ic_segments} IC / {ooc_segments} OOC)",
             f"- **Duration**: {duration}",
             f"- **Source JSON**: `{session.json_path}`",
-        ]
+        ])
 
         if isinstance(ic_share, (int, float)):
             details.insert(
-                3,  # place IC share before duration
+                5,  # place IC share before duration (adjusted for campaign field)
                 f"- **IC Share**: {ic_share:.1f}%",
             )
 

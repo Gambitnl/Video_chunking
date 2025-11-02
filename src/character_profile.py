@@ -18,6 +18,10 @@ PROFILE_UPDATE_CATEGORIES = [
     "character_background",
 ]
 
+PROFILE_CATEGORY_ALIASES = {
+    "critical_actions": "notable_actions",
+}
+
 
 @dataclass
 class ProfileUpdate:
@@ -38,15 +42,21 @@ class ProfileUpdate:
     metadata: Dict[str, Any] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
-        if self.category not in PROFILE_UPDATE_CATEGORIES:
+        normalized = (self.category or "").strip().lower().replace(" ", "_")
+        normalized = PROFILE_CATEGORY_ALIASES.get(normalized, normalized)
+        if normalized in PROFILE_UPDATE_CATEGORIES:
+            self.category = normalized
+        else:
             raise ValueError(
                 f"Unsupported profile update category '{self.category}'. "
                 f"Known categories: {', '.join(PROFILE_UPDATE_CATEGORIES)}"
             )
         if self.confidence is not None and not 0.0 <= self.confidence <= 1.0:
             raise ValueError("confidence must be between 0.0 and 1.0")
-        if self.timestamp and len(self.timestamp.split(":")) not in (2, 3):
-            raise ValueError("timestamp must be in MM:SS or HH:MM:SS format")
+        if self.timestamp and ":" in self.timestamp:
+            parts = self.timestamp.split(":")
+            if len(parts) not in (2, 3):
+                raise ValueError("timestamp must be in MM:SS or HH:MM:SS format")
 
     def to_dict(self) -> Dict[str, Any]:
         return asdict(self)

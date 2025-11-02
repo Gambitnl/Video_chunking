@@ -12,9 +12,10 @@
     "Pas'Ta",
     "Fan'nar"
   ],
-  "campaign": "Gaia Adventures - Culdor Academy",
+  "campaign_id": null,
+  "campaign_name": "Gaia Adventures - Culdor Academy",
   "first_session": "Session 1 (29-Nov-2024)",
-  "last_updated": "2025-10-21T21:50:21.913916",
+  "last_updated": "2025-11-01T20:59:46.563600",
   "notable_actions": [
     {
       "session": "Session 1",

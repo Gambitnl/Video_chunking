@@ -1,7 +1,7 @@
 """Party configuration management for D&D sessions"""
 import json
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Tuple
 from dataclasses import dataclass, asdict
 from .config import Config
 
@@ -320,6 +320,33 @@ class CampaignManager:
     def __init__(self, config_file: Path = None):
         self.config_file = config_file or (Config.MODELS_DIR / "campaigns.json")
         self.campaigns = self._load_campaigns()
+        self._ensure_storage()
+
+    def _ensure_storage(self) -> None:
+        """Ensure the campaign config directory exists."""
+        self.config_file.parent.mkdir(parents=True, exist_ok=True)
+
+    def _generate_campaign_id(self, base_id: str = "campaign") -> str:
+        """Generate a unique campaign identifier."""
+        counter = 1
+        candidate = f"{base_id}_{counter:03d}"
+        while candidate in self.campaigns:
+            counter += 1
+            candidate = f"{base_id}_{counter:03d}"
+        return candidate
+
+    def _generate_campaign_name(self, base_name: str = "New Campaign") -> str:
+        """Generate a human readable campaign name."""
+        existing = {campaign.name for campaign in self.campaigns.values()}
+        if base_name not in existing:
+            return base_name
+
+        counter = 2
+        candidate = f"{base_name} {counter}"
+        while candidate in existing:
+            counter += 1
+            candidate = f"{base_name} {counter}"
+        return candidate
 
     def _load_campaigns(self) -> Dict[str, Campaign]:
         """Load campaigns from JSON file"""
@@ -365,6 +392,34 @@ class CampaignManager:
         """Add or update a campaign"""
         self.campaigns[campaign_id] = campaign
         self._save_campaigns()
+
+    def create_blank_campaign(
+        self,
+        name: Optional[str] = None,
+        base_id: str = "campaign",
+    ) -> Tuple[str, Campaign]:
+        """
+        Create and persist a blank campaign profile.
+
+        Args:
+            name: Optional display name. When omitted a unique "New Campaign" name is generated.
+            base_id: Base identifier slug used to generate the campaign ID.
+
+        Returns:
+            Tuple of (campaign_id, Campaign instance).
+        """
+        campaign_id = self._generate_campaign_id(base_id)
+        campaign_name = name.strip() if name and name.strip() else self._generate_campaign_name()
+
+        blank_campaign = Campaign(
+            name=campaign_name,
+            party_id="",
+            settings=CampaignSettings(),
+            description=None,
+            notes=None,
+        )
+        self.add_campaign(campaign_id, blank_campaign)
+        return campaign_id, blank_campaign
 
     def _save_campaigns(self):
         """Save campaigns to JSON file"""

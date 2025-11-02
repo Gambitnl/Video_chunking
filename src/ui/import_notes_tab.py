@@ -413,3 +413,9 @@ Narrative:"""
                 notes_output,
             ],
         )
+
+    return {
+        "campaign_dropdown": notes_campaign,
+        "output": notes_output,
+        "ready_indicator": ready_indicator,
+    }

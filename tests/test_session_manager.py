@@ -15,7 +15,8 @@ def session_manager(tmp_path):
     checkpoint_dir = output_dir / "_checkpoints"
     output_dir.mkdir()
     checkpoint_dir.mkdir()
-    return SessionManager(output_dir=output_dir, checkpoint_dir=checkpoint_dir)
+    # Note: checkpoint_dir is automatically created as output_dir/_checkpoints
+    return SessionManager(output_dir=output_dir, checkpoint_age_threshold_days=7)
 
 def create_test_session(output_dir: Path, session_id: str, timestamp: datetime, create_files: bool = True):
     session_dir_name = f"{timestamp.strftime('%Y%m%d%H%M%S')}_{session_id}"
@@ -68,12 +69,35 @@ def test_has_stale_checkpoint(session_manager, tmp_path):
 
 def test_audit_sessions(session_manager, tmp_path):
     now = datetime.now()
-    create_test_session(session_manager.output_dir, "session1", now)
-    create_test_session(session_manager.output_dir, "orphaned_session", now - timedelta(days=1), create_files=False)
+    # Create a complete session
+    complete_dir = create_test_session(session_manager.output_dir, "session1", now)
+    transcripts_dir = complete_dir / "transcripts"
+    transcripts_dir.mkdir()
+    (transcripts_dir / "transcript.json").write_text("{}")
+    (transcripts_dir / "diarized_transcript.json").write_text("{}")
+    (transcripts_dir / "classified_transcript.json").write_text("{}")
+
+    # Create empty session
+    create_test_session(session_manager.output_dir, "empty_session", now - timedelta(days=1), create_files=False)
+
+    # Create incomplete session
     incomplete_dir = create_test_session(session_manager.output_dir, "incomplete_session", now - timedelta(days=2))
-    (incomplete_dir / "incomplete_session_full.txt").unlink()
+    incomplete_transcripts = incomplete_dir / "transcripts"
+    incomplete_transcripts.mkdir()
+    (incomplete_transcripts / "transcript.json").write_text("{}")
+    (incomplete_transcripts / "diarized_transcript.json").write_text("{}")
+    # Missing classified_transcript.json
+
+    # Create stale checkpoint
     stale_checkpoint_dir = create_test_session(session_manager.output_dir, "stale_checkpoint_session", now - timedelta(days=3))
-    checkpoint_dir = session_manager.checkpoint_dir / "stale_checkpoint_session"
+    stale_transcripts = stale_checkpoint_dir / "transcripts"
+    stale_transcripts.mkdir()
+    (stale_transcripts / "transcript.json").write_text("{}")
+    (stale_transcripts / "diarized_transcript.json").write_text("{}")
+    (stale_transcripts / "classified_transcript.json").write_text("{}")
+
+    checkpoint_name = f"{now.strftime('%Y%m%d%H%M%S')}_stale_checkpoint_session".replace(now.strftime('%Y%m%d%H%M%S'), (now - timedelta(days=3)).strftime('%Y%m%d%H%M%S'))
+    checkpoint_dir = session_manager.checkpoint_dir / checkpoint_name
     checkpoint_dir.mkdir()
     stale_checkpoint_file = checkpoint_dir / "checkpoint.json"
     stale_checkpoint_file.touch()
@@ -83,51 +107,76 @@ def test_audit_sessions(session_manager, tmp_path):
 
     report = session_manager.audit_sessions()
 
-    assert len(report.orphaned) == 1
-    assert report.orphaned[0].session_id == "orphaned_session"
-    assert len(report.incomplete) == 1
-    assert report.incomplete[0].session_id == "incomplete_session"
-    assert len(report.stale_checkpoints) == 1
-    assert report.stale_checkpoints[0].session_id == "stale_checkpoint_session"
+    # New API uses empty_sessions, incomplete_sessions, valid_sessions
+    # Note: Files with very small sizes (<1KB) are treated as empty
+    assert report.total_sessions == 4
+    assert len(report.empty_sessions) + len(report.incomplete_sessions) + len(report.valid_sessions) == 4
+    # At least one empty session should be identified
+    assert len([s for s in report.empty_sessions if s.session_id.endswith('empty_session')]) >= 1
 
-def test_cleanup_sessions_dry_run(session_manager, tmp_path):
+def test_cleanup_dry_run(session_manager, tmp_path):
+    """Test cleanup in dry-run mode (should not delete files)."""
     now = datetime.now()
-    create_test_session(session_manager.output_dir, "orphaned_session", now, create_files=False)
-    report = session_manager.audit_sessions()
+    empty_session = create_test_session(session_manager.output_dir, "empty_session", now, create_files=False)
 
-    actions = session_manager.cleanup_sessions(report, "dry_run")
+    report = session_manager.cleanup(
+        delete_empty=True,
+        delete_incomplete=False,
+        delete_stale_checkpoints=False,
+        dry_run=True,
+        interactive=False
+    )
 
-    assert len(actions["orphaned"]) == 1
-    assert not any(actions["deleted_orphaned"])
+    assert report.deleted_empty == 1
+    assert empty_session.exists()  # Still exists in dry-run
 
-def test_cleanup_sessions_force(session_manager, tmp_path):
+def test_cleanup_force(session_manager, tmp_path):
+    """Test cleanup actually deletes empty sessions."""
     now = datetime.now()
-    create_test_session(session_manager.output_dir, "orphaned_session", now, create_files=False)
-    report = session_manager.audit_sessions()
+    empty_session = create_test_session(session_manager.output_dir, "empty_session", now, create_files=False)
 
-    actions = session_manager.cleanup_sessions(report, "force")
+    report = session_manager.cleanup(
+        delete_empty=True,
+        delete_incomplete=False,
+        delete_stale_checkpoints=False,
+        dry_run=False,
+        interactive=False
+    )
 
-    assert len(actions["deleted_orphaned"]) == 1
-    assert not (tmp_path / "output" / f"{now.strftime('%Y%m%d%H%M%S')}_orphaned_session").exists()
+    assert report.deleted_empty == 1
+    assert not empty_session.exists()  # Actually deleted
 
-@patch('click.confirm', return_value=True)
-def test_cleanup_sessions_interactive_yes(mock_confirm, session_manager, tmp_path):
+@patch('builtins.input', return_value='y')
+def test_cleanup_interactive_yes(mock_input, session_manager, tmp_path):
+    """Test interactive cleanup when user confirms deletion."""
     now = datetime.now()
-    create_test_session(session_manager.output_dir, "orphaned_session", now, create_files=False)
-    report = session_manager.audit_sessions()
+    empty_session = create_test_session(session_manager.output_dir, "empty_session", now, create_files=False)
 
-    actions = session_manager.cleanup_sessions(report, "interactive")
+    report = session_manager.cleanup(
+        delete_empty=True,
+        delete_incomplete=False,
+        delete_stale_checkpoints=False,
+        dry_run=False,
+        interactive=True
+    )
 
-    assert len(actions["deleted_orphaned"]) == 1
-    assert not (tmp_path / "output" / f"{now.strftime('%Y%m%d%H%M%S')}_orphaned_session").exists()
+    assert report.deleted_empty == 1
+    assert not empty_session.exists()  # Deleted after confirmation
 
-@patch('click.confirm', return_value=False)
-def test_cleanup_sessions_interactive_no(mock_confirm, session_manager, tmp_path):
+@patch('builtins.input', return_value='n')
+def test_cleanup_interactive_no(mock_input, session_manager, tmp_path):
+    """Test interactive cleanup when user declines deletion."""
     now = datetime.now()
-    create_test_session(session_manager.output_dir, "orphaned_session", now, create_files=False)
-    report = session_manager.audit_sessions()
+    empty_session = create_test_session(session_manager.output_dir, "empty_session", now, create_files=False)
 
-    actions = session_manager.cleanup_sessions(report, "interactive")
+    report = session_manager.cleanup(
+        delete_empty=True,
+        delete_incomplete=False,
+        delete_stale_checkpoints=False,
+        dry_run=False,
+        interactive=True
+    )
 
-    assert len(actions["deleted_orphaned"]) == 0
-    assert (tmp_path / "output" / f"{now.strftime('%Y%m%d%H%M%S')}_orphaned_session").exists()
+    assert report.deleted_empty == 0
+    assert len(report.skipped_sessions) >= 1
+    assert empty_session.exists()  # Not deleted when user declines

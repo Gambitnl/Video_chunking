@@ -34,7 +34,24 @@ python cli.py process your_session.m4a
 - **💰 Zero Budget Compatible**: 100% free with local models
 - **⚡ Fast Processing**: Optional cloud APIs for speed
 - **🔄 Learning System**: Speaker profiles improve over time
-- **🖥️ Dual Interface**: Web UI and CLI
+- **🖥️ Dual Interface**: Modern web UI and powerful CLI
+
+## 🎨 Modern Web Interface
+
+The Gradio web UI has been completely redesigned with a modern, streamlined interface:
+
+- **5 Consolidated Tabs** (down from 16!) - No more hidden overflow menus
+- **Visual Workflow Stepper** - Clear step-by-step guidance for processing sessions
+- **Progressive Disclosure** - Advanced options hidden in collapsible sections until needed
+- **Modern Design** - Clean, professional aesthetic with Indigo/Cyan color palette
+- **Card-Based Layouts** - Beautiful visual organization for characters, sessions, and knowledge
+
+**The 5 Main Sections:**
+1. 🎬 **Process Session** - Upload and process your recordings with clear workflow
+2. 📚 **Campaign** - Dashboard, knowledge base, session library, and party management
+3. 👥 **Characters** - Visual character browser with auto-extraction tools
+4. 📖 **Stories & Output** - View transcripts, stories, and export content
+5. ⚙️ **Settings & Tools** - Configuration, diagnostics, logs, and advanced features
 
 ## 📋 What It Does
 

@@ -305,3 +305,8 @@ def create_campaign_library_tab(
             inputs=[kb_campaign_selector],
             outputs=[kb_output],
         )
+
+    return {
+        "campaign_selector": kb_campaign_selector,
+        "output": kb_output,
+    }

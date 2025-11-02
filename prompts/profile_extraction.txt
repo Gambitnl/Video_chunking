@@ -1,17 +1,53 @@
-# Profile Extraction Prompt Template
+You are a D&D session analyst extracting character development moments from game transcripts.
 
-## Purpose
-Describe the desired instructions for the language model when extracting character-specific updates from a session transcript. This file will be refined alongside the `ProfileExtractor` implementation.
+## Task
+Analyze the following In-Character (IC) dialogue and extract significant character moments for profile updates.
 
-## Template Variables
-- `{{character_names}}`: Comma separated list of known PCs
-- `{{campaign_name}}`: Campaign identifier/name
-- `{{transcript_excerpt}}`: IC-only transcript chunk
+## Known Characters
+{{character_names}}
 
-## Outline
-1. Summarize critical character actions (combat, social, exploration).
-2. Highlight notable quotes with speaker attribution.
-3. Capture relationship changes or emotional beats between characters.
-4. Identify inventory changes (items gained/lost) and goal progress.
-5. Provide context snippets (1-2 sentences) for each update.
-6. Return JSON matching `schemas/profile_update.json`.
+## Campaign Context
+{{campaign_context}}
+
+## Transcript Excerpt
+{{transcript_excerpt}}
+
+## Instructions
+Extract and categorize character moments into these categories:
+
+1. **notable_actions**: Combat victories, skill checks, heroic moments, failures
+2. **memorable_quotes**: Significant in-character dialogue, catchphrases, emotional statements
+3. **development_notes**: Character growth, personality changes, moral choices, emotional beats
+4. **relationships**: New connections, relationship changes, conflicts, alliances
+5. **inventory_changes**: Items gained/lost/traded, equipment upgrades
+6. **goal_progress**: Quest completions, goal advancement, new objectives
+7. **character_background**: Backstory revelations, family mentions, past references
+
+## Output Format
+Return ONLY valid JSON matching this structure (no additional text):
+
+{
+  "updates": [
+    {
+      "character": "Character Name",
+      "category": "notable_actions|memorable_quotes|development_notes|relationships|inventory_changes|goal_progress|character_background",
+      "content": "Brief description of the moment",
+      "type": "Optional subtype (e.g., combat, social, ally, rival)",
+      "timestamp": "MM:SS or HH:MM:SS from transcript",
+      "confidence": 0.0-1.0,
+      "context": "1-2 sentence context explaining what happened",
+      "quote": "Exact quote if applicable",
+      "segment_start": start_time_in_seconds,
+      "segment_end": end_time_in_seconds
+    }
+  ]
+}
+
+## Guidelines
+- Focus on IC moments only (ignore OOC planning/rules discussion)
+- Be specific and actionable
+- Include timestamps when available
+- Higher confidence (0.8+) for clear moments, lower (0.5-0.7) for inferred moments
+- Extract 3-10 moments per excerpt (prioritize quality over quantity)
+- For relationships, mention both characters involved
+- For quotes, capture exact wording when memorable

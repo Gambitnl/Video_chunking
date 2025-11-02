@@ -492,7 +492,8 @@ def sessions():
     pass
 
 @sessions.command()
-def audit():
+@click.option('--output', '-o', type=click.Path(), help='Save report to markdown file')
+def audit(output):
     """Audit all processed sessions for issues."""
     from src.session_manager import SessionManager
 
@@ -500,73 +501,270 @@ def audit():
     manager = SessionManager()
     report = manager.audit_sessions()
 
-    if not any(report):
+    # Print summary statistics
+    console.print(f"[bold]Total Sessions:[/bold] {report.total_sessions}")
+    console.print(f"[bold]Valid Sessions:[/bold] {len(report.valid_sessions)} ({report.total_size_mb - report.empty_size_mb - report.incomplete_size_mb:.2f} MB)")
+    console.print(f"[bold]Empty Sessions:[/bold] {len(report.empty_sessions)} ({report.empty_size_mb:.2f} MB)")
+    console.print(f"[bold]Incomplete Sessions:[/bold] {len(report.incomplete_sessions)} ({report.incomplete_size_mb:.2f} MB)")
+    console.print(f"[bold]Stale Checkpoints:[/bold] {len(report.stale_checkpoints)} ({report.stale_checkpoint_size_mb:.2f} MB)")
+    console.print(f"[bold cyan]Potential Cleanup:[/bold cyan] {report.potential_cleanup_mb:.2f} MB\n")
+
+    if not (report.empty_sessions or report.incomplete_sessions or report.stale_checkpoints):
         console.print("[bold green]✓ All sessions are in good condition.[/bold green]")
         return
 
-    table = Table(title="Session Audit Report")
-    table.add_column("Session ID", style="cyan")
-    table.add_column("Issue", style="red")
-    table.add_column("Details", style="dim")
+    # Show detailed issues if any exist
+    if report.empty_sessions:
+        table = Table(title="Empty Sessions")
+        table.add_column("Session ID", style="cyan")
+        table.add_column("Size", style="yellow")
+        table.add_column("Created", style="dim")
 
-    for session in report.orphaned:
-        table.add_row(session.session_id, "Orphaned", f"Directory is empty. Path: {session.path}")
-    for session in report.incomplete:
-        table.add_row(session.session_id, "Incomplete", f"Missing required files. Path: {session.path}")
-    for session in report.stale_checkpoints:
-        table.add_row(session.session_id, "Stale Checkpoint", f"Checkpoint is older than 7 days. Path: {session.path}")
+        for session in report.empty_sessions:
+            table.add_row(
+                session.session_id,
+                f"{session.size_mb:.2f} MB",
+                session.created_time.strftime('%Y-%m-%d')
+            )
+        console.print(table)
+        print()
 
-    console.print(table)
+    if report.incomplete_sessions:
+        table = Table(title="Incomplete Sessions")
+        table.add_column("Session ID", style="cyan")
+        table.add_column("Size", style="yellow")
+        table.add_column("Missing Components", style="red")
+
+        for session in report.incomplete_sessions:
+            missing = []
+            if not session.has_transcript:
+                missing.append("transcript")
+            if not session.has_diarized_transcript:
+                missing.append("diarized")
+            if not session.has_classified_transcript:
+                missing.append("classified")
+
+            table.add_row(
+                session.session_id,
+                f"{session.size_mb:.2f} MB",
+                ", ".join(missing)
+            )
+        console.print(table)
+        print()
+
+    if report.stale_checkpoints:
+        table = Table(title="Stale Checkpoints (>7 days)")
+        table.add_column("Checkpoint ID", style="cyan")
+        table.add_column("Size", style="yellow")
+
+        # We'll need to get sizes for checkpoints
+        for checkpoint_name in report.stale_checkpoints:
+            table.add_row(
+                checkpoint_name,
+                f"{manager._get_directory_size(manager.checkpoint_dir / checkpoint_name) / (1024 * 1024):.2f} MB"
+            )
+        console.print(table)
+
+    # Save markdown report if requested
+    if output:
+        markdown_report = manager.generate_audit_report_markdown(report)
+        Path(output).write_text(markdown_report, encoding='utf-8')
+        console.print(f"\n[bold green]✓ Report saved to:[/bold green] {output}")
 
 @sessions.command()
-@click.option("--interactive", is_flag=True, help="Prompt before deleting each item.")
+@click.option("--empty/--no-empty", default=True, help="Delete empty session directories (default: yes)")
+@click.option("--incomplete/--no-incomplete", default=False, help="Delete incomplete sessions (default: no)")
+@click.option("--stale-checkpoints/--no-stale-checkpoints", default=True, help="Delete stale checkpoints (default: yes)")
 @click.option("--dry-run", is_flag=True, help="Show what would be deleted without actually deleting anything.")
-@click.option("--force", is_flag=True, help="Delete all problematic sessions without prompting.")
-def cleanup(interactive, dry_run, force):
-    """Clean up orphaned, incomplete, and stale sessions."""
+@click.option("--force", is_flag=True, help="Delete without prompting (non-interactive mode).")
+@click.option('--output', '-o', type=click.Path(), help='Save cleanup report to markdown file')
+def cleanup(empty, incomplete, stale_checkpoints, dry_run, force, output):
+    """Clean up empty, incomplete, and stale sessions.
+
+    By default, this will:
+    - Delete empty session directories
+    - Delete stale checkpoints (>7 days old)
+    - Keep incomplete sessions (use --incomplete to delete them)
+    - Prompt before deleting (use --force to skip prompts)
+    """
     from src.session_manager import SessionManager
 
+    if dry_run:
+        console.print("[bold yellow]DRY RUN MODE - No files will be deleted[/bold yellow]\n")
+
+    console.print("[bold]Running cleanup...[/bold]\n")
     manager = SessionManager()
-    report = manager.audit_sessions()
 
-    if not any(report):
-        console.print("[bold green]✓ All sessions are in good condition. No cleanup needed.[/bold green]")
-        return
+    # Run cleanup with specified options
+    report = manager.cleanup(
+        delete_empty=empty,
+        delete_incomplete=incomplete,
+        delete_stale_checkpoints=stale_checkpoints,
+        dry_run=dry_run,
+        interactive=not force
+    )
 
-    mode = "dry_run" if dry_run else "force" if force else "interactive" if interactive else None
+    # Print summary
+    console.print(f"\n[bold]Cleanup Summary:[/bold]")
+    console.print(f"  Empty sessions deleted: {report.deleted_empty}")
+    console.print(f"  Incomplete sessions deleted: {report.deleted_incomplete}")
+    console.print(f"  Stale checkpoints deleted: {report.deleted_checkpoints}")
+    console.print(f"  [bold green]Total space freed: {report.total_freed_mb:.2f} MB[/bold green]")
 
-    if not mode:
-        console.print("Please specify a cleanup mode: --interactive, --dry-run, or --force")
-        return
+    if report.skipped_sessions:
+        console.print(f"\n[yellow]Skipped sessions: {len(report.skipped_sessions)}[/yellow]")
 
-    actions = manager.cleanup_sessions(report, mode)
+    if report.errors:
+        console.print(f"\n[bold red]Errors encountered: {len(report.errors)}[/bold red]")
+        for error in report.errors:
+            console.print(f"  - {error}")
 
-    if mode == "dry_run":
-        console.print("[bold yellow]-- Dry Run Mode --[/bold yellow]")
-        table = Table(title="Items to be Deleted")
-        table.add_column("Type", style="cyan")
-        table.add_column("Path", style="dim")
-        for path in actions["orphaned"]:
-            table.add_row("Orphaned Session", str(path))
-        for path in actions["incomplete"]:
-            table.add_row("Incomplete Session", str(path))
-        for path in actions["stale_checkpoints"]:
-            table.add_row("Stale Checkpoint", str(path))
-        console.print(table)
+    # Save markdown report if requested
+    if output:
+        markdown_report = manager.generate_cleanup_report_markdown(report)
+        Path(output).write_text(markdown_report, encoding='utf-8')
+        console.print(f"\n[bold green]✓ Report saved to:[/bold green] {output}")
+
+    if dry_run:
+        console.print(f"\n[bold yellow]This was a dry run. Run without --dry-run to actually delete files.[/bold yellow]")
     else:
-        console.print("[bold green]✓ Cleanup complete![/bold green]")
-        table = Table(title="Cleanup Report")
-        table.add_column("Action", style="cyan")
-        table.add_column("Path", style="dim")
-        for path in actions["deleted_orphaned"]:
-            table.add_row("Deleted Orphaned Session", str(path))
-        for path in actions["deleted_incomplete"]:
-            table.add_row("Deleted Incomplete Session", str(path))
-        for path in actions["deleted_stale_checkpoints"]:
-            table.add_row("Deleted Stale Checkpoint", str(path))
-        console.print(table)
+        console.print(f"\n[bold green]✓ Cleanup complete![/bold green]")
 
 cli.add_command(sessions)
+
+
+@click.group()
+def campaigns():
+    """Manage campaigns and migrate existing data."""
+    pass
+
+
+@campaigns.command('migrate-sessions')
+@click.argument('campaign_id')
+@click.option('--dry-run', is_flag=True, help='Preview changes without modifying files')
+@click.option('--filter', '-f', help='Filter sessions by glob pattern (e.g., "Session_*")')
+@click.option('--output', '-o', type=click.Path(), help='Save report to markdown file')
+def migrate_sessions_cmd(campaign_id, dry_run, filter, output):
+    """Add campaign_id to existing session metadata files.
+
+    Example:
+        python cli.py campaigns migrate-sessions broken_seekers
+        python cli.py campaigns migrate-sessions broken_seekers --filter "Session_*"
+        python cli.py campaigns migrate-sessions broken_seekers --dry-run
+    """
+    from src.campaign_migration import CampaignMigration
+
+    console.print(f"\n[bold]{'[DRY RUN] ' if dry_run else ''}Migrating sessions to campaign: {campaign_id}[/bold]\n")
+
+    migration = CampaignMigration()
+    report = migration.migrate_session_metadata(
+        campaign_id=campaign_id,
+        dry_run=dry_run,
+        session_filter=filter
+    )
+
+    # Display results
+    console.print(f"[bold green]✓ Sessions migrated:[/bold green] {report.sessions_migrated}")
+    console.print(f"[bold yellow]⊘ Sessions skipped:[/bold yellow] {report.sessions_skipped}")
+
+    if report.errors:
+        console.print(f"\n[bold red]✗ Errors ({len(report.errors)}):[/bold red]")
+        for error in report.errors:
+            console.print(f"  - {error}")
+
+    if output:
+        markdown_report = migration.generate_migration_report_markdown(sessions_report=report)
+        Path(output).write_text(markdown_report, encoding='utf-8')
+        console.print(f"\n[bold green]✓ Report saved to:[/bold green] {output}")
+
+    if dry_run and report.sessions_migrated > 0:
+        console.print(f"\n[bold yellow]This was a dry run. Run without --dry-run to apply changes.[/bold yellow]")
+
+
+@campaigns.command('migrate-profiles')
+@click.argument('campaign_id')
+@click.option('--dry-run', is_flag=True, help='Preview changes without saving')
+@click.option('--characters', '-c', help='Comma-separated list of character names to migrate')
+@click.option('--output', '-o', type=click.Path(), help='Save report to markdown file')
+def migrate_profiles_cmd(campaign_id, dry_run, characters, output):
+    """Assign campaign_id to character profiles.
+
+    Example:
+        python cli.py campaigns migrate-profiles broken_seekers
+        python cli.py campaigns migrate-profiles broken_seekers --characters "Sha'ek,Pipira"
+        python cli.py campaigns migrate-profiles broken_seekers --dry-run
+    """
+    from src.campaign_migration import CampaignMigration
+
+    character_filter = characters.split(',') if characters else None
+
+    console.print(f"\n[bold]{'[DRY RUN] ' if dry_run else ''}Migrating character profiles to campaign: {campaign_id}[/bold]\n")
+
+    migration = CampaignMigration()
+    report = migration.migrate_character_profiles(
+        campaign_id=campaign_id,
+        dry_run=dry_run,
+        character_filter=character_filter
+    )
+
+    # Display results
+    console.print(f"[bold green]✓ Profiles migrated:[/bold green] {report.profiles_migrated}")
+    console.print(f"[bold yellow]⊘ Profiles skipped:[/bold yellow] {report.profiles_skipped}")
+
+    if report.errors:
+        console.print(f"\n[bold red]✗ Errors ({len(report.errors)}):[/bold red]")
+        for error in report.errors:
+            console.print(f"  - {error}")
+
+    if output:
+        markdown_report = migration.generate_migration_report_markdown(profiles_report=report)
+        Path(output).write_text(markdown_report, encoding='utf-8')
+        console.print(f"\n[bold green]✓ Report saved to:[/bold green] {output}")
+
+    if dry_run and report.profiles_migrated > 0:
+        console.print(f"\n[bold yellow]This was a dry run. Run without --dry-run to save changes.[/bold yellow]")
+
+
+@campaigns.command('migrate-narratives')
+@click.argument('campaign_id')
+@click.option('--dry-run', is_flag=True, help='Preview changes without modifying files')
+@click.option('--output', '-o', type=click.Path(), help='Save report to markdown file')
+def migrate_narratives_cmd(campaign_id, dry_run, output):
+    """Add YAML frontmatter with campaign metadata to narrative files.
+
+    Example:
+        python cli.py campaigns migrate-narratives broken_seekers
+        python cli.py campaigns migrate-narratives broken_seekers --dry-run
+    """
+    from src.campaign_migration import CampaignMigration
+
+    console.print(f"\n[bold]{'[DRY RUN] ' if dry_run else ''}Adding frontmatter to narratives for campaign: {campaign_id}[/bold]\n")
+
+    migration = CampaignMigration()
+    report = migration.migrate_narrative_frontmatter(
+        campaign_id=campaign_id,
+        dry_run=dry_run
+    )
+
+    # Display results
+    console.print(f"[bold green]✓ Narratives migrated:[/bold green] {report.narratives_migrated}")
+    console.print(f"[bold yellow]⊘ Narratives skipped:[/bold yellow] {report.narratives_skipped}")
+
+    if report.errors:
+        console.print(f"\n[bold red]✗ Errors ({len(report.errors)}):[/bold red]")
+        for error in report.errors:
+            console.print(f"  - {error}")
+
+    if output:
+        markdown_report = migration.generate_migration_report_markdown(narratives_report=report)
+        Path(output).write_text(markdown_report, encoding='utf-8')
+        console.print(f"\n[bold green]✓ Report saved to:[/bold green] {output}")
+
+    if dry_run and report.narratives_migrated > 0:
+        console.print(f"\n[bold yellow]This was a dry run. Run without --dry-run to apply changes.[/bold yellow]")
+
+
+cli.add_command(campaigns)
 
 
 @cli.command()

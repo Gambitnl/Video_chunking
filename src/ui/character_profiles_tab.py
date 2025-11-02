@@ -277,7 +277,7 @@ def create_character_profiles_tab(blocks: gr.Blocks, available_parties: List[str
                 )
 
             try:
-                from src.profile_extractor import CharacterProfileExtractor
+                from src.character_profile_extractor import CharacterProfileExtractor
                 from src.character_profile import CharacterProfileManager
                 from src.party_config import PartyConfigManager
 

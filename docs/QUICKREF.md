@@ -18,6 +18,7 @@ ollama pull gpt-oss:20b
 python app.py
 # Open: http://127.0.0.1:7860
 ```
+- Use the **New Blank Campaign** button on the Process Session tab to spin up a fresh profile; the dashboard, library, and import tools will reset to that campaign automatically.
 
 ### CLI - Simple
 ```bash

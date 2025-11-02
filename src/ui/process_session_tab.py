@@ -1,7 +1,7 @@
 """Process Session tab UI construction."""
 from __future__ import annotations
 
-from typing import Any, Callable, Dict, List
+from typing import Any, Callable, Dict, List, Tuple
 
 import gradio as gr
 
@@ -20,7 +20,7 @@ def create_process_session_tab(
     refresh_campaign_names: Callable[[], Dict[str, str]],
     process_session_fn: Callable[..., Any],
     campaign_manager,
-) -> List[str]:
+) -> Tuple[List[str], Dict[str, Any]]:
     """Build the Process Session tab and wire associated handlers.
 
     Args:
@@ -29,7 +29,7 @@ def create_process_session_tab(
         campaign_manager: Shared CampaignManager instance for lookups.
 
     Returns:
-        List of available party identifiers for reuse in other tabs.
+        Tuple of (available party identifiers, component references for cross-tab coordination).
     """
     party_manager = PartyConfigManager()
     available_parties = ["Manual Entry"] + party_manager.list_parties()
@@ -40,12 +40,19 @@ def create_process_session_tab(
     with gr.Tab("Process Session"):
         with gr.Row():
             with gr.Column():
-                campaign_selector = gr.Dropdown(
-                    choices=campaign_choices,
-                    value="Manual Setup",
-                    label="Campaign Profile",
-                    info="Select your campaign to auto-fill settings, or choose Manual Setup to configure manually.",
-                )
+                with gr.Row():
+                    campaign_selector = gr.Dropdown(
+                        choices=campaign_choices,
+                        value="Manual Setup",
+                        label="Campaign Profile",
+                        info="Select your campaign to auto-fill settings, or choose Manual Setup to configure manually.",
+                        scale=3,
+                    )
+                    create_blank_campaign_btn = UIComponents.create_action_button(
+                        "New Blank Campaign",
+                        variant="secondary",
+                        size="sm",
+                    )
 
                 batch_mode = gr.Checkbox(
                     label="Batch Mode - Process Multiple Sessions",
@@ -368,4 +375,24 @@ def create_process_session_tab(
             queue=True,
         )
 
-    return available_parties
+    component_refs = {
+        "campaign_selector": campaign_selector,
+        "new_campaign_btn": create_blank_campaign_btn,
+        "party_selection_input": party_selection_input,
+        "character_names_input": character_names_input,
+        "player_names_input": player_names_input,
+        "num_speakers_input": num_speakers_input,
+        "skip_diarization_input": skip_diarization_input,
+        "skip_classification_input": skip_classification_input,
+        "skip_snippets_input": skip_snippets_input,
+        "skip_knowledge_input": skip_knowledge_input,
+        "status_output": status_output,
+        "full_output": full_output,
+        "ic_output": ic_output,
+        "ooc_output": ooc_output,
+        "stats_output": stats_output,
+        "snippet_output": snippet_progress_output,
+        "session_id_input": session_id_input,
+    }
+
+    return available_parties, component_refs

@@ -5,7 +5,12 @@
       "Bash(timeout 5 python app.py:*)",
       "Read(//f/**)",
       "Bash(python:*)",
-      "Bash(pytest:*)"
+      "Bash(pytest:*)",
+      "Bash(timeout 10 python:*)",
+      "Bash(taskkill /F /FI \"WINDOWTITLE eq python*\")",
+      "Bash(netstat:*)",
+      "Bash(findstr:*)",
+      "Bash(dir:*)"
     ],
     "deny": [],
     "ask": []

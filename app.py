@@ -1,4 +1,4 @@
-"""Gradio web UI for D&D Session Processor"""
+"""Gradio web UI for D&D Session Processor - Modern UI"""
 import os
 import json
 import socket
@@ -18,24 +18,18 @@ from src.logger import get_log_file_path
 from src.party_config import PartyConfigManager, CampaignManager
 from src.knowledge_base import CampaignKnowledgeBase
 from src.ui.constants import StatusIndicators
+from src.ui.helpers import StatusMessages
 from src.campaign_dashboard import CampaignDashboard
 from src.story_notebook import StoryNotebookManager
-from src.ui.campaign_dashboard_tab import create_dashboard_tab
-from src.ui.party_management_tab import create_party_management_tab
-from src.ui.process_session_tab import create_process_session_tab
-from src.ui.story_notebook_tab import create_story_notebook_tab
-from src.ui.logs_tab import create_logs_tab
-from src.ui.diagnostics_tab import create_diagnostics_tab
-from src.ui.import_notes_tab import create_import_notes_tab
-from src.ui.campaign_library_tab import create_campaign_library_tab
-from src.ui.character_profiles_tab import create_character_profiles_tab
-from src.ui.speaker_management_tab import create_speaker_management_tab
-from src.ui.document_viewer_tab import create_document_viewer_tab
-from src.ui.social_insights_tab import create_social_insights_tab
-from src.ui.llm_chat_tab import create_llm_chat_tab
-from src.ui.campaign_chat_tab import create_campaign_chat_tab
-from src.ui.configuration_tab import create_configuration_tab
-from src.ui.help_tab import create_help_tab
+
+# Modern UI imports
+from src.ui.theme import create_modern_theme, MODERN_CSS
+from src.ui.process_session_tab_modern import create_process_session_tab_modern
+from src.ui.campaign_tab_modern import create_campaign_tab_modern
+from src.ui.characters_tab_modern import create_characters_tab_modern
+from src.ui.stories_output_tab_modern import create_stories_output_tab_modern
+from src.ui.settings_tools_tab_modern import create_settings_tools_tab_modern
+
 from src.google_drive_auth import (
     get_auth_url,
     exchange_code_for_token,
@@ -50,78 +44,16 @@ PROJECT_ROOT = Path(__file__).resolve().parent
 NOTEBOOK_CONTEXT = ""
 story_manager = StoryNotebookManager()
 
-SIDE_MENU_CSS = """
-#main-tabs {
-    display: flex;
-    gap: var(--size-2);
-    width: 100%;
-    align-items: flex-start;
-}
-
-#main-tabs > div {
-    display: flex;
-    gap: var(--size-2);
-    width: 100%;
-}
-
-#main-tabs > .tab-nav,
-#main-tabs > div > .tab-nav {
-    display: flex !important;
-    flex-direction: column !important;
-    align-items: stretch !important;
-    min-width: 240px !important;
-    max-width: 280px !important;
-    gap: var(--size-2) !important;
-    padding-right: var(--size-2) !important;
-    border-right: 1px solid var(--border-color-primary) !important;
-    border-bottom: none !important;
-}
-
-#main-tabs .tab-nav button {
-    width: 100%;
-    justify-content: flex-start;
-    border-radius: var(--radius-lg);
-}
-
-#main-tabs .tabitem,
-#main-tabs .tab-item {
-    flex: 1;
-    min-width: 0;
-}
-
-#main-tabs > .tab-content,
-#main-tabs > div > .tab-content {
-    flex: 1;
-    display: flex;
-}
-
-#main-tabs > .tab-content > .tabitem,
-#main-tabs > .tab-content > .tab-item,
-#main-tabs > div > .tab-content > .tabitem,
-#main-tabs > div > .tab-content > .tab-item {
-    flex: 1;
-}
-
-#main-tabs .tab-nav button[aria-selected="true"] {
-    background: var(--color-primary) !important;
-    color: var(--color-primary-foreground) !important;
-}
-
-#main-tabs .tab-nav button:not([aria-selected="true"]) {
-    background: transparent !important;
-}
-
-#main-tabs .tab-content,
-#main-tabs .tab-content .tabitem {
-    width: 100%;
-}
-"""
 
 def _notebook_status() -> str:
     return StoryNotebookManager.format_notebook_status(NOTEBOOK_CONTEXT)
+
+
 def _set_notebook_context(value: str) -> None:
     global NOTEBOOK_CONTEXT
     NOTEBOOK_CONTEXT = value
+
+
 campaign_manager = CampaignManager()
 campaign_names = campaign_manager.get_campaign_names()
 
@@ -132,53 +64,29 @@ def _refresh_campaign_names() -> Dict[str, str]:
     return campaign_names
 
 
-def _resolve_audio_path(audio_file) -> Path:
-    """
-    Normalize Gradio file input into a filesystem path.
-
-    Gradio may return strings, dicts, temporary file wrappers, or lists.
-    """
-    if audio_file is None:
-        raise ValueError("No audio file provided")
-
-    candidate = audio_file
-
-    if isinstance(candidate, list):
-        if not candidate:
-            raise ValueError("Empty audio input list")
-        candidate = candidate[0]
-
-    if isinstance(candidate, dict):
-        for key in ("name", "path", "tempfile"):
-            value = candidate.get(key)
-            if value:
-                candidate = value
-                break
-
-    if hasattr(candidate, "name"):
-        candidate = candidate.name
-
-    if not isinstance(candidate, (str, os.PathLike)):
-        raise TypeError(f"Unexpected audio input type: {type(candidate)}")
-
-    return Path(candidate)
+def _resolve_audio_path(audio_file) -> str:
+    """Resolve the audio file path from Gradio file upload."""
+    if isinstance(audio_file, str):
+        return audio_file
+    elif hasattr(audio_file, 'name'):
+        return audio_file.name
+    else:
+        raise ValueError(f"Unsupported audio file type: {type(audio_file)}")
 
 
 def process_session(
     audio_file,
-    session_id,
-    party_selection,
-    character_names,
-    player_names,
-    num_speakers,
-    skip_diarization,
-    skip_classification,
-    skip_snippets,
-    skip_knowledge
-):
-    """
-    Process a D&D session through the Gradio interface.
-    """
+    session_id: str,
+    party_selection: Optional[str],
+    character_names: str,
+    player_names: str,
+    num_speakers: int,
+    skip_diarization: bool,
+    skip_classification: bool,
+    skip_snippets: bool,
+    skip_knowledge: bool,
+) -> Dict:
+    """Main session processing function."""
     try:
         if audio_file is None:
             return {"status": "error", "message": "Please upload an audio file."}
@@ -254,90 +162,41 @@ def process_session(
         }
 
 
+# Get available parties
+party_manager = PartyConfigManager()
+available_parties = party_manager.list_parties()
+
+# Create modern theme
+theme = create_modern_theme()
+
 # Create Gradio interface
 with gr.Blocks(
     title="D&D Session Processor",
-    theme=gr.themes.Soft(),
-    css=SIDE_MENU_CSS
+    theme=theme,
+    css=MODERN_CSS,
 ) as demo:
     gr.Markdown("""
-    # 🎲 D&D Session Transcription & Diarization
+    # 🎲 D&D Session Processor
+    ### Modern, Streamlined Interface
 
-    Upload your D&D session recording and get:
-    - Full transcript with speaker labels
-    - In-character only transcript (game narrative)
-    - Out-of-character only transcript (banter & meta-discussion)
-    - Detailed statistics and analysis
-
-    **Supported formats**: M4A, MP3, WAV, and more
+    Transform your D&D session recordings into organized transcripts, character profiles, and story narratives.
     """)
 
-    with gr.Tabs(elem_id="main-tabs"):
-        dashboard_campaign, dashboard_refresh, dashboard_output = create_dashboard_tab()
+    with gr.Tabs():
+        # Tab 1: Process Session (the main workflow)
+        create_process_session_tab_modern(demo, available_parties)
 
-        def generate_dashboard_ui(campaign_name: str) -> str:
-            """UI wrapper for the dashboard generator."""
-            try:
-                dashboard = CampaignDashboard()
-                return dashboard.generate(campaign_name)
-            except Exception as e:
-                return f"## Error Generating Dashboard\n\nAn unexpected error occurred: {e}"
+        # Tab 2: Campaign (dashboard, knowledge, library, party)
+        create_campaign_tab_modern(demo)
 
-        def refresh_campaign_choices():
-            from src.party_config import CampaignManager
-            manager = CampaignManager()
-            names = manager.get_campaign_names()
-            choices = ["Manual Setup"] + list(names.values())
-            value = choices[0] if not names else list(names.values())[0]
-            return gr.update(choices=choices, value=value)
+        # Tab 3: Characters (profiles, extraction, import/export)
+        create_characters_tab_modern(demo, available_parties)
 
-        dashboard_refresh.click(
-            fn=generate_dashboard_ui,
-            inputs=[dashboard_campaign],
-            outputs=[dashboard_output]
-        )
+        # Tab 4: Stories & Output (notebooks, transcripts, insights, export)
+        create_stories_output_tab_modern(demo)
 
-        dashboard_campaign.change(
-            fn=generate_dashboard_ui,
-            inputs=[dashboard_campaign],
-            outputs=[dashboard_output]
-        )
-
-        demo.load(
-            fn=refresh_campaign_choices,
-            outputs=[dashboard_campaign]
-        ).then(
-            fn=generate_dashboard_ui,
-            inputs=[dashboard_campaign],
-            outputs=[dashboard_output]
-        )
-
-        available_parties = create_process_session_tab(
-            refresh_campaign_names=_refresh_campaign_names,
-            process_session_fn=process_session,
-            campaign_manager=campaign_manager,
-        )
-        create_party_management_tab(available_parties)
-        create_import_notes_tab(_refresh_campaign_names)
-        create_campaign_library_tab(demo, _refresh_campaign_names)
-        create_character_profiles_tab(demo, available_parties)
-        create_speaker_management_tab()
-        create_document_viewer_tab(PROJECT_ROOT, _set_notebook_context, demo)
-        create_logs_tab(demo)
-
-        create_social_insights_tab()
-        create_story_notebook_tab(
-            story_manager=story_manager,
-            get_notebook_context=lambda: NOTEBOOK_CONTEXT,
-            get_notebook_status=_notebook_status,
-        )
-
-        create_diagnostics_tab(PROJECT_ROOT)
-
-        create_llm_chat_tab(PROJECT_ROOT)
-        create_campaign_chat_tab(PROJECT_ROOT)
-        create_configuration_tab()
-        create_help_tab()
+        # Tab 5: Settings & Tools (config, diagnostics, logs, chat, help)
+        create_settings_tools_tab_modern(demo)
 
 
 def is_port_in_use(port):
@@ -348,6 +207,7 @@ def is_port_in_use(port):
             return False
         except OSError:
             return True
+
 
 if __name__ == "__main__":
     # Check if port is already in use
@@ -366,10 +226,11 @@ if __name__ == "__main__":
         print("=" * 80)
         sys.exit(1)
 
-    print("Starting Gradio web UI on http://127.0.0.1:7860")
+    print("Starting D&D Session Processor - Modern UI")
+    print("Access the interface at http://127.0.0.1:7860")
     demo.launch(
         server_name="127.0.0.1",
         server_port=7860,
         share=False,
-        show_error=True  # Enable verbose error reporting for debugging
+        show_error=True
     )

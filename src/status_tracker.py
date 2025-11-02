@@ -109,6 +109,7 @@ class StatusTracker:
         session_id: str,
         skip_flags: Dict[str, bool],
         options: Optional[Dict[str, Any]] = None,
+        campaign_id: Optional[str] = None,
     ) -> None:
         sanitized_options = _sanitize(options or {})
         started_at = _timestamp()
@@ -141,6 +142,7 @@ class StatusTracker:
 
         data = {
             "session_id": session_id,
+            "campaign_id": campaign_id,  # NEW: Track which campaign this session belongs to
             "processing": True,
             "status": "running",
             "current_stage": None,

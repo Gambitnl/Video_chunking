@@ -6,8 +6,8 @@ from typing import Callable, Dict, List, Optional, Tuple
 import gradio as gr
 
 from src.config import Config
-from src.ui.constants import StatusIndicators
-from src.ui.helpers import StatusMessages, Placeholders
+from src.ui.constants import StatusIndicators as SI
+from src.ui.helpers import StatusMessages, Placeholders, UIComponents
 from src.story_notebook import StoryNotebookManager, StorySessionData
 
 STORY_NO_DATA = "No transcription data available for this session yet."

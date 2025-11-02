@@ -71,6 +71,7 @@ class DDSessionProcessor:
     def __init__(
         self,
         session_id: str,
+        campaign_id: Optional[str] = None,
         character_names: Optional[List[str]] = None,
         player_names: Optional[List[str]] = None,
         num_speakers: int = 4,
@@ -80,13 +81,16 @@ class DDSessionProcessor:
         """
         Args:
             session_id: Unique identifier for this session
+            campaign_id: Campaign identifier for grouping and filtering sessions
             character_names: List of character names in the campaign
             player_names: List of player names
             num_speakers: Expected number of speakers (3 players + 1 DM = 4)
             party_id: Party configuration to use (defaults to "default")
+            resume: Enable checkpoint resume functionality (default: True)
         """
         self.session_id = session_id
         self.safe_session_id = sanitize_filename(session_id)
+        self.campaign_id = campaign_id  # Store campaign_id for metadata and filtering
         self.is_test_run = False  # Default to not being a test run
         self.logger = get_logger(f"pipeline.{self.safe_session_id}")
         self.resume_enabled = resume
@@ -208,6 +212,7 @@ class DDSessionProcessor:
             'session_output_dir': str(output_dir),
             'num_speakers': self.num_speakers,
             'using_party_config': bool(self.party_id),
+            'campaign_id': self.campaign_id,  # NEW: Include campaign context
             'party_id': self.party_id,
             'character_names': list(self.character_names),
             'character_names_provided': bool(self.character_names),
@@ -220,7 +225,7 @@ class DDSessionProcessor:
             'party_context_available': bool(self.party_context)
         }
 
-        StatusTracker.start_session(self.session_id, skip_flags, session_options)
+        StatusTracker.start_session(self.session_id, skip_flags, session_options, campaign_id=self.campaign_id)
 
         try:
             use_checkpoint_audio = False
@@ -701,8 +706,20 @@ class DDSessionProcessor:
                     classifications
                 )
 
+                # Get campaign name for display if campaign_id is provided
+                campaign_name = None
+                if self.campaign_id:
+                    from .party_config import CampaignManager
+                    campaign_manager = CampaignManager()
+                    campaign = campaign_manager.get_campaign(self.campaign_id)
+                    if campaign:
+                        campaign_name = campaign.name
+
                 metadata = {
                     'session_id': self.session_id,
+                    'campaign_id': self.campaign_id,  # NEW: For filtering and grouping
+                    'campaign_name': campaign_name,  # NEW: For display purposes
+                    'party_id': self.party_id,  # NEW: Links to party configuration
                     'input_file': str(input_file),
                     'character_names': self.character_names,
                     'player_names': self.player_names,
@@ -824,8 +841,9 @@ class DDSessionProcessor:
                     try:
                         # Initialize knowledge extraction components
                         extractor = KnowledgeExtractor()
-                        campaign_id = self.party_id or "default"
-                        campaign_kb = CampaignKnowledgeBase(campaign_id=campaign_id)
+                        # Use campaign_id if provided, otherwise fall back to party_id or default
+                        knowledge_campaign_id = self.campaign_id or self.party_id or "default"
+                        campaign_kb = CampaignKnowledgeBase(campaign_id=knowledge_campaign_id)
 
                         # Get IC-only transcript text
                         ic_text = self.formatter.format_ic_only(

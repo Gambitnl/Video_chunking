@@ -37,7 +37,7 @@ _For a high-level checklist, consult `docs/OUTSTANDING_TASKS.md`._
 **Effort**: 5-7 days
 **Priority**: LOW
 **Dependencies**: P0-BUG-003 (Checkpoint System), P1-FEATURE-002 (Streaming Export)
-**Status**: IN PROGRESS (Subtask 1.1 completed 2025-10-31)
+**Status**: IN PROGRESS (Subtasks 1.1-1.2 completed by 2025-11-02)
 
 ### Problem Statement
 Currently, processing happens after session recording completes. For live sessions, users could benefit from real-time transcription and diarization (e.g., live captions, auto-generated notes during play).
@@ -87,6 +87,7 @@ _Status_: [DONE] 2025-10-31 (async ingester + buffer implemented)
 
 #### Subtask 1.2: Real-time Transcription
 **Effort**: 2 days
+**Status**: [DONE 2025-11-02]
 
 Adapt transcriber for streaming mode.
 
@@ -94,29 +95,6 @@ Adapt transcriber for streaming mode.
 - Faster-whisper is designed for batch processing
 - Need to balance latency vs accuracy
 - Handle partial transcriptions
-
-**Code Example**:
-```python
-class RealtimeTranscriber:
-    """Real-time transcription with low latency."""
-
-    def __init__(self, model: WhisperModel):
-        self.model = model
-        self.context_buffer = []  # Previous chunks for context
-
-    def transcribe_chunk(self, audio_chunk: np.ndarray) -> TranscriptSegment:
-        """Transcribe single audio chunk with context."""
-        # Use faster-whisper with beam_size=1 for speed
-        segments, _ = self.model.transcribe(
-            audio_chunk,
-            beam_size=1,  # Faster, less accurate
-            best_of=1,
-            temperature=0,
-            initial_prompt=self._build_context_prompt()
-        )
-
-        return segments
-```
 
 **Files**: New `src/realtime/realtime_transcriber.py`
 
@@ -176,6 +154,31 @@ Test real-time processing with simulated streams.
 #### Validation
 - `pytest tests/test_realtime_stream_ingester.py tests/test_profile_extractor.py tests/test_character_profile_extractor.py -q`
 - `pytest tests/test_profile_extraction.py -q`
+
+---
+
+### Implementation Notes & Reasoning (2025-11-02)
+**Implementer**: Codex (GPT-5)
+
+1. **Context-Aware Streaming Transcriber**
+   - **Choice**: Added `RealtimeTranscriber` with a pluggable faster-whisper style backend, history window, and optional async result handler hook.
+   - **Reasoning**: Keeps the ingestion buffer decoupled while allowing downstream consumers (UI, diarizer) to subscribe to incremental transcript updates.
+   - **Alternatives Considered**: Extending `FasterWhisperTranscriber`; rejected to avoid importing heavy batch dependencies into the realtime package.
+   - **Trade-offs**: Slight duplication of transcription dataclasses, but isolates streaming concerns cleanly.
+
+2. **History Prompt Management**
+   - **Choice**: Maintain a deque of recent transcript segments capped by a configurable duration to seed the next chunk's prompt.
+   - **Reasoning**: Preserves conversational context without unbounded memory usage and keeps latency predictable.
+   - **Alternatives Considered**: Token-count based trimming; deferred until we have empirical latency data.
+   - **Trade-offs**: Duration-based pruning may over-retain verbose segments; acceptable until we benchmark.
+
+3. **Async Integration with Ingestion**
+   - **Choice**: Provide an async `consume_chunk` adapter that offloads transcription to a worker thread and forwards results to an optional coroutine handler.
+   - **Reasoning**: Allows the existing `AudioStreamIngester` to wire up the transcriber directly without blocking the event loop.
+   - **Trade-offs**: Thread offloading introduces minimal overhead; protects UI responsiveness.
+
+#### Validation
+- `pytest tests/test_realtime_transcriber.py tests/test_realtime_stream_ingester.py -q`
 
 ---
 

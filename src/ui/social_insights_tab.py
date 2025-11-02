@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-from typing import Callable, Dict, List, Tuple
+from typing import Callable, Dict, Optional
 import gradio as gr
-from src.ui.helpers import Placeholders, InfoText, StatusMessages, UIComponents
+from src.ui.helpers import StatusMessages
 from src.ui.constants import StatusIndicators as SI
 from src.story_notebook import StoryNotebookManager
 
@@ -10,7 +10,9 @@ from src.story_notebook import StoryNotebookManager
 def create_social_insights_tab(
     story_manager: StoryNotebookManager,
     refresh_campaign_names: Callable[[], Dict[str, str]],
-) -> None:
+    *,
+    initial_campaign_id: Optional[str] = None,
+) -> Dict[str, gr.components.Component]:
     def analyze_ooc_ui(session_id):
         try:
             from src.analyzer import OOCAnalyzer
@@ -61,12 +63,23 @@ def create_social_insights_tab(
             )
             return error_msg, None
 
+    campaign_names = refresh_campaign_names()
+    campaign_choices = ["All Campaigns"] + list(campaign_names.values())
+    initial_campaign_name = "All Campaigns"
+    if initial_campaign_id:
+        initial_campaign_name = campaign_names.get(initial_campaign_id, "All Campaigns")
+
+    if initial_campaign_name != "All Campaigns":
+        initial_sessions = story_manager.list_sessions(campaign_id=initial_campaign_id)
+    else:
+        initial_sessions = story_manager.list_sessions()
+
     def refresh_sessions_ui(campaign_name: str = "All Campaigns") -> gr.Dropdown:
         campaign_id = None
         if campaign_name != "All Campaigns":
-            campaign_names = refresh_campaign_names()
+            campaign_names_map = refresh_campaign_names()
             campaign_id = next(
-                (cid for cid, cname in campaign_names.items() if cname == campaign_name),
+                (cid for cid, cname in campaign_names_map.items() if cname == campaign_name),
                 None
             )
         sessions = story_manager.list_sessions(campaign_id=campaign_id)
@@ -90,15 +103,12 @@ def create_social_insights_tab(
         """)
         with gr.Row():
             with gr.Column():
-                campaign_names = refresh_campaign_names()
-                campaign_choices = ["All Campaigns"] + list(campaign_names.values())
                 campaign_selector = gr.Dropdown(
                     choices=campaign_choices,
-                    value="All Campaigns",
+                    value=initial_campaign_name,
                     label="Filter by Campaign",
                     info="Show only sessions from the selected campaign",
                 )
-                initial_sessions = story_manager.list_sessions()
                 insight_session_id = gr.Dropdown(
                     label="Session ID",
                     choices=initial_sessions,
@@ -107,7 +117,13 @@ def create_social_insights_tab(
                 )
                 insight_btn = gr.Button(f"{SI.ACTION_PROCESS} Analyze Banter", variant="primary")
             with gr.Column():
-                keyword_output = gr.Markdown(label="Top Keywords")
+                keyword_output = gr.Markdown(
+                    label="Top Keywords",
+                    value=StatusMessages.info(
+                        "Social Insights",
+                        "Select a campaign and session, then click Analyze Banter."
+                    ),
+                )
         with gr.Row():
             nebula_output = gr.Image(label="Topic Nebula")
 
@@ -122,3 +138,10 @@ def create_social_insights_tab(
             inputs=[insight_session_id],
             outputs=[keyword_output, nebula_output],
         )
+
+    return {
+        "campaign_selector": campaign_selector,
+        "session_dropdown": insight_session_id,
+        "keyword_output": keyword_output,
+        "nebula_output": nebula_output,
+    }

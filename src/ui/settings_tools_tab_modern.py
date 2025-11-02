@@ -1,12 +1,20 @@
 """Modern Settings & Tools tab - diagnostics and chat helpers."""
-from typing import Dict
+from typing import Dict, Optional
 
 import gradio as gr
 
 from src.ui.helpers import StatusMessages
 from src.ui.social_insights_tab import create_social_insights_tab
+from src.ui.speaker_manager_tab import create_speaker_manager_tab
 
-def create_settings_tools_tab_modern(blocks: gr.Blocks, story_manager, refresh_campaign_names) -> Dict[str, gr.components.Component]:
+def create_settings_tools_tab_modern(
+    blocks: gr.Blocks,
+    story_manager,
+    refresh_campaign_names,
+    speaker_profile_manager,
+    *,
+    initial_campaign_id: Optional[str] = None,
+) -> Dict[str, gr.components.Component]:
     """Create the Settings & Tools tab and return components requiring campaign updates."""
 
     with gr.Tab("Settings & Tools"):
@@ -32,10 +40,18 @@ def create_settings_tools_tab_modern(blocks: gr.Blocks, story_manager, refresh_c
             )
         )
 
-        create_social_insights_tab(story_manager=story_manager, refresh_campaign_names=refresh_campaign_names)
+        social_refs = create_social_insights_tab(
+            story_manager=story_manager,
+            refresh_campaign_names=refresh_campaign_names,
+            initial_campaign_id=initial_campaign_id,
+        )
+        create_speaker_manager_tab(speaker_profile_manager=speaker_profile_manager)
 
     return {
         "diagnostics": diagnostics_md,
         "chat": chat_md,
+        "social_campaign_selector": social_refs["campaign_selector"],
+        "social_session_dropdown": social_refs["session_dropdown"],
+        "social_keyword_output": social_refs["keyword_output"],
+        "social_nebula_output": social_refs["nebula_output"],
     }
-

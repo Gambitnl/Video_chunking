@@ -1,6 +1,6 @@
 """Speaker diarization using PyAnnote.audio"""
 from pathlib import Path
-from typing import List, Dict, Optional
+from typing import List, Dict, Optional, Tuple
 from dataclasses import dataclass
 import torch
 import numpy as np
@@ -31,8 +31,8 @@ class SpeakerDiarizer:
         Args:
             num_speakers: Expected number of speakers (helps accuracy)
         """
-        self.num_speakers = num_speakers
         self.pipeline = None
+        self.embedding_model = None
         self.model_load_lock = threading.Lock()
 
     def _load_pipeline_if_needed(self):
@@ -43,18 +43,22 @@ class SpeakerDiarizer:
 
             try:
                 from pyannote.audio import Pipeline
+                from pyannote.audio.features import Pretrained
                 import os
 
-                model_name = "pyannote/speaker-diarization-3.1"
+                diarization_model_name = "pyannote/speaker-diarization-3.1"
+                embedding_model_name = "pyannote/embedding"
                 
-                print(f"Initializing PyAnnote pipeline for the first time (model: {model_name})...")
+                print(f"Initializing PyAnnote pipeline for the first time (model: {diarization_model_name})...")
                 print("This is a one-time operation and may take a moment.")
 
                 # The pipeline automatically uses HF_TOKEN environment variable if available.
-                self.pipeline = Pipeline.from_pretrained(model_name)
+                self.pipeline = Pipeline.from_pretrained(diarization_model_name)
+                self.embedding_model = Pretrained(embedding_model_name)
 
                 if torch.cuda.is_available():
                     self.pipeline = self.pipeline.to(torch.device("cuda"))
+                    self.embedding_model = self.embedding_model.to(torch.device("cuda"))
                 
                 print("PyAnnote pipeline initialized successfully.")
 
@@ -68,7 +72,7 @@ class SpeakerDiarizer:
                 print("4. Set HF_TOKEN in your .env file")
                 self.pipeline = None # Ensure it's None on failure
 
-    def diarize(self, audio_path: Path) -> List[SpeakerSegment]:
+    def diarize(self, audio_path: Path) -> Tuple[List[SpeakerSegment], Dict[str, np.ndarray]]:
         """
         Perform speaker diarization on audio file.
 
@@ -76,13 +80,16 @@ class SpeakerDiarizer:
             audio_path: Path to WAV file
 
         Returns:
-            List of SpeakerSegment objects
+            A tuple containing:
+            - A list of SpeakerSegment objects.
+            - A dictionary mapping speaker IDs to their embeddings.
         """
         self._load_pipeline_if_needed()
 
         if self.pipeline is None:
             # Fallback: create dummy single-speaker segments
-            return self._create_fallback_diarization(audio_path)
+            segments = self._create_fallback_diarization(audio_path)
+            return segments, {}
 
         # Run diarization
         diarization = self.pipeline(
@@ -99,7 +106,27 @@ class SpeakerDiarizer:
                 end_time=turn.end
             ))
 
-        return segments
+        # Extract speaker embeddings
+        speaker_embeddings = {}
+        for speaker_id in diarization.labels():
+            # Get all segments for this speaker
+            speaker_segments = diarization.label_timeline(speaker_id)
+            # Extract the audio for this speaker
+            from pydub import AudioSegment
+            audio = AudioSegment.from_wav(str(audio_path))
+            speaker_audio = AudioSegment.empty()
+            for segment in speaker_segments:
+                speaker_audio += audio[segment.start * 1000:segment.end * 1000]
+            
+            # Get the embedding for this speaker
+            if len(speaker_audio) > 0:
+                # Convert to numpy array
+                samples = np.array(speaker_audio.get_array_of_samples()).astype(np.float32) / 32768.0
+                samples = torch.from_numpy(samples).unsqueeze(0)
+                embedding = self.embedding_model({"waveform": samples, "sample_rate": audio.frame_rate})
+                speaker_embeddings[speaker_id] = embedding.squeeze().numpy()
+
+        return segments, speaker_embeddings
 
     def _create_fallback_diarization(self, audio_path: Path) -> List[SpeakerSegment]:
         """
@@ -236,7 +263,10 @@ class SpeakerProfileManager:
         if session_id not in self.profiles:
             self.profiles[session_id] = {}
 
-        self.profiles[session_id][speaker_id] = person_name
+        if speaker_id not in self.profiles[session_id]:
+            self.profiles[session_id][speaker_id] = {}
+
+        self.profiles[session_id][speaker_id]["name"] = person_name
         self.save_profiles()
 
     def get_person_name(
@@ -245,4 +275,25 @@ class SpeakerProfileManager:
         speaker_id: str
     ) -> Optional[str]:
         """Get person name for a speaker ID in a session"""
-        return self.profiles.get(session_id, {}).get(speaker_id)
+        return self.profiles.get(session_id, {}).get(speaker_id, {}).get("name")
+
+    def save_speaker_embeddings(
+        self,
+        session_id: str,
+        speaker_embeddings: Dict[str, np.ndarray]
+    ):
+        """
+        Save speaker embeddings for a session.
+
+        Args:
+            session_id: Unique session identifier
+            speaker_embeddings: A dictionary mapping speaker IDs to their embeddings.
+        """
+        if session_id not in self.profiles:
+            self.profiles[session_id] = {}
+
+        for speaker_id, embedding in speaker_embeddings.items():
+            if speaker_id not in self.profiles[session_id]:
+                self.profiles[session_id][speaker_id] = {}
+            self.profiles[session_id][speaker_id]["embedding"] = embedding.tolist()
+        self.save_profiles()

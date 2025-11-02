@@ -511,7 +511,7 @@ class DDSessionProcessor:
                     self.logger.info("Stage 5/9: Speaker diarization...")
                     StatusTracker.update_stage(self.session_id, 5, "running", "Performing speaker diarization")
                     try:
-                        speaker_segments = self.diarizer.diarize(wav_file)
+                        speaker_segments, speaker_embeddings = self.diarizer.diarize(wav_file)
                         speaker_segments_with_labels = self.diarizer.assign_speakers_to_transcription(
                             merged_segments,
                             speaker_segments
@@ -524,6 +524,7 @@ class DDSessionProcessor:
                             f"Identified {len(unique_speakers)} speaker labels"
                         )
                         self.logger.info("Stage 5/9 complete: %d speaker labels assigned", len(unique_speakers))
+                        self.speaker_profile_manager.save_speaker_embeddings(self.session_id, speaker_embeddings)
                     except Exception as diarization_error:
                         StatusTracker.update_stage(
                             self.session_id,

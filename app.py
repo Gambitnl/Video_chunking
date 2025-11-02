@@ -45,6 +45,7 @@ from src.google_drive_auth import (
 PROJECT_ROOT = Path(__file__).resolve().parent
 NOTEBOOK_CONTEXT = ""
 story_manager = StoryNotebookManager()
+speaker_profile_manager = SpeakerProfileManager()
 
 
 def _notebook_status() -> str:
@@ -674,6 +675,7 @@ with gr.Blocks(
             story_manager=story_manager,
             refresh_campaign_names=_refresh_campaign_names,
             initial_campaign_id=initial_campaign_id,
+            speaker_profile_manager=speaker_profile_manager,
         )
 
     def _compute_process_updates(campaign_id: Optional[str]) -> Tuple:

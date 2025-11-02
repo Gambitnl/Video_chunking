@@ -1,0 +1,38 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Speaker Mapping",
+  "description": "A mapping of speaker embeddings to person names and character profiles.",
+  "type": "object",
+  "properties": {
+    "campaign": {
+      "description": "The campaign these speaker mappings belong to.",
+      "type": "string"
+    },
+    "mappings": {
+      "description": "A dictionary of speaker embeddings to speaker profiles.",
+      "type": "object",
+      "patternProperties": {
+        "^speaker_embedding_[0-9]+$": {
+          "type": "object",
+          "properties": {
+            "name": {
+              "description": "The name of the person.",
+              "type": "string"
+            },
+            "character": {
+              "description": "The name of the character they play.",
+              "type": ["string", "null"]
+            },
+            "role": {
+              "description": "The role of the person in the campaign.",
+              "type": "string",
+              "enum": ["player", "dm"]
+            }
+          },
+          "required": ["name", "role"]
+        }
+      }
+    }
+  },
+  "required": ["campaign", "mappings"]
+}

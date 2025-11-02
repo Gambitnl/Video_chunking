@@ -26,6 +26,7 @@ def create_story_notebook_tab(
     story_manager: StoryNotebookManager,
     get_notebook_context: Callable[[], str],
     get_notebook_status: Callable[[], str],
+    refresh_campaign_names: Callable[[], Dict[str, str]],
 ) -> None:
     def _prepare_session_outputs(
         session_id: Optional[str],
@@ -130,12 +131,28 @@ def create_story_notebook_tab(
 
     story_session_state = gr.State(initial_session_state)
 
-    def story_refresh_sessions_ui() -> Tuple[dict, dict, str, Dict, str]:
-        sessions = story_manager.list_sessions()
+    def story_refresh_sessions_ui(campaign_name: str = "All Campaigns") -> Tuple[dict, dict, str, Dict, str]:
+        # Map campaign name to campaign_id
+        campaign_id = None
+        if campaign_name != "All Campaigns":
+            campaign_names = refresh_campaign_names()
+            campaign_id = next(
+                (cid for cid, cname in campaign_names.items() if cname == campaign_name),
+                None
+            )
+        sessions = story_manager.list_sessions(campaign_id=campaign_id)
         return _prepare_session_outputs(None, sessions)
 
-    def story_select_session_ui(session_id: Optional[str]) -> Tuple[dict, dict, str, Dict, str]:
-        sessions = story_manager.list_sessions()
+    def story_select_session_ui(session_id: Optional[str], campaign_name: str = "All Campaigns") -> Tuple[dict, dict, str, Dict, str]:
+        # Map campaign name to campaign_id
+        campaign_id = None
+        if campaign_name != "All Campaigns":
+            campaign_names = refresh_campaign_names()
+            campaign_id = next(
+                (cid for cid, cname in campaign_names.items() if cname == campaign_name),
+                None
+            )
+        sessions = story_manager.list_sessions(campaign_id=campaign_id)
         return _prepare_session_outputs(session_id, sessions)
 
     def story_generate_narrator(session_state: Dict, temperature: float) -> Tuple[str, str]:
@@ -232,6 +249,18 @@ def create_story_notebook_tab(
         ---
         """)
 
+        # Campaign selector for filtering sessions
+        with gr.Row():
+            campaign_names = refresh_campaign_names()
+            campaign_choices = ["All Campaigns"] + list(campaign_names.values())
+            campaign_selector = gr.Dropdown(
+                choices=campaign_choices,
+                value="All Campaigns",
+                label="Filter by Campaign",
+                info="Show only sessions from the selected campaign (includes unassigned sessions)",
+                scale=3,
+            )
+
         story_session_dropdown = gr.Dropdown(
             label="Session",
             choices=initial_dropdown_choices,
@@ -300,6 +329,19 @@ def create_story_notebook_tab(
 
         refresh_story_btn.click(
             fn=story_refresh_sessions_ui,
+            inputs=[campaign_selector],
+            outputs=[
+                story_session_dropdown,
+                character_dropdown,
+                story_session_info,
+                story_session_state,
+                story_notebook_status,
+            ],
+        )
+
+        campaign_selector.change(
+            fn=story_refresh_sessions_ui,
+            inputs=[campaign_selector],
             outputs=[
                 story_session_dropdown,
                 character_dropdown,
@@ -311,8 +353,9 @@ def create_story_notebook_tab(
 
         story_session_dropdown.change(
             fn=story_select_session_ui,
-            inputs=[story_session_dropdown],
+            inputs=[story_session_dropdown, campaign_selector],
             outputs=[
+                story_session_dropdown,
                 character_dropdown,
                 story_session_info,
                 story_session_state,

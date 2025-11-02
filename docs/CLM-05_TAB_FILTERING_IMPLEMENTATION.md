@@ -133,20 +133,60 @@ tests/test_story_notebook_campaign_filtering.py::test_list_sessions_corrupted_me
 
 ## Remaining Work
 
-### 3. Story Notebook Tab UI Integration
+### 3. Story Notebook Tab ✅ Complete
 
-**File**: [`src/ui/story_notebook_tab.py`](../src/ui/story_notebook_tab.py)
+**Files Modified**: [`src/ui/story_notebook_tab.py`](../src/ui/story_notebook_tab.py)
+**Test Coverage**: [`tests/test_story_notebook_tab_campaign_filtering.py`](../tests/test_story_notebook_tab_campaign_filtering.py)
+**Status**: Implementation complete, 3 tests passing
 
-**What Needs to Be Done**:
-1. Add `refresh_campaign_names: Callable[[], Dict[str, str]]` parameter to `create_story_notebook_tab()`
-2. Add campaign selector dropdown (similar to campaign_library_tab pattern)
-3. Update `story_refresh_sessions_ui()` to accept and pass `campaign_id` parameter
-4. Update `story_select_session_ui()` to filter by selected campaign
-5. Add UI hint about unassigned sessions when campaign is selected
+#### Changes Implemented
 
-**Complexity**: Medium - requires careful state management and callback wiring
+1. **Function Signature Update**:
+   - Added `refresh_campaign_names: Callable[[], Dict[str, str]]` parameter
+   - Allows tab to access campaign list dynamically
 
-**Estimated Effort**: 1-2 hours
+2. **Campaign Selector UI**:
+   ```python
+   campaign_selector = gr.Dropdown(
+       choices=["All Campaigns"] + list(campaign_names.values()),
+       value="All Campaigns",
+       label="Filter by Campaign",
+       info="Show only sessions from the selected campaign (includes unassigned sessions)"
+   )
+   ```
+
+3. **story_refresh_sessions_ui() Enhancement**:
+   - Accepts `campaign_name: str` parameter
+   - Maps campaign name to campaign_id using refresh_campaign_names()
+   - Filters sessions using `story_manager.list_sessions(campaign_id=campaign_id)`
+   - Handles "All Campaigns" case (shows all sessions)
+
+4. **story_select_session_ui() Enhancement**:
+   - Accepts `campaign_name: str` parameter
+   - Maps campaign name to campaign_id
+   - Filters sessions by selected campaign
+
+5. **Event Handlers**:
+   - `campaign_selector.change()` → refreshes session list automatically
+   - `refresh_story_btn.click()` → respects selected campaign
+   - `story_session_dropdown.change()` → uses campaign-filtered session list
+
+#### Implementation Notes
+
+**Campaign Filtering Behavior**:
+- "All Campaigns" option shows all sessions (campaign_id=None)
+- Campaign-specific filtering includes unassigned sessions by default (graceful degradation)
+- Uses StoryNotebookManager.list_sessions(campaign_id=...) for backend filtering
+
+**Backward Compatibility**:
+- Requires refresh_campaign_names parameter (breaking change to function signature)
+- Internal logic fully backward compatible with unassigned sessions
+- No changes required to existing story generation functions
+
+**Test Coverage**:
+- Signature validation (ensures refresh_campaign_names callback is accepted)
+- Component creation verification (campaign selector exists)
+- Empty campaigns handling (graceful degradation)
 
 ---
 
@@ -462,22 +502,23 @@ else:
 
 **Status Summary**:
 - ✅ **Backend Implementation**: Complete and tested
-- ✅ **Test Coverage**: 15 tests, all passing (10 backend + 5 UI)
+- ✅ **Test Coverage**: 18 tests, all passing (10 backend + 8 UI)
 - ✅ **Documentation**: Implementation documented
 - ✅ **Character Profiles Tab**: Complete (legacy tab ready for modern UI)
 - ✅ **LLM Chat Tab**: Complete (campaign-aware character filtering)
-- ⏳ **UI Integration**: 2 tabs remaining (Story Notebook, Social Insights)
+- ✅ **Story Notebook Tab**: Complete (campaign-aware session filtering)
+- ⏳ **UI Integration**: 1 tab remaining (Social Insights - optional)
 
 **Completed Work (2025-11-02)**:
-1. ✅ Character Profile tab - Campaign filtering implemented and tested
-2. ✅ LLM Chat tab - Campaign-aware character loading and filtering
+1. ✅ Character Profile tab - Campaign filtering implemented and tested (2 tests)
+2. ✅ LLM Chat tab - Campaign-aware character loading and filtering (3 tests)
+3. ✅ Story Notebook tab - Campaign-aware session filtering (3 tests)
 
 **Next Steps**:
-1. Update Story Notebook tab (most complex)
-2. Update Social Insights tab (optional)
-3. Integrate legacy character_profiles_tab into modern UI when placeholders are replaced
+1. Update Social Insights tab (optional enhancement)
+2. Integrate legacy character_profiles_tab into modern UI when placeholders are replaced
 
-**Estimated Remaining Effort**: 1-3 hours for remaining UI integration
+**Estimated Remaining Effort**: 1-2 hours for Social Insights tab (optional)
 
 ---
 

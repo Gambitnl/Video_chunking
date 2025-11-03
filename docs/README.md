@@ -14,7 +14,7 @@ This directory contains all the documentation for the D&D Session Processor. Bel
 
 ### Setup & Installation
 
-- **[SETUP.md](./SETUP.md)**: The complete and detailed setup instructions for the application.
+- **[SETUP.md](./SETUP.md)**: The complete and detailed setup instructions for the application, including HF token setup and GPU (`INFERENCE_DEVICE`) guidance.
 - **[FIRST_TIME_SETUP.md](./FIRST_TIME_SETUP.md)**: A quick-start guide for setting up the application and its dependencies for the first time.
 - **[OLLAMA_SETUP.md](./OLLAMA_SETUP.md)**: A guide for installing Ollama and downloading the required LLM models.
 - **[INSTALL_GPT_OSS.md](./INSTALL_GPT_OSS.md)**: Setup guide specifically for the OpenAI GPT-OSS model with Ollama.

@@ -85,6 +85,7 @@ PyAnnote uses gated models that require a HuggingFace token:
 4. **Add token to environment**:
    - Copy `.env.example` to `.env` if you haven't already
    - Add your token: `HF_TOKEN=hf_xxxxxxxxxxxxx`
+   - Optional: add `INFERENCE_DEVICE=cuda` to force GPU usage (falls back to CPU if CUDA is unavailable)
 
 **Security note**: The token only needs Read access to download gated models.
 
@@ -104,6 +105,7 @@ cp .env.example .env
 - `WHISPER_BACKEND=local` - Use local Whisper (free, slower)
 - `WHISPER_BACKEND=groq` - Use Groq API (free tier, faster)
 - `LLM_BACKEND=ollama` - Use local Ollama (free)
+- `INFERENCE_DEVICE=cuda` - Prefer GPU for Whisper and PyAnnote (auto-detects CPU if CUDA is not available)
 
 ### 6. Verify Setup
 

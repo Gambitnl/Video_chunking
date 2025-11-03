@@ -1,6 +1,8 @@
 import importlib
 import logging
 import sys
+import types
+import builtins
 from src.config import Config
 
 
@@ -143,3 +145,68 @@ class TestGetEnvAsBool:
 
         monkeypatch.setenv("TEST_BOOL", "  false  ")
         assert Config.get_env_as_bool("TEST_BOOL", True) is False
+
+
+class TestInferenceDeviceResolution:
+    """Unit tests for Config.get_inference_device and Config.using_gpu."""
+
+    def _stub_torch(self, monkeypatch, cuda_available: bool):
+        """Install a stub torch module with configurable CUDA availability."""
+        stub = types.SimpleNamespace(
+            cuda=types.SimpleNamespace(is_available=lambda: cuda_available)
+        )
+        monkeypatch.setitem(sys.modules, "torch", stub)
+        return stub
+
+    def test_env_cuda_with_available_gpu(self, monkeypatch):
+        """Respect INFERENCE_DEVICE=cuda when CUDA is available."""
+        monkeypatch.setenv("INFERENCE_DEVICE", "cuda")
+        self._stub_torch(monkeypatch, cuda_available=True)
+
+        assert Config.get_inference_device() == "cuda"
+        assert Config.using_gpu() is True
+
+        monkeypatch.delenv("INFERENCE_DEVICE", raising=False)
+
+    def test_env_cuda_without_gpu_falls_back(self, monkeypatch, caplog):
+        """Fall back to CPU and warn when CUDA requested but unavailable."""
+        monkeypatch.setenv("INFERENCE_DEVICE", "cuda")
+        self._stub_torch(monkeypatch, cuda_available=False)
+
+        with caplog.at_level(logging.WARNING):
+            device = Config.get_inference_device()
+
+        assert device == "cpu"
+        assert any("INFERENCE_DEVICE=cuda requested" in record.message for record in caplog.records)
+        assert Config.using_gpu() is False
+
+        monkeypatch.delenv("INFERENCE_DEVICE", raising=False)
+
+    def test_invalid_env_value_triggers_auto_detection(self, monkeypatch):
+        """Unknown INFERENCE_DEVICE values should log and auto-detect."""
+        monkeypatch.setenv("INFERENCE_DEVICE", "tpu")
+        stub = self._stub_torch(monkeypatch, cuda_available=True)
+
+        device = Config.get_inference_device()
+        assert device == "cuda"
+        assert Config.using_gpu() is True
+
+        # Ensure stub restored after test
+        monkeypatch.delenv("INFERENCE_DEVICE", raising=False)
+        assert sys.modules["torch"] is stub
+
+    def test_auto_detection_without_torch_returns_cpu(self, monkeypatch):
+        """Gracefully handle environments where torch import fails."""
+        monkeypatch.delenv("INFERENCE_DEVICE", raising=False)
+
+        original_import = builtins.__import__
+
+        def fake_import(name, *args, **kwargs):
+            if name == "torch":
+                raise ImportError("torch missing")
+            return original_import(name, *args, **kwargs)
+
+        monkeypatch.setattr(builtins, "__import__", fake_import)
+
+        assert Config.get_inference_device() == "cpu"
+        assert Config.using_gpu() is False

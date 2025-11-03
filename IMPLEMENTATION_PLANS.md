@@ -704,3 +704,48 @@ The current Gradio interface is dense, text-heavy, and hard to navigate. Power w
 ---
 
 **See ROADMAP.md for complete P0-P4 feature list**
+## P0-BUG-007: Restore Authenticated Diarization and GPU Defaults
+
+**Files**: `src/config.py`, `src/transcriber.py`, `src/diarizer.py`, `.env.example`, `docs/SETUP.md`, `docs/README.md`
+**Effort**: 0.5 days
+**Priority**: HIGH
+**Status**: [DONE] Completed 2025-11-03
+
+### Problem Statement
+Whisper transcription defaulted to CPU even on GPU-capable hosts, and PyAnnote speaker diarization failed once the short-lived Hugging Face token expired. The UI logged warnings from torchcodec because PyAnnote attempted to stream audio from disk instead of using the already loaded waveform.
+
+### Success Criteria
+- [x] HF token read from configuration and supplied to both PyAnnote pipeline and embedding model loaders.
+- [x] GPU selected by default across transcription and diarization when CUDA is available, with an automatic CPU fallback.
+- [x] Environment samples and setup docs teach contributors to set `HF_TOKEN` and `INFERENCE_DEVICE`.
+
+### Implementation Plan
+1. Extend `Config` with `HF_TOKEN` and a helper that resolves the preferred inference device (env override -> CUDA -> CPU). `[DONE 2025-11-03]`
+2. Update `SpeakerDiarizer` to pass the token, move models to CUDA when available, and preload audio via `torchaudio` to bypass torchcodec. `[DONE 2025-11-03]`
+3. Update `FasterWhisperTranscriber` to honor the resolved device, warn on CUDA fallback, and document the new environment knobs. `[DONE 2025-11-03]`
+4. Refresh `.env.example`, `docs/SETUP.md`, and `docs/README.md` with token and GPU guidance. `[DONE 2025-11-03]`
+
+### Implementation Notes & Reasoning
+**Implementer**: Codex (GPT-5)  
+**Date**: 2025-11-03
+
+1. **Device Resolution Helper**
+   - **Choice**: Centralized inference device detection in `Config.get_inference_device()` with optional `INFERENCE_DEVICE` override.
+   - **Reasoning**: Keeps device logic consistent between transcription and diarization, and allows operators to pin CPU mode when debugging.
+   - **Alternatives Considered**: Hard-coding CUDA usage whenever `torch.cuda.is_available()` returns true. Rejected to preserve explicit operator control and avoid surprises on CPU-only deployments.
+   - **Trade-offs**: Adds a tiny amount of config indirection but prevents duplicated CUDA probing logic across modules.
+2. **Authenticated PyAnnote Loading**
+   - **Choice**: Pass the refreshed HF token to both `Pipeline.from_pretrained` and `Model.from_pretrained`, logging a warning when the token is missing.
+   - **Reasoning**: Ensures diarization can initialize immediately after tokens rotate, matching Hugging Face's gated model requirements.
+   - **Alternatives Considered**: Rely entirely on the environment loader. Rejected because silent failures were hard to diagnose for operators.
+   - **Trade-offs**: Slightly more verbose initialization path; mitigated by shared helper and structured logging.
+3. **Torchcodec Warning Mitigation**
+   - **Choice**: Preload audio with `torchaudio.load` and feed the waveform dictionary directly to PyAnnote.
+   - **Reasoning**: Avoids the torchcodec FFmpeg backend entirely, eliminating the runtime warning and keeping processing inside the already validated audio buffer.
+   - **Alternatives Considered**: Attempt to repair torchcodec installation or silence warnings. Rejected to keep dependencies minimal and leverage existing audio data.
+   - **Trade-offs**: Additional memory usage during diarization, acceptable because sessions are already processed chunk-by-chunk and the WAV files are mono 16 kHz.
+
+#### Validation
+- Not run (PyAnnote model download is gated and long-running; validation to be performed during the next end-to-end session run).
+
+---

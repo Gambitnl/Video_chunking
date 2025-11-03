@@ -5,6 +5,7 @@ from pathlib import Path
 import json
 import numpy as np
 import torch
+import sys
 
 from src.diarizer import SpeakerDiarizer, SpeakerProfileManager, SpeakerSegment
 from src.transcriber import TranscriptionSegment
@@ -48,6 +49,7 @@ class TestSpeakerDiarizer:
         assert enriched[2]['speaker'] == "UNKNOWN"
 
     @patch('pydub.AudioSegment')
+    @patch.dict('sys.modules', {'torchaudio': None})
     def test_diarize_successful_pipeline(self, MockAudioSegment, diarizer, tmp_path):
         # Mock the pipeline
         mock_pipeline_instance = MagicMock()
@@ -112,7 +114,13 @@ class TestSpeakerDiarizer:
         segments, embeddings = diarizer.diarize(dummy_audio_path)
 
         # Assert
-        mock_pipeline_instance.assert_called_once_with(str(dummy_audio_path))
+        mock_pipeline_instance.assert_called_once()
+        pipeline_input = mock_pipeline_instance.call_args[0][0]
+        if isinstance(pipeline_input, dict):
+            assert pipeline_input["sample_rate"] == 16000
+            assert pipeline_input["waveform"].shape[0] >= 1
+        else:
+            assert pipeline_input == str(dummy_audio_path)
         assert len(segments) == 2
         assert segments[0].speaker_id == "SPEAKER_00"
         assert segments[0].start_time == 1.0
@@ -122,6 +130,7 @@ class TestSpeakerDiarizer:
 
     @patch('pyannote.audio.Pipeline.from_pretrained', side_effect=Exception("Model loading failed"))
     @patch('pydub.AudioSegment.from_file')
+    @patch.dict('sys.modules', {'torchaudio': None})
     def test_diarize_fallback_on_pipeline_failure(self, MockAudioSegment, MockFromPretrained, diarizer, tmp_path):
         # Arrange
         mock_audio = MagicMock()
@@ -145,6 +154,26 @@ class TestSpeakerDiarizer:
         assert segments[0].speaker_id == "SPEAKER_00"
         assert segments[0].start_time == 0.0
         assert segments[0].end_time == 120.0
+
+    @patch('pyannote.audio.Inference')
+    @patch('pyannote.audio.Model.from_pretrained')
+    @patch('pyannote.audio.Pipeline.from_pretrained')
+    @patch.dict('sys.modules', {'torchaudio': None})
+    def test_pipeline_loads_with_hf_token(self, mock_pipeline_from_pretrained, mock_model_from_pretrained, mock_inference, diarizer, monkeypatch):
+        """Ensure HF token is passed to PyAnnote loaders when available."""
+        mock_pipeline_obj = MagicMock()
+        mock_pipeline_from_pretrained.return_value = mock_pipeline_obj
+        mock_model_from_pretrained.return_value = MagicMock()
+        mock_inference.return_value = MagicMock()
+
+        monkeypatch.setattr('src.diarizer.Config.HF_TOKEN', 'hf_test_token')
+        monkeypatch.setattr('src.diarizer.Config.get_inference_device', lambda: "cpu")
+
+        diarizer._load_pipeline_if_needed()
+
+        assert mock_pipeline_from_pretrained.call_args.kwargs.get('use_auth_token') == 'hf_test_token'
+        assert mock_model_from_pretrained.call_args.kwargs.get('use_auth_token') == 'hf_test_token'
+        assert diarizer.pipeline is mock_pipeline_obj
 
 class TestSpeakerProfileManager:
 

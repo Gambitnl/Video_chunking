@@ -107,10 +107,10 @@ class FasterWhisperTranscriber(BaseTranscriber):
     - Large model download (~3GB)
     """
 
-    def __init__(self, model_name: str = None, device: str = "auto"):
+    def __init__(self, model_name: str = None, device: str = None):
         self.model_name = model_name or Config.WHISPER_MODEL
         self.logger = get_logger('transcriber.faster_whisper')
-        self.device = device
+        self.device = (device or Config.get_inference_device()).lower()
         self.model = None  # Defer model loading
 
     def _load_model_if_needed(self):
@@ -119,17 +119,37 @@ class FasterWhisperTranscriber(BaseTranscriber):
             return
 
         from faster_whisper import WhisperModel
-        
-        # Auto-detect device if not specified
-        if self.device == "auto":
-            import torch
-            self.device = "cuda" if torch.cuda.is_available() else "cpu"
 
-        self.logger.info("Loading Whisper model '%s' on %s...", self.model_name, self.device)
+        resolved_device = self.device
+        if resolved_device not in {"cpu", "cuda"}:
+            resolved_device = Config.get_inference_device()
+
+        if resolved_device == "cuda":
+            try:
+                import torch  # type: ignore
+                if not torch.cuda.is_available():
+                    self.logger.warning(
+                        "CUDA requested for Whisper but no GPU detected. Falling back to CPU."
+                    )
+                    resolved_device = "cpu"
+            except Exception:
+                self.logger.warning(
+                    "Could not verify CUDA availability. Falling back to CPU."
+                )
+                resolved_device = "cpu"
+
+        compute_type = "float16" if resolved_device == "cuda" else "int8"
+        self.logger.info(
+            "Loading Whisper model '%s' on %s (compute_type=%s)...",
+            self.model_name,
+            resolved_device,
+            compute_type
+        )
+        self.device = resolved_device
         self.model = WhisperModel(
             self.model_name,
             device=self.device,
-            compute_type="float16" if self.device == "cuda" else "int8"
+            compute_type=compute_type
         )
         self.logger.info("Whisper model loaded.")
 

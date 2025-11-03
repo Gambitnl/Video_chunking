@@ -42,6 +42,7 @@ class Config:
     # API Keys
     GROQ_API_KEY: Optional[str] = os.getenv("GROQ_API_KEY")
     OPENAI_API_KEY: Optional[str] = os.getenv("OPENAI_API_KEY")
+    HF_TOKEN: Optional[str] = os.getenv("HF_TOKEN")
 
     # Model Settings
     WHISPER_MODEL: str = os.getenv("WHISPER_MODEL", "large-v3")
@@ -75,6 +76,50 @@ class Config:
         cls.OUTPUT_DIR.mkdir(exist_ok=True)
         cls.TEMP_DIR.mkdir(exist_ok=True)
         cls.MODELS_DIR.mkdir(exist_ok=True)
+
+    @classmethod
+    def get_inference_device(cls) -> str:
+        """
+        Resolve the preferred device for model inference.
+
+        Priority:
+        1. Explicit INFERENCE_DEVICE environment variable.
+        2. CUDA if available.
+        3. CPU fallback.
+        """
+        env_device = os.getenv("INFERENCE_DEVICE")
+        if env_device:
+            device = env_device.strip().lower()
+            if device == "cuda":
+                try:
+                    import torch  # type: ignore
+                    if torch.cuda.is_available():
+                        return "cuda"
+                except Exception:
+                    pass
+                _logger.warning(
+                    "INFERENCE_DEVICE=cuda requested but CUDA is unavailable. Falling back to cpu."
+                )
+                return "cpu"
+            if device in {"cpu", "cuda"}:
+                return device
+            _logger.warning(
+                "Unknown INFERENCE_DEVICE value '%s'. Falling back to auto-detection.",
+                device
+            )
+
+        try:
+            import torch  # type: ignore
+            if torch.cuda.is_available():
+                return "cuda"
+        except Exception:
+            pass
+        return "cpu"
+
+    @classmethod
+    def using_gpu(cls) -> bool:
+        """Return True when the preferred inference device resolves to CUDA."""
+        return cls.get_inference_device() == "cuda"
 
 
 # Ensure directories exist on import

@@ -7,6 +7,7 @@ import numpy as np
 import threading
 from .config import Config
 from .transcriber import TranscriptionSegment
+from .logger import get_logger
 
 
 @dataclass
@@ -31,6 +32,7 @@ class SpeakerDiarizer:
         self.pipeline = None
         self.embedding_model = None
         self.model_load_lock = threading.Lock()
+        self.logger = get_logger("diarizer")
 
     def _load_pipeline_if_needed(self):
         """Load the PyAnnote pipeline on first use, in a thread-safe manner."""
@@ -45,31 +47,58 @@ class SpeakerDiarizer:
                 diarization_model_name = "pyannote/speaker-diarization-3.1"
                 embedding_model_name = "pyannote/embedding"
 
-                print(f"Initializing PyAnnote pipeline for the first time (model: {diarization_model_name})...")
-                print("This is a one-time operation and may take a moment.")
+                self.logger.info(
+                    "Initializing PyAnnote pipeline (model=%s, embedding=%s)...",
+                    diarization_model_name,
+                    embedding_model_name
+                )
+                self.logger.info("This is a one-time download and may take a moment.")
 
-                # The pipeline automatically uses HF_TOKEN environment variable if available.
-                self.pipeline = Pipeline.from_pretrained(diarization_model_name)
+                token = Config.HF_TOKEN
+                if not token:
+                    self.logger.warning(
+                        "HF_TOKEN is not set. Access to %s may be denied.",
+                        diarization_model_name
+                    )
+
+                pipeline_kwargs = {}
+                if token:
+                    pipeline_kwargs["use_auth_token"] = token
+                self.pipeline = Pipeline.from_pretrained(
+                    diarization_model_name,
+                    **pipeline_kwargs
+                )
 
                 # Load embedding model for speaker identification
-                embedding_model = Model.from_pretrained(embedding_model_name, use_auth_token=True)
+                embedding_kwargs = {}
+                if token:
+                    embedding_kwargs["use_auth_token"] = token
+                embedding_model = Model.from_pretrained(
+                    embedding_model_name,
+                    **embedding_kwargs
+                )
                 self.embedding_model = Inference(embedding_model, window="whole")
 
-                if torch.cuda.is_available():
-                    self.pipeline = self.pipeline.to(torch.device("cuda"))
+                preferred_device = Config.get_inference_device()
+                if preferred_device == "cuda":
+                    device = torch.device("cuda")
+                    self.pipeline = self.pipeline.to(device)
                     if hasattr(self.embedding_model, 'to'):
-                        self.embedding_model = self.embedding_model.to(torch.device("cuda"))
+                        self.embedding_model = self.embedding_model.to(device)
+                    self.logger.info("PyAnnote pipeline moved to CUDA.")
+                else:
+                    self.logger.info("PyAnnote pipeline running on CPU.")
 
-                print("PyAnnote pipeline initialized successfully.")
+                self.logger.info("PyAnnote pipeline initialized successfully.")
 
             except Exception as e:
-                print(f"Warning: Could not initialize PyAnnote pipeline: {e}")
-                print("Speaker diarization will be limited.")
-                print("\nTo use full diarization:")
-                print("1. Visit: https://huggingface.co/pyannote/speaker-diarization")
-                print("2. Accept the terms")
-                print("3. Create token: https://huggingface.co/settings/tokens")
-                print("4. Set HF_TOKEN in your .env file")
+                self.logger.warning("Could not initialize PyAnnote pipeline: %s", e)
+                self.logger.warning("Speaker diarization will be limited.")
+                self.logger.info("To use full diarization:")
+                self.logger.info("1. Visit: https://huggingface.co/pyannote/speaker-diarization")
+                self.logger.info("2. Accept the terms")
+                self.logger.info("3. Create token: https://huggingface.co/settings/tokens")
+                self.logger.info("4. Set HF_TOKEN in your .env file")
                 self.pipeline = None # Ensure it's None on failure
 
     def diarize(self, audio_path: Path) -> Tuple[List[SpeakerSegment], Dict[str, np.ndarray]]:
@@ -92,7 +121,21 @@ class SpeakerDiarizer:
             return segments, {}
 
         # Run diarization
-        diarization = self.pipeline(str(audio_path))
+        diarization_input = str(audio_path)
+        try:
+            import torchaudio  # type: ignore
+            waveform, sample_rate = torchaudio.load(str(audio_path))
+            diarization_input = {
+                "waveform": waveform,
+                "sample_rate": sample_rate
+            }
+        except Exception as exc:
+            self.logger.debug(
+                "Falling back to on-disk audio loading for diarization: %s",
+                exc
+            )
+
+        diarization = self.pipeline(diarization_input)
 
         # Convert to our format
         segments = []

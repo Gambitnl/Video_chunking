@@ -269,6 +269,16 @@ mcp__videochunking-dev__analyze_test_coverage()
 
 **CRITICAL**: Track actual time, not estimates. Real data enables better planning.
 
+### How to Get Current Timestamp
+
+Use this command to retrieve the actual current time:
+
+```bash
+python -c "from datetime import datetime, timezone; print(datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S UTC'))"
+```
+
+**DO NOT make up timestamps or estimate them retroactively.** Always run this command when recording session start, checkpoints, and session end.
+
 ### Session Start (REQUIRED)
 ```
 **[SESSION START: 2025-MM-DD HH:MM:SS UTC]**

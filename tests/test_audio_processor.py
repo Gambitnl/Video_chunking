@@ -66,6 +66,26 @@ class TestAudioProcessor:
         with pytest.raises(RuntimeError, match="FFmpeg conversion failed: Error"):
             processor.convert_to_wav(Path("in.m4a"), Path("out.wav"))
 
+    @patch('subprocess.run')
+    def test_convert_to_wav_accepts_named_string(self, mock_run, processor):
+        mock_run.return_value = MagicMock(check=True)
+
+        class DummyNamedString(str):
+            pass
+
+        dummy = DummyNamedString("/in/test_clip.m4a")
+        dummy.name = "/in/test_clip.m4a"
+
+        result_path = processor.convert_to_wav(dummy)
+
+        expected_output = Path("/tmp/temp_dir/test_clip_converted.wav")
+        expected_input = Path("/in/test_clip.m4a")
+        assert result_path == expected_output
+
+        command = mock_run.call_args[0][0]
+        assert str(expected_input) in command
+        assert str(expected_output) in command
+
     @patch('soundfile.read')
     def test_load_audio(self, mock_sf_read, processor):
         mock_sf_read.return_value = (np.array([0, 1], dtype=np.int16), 16000)

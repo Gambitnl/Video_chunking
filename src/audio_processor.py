@@ -54,8 +54,15 @@ class AudioProcessor:
         - WAV format: Lossless, widely compatible
         - FFmpeg: Fast, reliable, handles all formats
         """
+        if not isinstance(input_path, Path):
+            # Gradio uploads provide gradio.utils.NamedString or plain strings.
+            # Coerce to Path so downstream logic can rely on pathlib APIs.
+            input_path = Path(str(getattr(input_path, "name", input_path)))
+
         if output_path is None:
             output_path = Config.TEMP_DIR / f"{input_path.stem}_converted.wav"
+        elif not isinstance(output_path, Path):
+            output_path = Path(str(output_path))
 
         self.logger.info("Converting %s -> %s (sample_rate=%s)", input_path, output_path, self.sample_rate)
 

@@ -9,6 +9,7 @@
 - [Component Test Coverage Map](#component-test-coverage-map)
 - [Test Execution Guide](#test-execution-guide)
 - [Smoke Testing Checklist](#smoke-testing-checklist)
+- [Pipeline Health Check](#pipeline-health-check)
 - [Test Categories](#test-categories)
 - [Adding New Tests](#adding-new-tests)
 - [Troubleshooting](#troubleshooting)
@@ -174,6 +175,159 @@ markers =
 | | | | | | |
 
 **Instructions**: Add new rows whenever you discover a failure mode not covered by existing tests.
+
+---
+
+## Pipeline Health Check
+
+**IMPORTANT - Cloud/Web-Based Agents:**
+- If you are a **cloud-based or web-based AI agent** (e.g., Claude via web interface, ChatGPT, etc.): **SKIP this entire section**
+- Cloud agents cannot access local system tools (FFmpeg, Ollama, pip commands)
+- Proceed directly to your assigned tasks
+- Note in your status: "Health checks skipped - cloud-based agent"
+
+---
+
+### Health Check Components (Local Agents Only)
+
+The `mcp__videochunking-dev__check_pipeline_health()` function verifies all required dependencies and tools are available.
+
+**Implementation**: `mcp_server.py:114-169`
+
+| Component | Check Method | Pass Criteria | Fail Criteria |
+|-----------|--------------|---------------|---------------|
+| **FFmpeg** | `ffmpeg -version` | Exit code 0 | Command fails or not found |
+| **Ollama** | `ollama list` | Exit code 0, lists models | Command fails or not found |
+| **faster-whisper** | `pip show faster-whisper` | Package installed | Package not found |
+| **pyannote.audio** | `pip show pyannote.audio` | Package installed | Package not found |
+| **pydub** | `pip show pydub` | Package installed | Package not found |
+| **gradio** | `pip show gradio` | Package installed | Package not found |
+| **click** | `pip show click` | Package installed | Package not found |
+| **rich** | `pip show rich` | Package installed | Package not found |
+| **torch** | `pip show torch` | Package installed | Package not found |
+| **groq** | `pip show groq` | Package installed | Package not found |
+
+**Total Checks**: 10 components (1 external tool, 1 AI service, 8 Python packages)
+
+### Health Check Results - Individual Component Logs
+
+**Instructions**:
+- Run health check: `mcp__videochunking-dev__check_pipeline_health()`
+- Log results for each component below
+- **SUCCESS**: Log timestamp only
+- **FAILURE**: Log timestamp + failure description + remedy applied
+
+---
+
+#### 1. FFmpeg
+
+| Date/Time (UTC) | Status | Notes / Failure & Remedy |
+|-----------------|--------|--------------------------|
+| | | *No results logged yet* |
+
+---
+
+#### 2. Ollama
+
+| Date/Time (UTC) | Status | Available Models / Failure & Remedy |
+|-----------------|--------|--------------------------------------|
+| | | *No results logged yet* |
+
+---
+
+#### 3. faster-whisper
+
+| Date/Time (UTC) | Status | Version / Failure & Remedy |
+|-----------------|--------|----------------------------|
+| | | *No results logged yet* |
+
+---
+
+#### 4. pyannote.audio
+
+| Date/Time (UTC) | Status | Version / Failure & Remedy |
+|-----------------|--------|----------------------------|
+| | | *No results logged yet* |
+
+---
+
+#### 5. pydub
+
+| Date/Time (UTC) | Status | Version / Failure & Remedy |
+|-----------------|--------|----------------------------|
+| | | *No results logged yet* |
+
+---
+
+#### 6. gradio
+
+| Date/Time (UTC) | Status | Version / Failure & Remedy |
+|-----------------|--------|----------------------------|
+| | | *No results logged yet* |
+
+---
+
+#### 7. click
+
+| Date/Time (UTC) | Status | Version / Failure & Remedy |
+|-----------------|--------|----------------------------|
+| | | *No results logged yet* |
+
+---
+
+#### 8. rich
+
+| Date/Time (UTC) | Status | Version / Failure & Remedy |
+|-----------------|--------|----------------------------|
+| | | *No results logged yet* |
+
+---
+
+#### 9. torch
+
+| Date/Time (UTC) | Status | Version / Failure & Remedy |
+|-----------------|--------|----------------------------|
+| | | *No results logged yet* |
+
+---
+
+#### 10. groq
+
+| Date/Time (UTC) | Status | Version / Failure & Remedy |
+|-----------------|--------|----------------------------|
+| | | *No results logged yet* |
+
+---
+
+### Summary Log (Overall Health Check Runs)
+
+**Purpose**: Track overall health check execution to avoid unnecessary re-runs.
+
+**Usage** (Local Agents Only):
+- **Cloud/web-based agents**: Skip entirely
+- **Local agents**: Before running health checks, check this table:
+  - If last run was **<24 hours ago** and **status = SUCCESS**: Skip health check
+  - If last run was **>24 hours ago** OR **status = FAILURE**: Run health check
+
+| Date/Time (UTC) | Status | Passed | Failed | Duration | Notes |
+|-----------------|--------|--------|--------|----------|-------|
+| | | | | | *No results logged yet* |
+
+**Status Values**:
+- `SUCCESS` = All 10 components passed
+- `FAILURE` = One or more components failed (see individual component logs)
+
+**Common Remedies**:
+
+| Component | Common Failure | Remedy |
+|-----------|----------------|--------|
+| FFmpeg | Command not found | Install FFmpeg: `winget install FFmpeg` or download from https://ffmpeg.org/download.html |
+| FFmpeg | Not in PATH | Add FFmpeg bin directory to system PATH or place in project root under `ffmpeg/bin/` |
+| Ollama | Connection refused | Start Ollama service: `ollama serve` |
+| Ollama | Command not found | Install Ollama from https://ollama.ai/download |
+| Python packages | Package not found | Run `pip install -r requirements.txt` |
+| Python packages | Version mismatch | Reinstall with `pip install --upgrade <package>` |
+| torch | CUDA errors | Verify GPU drivers or install CPU-only version: `pip install torch --index-url https://download.pytorch.org/whl/cpu` |
 
 ---
 

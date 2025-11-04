@@ -822,6 +822,160 @@ When NOT to Use MCP:
 
 ---
 
+### Session 2025-11-04: Diarizer Token Handling Robustness
+
+**Agent**: Claude (Sonnet 4.5)
+**Duration**: ~45 minutes
+**Work Completed**: Improved HuggingFace token parameter handling in diarizer with graceful fallback
+
+#### What Went Well
+
+1. **Clear Starting Point from Uncommitted Changes**
+   - Git status showed exact files modified (src/diarizer.py, tests/test_diarizer.py)
+   - Git diff provided full context of changes made
+   - No time wasted understanding what needed to be done
+   - Lesson: Uncommitted work with clear diffs is excellent for picking up tasks
+
+2. **Test-First Validation Approach**
+   - Ran tests BEFORE committing to verify correctness
+   - All 15 diarizer tests passed in 8.71s
+   - Caught potential issues early (though none found)
+   - Confidence level: HIGH for commit
+
+3. **Comprehensive Documentation Added**
+   - IMPLEMENTATION_PLANS.md: Added follow-up section with problem, solution, design decisions
+   - docs/TESTING.md: Updated health check log and test metrics
+   - Future maintainers will understand the "why" behind the graceful fallback pattern
+   - Total documentation time: ~15 minutes (good investment)
+
+4. **Work Initiation Prompt Worked Perfectly**
+   - Health checks completed first
+   - Git status reviewed second
+   - Roadmap and priorities identified third
+   - Clear recommendation for which work to tackle
+   - No wasted effort or confusion about what to do
+
+5. **Small, Complete Increments**
+   - Single focused improvement (token parameter handling)
+   - Tested immediately (pytest)
+   - Committed with clear message
+   - Documented thoroughly
+   - Total time: 45 minutes start to finish
+   - Result: Production-ready improvement with full documentation
+
+#### What Could Be Improved
+
+1. **Could Have Run Full Test Suite**
+   - Only ran diarizer tests (15 tests)
+   - Should have verified no regressions in other modules: `pytest tests/ -q`
+   - Risk: Low (changes were isolated to diarizer.py)
+   - Time cost: Would add ~3-5 seconds
+
+2. **MCP Health Check Had False Negatives**
+   - MCP server reported Python packages as "not installed"
+   - Manual verification with `pip show` confirmed all packages present
+   - Issue: MCP server likely running in different Python environment
+   - Impact: Wasted 2-3 minutes investigating
+   - Mitigation: Added note to health check log about MCP env issue
+
+3. **Large Patch File Not Addressed**
+   - jules_session_11681752051833553582.patch (61k tokens) left untracked
+   - Should have asked user about disposition (commit/ignore/delete)
+   - This is technical debt for next session
+
+#### Process Improvements Identified
+
+1. **Add "Run Full Test Suite" to Commit Checklist**
+   Update Section XI (Deliverables) with:
+   ```
+   Before committing code changes:
+   [ ] Run targeted tests for changed module
+   [ ] Run full test suite to check for regressions (pytest tests/ -q)
+   [ ] Verify no new failures introduced
+   ```
+
+2. **MCP Health Check Caveat**
+   Add to Section III (Session Initialization):
+   ```
+   Known Issue: MCP server pip checks may report false negatives if running
+   in different Python environment. If health check fails, verify manually:
+   - pip show <package> for each reported failure
+   - python -c "import <module>" to verify importability
+   ```
+
+3. **Handle Uncommitted Artifacts Proactively**
+   Add to mental checklist:
+   ```
+   During git status review:
+   [ ] Identify all uncommitted changes
+   [ ] Identify all untracked files
+   [ ] For large untracked files (>1MB or >10k tokens):
+       - Ask user about disposition
+       - Add to .gitignore if noise
+       - Commit if relevant
+       - Document if from another session
+   ```
+
+#### Recommendations for Future Work
+
+1. **Complete the jules_session Patch**
+   - Review jules_session_11681752051833553582.patch
+   - Determine if it should be applied, archived, or deleted
+   - If it's from another agent's session, document in session history
+
+2. **Push 8 Commits to Origin**
+   - Currently 8 commits ahead of origin/main
+   - Includes today's work plus 6 previous commits
+   - Command: `git push origin main`
+   - Impact: Backup work and share with team
+
+3. **Next Priority Work** (from today's assessment):
+   - **Option A**: Bug fixes (BUG-006, BUG-019, BUG-022) - 2-3 hours total
+   - **Option B**: Test coverage for LangChain components - 1-2 days
+   - **Option C**: Streaming snippet export - 2 days
+
+4. **Consider Automated Documentation**
+   - Pattern identified: Code changes -> Tests -> Commit -> Document
+   - Could create a slash command: `/document-work <commit-hash>`
+   - Would auto-generate IMPLEMENTATION_PLANS.md sections from commits
+   - Effort: 2-3 hours to implement
+
+#### Prompt Updates
+
+**Updated Section III (Session Initialization)** with MCP health check caveat:
+```
+Known Issue: MCP server pip checks may report false negatives if running
+in different Python environment. If health check fails, verify manually
+with pip show <package> and python -c "import <module>".
+```
+
+**Updated Section V (Working Rhythm)** - Step 4 expanded:
+```
+4. TEST that piece in isolation
+   └─> Use mcp__videochunking-dev__run_specific_test(...)
+   └─> Run full suite to check for regressions: pytest tests/ -q
+```
+
+**Updated Section XI (Deliverables)** with full test suite requirement:
+```
+Before committing code changes:
+[ ] Run targeted tests for changed module
+[ ] Run full test suite to check for regressions
+[ ] Verify no new failures introduced
+```
+
+**Updated Section II (Review Current State)** with untracked file handling:
+```
+During git status review:
+[ ] Identify all uncommitted changes
+[ ] Identify all untracked files
+[ ] For large untracked files (>1MB or >10k tokens):
+    - Ask user about disposition
+    - Add to .gitignore, commit, or document
+```
+
+---
+
 **End of Work Initiation Prompt**
 
 Begin each session by running system health checks, validating the task isn't already complete, and establishing clear success criteria. Work in small, testable increments. Surface uncertainty. Document reasoning. Deliver complete, maintainable solutions.

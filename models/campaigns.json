@@ -58,5 +58,20 @@
     },
     "description": null,
     "notes": null
+  },
+  "campaign_004": {
+    "name": "New Campaign 4",
+    "party_id": "",
+    "settings": {
+      "num_speakers": 4,
+      "skip_diarization": false,
+      "skip_classification": false,
+      "skip_snippets": true,
+      "skip_knowledge": false,
+      "session_id_prefix": "Session_",
+      "auto_number_sessions": false
+    },
+    "description": null,
+    "notes": null
   }
 }

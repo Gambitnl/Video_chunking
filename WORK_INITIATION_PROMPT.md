@@ -265,7 +265,73 @@ mcp__videochunking-dev__analyze_test_coverage()
 
 ---
 
-## VI. Communication: Surface Uncertainty
+## VI. Time Tracking: Accountability & Learning
+
+**CRITICAL**: Track actual time, not estimates. Real data enables better planning.
+
+### Session Start (REQUIRED)
+```
+**[SESSION START: 2025-MM-DD HH:MM:SS UTC]**
+- Task: <brief description>
+- Estimated duration: <X hours/minutes> (if known from ROADMAP)
+```
+
+### Checkpoints (Use liberally)
+```
+**[CHECKPOINT: 2025-MM-DD HH:MM:SS UTC]**
+- Completed: <what was just finished>
+- Elapsed since last checkpoint: <calculated from timestamps>
+- Next: <what's next>
+```
+
+### Session End (REQUIRED)
+```
+**[SESSION END: 2025-MM-DD HH:MM:SS UTC]**
+
+Time Analysis:
+- Total wall clock time: <end - start>
+- Estimated time (from ROADMAP): <if applicable>
+- Variance: <actual vs estimated>
+- Actual working time: <sum of checkpoint intervals, excluding breaks>
+
+Notes:
+- <Why variance occurred, if significant>
+- <Interruptions, blockers, or unexpected complexity>
+```
+
+### Why This Matters
+- **Accountability**: Timestamps don't lie, estimates do
+- **Learning**: Compare estimated vs actual to improve future estimates
+- **Pattern Recognition**: See where time actually goes
+- **Honesty**: "8 hours elapsed" ≠ "2 hours of focused work"
+
+**Example**:
+```
+[SESSION START: 2025-11-04 14:30:00 UTC]
+Task: Fix 16 failing LangChain tests
+Estimated: 2 days (per ROADMAP)
+
+[CHECKPOINT: 2025-11-04 15:15:00 UTC]
+Completed: Session initialization, documented immediate steps
+Elapsed: 45 minutes
+
+[CHECKPOINT: 2025-11-04 17:00:00 UTC]
+Completed: Fixed all 16 tests, verified with full suite
+Elapsed: 1h 45min
+Total: 2h 30min
+
+[SESSION END: 2025-11-04 22:30:00 UTC]
+Total wall clock: 8 hours
+Actual working time: ~3.5 hours (rest was breaks, documentation, discussion)
+ROADMAP estimate: 2 days (16 hours)
+Actual: 3.5 hours
+Variance: -87% (much faster than estimated)
+Reason: Tests existed but were broken, not missing - different task than ROADMAP described
+```
+
+---
+
+## VII. Communication: Surface Uncertainty
 
 ### Status Updates Must Include:
 
@@ -279,6 +345,11 @@ mcp__videochunking-dev__analyze_test_coverage()
   - High = "Approach is proven, just execution remaining"
   - Medium = "Approach is sound but edge cases may exist"
   - Low = "Not sure if this approach is correct, may need guidance"
+
+## Time Tracking
+- Session started: <timestamp>
+- Current elapsed: <calculated from start>
+- Last checkpoint: <what was completed>
 
 ## Decisions Made
 - <Architectural decisions with reasoning>
@@ -1010,12 +1081,24 @@ During git status review:
 - [ ] **Update prompt with new patterns discovered**
 - [ ] **Commit work_initiation_prompt.md if modified**
 
+### Time Tracking Requirements (NEW - See Section VI)
+- [ ] **Record SESSION START timestamp** at beginning
+- [ ] **Record CHECKPOINTS** at major completion points with elapsed time
+- [ ] **Record SESSION END timestamp** at conclusion
+- [ ] **Calculate and report**:
+  - Total wall clock time (end - start)
+  - Actual working time (sum of checkpoints)
+  - Variance from ROADMAP estimate (if applicable)
+  - Reasons for significant variance
+- [ ] **Be honest**: Don't estimate durations retroactively - use actual timestamps
+
 ### Session Summary Requirements
 - [ ] **Clearly separate user-requested vs self-selected work**
   - Phase 1: Immediate Steps (user-requested) - list ALL steps explicitly
   - Phase 2: Self-Selected Work (if any)
 - [ ] **Document all files modified with line number references**
 - [ ] **Include test results before/after (if applicable)**
+- [ ] **Include time analysis with actual timestamps** (not estimates!)
 - [ ] **State autonomous decision reasoning clearly**
 
 ### Verification Requirements

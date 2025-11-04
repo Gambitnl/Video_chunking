@@ -12,7 +12,11 @@ Before touching code, validate these three dimensions:
 
 **Check before implementing:**
 - **Search codebase**: Use `mcp__filesystem__search_files(path=".", pattern="*<feature>*")` - Is it already implemented?
-- **Run tests**: Use `mcp__videochunking-dev__run_specific_test(test_path="tests/test_<module>.py")` - Do they pass for this feature?
+- **Verify test state**: CRITICAL - distinguish between "no tests" vs "failing tests"
+  - Search for test files: `find tests -name "test_<module>.py"` or `Glob pattern="tests/test_*.py"`
+  - Run test suite: `pytest tests/test_<module>.py -v` to check pass/fail status
+  - If tests exist but fail: Task is "fix broken tests", NOT "write new tests"
+  - If tests pass: Feature may already be complete - verify functionality
 - **Review git history**: `git log --oneline --grep="<feature>"` - Was this completed recently?
 - **Check processed sessions**: Use `mcp__videochunking-dev__list_processed_sessions()` - Does the feature produce output?
 
@@ -501,6 +505,26 @@ mcp__videochunking-dev__analyze_test_coverage()
 mcp__ide__getDiagnostics()
 ```
 
+**For Test Fixes:**
+```bash
+# 1. Run targeted tests
+pytest tests/test_<module>.py -v
+
+# 2. Generate coverage report
+pytest tests/test_<module>.py --cov=src.<module> --cov-report=term-missing
+
+# 3. Review coverage gaps
+# Look for uncovered lines, aim for >80% coverage
+
+# 4. Run full test suite to check for regressions
+pytest tests/ -q
+
+# 5. Integration smoke test (if UI-related)
+# Start app: python app.py
+# Manually test affected flows
+# Verify no runtime errors
+```
+
 **For Bug Fixes (Lightweight Verification):**
 ```bash
 # 1. Syntax check
@@ -973,6 +997,209 @@ During git status review:
     - Ask user about disposition
     - Add to .gitignore, commit, or document
 ```
+
+---
+
+## XVII. CRITICAL: Session Completion Checklist
+
+**Before ending ANY session, you MUST complete ALL of the following:**
+
+### Documentation Requirements
+- [ ] **Document lessons learned in Section XVI** (add new session entry)
+- [ ] **Apply process improvements to relevant sections** (I, XI, etc.)
+- [ ] **Update prompt with new patterns discovered**
+- [ ] **Commit work_initiation_prompt.md if modified**
+
+### Session Summary Requirements
+- [ ] **Clearly separate user-requested vs self-selected work**
+  - Phase 1: Immediate Steps (user-requested) - list ALL steps explicitly
+  - Phase 2: Self-Selected Work (if any)
+- [ ] **Document all files modified with line number references**
+- [ ] **Include test results before/after (if applicable)**
+- [ ] **State autonomous decision reasoning clearly**
+
+### Verification Requirements
+- [ ] **Verify all immediate steps user requested are completed**
+- [ ] **Verify all immediate steps are documented in session summary**
+- [ ] **Verify all commits are pushed to origin**
+- [ ] **Verify ROADMAP/planning docs updated if tasks completed**
+
+**WARNING**: If you skip this checklist, you waste future agent time by not sharing your learnings. Documentation is the institutional memory that prevents re-inventing the wheel.
+
+---
+
+### Session 2025-11-04: Work Initiation Execution & LangChain Test Fixes
+
+**Agent**: Claude (Sonnet 4.5)
+**Duration**: ~3 hours
+**Work Completed**: Executed work initiation prompt, fixed 16 failing LangChain tests, updated documentation
+
+#### What Went Well
+
+1. **Work Initiation Prompt Followed Successfully**
+   - Session initialization steps executed correctly
+   - Health check skip logic worked (cloud agent, recent check valid)
+   - Priority identification was immediate and accurate
+   - Proper git status review identified uncommitted work
+   - Result: Clear starting point, no wasted effort
+
+2. **Test Failure Root Cause Analysis**
+   - Quickly identified dynamic import pattern as root cause
+   - Read implementation before fixing tests (avoid guessing)
+   - Systematic fix approach: LLM -> memory -> prompts -> ask() -> chain
+   - Fixed 16 failures in ~90 minutes
+   - Lesson: Understanding implementation > trial-and-error test fixes
+
+3. **Small, Verifiable Increments**
+   - Fixed tests in logical groups
+   - Ran test suite after each group
+   - Easy to isolate remaining failures
+   - High confidence before moving forward
+
+4. **Immediate Steps Execution**
+   - User requested: commit docs, push commits, then choose task
+   - All three completed successfully
+   - Autonomous task selection worked well (chose high-impact test fixes)
+
+#### What Could Be Improved
+
+1. **Documentation Completeness Failure**
+   - Identified lessons learned but **did not update work_initiation_prompt.md**
+   - Session summary buried immediate steps user requested
+   - Violated prompt's own guidance: "Each session should end with lessons learned documented"
+   - Impact: HIGH - breaks feedback loop, wastes future agent time
+   - Root cause: Forgot to apply findings back to source document
+
+2. **No Test Coverage Report Generated**
+   - Fixed tests but didn't verify coverage with pytest --cov
+   - Would show exact lines covered by tests
+   - Could identify remaining gaps
+   - Impact: MEDIUM - unit tests pass but coverage unknown
+
+3. **No Integration Smoke Test**
+   - Fixed unit tests but didn't test actual functionality
+   - Could have started Gradio app, tested Campaign Chat tab
+   - Would verify end-to-end behavior
+   - Impact: MEDIUM - unit tests passing is good but not complete validation
+
+4. **Session Summary Structure**
+   - Emphasized self-selected work over user-requested steps
+   - Should have clearly separated:
+     - Phase 1: Immediate Steps (user-requested)
+     - Phase 2: Self-Selected Work
+   - Future agents might miss that immediate steps were completed
+
+#### Process Improvements Identified
+
+1. **Add Test State Verification to Section I (Problem Validation)**
+   ```
+   Before claiming "missing tests" or "no test coverage":
+   [ ] Search for test files: `find tests -name "test_*.py" -o -name "*_test.py"`
+   [ ] Run test suite: `pytest tests/test_<module>.py -v`
+   [ ] Check test status: passing/failing/skipped
+   [ ] Distinguish between:
+       - "Tests don't exist" (need to write tests)
+       - "Tests exist but are failing" (need to fix tests)
+       - "Tests exist and pass" (task may be complete)
+   [ ] Generate coverage if fixing tests: `pytest --cov=src --cov-report=html`
+   ```
+
+2. **Add Coverage Verification to Section XI (Deliverables)**
+   ```
+   After fixing tests:
+   [ ] Run targeted tests for changed module
+   [ ] Generate coverage report: pytest --cov=src.<module> --cov-report=term
+   [ ] Review coverage percentage and missing lines
+   [ ] Document coverage gaps if <80%
+   [ ] Run full test suite to check for regressions
+   ```
+
+3. **Add Integration Smoke Test to Section XI**
+   ```
+   For UI-related changes or test fixes:
+   [ ] Start application if applicable (python app.py)
+   [ ] Manually test affected user flows
+   [ ] Verify no runtime errors or exceptions
+   [ ] Test with realistic data if possible
+   [ ] Document any issues discovered
+   ```
+
+4. **Enforce Session Summary Structure**
+   Add to Section XII (Lessons Learned):
+   ```
+   Session Summary Must Include:
+   [ ] Clear separation of user-requested vs self-selected work
+   [ ] All immediate steps explicitly listed and checked off
+   [ ] Autonomous decisions clearly documented with reasoning
+   [ ] Files modified with line number references
+   [ ] Test results before/after
+   ```
+
+5. **Enforce Prompt Update Discipline**
+   Add to end of prompt (before "End of Work Initiation Prompt"):
+   ```
+   ## CRITICAL: Session Completion Checklist
+
+   Before ending ANY session, MUST complete:
+   [ ] Document lessons learned in Section XVI
+   [ ] Add process improvements to relevant sections
+   [ ] Update prompt with new patterns discovered
+   [ ] Commit work_initiation_prompt.md if modified
+   [ ] Verify all user-requested steps are documented in summary
+
+   **If you skip this step, you waste future agent time by not sharing your learnings.**
+   ```
+
+#### Recommendations for Future Work
+
+1. **Generate Test Coverage Report** (5 minutes)
+   ```bash
+   pytest tests/test_langchain_*.py --cov=src.langchain --cov-report=html
+   open htmlcov/index.html
+   ```
+   - Document coverage percentage in TESTING.md
+   - Identify any remaining gaps
+   - Priority: P2
+
+2. **Create Testing Patterns Documentation** (1-2 hours)
+   - File: `docs/TESTING_PATTERNS.md`
+   - Document dynamic import mocking pattern (from today's fixes)
+   - Document initialization isolation pattern
+   - Include examples for future test writers
+   - Priority: P1 - would have saved time today
+
+3. **Next P0 Work**: Extract Story Generation Logic
+   - From ROADMAP P0 Priority 3
+   - Move from app.py to src/story_generator.py
+   - Enable CLI usage
+   - Estimated: 1 day
+   - Priority: P0
+
+#### Prompt Updates
+
+**Added to Section I (Problem Validation)**:
+```
+Test State Verification:
+- Search for existing test files before claiming "no tests"
+- Run tests to check pass/fail status
+- Distinguish "missing tests" from "broken tests"
+- Generate coverage report when fixing tests
+```
+
+**Added to Section XI (Deliverables)**:
+```
+After fixing tests:
+[ ] Generate coverage report
+[ ] Review coverage gaps
+[ ] Run integration smoke test for UI changes
+```
+
+**Added Session Completion Checklist** (new critical section before end):
+- Enforce prompt update discipline
+- Require documentation of all user-requested steps
+- Mandate Section XVI updates
+
+**Added this session entry to Section XVI** (you're reading it now).
 
 ---
 

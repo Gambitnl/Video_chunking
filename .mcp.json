@@ -35,6 +35,14 @@
     "videochunking-dev": {
       "command": "python",
       "args": ["F:\\Repos\\VideoChunking\\mcp_server.py"]
+    },
+    "github": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-github"]
+    },
+    "time": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-time"]
     }
   }
 }

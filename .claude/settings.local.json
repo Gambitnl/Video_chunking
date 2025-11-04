@@ -18,7 +18,9 @@
       "Bash(cat:*)",
       "Bash(ffmpeg:*)",
       "WebFetch(domain:www.anthropic.com)",
-      "WebFetch(domain:github.com)"
+      "WebFetch(domain:github.com)",
+      "Bash($null)",
+      "Bash(Wait until background process completes by sleeping briefly)"
     ],
     "deny": [],
     "ask": []

@@ -162,8 +162,17 @@ class TestSpeakerDiarizer:
     def test_pipeline_loads_with_hf_token(self, mock_pipeline_from_pretrained, mock_model_from_pretrained, mock_inference, diarizer, monkeypatch):
         """Ensure HF token is passed to PyAnnote loaders when available."""
         mock_pipeline_obj = MagicMock()
-        mock_pipeline_from_pretrained.return_value = mock_pipeline_obj
-        mock_model_from_pretrained.return_value = MagicMock()
+
+        def pipeline_factory(model_name, **kwargs):
+            assert kwargs.get('token') == 'hf_test_token'
+            return mock_pipeline_obj
+
+        def model_factory(model_name, **kwargs):
+            assert kwargs.get('token') == 'hf_test_token'
+            return MagicMock()
+
+        mock_pipeline_from_pretrained.side_effect = pipeline_factory
+        mock_model_from_pretrained.side_effect = model_factory
         mock_inference.return_value = MagicMock()
 
         monkeypatch.setattr('src.diarizer.Config.HF_TOKEN', 'hf_test_token')
@@ -171,8 +180,8 @@ class TestSpeakerDiarizer:
 
         diarizer._load_pipeline_if_needed()
 
-        assert mock_pipeline_from_pretrained.call_args.kwargs.get('use_auth_token') == 'hf_test_token'
-        assert mock_model_from_pretrained.call_args.kwargs.get('use_auth_token') == 'hf_test_token'
+        assert mock_pipeline_from_pretrained.call_args.kwargs.get('token') == 'hf_test_token'
+        assert mock_model_from_pretrained.call_args.kwargs.get('token') == 'hf_test_token'
         assert diarizer.pipeline is mock_pipeline_obj
 
 class TestSpeakerProfileManager:

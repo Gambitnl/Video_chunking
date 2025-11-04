@@ -61,22 +61,26 @@ class SpeakerDiarizer:
                         diarization_model_name
                     )
 
-                pipeline_kwargs = {}
-                if token:
-                    pipeline_kwargs["use_auth_token"] = token
-                self.pipeline = Pipeline.from_pretrained(
-                    diarization_model_name,
-                    **pipeline_kwargs
-                )
+                def _load_component(factory, model_name: str):
+                    if not token:
+                        return factory(model_name)
+                    try:
+                        return factory(model_name, token=token)
+                    except TypeError:
+                        pass
+                    try:
+                        return factory(model_name, use_auth_token=token)
+                    except TypeError:
+                        self.logger.warning(
+                            "%s does not accept token parameters; relying on environment.",
+                            factory.__qualname__
+                        )
+                        return factory(model_name)
+
+                self.pipeline = _load_component(Pipeline.from_pretrained, diarization_model_name)
 
                 # Load embedding model for speaker identification
-                embedding_kwargs = {}
-                if token:
-                    embedding_kwargs["use_auth_token"] = token
-                embedding_model = Model.from_pretrained(
-                    embedding_model_name,
-                    **embedding_kwargs
-                )
+                embedding_model = _load_component(Model.from_pretrained, embedding_model_name)
                 self.embedding_model = Inference(embedding_model, window="whole")
 
                 preferred_device = Config.get_inference_device()

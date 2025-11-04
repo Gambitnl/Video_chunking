@@ -332,15 +332,16 @@ Transform long-form D&D session recordings into rich, searchable transcripts wit
    - **Result**: Constant ~100KB memory vs unbounded growth
    - Completed: 2025-10-25
 
-**Test Coverage Expansion** (SHOULD DO):
-8. **Missing Component Tests**
-   - Current coverage: ~35%
-   - Missing tests for:
-     - CampaignChatClient (0% coverage - main user API)
-     - CampaignChatChain (0% coverage)
-     - HybridSearcher (0% coverage)
-   - Effort: 2 days
-   - Impact: HIGH - prevents regressions
+**Test Coverage Expansion**:
+8. **LangChain Component Tests**
+   - Status: [DONE] **COMPLETED** (2025-11-04)
+   - CampaignChatClient: 27 tests (was 0%, now comprehensive coverage)
+   - CampaignChatChain: Covered with initialization and ask() tests
+   - HybridSearcher: 15 tests already exist (test_langchain_hybrid_search.py)
+   - **Achievement**: Fixed 16 failing tests, now 82 passing, 1 skipped
+   - **Files**: tests/test_langchain_campaign_chat_v2.py
+   - Impact: HIGH - prevents regressions, validates security fixes
+   - Completed: 2025-11-04 (~2 hours actual effort)
 
 9. **Concurrency Tests**
    - No tests for concurrent conversation writes

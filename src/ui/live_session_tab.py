@@ -94,9 +94,18 @@ def create_live_session_tab(blocks: gr.Blocks) -> Dict[str, gr.components.Compon
     with gr.Tab("Live Session"):
         gr.Markdown(
             """
-            # Live Session Monitoring
+            # Live Session Monitoring 🚧 Coming Soon
 
-            Stream audio directly from your table, view realtime transcripts, and monitor speaker activity.
+            > **Note**: This feature is currently under development and is not yet functional.
+            > The UI shown below is a preview of planned functionality.
+
+            **Planned Features:**
+            - Stream audio directly from your table
+            - View realtime transcripts
+            - Monitor speaker activity as it happens
+            - Live diarization and classification
+
+            For now, please use the **Process Session** tab to upload and process recorded sessions.
             """
         )
 
@@ -104,15 +113,18 @@ def create_live_session_tab(blocks: gr.Blocks) -> Dict[str, gr.components.Compon
 
         with gr.Row():
             start_button = UIComponents.create_action_button(
-                "Start Live Capture",
+                "Start Live Capture (Coming Soon)",
                 variant="primary",
                 size="md",
             )
+            # Disable buttons since feature is not yet implemented
+            start_button.interactive = False
             stop_button = UIComponents.create_action_button(
-                "Stop Capture",
+                "Stop Capture (Coming Soon)",
                 variant="stop",
                 size="md",
             )
+            stop_button.interactive = False
 
         status_display = UIComponents.create_status_display(_initial_status())
 

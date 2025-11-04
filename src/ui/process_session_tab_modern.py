@@ -340,6 +340,21 @@ def create_process_session_tab_modern(
                 snippet_markdown,
             )
 
+        def validate_inputs(audio_file, session_id, party_selection, character_names):
+            """Validate inputs before processing."""
+            errors = []
+
+            if not audio_file:
+                errors.append("Audio file is required")
+
+            if not session_id or not session_id.strip():
+                errors.append("Session ID is required")
+
+            if party_selection == "Manual Entry" and not character_names:
+                errors.append("Character names are required when using Manual Entry")
+
+            return errors
+
         def process_session_handler(
             audio_file,
             session_id,
@@ -354,6 +369,24 @@ def create_process_session_tab_modern(
             skip_knowledge,
             campaign_id,
         ):
+            # Validate inputs first
+            validation_errors = validate_inputs(audio_file, session_id, party_selection, character_names)
+            if validation_errors:
+                error_details = "\n".join(f"- {err}" for err in validation_errors)
+                return (
+                    StatusMessages.error(
+                        "Validation Failed",
+                        "Please fix the following issues before processing:",
+                        error_details
+                    ),
+                    gr.update(visible=False),
+                    "",
+                    "",
+                    "",
+                    StatusMessages.info("Statistics", "No statistics available."),
+                    StatusMessages.info("Snippet Export", "No snippet information available."),
+                )
+
             response = process_session_fn(
                 audio_file,
                 session_id,

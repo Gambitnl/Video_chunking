@@ -17,23 +17,42 @@ def create_social_insights_tab(
         try:
             from src.analyzer import OOCAnalyzer
             from src.config import Config
-            from wordcloud import WordCloud
+
+            # Check WordCloud dependency first
+            try:
+                from wordcloud import WordCloud
+            except ImportError:
+                error_msg = StatusMessages.error(
+                    "Missing Dependency",
+                    "The 'wordcloud' package is required for social insights analysis.",
+                    "Install it with: pip install wordcloud"
+                )
+                return error_msg, None
 
             if not session_id:
-                return "Please enter a session ID.", None
+                return StatusMessages.warning("Input Required", "Please select a session ID."), None
 
             from src.formatter import sanitize_filename
 
             sanitized_session_id = sanitize_filename(session_id)
             ooc_file = Config.OUTPUT_DIR / f"{sanitized_session_id}_ooc_only.txt"
             if not ooc_file.exists():
-                return f"OOC transcript not found for session: {session_id}", None
+                error_msg = StatusMessages.error(
+                    "File Not Found",
+                    f"OOC transcript not found for session: {session_id}",
+                    "Run the main pipeline first to generate OOC transcripts."
+                )
+                return error_msg, None
 
             analyzer = OOCAnalyzer(ooc_file)
             keywords = analyzer.get_keywords(top_n=30)
 
             if not keywords:
-                return "No significant keywords found in the OOC transcript.", None
+                return StatusMessages.info(
+                    "No Keywords",
+                    "No significant keywords found in the OOC transcript.",
+                    "This session may have limited out-of-character content."
+                ), None
 
             wc = WordCloud(
                 width=800,
@@ -58,8 +77,8 @@ def create_social_insights_tab(
         except Exception as exc:
             error_msg = StatusMessages.error(
                 "Analysis Failed",
-                "Unable to complete social network analysis.",
-                str(exc)
+                "Unable to complete social insights analysis.",
+                f"Error: {type(exc).__name__}: {str(exc)}"
             )
             return error_msg, None
 

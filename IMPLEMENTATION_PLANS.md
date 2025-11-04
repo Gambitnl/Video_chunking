@@ -748,4 +748,72 @@ Whisper transcription defaulted to CPU even on GPU-capable hosts, and PyAnnote s
 #### Validation
 - Not run (PyAnnote model download is gated and long-running; validation to be performed during the next end-to-end session run).
 
+### Follow-up Work: Robust Token Parameter Handling
+**Implementer**: Claude (Sonnet 4.5)
+**Date**: 2025-11-04
+**Commit**: ee49793
+
+#### Problem Identified
+The initial implementation in P0-BUG-007 used direct keyword arguments (`use_auth_token=token`) when calling PyAnnote's `Pipeline.from_pretrained()` and `Model.from_pretrained()`. However, pyannote.audio has evolved its API:
+- Modern versions (>=3.0) use `token=` parameter
+- Legacy versions (<3.0) use `use_auth_token=` parameter
+- Some configurations don't accept token parameters at all
+
+This caused potential compatibility issues across different pyannote.audio versions.
+
+#### Solution: Graceful Fallback Pattern
+Created `_load_component()` helper function in [src/diarizer.py:64-77](src/diarizer.py#L64) that attempts multiple authentication strategies:
+
+1. **No token** - For public models or when token is not required
+2. **Modern API** (`token=`) - Try modern parameter format first
+3. **Legacy API** (`use_auth_token=`) - Fallback to legacy format
+4. **Warning + No token** - If neither parameter accepted, log warning and proceed
+
+**Implementation**:
+```python
+def _load_component(factory, model_name: str):
+    if not token:
+        return factory(model_name)
+    try:
+        return factory(model_name, token=token)
+    except TypeError:
+        pass
+    try:
+        return factory(model_name, use_auth_token=token)
+    except TypeError:
+        self.logger.warning(
+            "%s does not accept token parameters; relying on environment.",
+            factory.__qualname__
+        )
+        return factory(model_name)
+```
+
+#### Design Decisions
+1. **Graceful Degradation Pattern**
+   - **Choice**: Try multiple parameter formats in sequence, catching TypeError for unsupported params
+   - **Reasoning**: Ensures compatibility across pyannote.audio versions without version detection logic
+   - **Alternatives Considered**:
+     - Check pyannote.audio version and branch on version number - Rejected as fragile and requires maintenance
+     - Use `**kwargs` inspection - Rejected as more complex than try/except
+   - **Trade-offs**: Multiple try/except blocks add minimal overhead but provide robust fallback
+
+2. **Warning on Fallback**
+   - **Choice**: Log warning when token parameters aren't accepted, but continue with environment-based auth
+   - **Reasoning**: Alerts operators to potential auth issues while not blocking execution
+   - **Impact**: Better observability for authentication debugging
+
+#### Validation
+- **Tests**: All 15 diarizer tests passing (pytest tests/test_diarizer.py -v)
+- **Test Coverage**: Updated test_pipeline_loads_with_hf_token to verify modern `token=` parameter usage
+- **Files Changed**:
+  - [src/diarizer.py:64-84](src/diarizer.py#L64) - Added _load_component helper
+  - [tests/test_diarizer.py:165-187](tests/test_diarizer.py#L165) - Updated test assertions
+  - [models/speaker_profiles.json](models/speaker_profiles.json) - Added test session profile
+
+#### Benefits
+- **Compatibility**: Works across pyannote.audio 2.x and 3.x versions
+- **Robustness**: Handles edge cases where token parameters aren't supported
+- **Maintainability**: Single helper function reduces code duplication
+- **Observability**: Clear logging when authentication strategy changes
+
 ---

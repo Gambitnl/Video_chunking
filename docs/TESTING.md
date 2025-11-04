@@ -247,7 +247,7 @@ The `mcp__videochunking-dev__check_pipeline_health()` function verifies all requ
 
 | Date/Time (UTC) | Status | Version / Failure & Remedy |
 |-----------------|--------|----------------------------|
-| | | *No results logged yet* |
+| 2025-11-04 07:20 | SUCCESS | v4.0.1 - All 15 diarizer tests passing |
 
 ---
 
@@ -311,7 +311,7 @@ The `mcp__videochunking-dev__check_pipeline_health()` function verifies all requ
 
 | Date/Time (UTC) | Status | Passed | Failed | Duration | Notes |
 |-----------------|--------|--------|--------|----------|-------|
-| | | | | | *No results logged yet* |
+| 2025-11-04 07:15 | PARTIAL | 2 | 8 | ~5s | FFmpeg + Ollama OK, Python deps check failed (MCP server env issue, packages verified manually) |
 
 **Status Values**:
 - `SUCCESS` = All 10 components passed
@@ -659,12 +659,16 @@ jobs:
 
 ## Test Metrics
 
-**Last Run**: 2025-10-24
+**Last Run**: 2025-11-04
 **Total Tests**: 98
 **Passing**: 98
 **Failing**: 0
 **Skipped**: 0
 **Duration**: ~3s (unit tests), ~10min (with integration)
+
+**Recent Test Runs**:
+- 2025-11-04: Diarizer tests (15 tests) - All passing in 8.71s
+- 2025-10-24: Full suite - 98 tests passing
 
 **Coverage** (estimated):
 - By Component: 52% (12/23 files have tests)

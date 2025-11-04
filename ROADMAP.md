@@ -116,10 +116,12 @@ Transform long-form D&D session recordings into rich, searchable transcripts wit
    - Estimated effort: 0.5 days
 
 2. **Priority 1: Extract Campaign Dashboard Logic**
-   - Extract `generate_campaign_dashboard()` from app.py (~240 lines)
-   - Create `src/campaign_dashboard.py` with testable components
-   - Estimated effort: 2 days
+   - [x] Extract `generate_campaign_dashboard()` from app.py (~240 lines) (COMPLETED)
+   - [x] Create `src/campaign_dashboard.py` with testable components (COMPLETED)
+   - [x] 7 unit tests added - all passing (COMPLETED)
+   - Estimated effort: 2 days (Actual: ~1 day)
    - Impact: HIGH - enables testing and reusability
+   - Status: [DONE] Completed 2025-10-23
 
 3. **Priority 3: Extract Story Generation Logic**
    - Move narrative generation from app.py to `src/story_generator.py`

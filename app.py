@@ -30,7 +30,6 @@ from src.ui.campaign_tab_modern import create_campaign_tab_modern
 from src.ui.characters_tab_modern import create_characters_tab_modern
 from src.ui.stories_output_tab_modern import create_stories_output_tab_modern
 from src.ui.settings_tools_tab_modern import create_settings_tools_tab_modern
-from src.ui.live_session_tab import create_live_session_tab
 
 from src.google_drive_auth import (
     get_auth_url,
@@ -666,7 +665,6 @@ with gr.Blocks(
             initial_campaign_name=initial_campaign_name if initial_campaign_id else "Manual Setup",
         )
 
-        live_session_tab_refs = create_live_session_tab(demo)
         campaign_tab_refs = create_campaign_tab_modern(demo)
         characters_tab_refs = create_characters_tab_modern(demo, available_parties)
         stories_tab_refs = create_stories_output_tab_modern(demo)

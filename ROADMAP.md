@@ -1,6 +1,6 @@
 # VideoChunking Project Roadmap
 
-> **Last Updated**: 2025-11-02
+> **Last Updated**: 2025-11-04
 > **Multi-Agent Collaboration**: This roadmap consolidates plans from Claude, Gemini, and ChatGPT (Codex)
 
 ---
@@ -419,6 +419,40 @@ Transform long-form D&D session recordings into rich, searchable transcripts wit
 - Voice embedding comparison (optional)
 - **Speaker Voice Samples** (FEATURE-007): Upload voice samples for each player to improve initial identification and reduce manual mapping
 
+#### Process Cancellation Feature
+
+**Owner**: Open (from Jules session analysis)
+**Status**: Not Started
+**Effort**: 2-3 hours
+**Impact**: MEDIUM - Better UX for long sessions
+**Source**: [JULES_SESSION_ANALYSIS.md](docs/JULES_SESSION_ANALYSIS.md#todo-002-process-cancellation-feature)
+
+**Features**:
+- Add `cancel_event` parameter to pipeline processing
+- Create `CancelledError` exception class
+- Thread-safe cancellation mechanism
+- Add "Cancel" button to Gradio UI (Process Session tab)
+- Handle cancellation gracefully with friendly user message
+- Clean up partial output files when cancelled
+
+**Files to Modify**:
+- `src/exceptions.py` - Define CancelledError
+- `src/pipeline.py` - Add cancel_event parameter, check periodically
+- `app.py` - Pass cancel_event from UI, handle CancelledError
+- `src/ui/process_session_tab_modern.py` - Add Cancel button
+
+**Complexity Factors**:
+- Thread-safe cancellation mechanism
+- Cleanup of partial results (audio files, JSON files, checkpoints)
+- Progress tracking to show cancellation worked
+- Testing edge cases (cancel during different stages)
+
+**Validation**:
+- User can click Cancel button during processing
+- Pipeline stops gracefully within 5 seconds
+- Partial files are cleaned up
+- User sees "Processing was cancelled by user" message
+
 ---
 
 ### P3: Future Enhancements (2-3+ Months)
@@ -533,6 +567,29 @@ Transform long-form D&D session recordings into rich, searchable transcripts wit
    - Full pipeline test with fixtures
    - UI workflow tests
    - Batch processing tests
+
+3. **UI Integration Tests** (Optional)
+   **Owner**: Open (from Jules session analysis)
+   **Status**: Not Started
+   **Effort**: 1-2 hours
+   **Priority**: LOW
+   **Source**: [JULES_SESSION_ANALYSIS.md](docs/JULES_SESSION_ANALYSIS.md#todo-003-ui-integration-tests-optional)
+
+   **Features**:
+   - Pytest-based tests using gradio_client
+   - Test campaign creation, modification, deletion
+   - Test session processing workflow
+   - Use pytest fixtures for setup/teardown
+   - Mock or use test data files (not production)
+
+   **Files**:
+   - `tests/integration/test_ui_endpoints.py` (new)
+
+   **Notes**:
+   - Lower priority than unit tests
+   - Requires running app in background
+   - More fragile than unit tests
+   - Use as reference: `jules_session_analyzed.patch` (data_integrity_test.py)
 
 #### Logging & Telemetry
 **Owner**: ChatGPT (Codex) + Gemini

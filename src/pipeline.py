@@ -19,6 +19,7 @@ from .snipper import AudioSnipper
 from .logger import get_logger, get_log_file_path, log_session_start, log_session_end, log_error_with_context
 from .status_tracker import StatusTracker
 from .knowledge_base import KnowledgeExtractor, CampaignKnowledgeBase
+from .preflight import PreflightChecker
 
 try:  # pragma: no cover - convenience for test environment
     from unittest.mock import Mock as _Mock  # type: ignore
@@ -207,6 +208,16 @@ class DDSessionProcessor:
             'snippets': skip_snippets,
             'knowledge': skip_knowledge
         }
+
+        preflight_checker = PreflightChecker(
+            transcriber=self.transcriber,
+            diarizer=self.diarizer,
+            classifier=self.classifier,
+        )
+        preflight_checker.verify(
+            skip_diarization=skip_diarization,
+            skip_classification=skip_classification,
+        )
 
         session_options = {
             'input_file': str(input_file),

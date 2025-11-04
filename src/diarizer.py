@@ -8,6 +8,7 @@ import threading
 from .config import Config
 from .transcriber import TranscriptionSegment
 from .logger import get_logger
+from .preflight import PreflightIssue
 
 
 @dataclass
@@ -172,6 +173,69 @@ class SpeakerDiarizer:
                     speaker_embeddings[speaker_id] = embedding.squeeze().numpy()
 
         return segments, speaker_embeddings
+
+    def preflight_check(self):
+        issues = []
+        token = Config.HF_TOKEN
+
+        if not token:
+            issues.append(
+                PreflightIssue(
+                    component="diarizer",
+                    message="HF_TOKEN not set; diarization will fall back to single-speaker output.",
+                    severity="warning",
+                )
+            )
+            return issues
+
+        try:
+            from huggingface_hub import HfApi  # type: ignore
+            try:
+                from huggingface_hub import HfHubHTTPError  # type: ignore
+            except ImportError:
+                HfHubHTTPError = Exception  # type: ignore
+        except Exception as exc:
+            issues.append(
+                PreflightIssue(
+                    component="diarizer",
+                    message=f"huggingface_hub not available: {exc}",
+                    severity="error",
+                )
+            )
+            return issues
+
+        api = HfApi()
+        required_repos = [
+            "pyannote/speaker-diarization-3.1",
+            "pyannote/segmentation-3.0",
+            "pyannote/speaker-diarization-community-1",
+        ]
+
+        for repo in required_repos:
+            try:
+                api.model_info(repo, token=token)
+            except HfHubHTTPError as err:
+                response = getattr(err, "response", None)
+                status = getattr(response, "status_code", "unknown status")
+                issues.append(
+                    PreflightIssue(
+                        component="diarizer",
+                        message=(
+                            f"Access to {repo} denied ({status}). "
+                            "Visit the model page and accept the terms."
+                        ),
+                        severity="error",
+                    )
+                )
+            except Exception as exc:  # pragma: no cover - unexpected network failures
+                issues.append(
+                    PreflightIssue(
+                        component="diarizer",
+                        message=f"Failed to verify {repo}: {exc}",
+                        severity="error",
+                    )
+                )
+        return issues
 
     def _create_fallback_diarization(self, audio_path: Path) -> List[SpeakerSegment]:
         """

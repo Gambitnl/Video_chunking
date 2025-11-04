@@ -20,7 +20,12 @@
       "WebFetch(domain:www.anthropic.com)",
       "WebFetch(domain:github.com)",
       "Bash($null)",
-      "Bash(Wait until background process completes by sleeping briefly)"
+      "Bash(Wait until background process completes by sleeping briefly)",
+      "Bash(dir /s /b BUG* 2)",
+      "Bash(find:*)",
+      "Bash(iconv:*)",
+      "Bash(jules_session_clean.patch)",
+      "Bash(.gitignore)"
     ],
     "deny": [],
     "ask": []

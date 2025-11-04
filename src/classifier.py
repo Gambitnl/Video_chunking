@@ -5,6 +5,7 @@ from abc import ABC, abstractmethod
 from pathlib import Path
 from .config import Config
 from .logger import get_logger
+from .preflight import PreflightIssue
 
 
 @dataclass
@@ -51,6 +52,10 @@ class BaseClassifier(ABC):
         """Classify segments as IC or OOC"""
         pass
 
+    def preflight_check(self):
+        """Return an iterable of PreflightIssue objects."""
+        return []
+
 
 class OllamaClassifier(BaseClassifier):
     """IC/OOC classifier using local Ollama LLM."""
@@ -86,6 +91,20 @@ class OllamaClassifier(BaseClassifier):
                 f"Install: https://ollama.ai\n"
                 f"Error: {e}"
             )
+
+    def preflight_check(self):
+        issues = []
+        try:
+            self.client.list()
+        except Exception as exc:
+            issues.append(
+                PreflightIssue(
+                    component="classifier",
+                    message=f"Cannot reach Ollama at {self.base_url}: {exc}",
+                    severity="error",
+                )
+            )
+        return issues
 
     def classify_segments(
         self,

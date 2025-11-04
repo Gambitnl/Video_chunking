@@ -7,6 +7,7 @@ import numpy as np
 from .config import Config
 from .chunker import AudioChunk
 from .logger import get_logger
+from .preflight import PreflightIssue
 
 
 @dataclass
@@ -91,6 +92,10 @@ class BaseTranscriber(ABC):
         """
         pass
 
+    def preflight_check(self):
+        """Return an iterable of PreflightIssue objects."""
+        return []
+
 
 class FasterWhisperTranscriber(BaseTranscriber):
     """
@@ -152,6 +157,30 @@ class FasterWhisperTranscriber(BaseTranscriber):
             compute_type=compute_type
         )
         self.logger.info("Whisper model loaded.")
+
+    def preflight_check(self):
+        issues = []
+        target_device = Config.get_inference_device()
+        if target_device == "cuda":
+            try:
+                import torch  # type: ignore
+                if not torch.cuda.is_available():
+                    issues.append(
+                        PreflightIssue(
+                            component="transcriber",
+                            message="CUDA requested but no GPU is available; transcription will fall back to CPU.",
+                            severity="warning",
+                        )
+                    )
+            except Exception as exc:
+                issues.append(
+                    PreflightIssue(
+                        component="transcriber",
+                        message=f"Could not verify CUDA availability: {exc}",
+                        severity="warning",
+                    )
+                )
+        return issues
 
     def transcribe_chunk(
         self,

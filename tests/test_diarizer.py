@@ -184,6 +184,29 @@ class TestSpeakerDiarizer:
         assert mock_model_from_pretrained.call_args.kwargs.get('token') == 'hf_test_token'
         assert diarizer.pipeline is mock_pipeline_obj
 
+    def test_preflight_missing_token_warns(self, diarizer, monkeypatch):
+        monkeypatch.setattr('src.diarizer.Config.HF_TOKEN', None)
+
+        issues = diarizer.preflight_check()
+
+        assert len(issues) == 1
+        assert issues[0].severity == "warning"
+
+    @patch('src.diarizer.HfApi', create=True)
+    def test_preflight_reports_repo_access_errors(self, MockHfApi, diarizer, monkeypatch):
+        monkeypatch.setattr('src.diarizer.Config.HF_TOKEN', 'hf_token')
+        instance = MockHfApi.return_value
+        instance.model_info.side_effect = [
+            None,
+            Exception("403 Client Error"),
+            None,
+        ]
+
+        issues = diarizer.preflight_check()
+
+        assert issues
+        assert any("segmentation-3.0" in issue.message for issue in issues)
+
 class TestSpeakerProfileManager:
 
     @pytest.fixture

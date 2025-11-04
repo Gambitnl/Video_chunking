@@ -69,6 +69,7 @@ PyAnnote uses gated models that require a HuggingFace token:
 1. **Accept model terms** (required before creating token):
    - Visit https://huggingface.co/pyannote/speaker-diarization and accept terms
    - Visit https://huggingface.co/pyannote/segmentation and accept terms
+   - Visit https://huggingface.co/pyannote/speaker-diarization-community-1 and accept terms
    - Wait for approval (usually instant)
 
 2. **Create HuggingFace account** (if you don't have one):
@@ -87,7 +88,7 @@ PyAnnote uses gated models that require a HuggingFace token:
    - Add your token: `HF_TOKEN=hf_xxxxxxxxxxxxx`
    - Optional: add `INFERENCE_DEVICE=cuda` to force GPU usage (falls back to CPU if CUDA is unavailable)
 
-**Security note**: The token only needs Read access to download gated models.
+**Security note**: The token only needs Read access to download gated models. The application runs preflight checks before processing and will point out missing access or offline services (e.g., Ollama) so you can address them quickly.
 
 ### 5. Configure Settings (Optional)
 

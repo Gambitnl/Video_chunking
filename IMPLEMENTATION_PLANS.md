@@ -817,3 +817,47 @@ def _load_component(factory, model_name: str):
 - **Observability**: Clear logging when authentication strategy changes
 
 ---
+## P0-BUG-008: Add Preflight Environment Checks
+
+**Files**: `src/preflight.py`, `src/pipeline.py`, `src/transcriber.py`, `src/diarizer.py`, `src/classifier.py`, `tests/test_preflight.py`, `tests/test_diarizer.py`, `docs/SETUP.md`
+**Effort**: 0.5 days
+**Priority**: HIGH
+**Status**: [DONE] Completed 2025-11-03
+
+### Problem Statement
+Operators frequently discover missing GPU acceleration, Hugging Face access, or offline Ollama services only after the long transcription stage, wasting hours of processing time.
+
+### Success Criteria
+- [x] Pipeline aborts up front when Ollama is unreachable (unless classification is skipped).
+- [x] Pipeline warns (not fails) when CUDA is requested but unavailable.
+- [x] Pipeline validates that all required PyAnnote repos (including `segmentation-3.0` and `speaker-diarization-community-1`) are accessible with the configured token.
+- [x] New tests cover the preflight aggregator as well as diarizer token checks.
+
+### Implementation Plan
+1. Introduce a `PreflightChecker` that aggregates readiness checks for transcriber, diarizer, and classifier. `[DONE 2025-11-03]`
+2. Implement component-level `preflight_check` methods (CUDA warning, Hugging Face validation, Ollama connectivity). `[DONE 2025-11-03]`
+3. Invoke the preflight step at the start of `DDSessionProcessor.process`, respecting skip flags. `[DONE 2025-11-03]`
+4. Add unit tests for the checker and diarizer preflight logic plus documentation notes in `docs/SETUP.md`. `[DONE 2025-11-03]`
+
+### Implementation Notes & Reasoning
+**Implementer**: Codex (GPT-5)  
+**Date**: 2025-11-03
+
+1. **Component Protocol**
+   - **Choice**: Declared a minimal `SupportsPreflight` protocol and small dataclass to capture issues.
+   - **Reasoning**: Keeps the checker decoupled from concrete implementations and makes it easy for future components (e.g., knowledge extractor) to opt in.
+   - **Trade-offs**: Slightly more boilerplate, but tests can now stub components cleanly.
+2. **PyAnnote Access Validation**
+   - **Choice**: Added explicit checks for `speaker-diarization-3.1`, `segmentation-3.0`, and the newly required `speaker-diarization-community-1` repository when a token is present.
+   - **Reasoning**: Users were repeatedly hitting 403 errors after long transcribes because additional models were gated; surfacing this before Stage 1 saves hours.
+   - **Trade-offs**: Relies on `huggingface_hub` being importable; when it is missing we raise a clear error instructing the operator to install it.
+3. **Classifier Connectivity**
+   - **Choice**: Reused the existing Ollama health check but now issue it as part of preflight and convert failures into actionable error messages.
+   - **Reasoning**: Ensures operators start the local LLM before launching the pipeline; no more mid-run crashes at Stage 6.
+   - **Trade-offs**: Adds a small startup delay (one HTTP call) but avoids large wasted runs.
+
+#### Validation
+- `pytest tests/test_preflight.py -q`
+- `pytest tests/test_diarizer.py::TestSpeakerDiarizer::test_preflight_reports_repo_access_errors -q`
+
+---

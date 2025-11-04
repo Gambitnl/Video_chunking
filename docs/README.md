@@ -31,6 +31,10 @@ This directory contains all the documentation for the D&D Session Processor. Bel
 - **[SESSION_NOTEBOOK.md](./SESSION_NOTEBOOK.md)**: A guide to the Story Notebooks feature for generating narrative summaries from transcripts.
 - **[STATUS_INDICATORS.md](./STATUS_INDICATORS.md)**: A reference guide for all status indicators, icons, and symbols used throughout the application.
 
+### Model References
+
+- **[PYANNOTE_MODELS.md](./PYANNOTE_MODELS.md)**: Summaries of the gated pyannote segmentation and diarization releases, including access requirements and benchmark highlights.
+
 ### Development & Agent Workflows
 
 - **[TROUBLESHOOTING.md](./TROUBLESHOOTING.md)**: A guide to common problems and their solutions.

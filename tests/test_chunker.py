@@ -10,7 +10,7 @@ See docs/TEST_PLANS.md for detailed specifications.
 import pytest
 import numpy as np
 from pathlib import Path
-from unittest.mock import Mock, patch
+from unittest.mock import Mock, MagicMock, patch
 from src.chunker import HybridChunker, AudioChunk
 
 
@@ -217,21 +217,54 @@ class TestHybridChunkerVAD:
 class TestChunkerProgressCallbacks:
     """Test progress callback functionality."""
 
-    @pytest.mark.skip(reason="Template - not implemented")
-    def test_progress_callback_called(self, tmp_path):
-        """Test that progress callback is invoked."""
-        # TODO: Create mock audio
-        # TODO: Track callback invocations
-        # TODO: Verify called for each chunk
-        # TODO: Verify progress values increase to 1.0
-        pass
+    def test_progress_callback_called(self):
+        """Test that progress callback is invoked during chunk creation."""
+        chunker = HybridChunker.__new__(HybridChunker)
+        chunker.max_chunk_length = 2.0
+        chunker.overlap_length = 0.5
+        chunker.logger = MagicMock()
 
-    @pytest.mark.skip(reason="Template - not implemented")
-    def test_progress_callback_optional(self, tmp_path):
+        total_duration = 4.0
+
+        def fake_best_pause(segments, ideal_end, chunk_start):
+            return min(ideal_end, total_duration)
+
+        chunker._find_best_pause = fake_best_pause
+
+        audio = np.zeros(int(total_duration), dtype=np.float32)
+        sr = 1
+        calls = []
+
+        chunks = chunker._create_chunks_with_pauses(
+            audio=audio,
+            sr=sr,
+            speech_segments=[],
+            progress_callback=lambda chunk, total: calls.append((chunk.chunk_index, total))
+        )
+
+        assert calls, "Progress callback should be invoked at least once."
+        assert calls[-1][1] == total_duration
+        assert len(chunks) >= 1
+
+    def test_progress_callback_optional(self):
         """Test that callback is optional (no error if None)."""
-        # TODO: Call chunk_audio without callback
-        # TODO: Should not error
-        pass
+        chunker = HybridChunker.__new__(HybridChunker)
+        chunker.max_chunk_length = 2.0
+        chunker.overlap_length = 0.5
+        chunker.logger = MagicMock()
+        chunker._find_best_pause = lambda segments, ideal_end, chunk_start: ideal_end
+
+        audio = np.zeros(4, dtype=np.float32)
+        sr = 1
+
+        chunks = chunker._create_chunks_with_pauses(
+            audio=audio,
+            sr=sr,
+            speech_segments=[],
+            progress_callback=None
+        )
+
+        assert len(chunks) >= 1
 
 
 # ============================================================================

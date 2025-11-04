@@ -123,7 +123,7 @@ class HybridChunker:
 
         # Create chunks
         chunks = self._create_chunks_with_pauses(
-            audio, sr, speech_segments
+            audio, sr, speech_segments, progress_callback=progress_callback
         )
         self.logger.info("Created %d audio chunks", len(chunks))
 
@@ -133,7 +133,8 @@ class HybridChunker:
         self,
         audio: np.ndarray,
         sr: int,
-        speech_segments: List[Tuple[float, float]]
+        speech_segments: List[Tuple[float, float]],
+        progress_callback: Optional[Callable[[AudioChunk, float], None]] = None
     ) -> List[AudioChunk]:
         """
         Create chunks using speech pauses as boundaries.

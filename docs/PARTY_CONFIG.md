@@ -9,9 +9,13 @@ The D&D Session Processor supports **Party Configurations** - pre-configured cha
 3. **Better Classification**: Rich character descriptions help the IC/OOC classifier understand context
 4. **Character Aliases**: Supports multiple names/nicknames for better recognition
 
-## Default Party: "The Broken Seekers"
+## Pre-configured Parties
 
-The system includes a default party configuration based on the Gaia Adventures campaign:
+The system includes several pre-configured party options:
+
+### Default Party: "The Broken Seekers"
+
+A full party configuration based on the Gaia Adventures campaign:
 
 ### Characters
 
@@ -48,6 +52,27 @@ The system includes a default party configuration based on the Gaia Adventures c
 - **Campaign**: Gaia Adventures
 - **DM**: DM
 - **Notes**: Party exploring Gaia. Suspicious of non-Gaian entities. Connected to Culdor Academy. Characters have experienced magical chaos events.
+
+### Team OP
+
+A solo/focused party configuration for Sha'ek's adventures:
+
+**Characters**:
+
+1. **Sha'ek Mindfa'ek** (The Broken)
+   - **Player**: Remy
+   - **Race**: Adar (from Adar)
+   - **Class**: Cleric of Ioun
+   - **Aliases**: Sha'ek, The Broken, The Defect
+   - **Description**: A hardened veteran cleric with glowing green eyes. Survived the Smelting ritual, connected to Quori spirit Golos. Wears heavy chain mail, carries a large bag and shield with Ioun's emblem.
+
+**Campaign Details**:
+- **Campaign**: Team OP Adventures
+- **DM**: Jules
+- **Party ID**: `team_op`
+- **Notes**: Sha'ek's solo adventures and Team OP sessions. High-powered character exploring challenging scenarios.
+
+**Use Case**: Select `team_op` from the party dropdown when processing sessions focused on Sha'ek's character.
 
 ## Using Party Configurations
 

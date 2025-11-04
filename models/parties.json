@@ -51,6 +51,26 @@
     "campaign": "Gaia Adventures",
     "notes": "Party exploring Gaia. Suspicious of non-Gaian entities. Connected to Culdor Academy. Characters have experienced magical chaos events."
   },
+  "team_op": {
+    "party_name": "Team OP",
+    "dm_name": "Jules",
+    "characters": [
+      {
+        "name": "Sha'ek Mindfa'ek",
+        "player": "Remy",
+        "race": "Adar (from Adar)",
+        "class_name": "Cleric of Ioun",
+        "description": "The Broken - A hardened veteran cleric with glowing green eyes. Survived the Smelting ritual, connected to Quori spirit Golos. Wears heavy chain mail, carries a large bag and shield with Ioun's emblem.",
+        "aliases": [
+          "Sha'ek",
+          "The Broken",
+          "The Defect"
+        ]
+      }
+    ],
+    "campaign": "Team OP Adventures",
+    "notes": "Sha'ek's solo adventures and Team OP sessions. High-powered character exploring challenging scenarios."
+  },
   "my_campaign": {
     "party_name": "The Broken Seekers",
     "dm_name": "DM",

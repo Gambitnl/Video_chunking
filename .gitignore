@@ -51,6 +51,7 @@ outputs/gdrive_token.json
 # Installed applications and tools
 ffmpeg/
 ffmpeg_temp/
+ffmpeg_shared/
 ollama_setup.exe
 *.exe
 *.msi

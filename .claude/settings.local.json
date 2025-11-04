@@ -1,31 +1,14 @@
 {
   "permissions": {
     "allow": [
-      "Bash(git commit:*)",
-      "Bash(nul)",
-      "Bash(pytest:*)",
-      "Bash(git add:*)",
-      "Bash(python cli.py:*)",
       "Bash(python:*)",
-      "Bash(git push)",
-      "WebSearch",
-      "Bash(node --version)",
-      "Bash(npm --version:*)",
-      "Bash(pip show:*)",
-      "Bash(pip install:*)",
-      "Bash(npx:*)",
-      "Bash(ls:*)",
-      "Bash(cat:*)",
-      "Bash(ffmpeg:*)",
-      "WebFetch(domain:www.anthropic.com)",
-      "WebFetch(domain:github.com)",
-      "Bash($null)",
-      "Bash(Wait until background process completes by sleeping briefly)",
-      "Bash(dir /s /b BUG* 2)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(test:*)",
       "Bash(find:*)",
-      "Bash(iconv:*)",
-      "Bash(jules_session_clean.patch)",
-      "Bash(.gitignore)"
+      "Bash(awk:*)",
+      "Skill(test-pipeline)",
+      "Bash(pytest:*)"
     ],
     "deny": [],
     "ask": []

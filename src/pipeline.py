@@ -4,7 +4,6 @@ from pathlib import Path
 from time import perf_counter
 from typing import Optional, List, Dict, Tuple, Any
 from datetime import datetime
-from tqdm import tqdm
 from .config import Config
 from .checkpoint import CheckpointManager
 from .audio_processor import AudioProcessor
@@ -311,7 +310,7 @@ class DDSessionProcessor:
                     # Fall through to re-run chunking
 
             if "audio_chunked" not in completed_stages: # Only run if not loaded from checkpoint or checkpoint was empty
-                chunk_progress = {"count": 0}
+                chunk_progress = {"count": 0, "last_logged_percent": -5.0, "last_log_time": perf_counter()}
 
                 def _chunk_progress_callback(chunk, total_duration):
                     try:
@@ -324,6 +323,8 @@ class DDSessionProcessor:
                         if total_duration and total_duration > 0:
                             percent = min(100.0, max(0.0, (chunk.end_time / total_duration) * 100))
                             details["progress_percent"] = round(percent, 1)
+                        else:
+                            percent = 0.0
 
                         StatusTracker.update_stage(
                             self.session_id,
@@ -332,6 +333,24 @@ class DDSessionProcessor:
                             message=f"Chunking... {chunk_progress['count']} chunk{'s' if chunk_progress['count'] != 1 else ''}",
                             details=details
                         )
+
+                        should_log = False
+                        if percent - chunk_progress["last_logged_percent"] >= 5.0:
+                            should_log = True
+                        else:
+                            now = perf_counter()
+                            if now - chunk_progress["last_log_time"] >= 30.0:
+                                should_log = True
+                                chunk_progress["last_log_time"] = now
+
+                        if should_log:
+                            chunk_progress["last_logged_percent"] = percent
+                            chunk_progress["last_log_time"] = perf_counter()
+                            self.logger.info(
+                                "Stage 2/9 progress: %d chunk(s) created (%.1f%% of audio processed)",
+                                chunk_progress["count"],
+                                round(percent, 1)
+                            )
                     except Exception as progress_error:
                         self.logger.debug("Chunk progress callback skipped: %s", progress_error)
 
@@ -412,9 +431,37 @@ class DDSessionProcessor:
                 StatusTracker.update_stage(
                     self.session_id, 3, "running", f"Transcribing {len(chunks)} chunks"
                 )
-                for chunk in tqdm(chunks, desc="Transcribing"):
+                total_chunks = len(chunks)
+                log_every = max(1, total_chunks // 10)
+                last_log_time = perf_counter()
+                for index, chunk in enumerate(chunks, start=1):
                     transcription = self.transcriber.transcribe_chunk(chunk, language=self.language)
                     chunk_transcriptions.append(transcription)
+                    if (
+                        index == 1
+                        or index == total_chunks
+                        or index % log_every == 0
+                        or (perf_counter() - last_log_time) >= 60.0
+                    ):
+                        percent = (index / total_chunks) * 100 if total_chunks else 0.0
+                        last_log_time = perf_counter()
+                        StatusTracker.update_stage(
+                            self.session_id,
+                            3,
+                            "running",
+                            message=f"Transcribing chunk {index}/{total_chunks}",
+                            details={
+                                "chunks_transcribed": index,
+                                "total_chunks": total_chunks,
+                                "progress_percent": round(percent, 1),
+                            },
+                        )
+                        self.logger.info(
+                            "Stage 3/9 progress: %d/%d chunks transcribed (%.1f%%)",
+                            index,
+                            total_chunks,
+                            round(percent, 1),
+                        )
                 StatusTracker.update_stage(
                     self.session_id, 3, "completed", f"Received {len(chunk_transcriptions)} chunk transcriptions"
                 )

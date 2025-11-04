@@ -49,6 +49,14 @@ class Config:
     WHISPER_BACKEND: str = os.getenv("WHISPER_BACKEND", "local")  # local, groq, openai
     LLM_BACKEND: str = os.getenv("LLM_BACKEND", "ollama")  # ollama, openai
     WHISPER_LANGUAGE: str = os.getenv("WHISPER_LANGUAGE", "en")  # Supported: en, nl
+    PYANNOTE_DIARIZATION_MODEL: str = os.getenv(
+        "PYANNOTE_DIARIZATION_MODEL",
+        "pyannote/speaker-diarization-3.1",
+    )
+    PYANNOTE_EMBEDDING_MODEL: str = os.getenv(
+        "PYANNOTE_EMBEDDING_MODEL",
+        "pyannote/wespeaker-voxceleb-resnet34-LM",
+    )
 
     # Processing Settings
     CHUNK_LENGTH_SECONDS: int = get_env_as_int("CHUNK_LENGTH_SECONDS", 600)

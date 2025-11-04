@@ -2,6 +2,8 @@
 from pathlib import Path
 from typing import List, Dict, Optional, Tuple
 from dataclasses import dataclass
+import os
+import sys
 import torch
 import numpy as np
 import threading
@@ -9,6 +11,53 @@ from .config import Config
 from .transcriber import TranscriptionSegment
 from .logger import get_logger
 from .preflight import PreflightIssue
+
+try:
+    import torchaudio  # type: ignore
+except Exception:
+    torchaudio = None  # type: ignore
+
+if torchaudio is not None:
+    try:
+        if not hasattr(torchaudio, "list_audio_backends"):
+            from torchaudio.utils import list_audio_backends as _list_audio_backends  # type: ignore
+
+            def _list_backends_wrapper():  # type: ignore[return-type]
+                try:
+                    return _list_audio_backends()
+                except Exception:
+                    return []
+
+            torchaudio.list_audio_backends = _list_backends_wrapper  # type: ignore[attr-defined]
+    except Exception:
+        pass
+
+try:
+    import speechbrain.inference as _sb_inference  # type: ignore
+    sys.modules.setdefault("speechbrain.pretrained", _sb_inference)
+    from speechbrain.utils import torch_audio_backend as _sb_backend  # type: ignore
+
+    def _noop_check_backend():  # type: ignore[return-type]
+        """SpeechBrain backend check overridden to avoid deprecated torchaudio APIs."""
+        return None
+
+    _sb_backend.check_torchaudio_backend = _noop_check_backend  # type: ignore[attr-defined]
+except Exception:
+    pass
+
+REPO_ROOT = Path(__file__).resolve().parent.parent
+_ffmpeg_candidates = [
+    REPO_ROOT / "ffmpeg" / "bin",
+]
+shared_root = REPO_ROOT / "ffmpeg_shared"
+if shared_root.exists():
+    for candidate in shared_root.rglob("bin"):
+        _ffmpeg_candidates.append(candidate)
+for candidate in _ffmpeg_candidates:
+    if candidate.exists():
+        path_str = str(candidate)
+        if path_str not in os.environ.get("PATH", ""):
+            os.environ["PATH"] = f"{path_str}{os.pathsep}{os.environ.get('PATH', '')}"
 
 
 @dataclass
@@ -43,10 +92,10 @@ class SpeakerDiarizer:
 
             try:
                 from pyannote.audio import Pipeline, Model, Inference
-                import os
+                from huggingface_hub import hf_hub_download
 
-                diarization_model_name = "pyannote/speaker-diarization-3.1"
-                embedding_model_name = "pyannote/embedding"
+                diarization_model_name = Config.PYANNOTE_DIARIZATION_MODEL
+                embedding_model_name = Config.PYANNOTE_EMBEDDING_MODEL
 
                 self.logger.info(
                     "Initializing PyAnnote pipeline (model=%s, embedding=%s)...",
@@ -61,6 +110,31 @@ class SpeakerDiarizer:
                         "HF_TOKEN is not set. Access to %s may be denied.",
                         diarization_model_name
                     )
+                else:
+                    # Ensure Hugging Face tooling sees the token even if downstream
+                    # libraries ignore explicit kwargs.
+                    os.environ.setdefault("HF_TOKEN", token)
+                    os.environ["HF_HUB_TOKEN"] = token
+                    os.environ["HUGGINGFACEHUB_API_TOKEN"] = token
+                    os.environ["HUGGING_FACE_HUB_TOKEN"] = token
+
+                    # Proactively download community assets required by downstream
+                    # diarization components so we fail fast if access is missing.
+                    try:
+                        hf_hub_download(
+                            repo_id="pyannote/speaker-diarization-community-1",
+                            filename="plda/xvec_transform.npz",
+                            token=token,
+                        )
+                        hf_hub_download(
+                            repo_id=embedding_model_name,
+                            filename="pytorch_model.bin",
+                            token=token,
+                        )
+                    except Exception as exc:
+                        raise RuntimeError(
+                            f"Unable to download required Hugging Face asset: {exc}"
+                        ) from exc
 
                 def _load_component(factory, model_name: str):
                     if not token:
@@ -206,12 +280,13 @@ class SpeakerDiarizer:
 
         api = HfApi()
         required_repos = [
-            "pyannote/speaker-diarization-3.1",
+            Config.PYANNOTE_DIARIZATION_MODEL,
             "pyannote/segmentation-3.0",
             "pyannote/speaker-diarization-community-1",
+            Config.PYANNOTE_EMBEDDING_MODEL,
         ]
 
-        for repo in required_repos:
+        for repo in dict.fromkeys(required_repos):
             try:
                 api.model_info(repo, token=token)
             except HfHubHTTPError as err:

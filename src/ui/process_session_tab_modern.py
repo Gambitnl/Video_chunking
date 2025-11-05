@@ -6,6 +6,7 @@ from typing import Any, Callable, Dict, List, Optional, Tuple
 import gradio as gr
 
 from src.party_config import PartyConfigManager
+from src.file_tracker import FileProcessingTracker
 from src.ui.constants import StatusIndicators as SI
 from src.ui.helpers import InfoText, Placeholders, StatusMessages, UIComponents
 
@@ -117,6 +118,11 @@ def create_process_session_tab_modern(
         audio_input = gr.File(
             label="Session Audio File",
             file_types=[".m4a", ".mp3", ".wav", ".flac"],
+        )
+
+        file_warning_display = gr.Markdown(
+            value="",
+            visible=False,
         )
 
     with gr.Group():
@@ -437,6 +443,55 @@ def create_process_session_tab_modern(
                 visible=True
             )
 
+        def check_file_history(file):
+            """Check if uploaded file was processed before."""
+            if not file:
+                return gr.update(value="", visible=False)
+
+            from pathlib import Path
+
+            # Get file path from Gradio file object
+            file_path = Path(file.name) if hasattr(file, 'name') else Path(file)
+
+            if not file_path.exists():
+                return gr.update(value="", visible=False)
+
+            tracker = FileProcessingTracker()
+            existing_record = tracker.check_file(file_path)
+
+            if not existing_record:
+                # New file, no warning
+                return gr.update(value="", visible=False)
+
+            # File was processed before - show warning
+            from datetime import datetime
+
+            last_processed_date = datetime.fromisoformat(existing_record.last_processed)
+            date_str = last_processed_date.strftime("%Y-%m-%d %H:%M")
+
+            warning_lines = [
+                f"### {SI.WARNING} File Previously Processed",
+                f"",
+                f"This file was last processed on **{date_str}**",
+                f"- Session ID: `{existing_record.session_id}`",
+                f"- Times processed: {existing_record.process_count}",
+                f"- Last stage reached: {existing_record.processing_stage}",
+                f"- Status: {existing_record.status}",
+                f"",
+                f"**Do you want to process it again?** Click 'Start Processing' to continue.",
+            ]
+
+            return gr.update(
+                value="\n".join(warning_lines),
+                visible=True
+            )
+
+        audio_input.change(
+            fn=check_file_history,
+            inputs=[audio_input],
+            outputs=[file_warning_display],
+        )
+
         party_selection_input.change(
             fn=update_party_display,
             inputs=[party_selection_input],
@@ -537,6 +592,8 @@ def create_process_session_tab_modern(
         "campaign_selector": campaign_selector,
         "new_campaign_btn": new_campaign_btn,
         "preflight_btn": preflight_btn,
+        "audio_input": audio_input,
+        "file_warning_display": file_warning_display,
         "party_selection_input": party_selection_input,
         "party_characters_display": party_characters_display,
         "session_id_input": session_id_input,

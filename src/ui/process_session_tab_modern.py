@@ -43,6 +43,7 @@ def create_process_session_tab_modern(
     blocks: gr.Blocks,
     refresh_campaign_names: Callable[[], Dict[str, str]],
     process_session_fn: Callable[..., Any],
+    preflight_fn: Callable[..., Any],
     campaign_manager,
     active_campaign_state: gr.State,
     *,
@@ -149,6 +150,12 @@ def create_process_session_tab_modern(
                 info="Select an existing party profile or choose Manual Entry.",
             )
 
+        party_characters_display = gr.Markdown(
+            value="",
+            visible=False,
+        )
+
+        with gr.Row():
             num_speakers_input = gr.Slider(
                 minimum=2,
                 maximum=10,
@@ -161,7 +168,7 @@ def create_process_session_tab_modern(
             language_input = gr.Dropdown(
                 label="Language",
                 choices=["en", "nl"],
-                value="en",
+                value="nl",
                 info="Select the language spoken in the session.",
             )
 
@@ -201,6 +208,13 @@ def create_process_session_tab_modern(
 
         with gr.Group():
             gr.Markdown("### Step 3: Process")
+
+            preflight_btn = UIComponents.create_action_button(
+                "Run Preflight Checks",
+                variant="secondary",
+                size="md",
+                full_width=True,
+            )
 
             process_btn = UIComponents.create_action_button(
                 "Start Processing",
@@ -403,6 +417,32 @@ def create_process_session_tab_modern(
             )
             return _render_processing_response(response)
 
+        def update_party_display(party_id: str):
+            """Display character names when a party is selected."""
+            if not party_id or party_id == "Manual Entry":
+                return gr.update(value="", visible=False)
+
+            party_manager = PartyConfigManager()
+            party = party_manager.get_party(party_id)
+
+            if not party:
+                return gr.update(value="", visible=False)
+
+            char_lines = [f"**Characters**: {party.party_name}"]
+            for char in party.characters:
+                char_lines.append(f"- {char.name} ({char.class_name})")
+
+            return gr.update(
+                value="\n".join(char_lines),
+                visible=True
+            )
+
+        party_selection_input.change(
+            fn=update_party_display,
+            inputs=[party_selection_input],
+            outputs=[party_characters_display],
+        )
+
         campaign_selector.change(
             fn=load_campaign_settings,
             inputs=[campaign_selector],
@@ -451,11 +491,54 @@ def create_process_session_tab_modern(
             queue=True,
         )
 
+        def run_preflight_handler(
+            party_selection,
+            character_names,
+            player_names,
+            num_speakers,
+            language,
+            skip_diarization,
+            skip_classification,
+            campaign_id,
+        ):
+            response = preflight_fn(
+                party_selection,
+                character_names,
+                player_names,
+                num_speakers,
+                language,
+                skip_diarization,
+                skip_classification,
+                campaign_id,
+            )
+            return response, gr.update(visible=False)
+
+        preflight_btn.click(
+            fn=run_preflight_handler,
+            inputs=[
+                party_selection_input,
+                character_names_input,
+                player_names_input,
+                num_speakers_input,
+                language_input,
+                skip_diarization_input,
+                skip_classification_input,
+                active_campaign_state,
+            ],
+            outputs=[
+                status_output,
+                results_section,
+            ],
+            queue=False,
+        )
+
     component_refs = {
         "campaign_badge": campaign_badge,
         "campaign_selector": campaign_selector,
         "new_campaign_btn": new_campaign_btn,
+        "preflight_btn": preflight_btn,
         "party_selection_input": party_selection_input,
+        "party_characters_display": party_characters_display,
         "session_id_input": session_id_input,
         "character_names_input": character_names_input,
         "player_names_input": player_names_input,

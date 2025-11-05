@@ -18,6 +18,7 @@ from src.character_profile import CharacterProfileManager
 from src.logger import get_log_file_path
 from src.party_config import PartyConfigManager, CampaignManager
 from src.knowledge_base import CampaignKnowledgeBase
+from src.preflight import PreflightIssue
 from src.ui.constants import StatusIndicators
 from src.ui.helpers import StatusMessages, UIComponents
 from src.campaign_dashboard import CampaignDashboard
@@ -505,6 +506,52 @@ def _resolve_audio_path(audio_file) -> str:
         raise ValueError(f"Unsupported audio file type: {type(audio_file)}")
 
 
+def _create_processor_for_context(
+    session_id: str,
+    party_selection: Optional[str],
+    character_names: str,
+    player_names: str,
+    num_speakers: Optional[int],
+    language: Optional[str],
+    campaign_id: Optional[str],
+    *,
+    allow_empty_names: bool = False,
+) -> DDSessionProcessor:
+    """Instantiate a session processor respecting party/manual inputs."""
+    resolved_speakers = int(num_speakers) if num_speakers else 4
+    resolved_language = language or "en"
+
+    if party_selection and party_selection != "Manual Entry":
+        processor = DDSessionProcessor(
+            session_id=session_id,
+            campaign_id=campaign_id,
+            num_speakers=resolved_speakers,
+            party_id=party_selection,
+            language=resolved_language,
+        )
+    else:
+        chars = [c.strip() for c in (character_names or "").split(',') if c.strip()]
+        players = [p.strip() for p in (player_names or "").split(',') if p.strip()]
+
+        if not chars and not allow_empty_names:
+            raise ValueError("Character names are required when using Manual Entry")
+
+        kwargs: Dict[str, Any] = {
+            "session_id": session_id,
+            "campaign_id": campaign_id,
+            "num_speakers": resolved_speakers,
+            "language": resolved_language,
+        }
+        if chars:
+            kwargs["character_names"] = chars
+        if players:
+            kwargs["player_names"] = players
+
+        processor = DDSessionProcessor(**kwargs)
+
+    return processor
+
+
 def process_session(
     audio_file,
     session_id: str,
@@ -527,29 +574,16 @@ def process_session(
         resolved_session_id = session_id or "session"
 
         # Determine if using party config or manual entry
-        if party_selection and party_selection != "Manual Entry":
-            # Use party configuration
-            processor = DDSessionProcessor(
-                session_id=resolved_session_id,
-                campaign_id=campaign_id,
-                num_speakers=int(num_speakers),
-                party_id=party_selection,
-                language=language
-            )
-        else:
-            # Parse names manually
-            chars = [c.strip() for c in character_names.split(',') if c.strip()]
-            players = [p.strip() for p in player_names.split(',') if p.strip()]
-
-            # Create processor
-            processor = DDSessionProcessor(
-                session_id=resolved_session_id,
-                campaign_id=campaign_id,
-                character_names=chars,
-                player_names=players,
-                num_speakers=int(num_speakers),
-                language=language
-            )
+        processor = _create_processor_for_context(
+            resolved_session_id,
+            party_selection,
+            character_names,
+            player_names,
+            num_speakers,
+            language,
+            campaign_id,
+            allow_empty_names=False,
+        )
 
         pipeline_result = processor.process(
             input_file=_resolve_audio_path(audio_file),
@@ -599,6 +633,79 @@ def process_session(
         }
 
 
+def run_preflight_checks(
+    party_selection,
+    character_names,
+    player_names,
+    num_speakers,
+    language,
+    skip_diarization,
+    skip_classification,
+    campaign_id,
+):
+    """Run dependency checks before long-running processing."""
+    try:
+        processor = _create_processor_for_context(
+            session_id="preflight_check",
+            party_selection=party_selection,
+            character_names=character_names or "",
+            player_names=player_names or "",
+            num_speakers=num_speakers,
+            language=language,
+            campaign_id=campaign_id,
+            allow_empty_names=True,
+        )
+        processor.is_test_run = True
+        issues = processor.run_preflight_checks_only(
+            skip_diarization=bool(skip_diarization),
+            skip_classification=bool(skip_classification),
+        )
+
+        if not issues:
+            return StatusMessages.success(
+                "Preflight Checks",
+                "All systems ready for processing."
+            )
+
+        error_issues = [issue for issue in issues if issue.is_error()]
+        warning_issues = [issue for issue in issues if not issue.is_error()]
+
+        def _format_section(title: str, entries: List[PreflightIssue]) -> List[str]:
+            if not entries:
+                return []
+            lines = [f"**{title}:**"]
+            lines.extend(
+                f"- `{issue.component}`: {issue.message}" for issue in entries
+            )
+            return lines
+
+        sections: List[str] = []
+        sections.extend(_format_section("Errors", error_issues))
+        sections.extend(_format_section("Warnings", warning_issues))
+        details = "\n".join(sections)
+
+        if error_issues:
+            return "\n".join([
+                f"### {StatusIndicators.ERROR} Preflight Failed",
+                "",
+                "Resolve the blocking issues below before starting processing.",
+                "",
+                details,
+            ])
+
+        return "\n".join([
+            f"### {StatusIndicators.WARNING} Preflight Warnings",
+            "",
+            "Processing can continue, but review the warnings below:",
+            "",
+            details,
+        ])
+    except Exception as exc:
+        return StatusMessages.error(
+            "Preflight Failed",
+            "An unexpected error occurred while running the checks.",
+            str(exc),
+        )
 # Get available parties
 party_manager = PartyConfigManager()
 available_parties = party_manager.list_parties()
@@ -654,27 +761,27 @@ with gr.Blocks(
 
     gr.Markdown("---")
 
-    with gr.Tabs():
-        available_parties, process_tab_refs = create_process_session_tab_modern(
-            demo,
-            refresh_campaign_names=_refresh_campaign_names,
-            process_session_fn=process_session,
-            campaign_manager=campaign_manager,
-            active_campaign_state=active_campaign_state,
-            campaign_badge_text=initial_badge,
-            initial_campaign_name=initial_campaign_name if initial_campaign_id else "Manual Setup",
-        )
+    available_parties, process_tab_refs = create_process_session_tab_modern(
+        demo,
+        refresh_campaign_names=_refresh_campaign_names,
+        process_session_fn=process_session,
+        preflight_fn=run_preflight_checks,
+        campaign_manager=campaign_manager,
+        active_campaign_state=active_campaign_state,
+        campaign_badge_text=initial_badge,
+        initial_campaign_name=initial_campaign_name if initial_campaign_id else "Manual Setup",
+    )
 
-        campaign_tab_refs = create_campaign_tab_modern(demo)
-        characters_tab_refs = create_characters_tab_modern(demo, available_parties)
-        stories_tab_refs = create_stories_output_tab_modern(demo)
-        settings_tab_refs = create_settings_tools_tab_modern(
-            demo,
-            story_manager=story_manager,
-            refresh_campaign_names=_refresh_campaign_names,
-            initial_campaign_id=initial_campaign_id,
-            speaker_profile_manager=speaker_profile_manager,
-        )
+    campaign_tab_refs = create_campaign_tab_modern(demo)
+    characters_tab_refs = create_characters_tab_modern(demo, available_parties)
+    stories_tab_refs = create_stories_output_tab_modern(demo)
+    settings_tab_refs = create_settings_tools_tab_modern(
+        demo,
+        story_manager=story_manager,
+        refresh_campaign_names=_refresh_campaign_names,
+        initial_campaign_id=initial_campaign_id,
+        speaker_profile_manager=speaker_profile_manager,
+    )
 
     def _compute_process_updates(campaign_id: Optional[str]) -> Tuple:
         settings = _process_defaults_for_campaign(campaign_id)

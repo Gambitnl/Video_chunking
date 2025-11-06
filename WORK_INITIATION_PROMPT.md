@@ -1081,6 +1081,159 @@ During git status review:
 
 ---
 
+### Session 2025-11-06: UX Refactoring - Campaign Selector Consolidation
+
+**Agent**: Claude (Sonnet 4.5)
+**Duration**: ~2 hours
+**Work Completed**:
+1. Investigated logging system comprehensiveness
+2. Removed redundant campaign selector from Process Session tab
+3. Streamlined campaign workflow (single source of truth)
+
+#### What Went Well
+
+1. **User Feedback Guided Architecture Decision**
+   - User identified redundancy: "currently when you select a campaign, you still have to indicate which campaign the audio file belongs to"
+   - Clear problem statement enabled quick understanding
+   - Solution was obvious once problem was articulated
+
+2. **Systematic Refactoring Approach**
+   - Identified all components to remove (campaign_selector, new_campaign_btn, load_campaign_settings)
+   - Traced data flow through app.py outputs list
+   - Updated all references systematically
+   - Result: Clean refactor with no broken references
+
+3. **Testing Before Committing**
+   - Started app to verify changes worked
+   - Killed old instances properly
+   - Confirmed app launched successfully at http://127.0.0.1:7860
+   - Integration test caught potential issues early
+
+4. **Logging Investigation Was Thorough**
+   - Read logger.py to understand architecture
+   - Checked pipeline.py for coverage across all 9 stages
+   - Verified error context capture with stack traces
+   - Conclusion: System is comprehensive, no gaps
+
+#### What Could Be Improved
+
+1. **Didn't Update User Documentation**
+   - Changed workflow from two campaign selectors to one
+   - Should have updated README or user guide to explain new flow
+   - Risk: Users may wonder where campaign selector went
+
+2. **No User Confirmation on Data Config Changes**
+   - User mentioned Team OP has missing members
+   - Asked for details instead of checking similar configs
+   - Could have proactively suggested copying from "default" party
+   - Lesson: When data is incomplete, offer solutions not just questions
+
+3. **Didn't Consider Edge Cases**
+   - What happens if active_campaign_state is None?
+   - What if user loads app with no campaigns created?
+   - Should have traced through that flow to verify graceful handling
+
+#### Process Improvements Identified
+
+1. **Add to Section IV (UX Changes)**
+   ```
+   For workflow changes affecting user habits:
+   [ ] Document the old workflow clearly
+   [ ] Document the new workflow clearly
+   [ ] Identify what users might miss or be confused by
+   [ ] Update user-facing documentation (README, tooltips, help text)
+   [ ] Consider adding migration hints in UI for first-time users
+   ```
+
+2. **Add to Section XI (Integration Testing)**
+   ```
+   For UI refactoring:
+   [ ] Start app and test affected workflows
+   [ ] Test edge cases (empty state, null values)
+   [ ] Verify error messages are still helpful
+   [ ] Check that related features still work
+   [ ] Test with different user patterns (power user vs new user)
+   ```
+
+3. **Add to Section I (Problem Validation)**
+   ```
+   For configuration/data issues:
+   [ ] Check similar configs for patterns
+   [ ] Offer to copy/adapt existing working configs
+   [ ] Don't just ask for details - provide scaffolding
+   [ ] Suggest data structure if user needs to provide info
+   ```
+
+#### Key Insights
+
+1. **Campaign Selector Redundancy Pattern**
+   - **Problem**: Having state in multiple places (Campaign Launcher + Process Session tab)
+   - **Solution**: Single source of truth (active_campaign_state)
+   - **Lesson**: When users say "I have to do X twice", check for duplicate state management
+   - **Applicability**: Look for this pattern in other tabs (Settings, Characters, etc.)
+
+2. **Output List Synchronization**
+   - When removing UI components, check BOTH:
+     - Component creation in UI module
+     - Output list references in app.py
+   - Easy to miss one and cause runtime errors
+   - Pattern: Search for component name across entire codebase
+
+3. **Git Bash Path Escaping on Windows**
+   - `taskkill /PID` gets interpreted as `/PID` = path by Git Bash
+   - Solution: Use `cmd //c taskkill //PID <pid> //F`
+   - Lesson: Windows commands in Git Bash need special escaping
+
+#### Recommendations for Future Work
+
+1. **Document New Campaign Workflow** (15 minutes)
+   - Add to README.md or docs/USER_GUIDE.md
+   - Show campaign launcher workflow with screenshots
+   - Explain why campaign selection was consolidated
+   - Priority: P2
+
+2. **Complete Team OP Configuration** (5 minutes)
+   - User needs to add 2 members + 1 companion to Team OP party
+   - Waiting for user to provide character details
+   - Priority: P1 (user-requested)
+
+3. **Audit Other Tabs for Duplicate Selectors** (30 minutes)
+   - Check if Characters, Stories, Settings tabs have similar redundancy
+   - Look for campaign/party selectors that could be removed
+   - Consolidate to active_campaign_state pattern
+   - Priority: P2
+
+#### Prompt Updates
+
+**Added to Section I (Problem Validation)**:
+```
+For configuration/data issues:
+[ ] Check similar configs for patterns
+[ ] Offer to copy/adapt existing working configs
+[ ] Don't just ask for details - provide scaffolding
+```
+
+**Added to Section IV (Implementation Guidelines)**:
+```
+For workflow/UX changes:
+[ ] Document old vs new workflow
+[ ] Update user-facing documentation
+[ ] Consider migration hints in UI
+[ ] Test edge cases (empty state, null values)
+```
+
+**Added to Section XI (Integration Testing)**:
+```
+For UI refactoring:
+[ ] Start app and test affected workflows
+[ ] Verify error messages still helpful
+[ ] Test with different user patterns
+```
+
+**Added this session entry to Section XVI** (you're reading it now).
+
+---
+
 ## XVII. CRITICAL: Session Completion Checklist
 
 **Before ending ANY session, you MUST complete ALL of the following:**

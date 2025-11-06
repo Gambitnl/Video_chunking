@@ -120,14 +120,21 @@ class CampaignDashboard:
         try:
             session_dirs = [d for d in Config.OUTPUT_DIR.iterdir() if d.is_dir()] if Config.OUTPUT_DIR.exists() else []
 
-            # Filter sessions by campaign_id if provided
+            # Filter sessions by campaign_id if provided, but keep incomplete/corrupted visible
             filtered_sessions = []
             for session_dir in session_dirs:
                 # Find the *_data.json file
                 data_files = list(session_dir.glob('*_data.json'))
-                if len(data_files) != 1:
-                    continue  # Skip incomplete or ambiguous sessions
-
+                if len(data_files) == 0:
+                    # Include incomplete sessions (no metadata to filter by)
+                    # Show them in all campaigns so users can spot failures
+                    filtered_sessions.append((session_dir, 'incomplete'))
+                    continue
+                elif len(data_files) > 1:
+                    # Include ambiguous sessions (multiple metadata files)
+                    # Show them in all campaigns so users can investigate
+                    filtered_sessions.append((session_dir, 'ambiguous'))
+                    continue
 
                 # Read metadata to check campaign_id
                 try:
@@ -141,17 +148,26 @@ class CampaignDashboard:
                         # 2. Session matches the campaign_id
                         # 3. Legacy session (no campaign_id) and no filter specified
                         if campaign_id is None or session_campaign_id == campaign_id:
-                            filtered_sessions.append(session_dir)
+                            filtered_sessions.append((session_dir, 'complete'))
                 except (json.JSONDecodeError, IOError):
-                    # Skip sessions with corrupted data files
+                    # Include corrupted sessions so users can see them
+                    # Show in all campaigns since we can't determine ownership
+                    filtered_sessions.append((session_dir, 'corrupted'))
                     continue
 
             if filtered_sessions:
                 details = f"{StatusIndicators.SUCCESS} **Status**: {len(filtered_sessions)} session(s) found\n\n"
-                recent = sorted(filtered_sessions, key=lambda d: d.stat().st_mtime, reverse=True)[:5]
+                recent = sorted(filtered_sessions, key=lambda item: item[0].stat().st_mtime, reverse=True)[:5]
                 details += "**Recent Sessions:**\n"
-                for d in recent:
-                    details += f"- `{d.name}` ✓\n"
+                for session_dir, status in recent:
+                    if status == 'complete':
+                        details += f"- `{session_dir.name}` ✓\n"
+                    elif status == 'incomplete':
+                        details += f"- `{session_dir.name}` (incomplete)\n"
+                    elif status == 'ambiguous':
+                        details += f"- `{session_dir.name}` (ambiguous - multiple metadata files)\n"
+                    else:  # corrupted
+                        details += f"- `{session_dir.name}` (corrupted metadata)\n"
                 return ComponentStatus(True, "Processed Sessions", details)
             else:
                 details = f"{StatusIndicators.WARNING} **Status**: No sessions processed yet\n\n"

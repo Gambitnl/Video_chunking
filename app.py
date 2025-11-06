@@ -593,6 +593,13 @@ def process_session(
             skip_knowledge=skip_knowledge
         )
 
+        if not isinstance(pipeline_result, dict):
+            return {
+                "status": "error",
+                "message": "Pipeline did not return a result. Check preflight checks and logs for details.",
+                "details": f"Unexpected pipeline response: {type(pipeline_result).__name__}",
+            }
+
         output_files = pipeline_result.get("output_files") or {}
 
         def _read_output_file(key: str) -> str:
@@ -788,15 +795,8 @@ with gr.Blocks(
         campaign_names_map = _refresh_campaign_names()
         display_name = campaign_names_map.get(campaign_id, "Manual Setup") if campaign_id else "Manual Setup"
 
-        selector_choices = ["Manual Setup"] + list(campaign_names_map.values())
-        campaign_selector_update = gr.update(
-            choices=selector_choices,
-            value=display_name if display_name in selector_choices else "Manual Setup",
-        )
-
         return (
             _format_campaign_badge(campaign_id),
-            campaign_selector_update,
             gr.update(value=""),
             gr.update(value=""),
             gr.update(value=""),
@@ -952,7 +952,6 @@ with gr.Blocks(
         campaign_manifest_md,
         existing_campaign_dropdown,
         process_tab_refs["campaign_badge"],
-        process_tab_refs["campaign_selector"],
         process_tab_refs["session_id_input"],
         process_tab_refs["character_names_input"],
         process_tab_refs["player_names_input"],
@@ -996,7 +995,6 @@ with gr.Blocks(
         existing_campaign_dropdown,
         new_campaign_name,
         process_tab_refs["campaign_badge"],
-        process_tab_refs["campaign_selector"],
         process_tab_refs["session_id_input"],
         process_tab_refs["character_names_input"],
         process_tab_refs["player_names_input"],

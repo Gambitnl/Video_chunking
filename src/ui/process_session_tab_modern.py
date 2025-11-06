@@ -60,8 +60,8 @@ def create_process_session_tab_modern(
     available_parties = ["Manual Entry"] + party_manager.list_parties()
 
     campaign_names = refresh_campaign_names()
-    campaign_choices = ["Manual Setup"] + list(campaign_names.values())
 
+    # Default values when no campaign is loaded
     initial_defaults = {
         "party_selection": "Manual Entry" if "Manual Entry" in available_parties else (available_parties[0] if available_parties else None),
         "num_speakers": 4,
@@ -71,15 +71,10 @@ def create_process_session_tab_modern(
         "skip_knowledge": False,
     }
 
-    initial_selector_value = (
-        initial_campaign_name
-        if initial_campaign_name in campaign_choices
-        else "Manual Setup"
-    )
-
-    if initial_selector_value != "Manual Setup":
+    # If initial campaign is specified, load its settings
+    if initial_campaign_name != "Manual Setup":
         selected_campaign_id = next(
-            (cid for cid, name in campaign_names.items() if name == initial_selector_value),
+            (cid for cid, name in campaign_names.items() if name == initial_campaign_name),
             None,
         )
         if selected_campaign_id:
@@ -127,20 +122,6 @@ def create_process_session_tab_modern(
 
     with gr.Group():
         gr.Markdown("### Step 2: Configure Session")
-
-        with gr.Row():
-            campaign_selector = gr.Dropdown(
-                label="Campaign Profile",
-                choices=campaign_choices,
-                value=initial_selector_value,
-                info=InfoText.CAMPAIGN_SELECT,
-            )
-
-            new_campaign_btn = UIComponents.create_action_button(
-                "New Blank Campaign",
-                variant="secondary",
-                size="sm",
-            )
 
         session_id_input = gr.Textbox(
             label="Session ID",
@@ -243,35 +224,6 @@ def create_process_session_tab_modern(
             ooc_output = gr.Textbox(label="Out-of-Character Transcript", lines=10)
             stats_output = gr.Markdown()
             snippet_output = gr.Markdown()
-
-        def load_campaign_settings(selected_name: str) -> Dict[gr.components.Component, Any]:
-            names = refresh_campaign_names()
-            if selected_name == "Manual Setup":
-                return {
-                    party_selection_input: "Manual Entry",
-                    num_speakers_input: 4,
-                    skip_diarization_input: False,
-                    skip_classification_input: False,
-                    skip_snippets_input: True,
-                    skip_knowledge_input: False,
-                }
-
-            campaign_id = next((cid for cid, cname in names.items() if cname == selected_name), None)
-            if not campaign_id:
-                return {}
-
-            campaign = campaign_manager.get_campaign(campaign_id)
-            if not campaign:
-                return {}
-
-            return {
-                party_selection_input: campaign.party_id or "Manual Entry",
-                num_speakers_input: campaign.settings.num_speakers,
-                skip_diarization_input: campaign.settings.skip_diarization,
-                skip_classification_input: campaign.settings.skip_classification,
-                skip_snippets_input: campaign.settings.skip_snippets,
-                skip_knowledge_input: campaign.settings.skip_knowledge,
-            }
 
         def _prepare_processing_outputs():
             return (
@@ -498,19 +450,6 @@ def create_process_session_tab_modern(
             outputs=[party_characters_display],
         )
 
-        campaign_selector.change(
-            fn=load_campaign_settings,
-            inputs=[campaign_selector],
-            outputs=[
-                party_selection_input,
-                num_speakers_input,
-                skip_diarization_input,
-                skip_classification_input,
-                skip_snippets_input,
-                skip_knowledge_input,
-            ],
-        )
-
         process_btn.click(
             fn=_prepare_processing_outputs,
             outputs=[
@@ -589,8 +528,6 @@ def create_process_session_tab_modern(
 
     component_refs = {
         "campaign_badge": campaign_badge,
-        "campaign_selector": campaign_selector,
-        "new_campaign_btn": new_campaign_btn,
         "preflight_btn": preflight_btn,
         "audio_input": audio_input,
         "file_warning_display": file_warning_display,

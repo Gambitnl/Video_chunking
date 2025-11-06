@@ -125,8 +125,9 @@ class CampaignDashboard:
             for session_dir in session_dirs:
                 # Find the *_data.json file
                 data_files = list(session_dir.glob('*_data.json'))
-                if not data_files:
-                    continue  # Skip incomplete sessions
+                if len(data_files) != 1:
+                    continue  # Skip incomplete or ambiguous sessions
+
 
                 # Read metadata to check campaign_id
                 try:

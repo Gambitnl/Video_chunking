@@ -76,6 +76,95 @@ PY
 
 ---
 
+## I-A. Task Discovery Workflow: "Where do I find work to do?"
+
+When a user asks you to "find a task" or "work on something," follow this workflow:
+
+### Step 1: Check the Master Task List (PRIMARY SOURCE)
+
+**Read `docs/OUTSTANDING_TASKS.md` first:**
+```python
+# Always start here
+Read("docs/OUTSTANDING_TASKS.md")
+```
+
+**This file contains:**
+- Quick stats (P0-P4 status, 88+ bugs tracked)
+- All open work organized by priority
+- Source references for detailed context (→ ROADMAP.md:line, → BUG_HUNT_TODO.md:line)
+- Recommended work order (Week 1-3, Month 2-3+)
+
+### Step 2: Interpret Task Status
+
+**If task is `[x] Complete`:**
+- Verify implementation exists (search codebase, check git history)
+- If implementation missing: Task may have been marked done prematurely, investigate
+- If implementation exists: Don't re-implement, move to next task
+
+**If task is `[ ] Not started`:**
+- This is available work
+- Check source reference (→ filename:line) for detailed context
+- Review estimated effort and dependencies
+
+**If task is `[~] In progress`:**
+- May be partially complete or abandoned
+- Review git history and recent commits
+- Ask user if they want you to continue this work
+
+### Step 3: Follow Source References for Context
+
+**Each task has a source reference** (e.g., `→ ROADMAP.md:364-370` or `→ BUG_HUNT_TODO.md:283`):
+1. Read the source reference for detailed context
+2. Understand the "Why it's an issue" explanation
+3. Check for reproduction steps or test cases
+4. Review estimated effort and impact
+
+**Example workflow:**
+```
+User: "Find me a high-priority bug to fix"
+
+1. Read docs/OUTSTANDING_TASKS.md
+2. Look under "Bugs - UI Dashboard Issues → High Priority"
+3. Find: BUG-20251103-006: Process Session - No client-side validation
+4. Read source: BUG_HUNT_TODO.md:283-287
+5. Review detailed description, files affected (app.py:509-601)
+6. Propose fix to user with effort estimate
+```
+
+### Step 4: If Task NOT in OUTSTANDING_TASKS.md
+
+**New work or already completed:**
+- Search git history: `git log --oneline --all --grep="<keyword>"`
+- Search codebase: `mcp__filesystem__search_files(path=".", pattern="*<feature>*")`
+- Check ROADMAP.md for detailed status (may be completed but not yet marked in OUTSTANDING_TASKS.md)
+- If truly new: Propose adding it to OUTSTANDING_TASKS.md with appropriate priority
+
+### Step 5: Recommend Work Based on Priority
+
+**Use the "Recommended Work Order" section** in OUTSTANDING_TASKS.md:
+- Week 1: Critical UX quick wins
+- Week 2: Data integrity & core functionality
+- Week 3: UX polish
+- Month 2: Testing & analytics
+
+**Always explain your recommendation:**
+- Why this task over others?
+- What's the estimated effort?
+- What are the dependencies?
+- What's the user impact?
+
+### Anti-Patterns to Avoid
+
+❌ **Don't** dive into ROADMAP.md or IMPLEMENTATION_PLANS*.md first (too detailed, harder to navigate)
+❌ **Don't** search randomly through bug hunt files (use OUTSTANDING_TASKS.md as index)
+❌ **Don't** assume task status without checking OUTSTANDING_TASKS.md
+❌ **Don't** start work without verifying task isn't marked `[x]` complete
+✅ **Do** use OUTSTANDING_TASKS.md as your entry point for ALL task discovery
+✅ **Do** follow source references for detailed context when needed
+✅ **Do** update OUTSTANDING_TASKS.md as PRIMARY when marking tasks complete
+
+---
+
 ## II. Decision Framework: When to Stop and Think
 
 ### Ask the User When:

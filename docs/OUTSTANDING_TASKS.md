@@ -1,1 +1,582 @@
-# Outstanding Tasks - Master Checklist\r\n\r\n> **Last Updated**: 2025-11-06\r\n> **Purpose**: Single source of truth for all open work items\r\n> **Sources**: ROADMAP.md, BUG_HUNT_TODO.md, BUG_SUMMARY.md, IMPLEMENTATION_PLANS_*.md\r\n\r\n---\r\n\r\n## ⚠️ Task Locking Protocol (Multi-Agent Coordination)\r\n\r\n**CRITICAL**: When starting work on ANY task, you MUST lock it immediately to prevent duplicate work.\r\n\r\n### Locking Workflow\r\n\r\n1. **Before starting**: Change `[ ]` to `[~]` with agent name + timestamp\r\n2. **Commit immediately**: `git add docs/OUTSTANDING_TASKS.md && git commit -m "Lock task: Task-ID"`\r\n3. **After completion**: Update `[~]` to `[x]` with completion date\r\n\r\n### Status Meanings\r\n\r\n- `[ ]` = Available (no one working on this)\r\n- `[~]` = Locked (another agent is working - DO NOT START)\r\n- `[x]` = Complete (verified implementation exists)\r\n\r\n### Abandoned Tasks\r\n\r\nIf you find a `[~]` task with timestamp >24 hours old:\r\n1. Check git history for recent commits on that task\r\n2. If no activity, ask user for permission to take over\r\n3. Update with your agent name and new timestamp\r\n\r\n---\r\n\r\n## Quick Stats\r\n\r\n- **P0**: ✅ ALL COMPLETE (9/9 done)\r\n- **P1**: ✅ ALL COMPLETE (6/6 done)\r\n- **P2**: 🟡 Core complete, 2 polish items remain\r\n- **P3**: ⏸️ Deferred (0/3 started)\r\n- **P4**: ⏸️ Deferred (0/4 started)\r\n- **Bugs**: 🔴 88 open (58 LangChain test gaps + 30 UI issues)\r\n\r\n**Legend**:\r\n- `[ ]` Not Started (available for work)\r\n- `[~]` In Progress (locked by agent - includes agent name + start timestamp)\r\n- `[x]` Completed (includes completion date)\r\n- ✅ Complete | 🟡 In Progress | 🔴 High Priority | ⏸️ Paused\r\n\r\n**Task Locking Format**:\r\n```\r\n[~] Task-ID: Description (Agent: Name, Started: YYYY-MM-DD HH:MM UTC) → source:line\r\n[x] Task-ID: Description (Agent: Name, Completed: YYYY-MM-DD) → source:line\r\n```\r\n\r\n---\r\n\r\n## P0 (Critical / Immediate)\r\n\r\n✅ **ALL COMPLETE** (2025-10-26)\r\n\r\n- [x] P0-BUG-001: Stale Clip Cleanup → ROADMAP.md:68-72\r\n- [x] P0-BUG-002: Unsafe Type Casting → ROADMAP.md:73-79\r\n- [x] P0-BUG-003: Checkpoint System → ROADMAP.md:80-84\r\n- [x] P0-BUG-004: Improve Resumable Checkpoints → ROADMAP.md:87-91\r\n- [x] P0-BUG-005: Surface Chunking Failures → ROADMAP.md:92-98\r\n- [x] P0-BUG-006: Refine Snippet Placeholder Output → ROADMAP.md:99-105\r\n- [x] P0-REFACTOR-001: Extract Campaign Dashboard → ROADMAP.md:118-124\r\n- [x] P0-REFACTOR-002: Extract Story Generation → ROADMAP.md:126-132\r\n- [x] P0-REFACTOR-003: Split app.py into UI Modules → ROADMAP.md:134-139\r\n\r\n---\r\n\r\n## P1 (High Impact)\r\n\r\n✅ **ALL COMPLETE** (6/6 done as of 2025-11-02)\r\n\r\n- [x] P1-FEATURE-001: Automatic Character Profile Extraction (2025-10-31) → IMPLEMENTATION_PLANS_PART2.md:29\r\n- [x] P1-FEATURE-002: Streaming Snippet Export (2025-11-01) → IMPLEMENTATION_PLANS_PART2.md:138\r\n- [x] P1-FEATURE-003: Batch Processing (2025-10-24) → ROADMAP.md:218-228\r\n- [x] P1-FEATURE-004: Gradio UI Modernization (2025-11-01) → docs/UI_MODERNIZATION_PROPOSAL.md\r\n- [x] P1-FEATURE-005: Campaign Lifecycle Manager (2025-11-02) → IMPLEMENTATION_PLANS_PART2.md:452\r\n- [x] P1-MAINTENANCE-001: Session Cleanup & Validation (2025-11-01) → IMPLEMENTATION_PLANS_PART2.md:704\r\n\r\n---\r\n\r\n## P2 (Important Enhancements)\r\n\r\n🟡 **Core Complete, Polish Remaining** (2/4 done)\r\n\r\n### Completed\r\n- [x] P2-LANGCHAIN-001: Conversational Campaign Interface (2025-10-25) → IMPLEMENTATION_PLANS_PART3.md:31\r\n- [x] P2-LANGCHAIN-002: Semantic Search with RAG (2025-10-25) → IMPLEMENTATION_PLANS_PART3.md:286\r\n- [x] P2.1-SECURITY: All critical security fixes (2025-10-25) → docs/LANGCHAIN_SECURITY_FIXES.md\r\n- [x] P2.1-TESTING: LangChain test coverage expansion (2025-11-06) → ROADMAP.md:340-352\r\n  - **Achievement**: 49% → 87% coverage (+38pp) - 70 new tests added\r\n\r\n### Remaining\r\n- [ ] **P2.1-UX: Campaign Chat UI Improvements** (1-2 days) → ROADMAP.md:364-370\r\n  - Missing loading indicators during LLM calls\r\n  - Raw exceptions shown to users\r\n  - No conversation management (delete/rename)\r\n  - Sources only shown for last message\r\n  - See BUG_HUNT_TODO.md:150-198 for detailed list (12 UX bugs)\r\n\r\n- [ ] **P2-ANALYTICS: Session Analytics & Search** (3-4 days) → ROADMAP.md:379-420\r\n  - Session analytics dashboard\r\n  - Character analytics & filtering\r\n  - Session search functionality\r\n  - Complete OOC topic analysis (in progress)\r\n\r\n---\r\n\r\n## P3 (Future Enhancements)\r\n\r\n⏸️ **Deferred** - Focus on P2 polish first\r\n\r\n- [~] P3-FEATURE-001: Real-time Processing → IMPLEMENTATION_PLANS_PART4.md:33 (audio ingestion scaffolding exists)\r\n- [ ] P3-FEATURE-002: Multi-language Support → IMPLEMENTATION_PLANS_PART4.md:160\r\n- [ ] P3-FEATURE-003: Custom Speaker Labels → IMPLEMENTATION_PLANS_PART4.md:256\r\n\r\n---\r\n\r\n## P4 (Infrastructure & Quality)\r\n\r\n⏸️ **Deferred** - Incremental alongside features\r\n\r\n- [ ] P4-INFRA-001: Comprehensive Test Suite → IMPLEMENTATION_PLANS_PART4.md:270\r\n- [ ] P4-INFRA-002: CI/CD Pipeline → IMPLEMENTATION_PLANS_PART4.md:340\r\n- [ ] P4-INFRA-003: Performance Profiling → IMPLEMENTATION_PLANS_PART4.md:411\r\n- [ ] P4-DOCS-001: API Documentation → IMPLEMENTATION_PLANS_PART4.md:477\r\n\r\n---\r\n\r\n## Bugs - LangChain Test Gaps\r\n\r\n🔴 **58 Test Coverage Gaps** (from 2025-11-02 bug hunt)\r\n\r\n**Source**: [BUG_HUNT_TODO.md:1-148](BUG_HUNT_TODO.md#area-1-langchain-test-coverage-p21-testing)\r\n\r\n### High Priority Integration Tests (8 bugs)\r\n- [ ] BUG-20251102-01: CampaignChatClient.ask - Add integration tests for full RAG pipeline → BUG_HUNT_TODO.md:9\r\n- [ ] BUG-20251102-08: CampaignChatChain.ask - Add integration tests for full chain → BUG_HUNT_TODO.md:37\r\n- [ ] BUG-20251102-18: HybridSearcher.search - Integration tests with real instances → BUG_HUNT_TODO.md:77\r\n- [ ] BUG-20251102-22: CampaignRetriever.retrieve - Integration tests with real files → BUG_HUNT_TODO.md:93\r\n- [ ] BUG-20251102-26: CampaignVectorStore.add_transcript_segments - Test with large batches → BUG_HUNT_TODO.md:109\r\n- [ ] BUG-20251102-32: General - Add performance tests for LangChain components → BUG_HUNT_TODO.md:132\r\n- [ ] BUG-20251102-33: General - Add concurrency tests for clients → BUG_HUNT_TODO.md:136\r\n- [ ] BUG-20251102-35: General - Add tests for error paths and edge cases → BUG_HUNT_TODO.md:145\r\n\r\n### Medium Priority Tests (42 bugs)\r\n- [ ] BUG-20251102-02: CampaignChatClient.ask - Test various context inputs → BUG_HUNT_TODO.md:13\r\n- [ ] BUG-20251102-03: CampaignChatClient.ask - Test retriever failure handling → BUG_HUNT_TODO.md:17\r\n- [ ] BUG-20251102-04: CampaignChatClient.ask - Test LLM failure handling → BUG_HUNT_TODO.md:21\r\n- [ ] BUG-20251102-07: _load_system_prompt - Test campaign placeholders → BUG_HUNT_TODO.md:33\r\n- [ ] BUG-20251102-09: CampaignChatChain.ask - Test various questions/sources → BUG_HUNT_TODO.md:41\r\n- [ ] BUG-20251102-10: CampaignChatChain.ask - Test chain failure handling → BUG_HUNT_TODO.md:45\r\n- [ ] BUG-20251102-12: ConversationStore.add_message - Test updating relevant_sessions → BUG_HUNT_TODO.md:53\r\n- [ ] BUG-20251102-13: ConversationStore.load_conversation - Test corrupted JSON → BUG_HUNT_TODO.md:57\r\n- [ ] BUG-20251102-14: ConversationStore.list_conversations - Test with large numbers → BUG_HUNT_TODO.md:61\r\n- [ ] BUG-20251102-15: ConversationStore.list_conversations - Test corrupted files → BUG_HUNT_TODO.md:65\r\n- [ ] BUG-20251102-19: HybridSearcher.search - Test varying top_k/semantic_weight → BUG_HUNT_TODO.md:81\r\n- [ ] BUG-20251102-20: HybridSearcher.search - Test when one search method fails → BUG_HUNT_TODO.md:85\r\n- [ ] BUG-20251102-21: HybridSearcher._reciprocal_rank_fusion - Test complex scenarios → BUG_HUNT_TODO.md:89\r\n- [ ] BUG-20251102-23: CampaignRetriever._search_knowledge_bases - Test various query types → BUG_HUNT_TODO.md:97\r\n- [ ] BUG-20251102-24: CampaignRetriever._search_transcripts - Test matching scenarios → BUG_HUNT_TODO.md:101\r\n- [ ] BUG-20251102-25: CampaignRetriever._load_knowledge_base - Test cache eviction → BUG_HUNT_TODO.md:105\r\n- [ ] BUG-20251102-27: CampaignVectorStore.add_knowledge_documents - Test various structures → BUG_HUNT_TODO.md:113\r\n- [ ] BUG-20251102-28: CampaignVectorStore.search - Test collection parameter → BUG_HUNT_TODO.md:117\r\n- [ ] BUG-20251102-30: CampaignVectorStore.clear_all - Test destructive operation → BUG_HUNT_TODO.md:125\r\n- [ ] BUG-20251102-34: General - Improve test data complexity → BUG_HUNT_TODO.md:141\r\n- [ ] BUG-20251102-48: Character Profile Extraction - Test unusual names/dialogue → BUG_HUNT_TODO.md:200\r\n- [ ] BUG-20251102-49: Character Profile Extraction - Test long transcripts (HIGH) → BUG_HUNT_TODO.md:204\r\n- [ ] BUG-20251102-50: Character Profile Extraction - Verify save/load → BUG_HUNT_TODO.md:208\r\n- [ ] BUG-20251102-51: UI Modernization - Test responsiveness on different screens → BUG_HUNT_TODO.md:212\r\n- [ ] BUG-20251102-52: UI Modernization - Verify progressive disclosure → BUG_HUNT_TODO.md:217\r\n- [ ] BUG-20251102-53: UI Modernization - Check for broken links/elements → BUG_HUNT_TODO.md:221\r\n- [ ] BUG-20251102-54: Campaign Lifecycle Manager - Test creation/loading/switching (HIGH) → BUG_HUNT_TODO.md:225\r\n- [ ] BUG-20251102-55: Campaign Lifecycle Manager - Verify campaign-aware UI → BUG_HUNT_TODO.md:229\r\n- [ ] BUG-20251102-56: Campaign Lifecycle Manager - Test migration edge cases → BUG_HUNT_TODO.md:233\r\n- [ ] BUG-20251102-57: General P1 - Check for performance regressions (HIGH) → BUG_HUNT_TODO.md:237\r\n- [ ] BUG-20251102-58: General P1 - Review logs for unexpected errors → BUG_HUNT_TODO.md:241\r\n\r\n### Low Priority Tests (8 bugs)\r\n- [ ] BUG-20251102-05: _initialize_llm - Test Ollama fallback → BUG_HUNT_TODO.md:25\r\n- [ ] BUG-20251102-06: _initialize_memory - Test ConversationBufferMemory fallbacks → BUG_HUNT_TODO.md:29\r\n- [ ] BUG-20251102-11: ConversationStore.add_message - Test with/without sources → BUG_HUNT_TODO.md:49\r\n- [ ] BUG-20251102-16: ConversationStore.delete_conversation - Test non-existent → BUG_HUNT_TODO.md:69\r\n- [ ] BUG-20251102-17: ConversationStore.get_chat_history - Test empty conversation → BUG_HUNT_TODO.md:73\r\n- [ ] BUG-20251102-29: CampaignVectorStore.delete_session - Test session with no segments → BUG_HUNT_TODO.md:121\r\n- [ ] BUG-20251102-31: CampaignVectorStore.get_stats - Test empty/populated collections → BUG_HUNT_TODO.md:129\r\n\r\n---\r\n\r\n## Bugs - UI Dashboard Issues\r\n\r\n🔴 **30 UI Issues** (from 2025-11-03 bug hunt)\r\n\r\n**Source**: [BUG_HUNT_TODO.md:253-446](BUG_HUNT_TODO.md#area-4-ui-dashboard-issues-2025-11-03) | **Quick Ref**: [BUG_SUMMARY.md](BUG_SUMMARY.md)\r\n\r\n### High Priority (6 bugs)\r\n- [~] BUG-20251103-006: Process Session - No client-side validation (Agent: Codex, Started: 2025-11-06 15:42 UTC) → BUG_HUNT_TODO.md:283 | app.py:509-601\r\n- [ ] BUG-20251103-008: Process Session - No progress indicator during processing → BUG_HUNT_TODO.md:295 | app.py:509-601\r\n- [ ] BUG-20251103-019: Live Session - Non-functional placeholder tab → BUG_HUNT_TODO.md:367 | src/ui/live_session_tab.py:92-163\r\n- [~] BUG-20251103-022: Social Insights - WordCloud dependency not handled gracefully (Agent: Gemini, Started: 2025-11-06 15:43:42 UTC) → BUG_HUNT_TODO.md:387 | src/ui/social_insights_tab.py:20\r\n- [ ] BUG-20251103-027: Global - No conflict detection for concurrent operations → BUG_HUNT_TODO.md:421 | Multiple files\r\n\r\n### Medium Priority (13 bugs)\r\n- [ ] BUG-20251103-002: Main Dashboard - Campaign state not persisted across refreshes → BUG_HUNT_TODO.md:257 | app.py:623\r\n- [ ] BUG-20251103-004: Campaign Launcher - Dropdown not refreshed on external changes → BUG_HUNT_TODO.md:269 | app.py:630-635\r\n- [ ] BUG-20251103-007: Process Session - Results section doesn't auto-scroll → BUG_HUNT_TODO.md:289 | src/ui/process_session_tab_modern.py:219-226\r\n- [ ] BUG-20251103-009: Process Session - Audio path resolution inconsistent → BUG_HUNT_TODO.md:301 | app.py:499-507\r\n- [ ] BUG-20251103-011: Campaign Tab - Static content, no interactive features → BUG_HUNT_TODO.md:315 | src/ui/campaign_tab_modern.py:9-46\r\n- [ ] BUG-20251103-013: Campaign Dashboard - No error recovery for corrupted files → BUG_HUNT_TODO.md:327 | app.py:300-335\r\n- [ ] BUG-20251103-017: Campaign Dashboard - Sessions not filtered by campaign → BUG_HUNT_TODO.md:353 | src/campaign_dashboard.py:119-136\r\n- [ ] BUG-20251103-018: Campaign Dashboard - Narratives include other campaigns → BUG_HUNT_TODO.md:359 | src/campaign_dashboard.py:146-148\r\n- [ ] BUG-20251103-021: Social Insights - No loading indicator during analysis → BUG_HUNT_TODO.md:381 | src/ui/social_insights_tab.py:16-64\r\n- [ ] BUG-20251103-025: Settings & Tools - Static markdown only, no interactive controls → BUG_HUNT_TODO.md:407 | src/ui/settings_tools_tab_modern.py:29-41\r\n- [ ] BUG-20251103-026: Global - Campaign context update triggers excessive re-renders → BUG_HUNT_TODO.md:415 | app.py:681-778\r\n- [ ] BUG-20251103-028: Global - Error messages expose internal file paths/stack traces → BUG_HUNT_TODO.md:427 | Multiple files\r\n- [ ] BUG-20251103-029: Data - Session library doesn't verify campaign_id before display → BUG_HUNT_TODO.md:435 | app.py:397-426\r\n\r\n### Low Priority (11 bugs)\r\n- [ ] BUG-20251103-003: Campaign Launcher - No validation for empty/whitespace names → BUG_HUNT_TODO.md:263 | app.py:780-843\r\n- [ ] BUG-20251103-005: Campaign Manifest - Exception handling too broad → BUG_HUNT_TODO.md:275 | app.py:Multiple\r\n- [ ] BUG-20251103-010: Process Session - Name parsing doesn't handle edge cases → BUG_HUNT_TODO.md:307 | app.py:542-543\r\n- [ ] BUG-20251103-012: Campaign Dashboard - Knowledge base sample truncated without indication → BUG_HUNT_TODO.md:321 | app.py:337-366\r\n- [ ] BUG-20251103-014: Campaign Dashboard - Personality text truncated mid-word → BUG_HUNT_TODO.md:335 | src/campaign_dashboard.py:101\r\n- [ ] BUG-20251103-015: Campaign Dashboard - Health percentage edge case → BUG_HUNT_TODO.md:341 | src/campaign_dashboard.py:196\r\n- [ ] BUG-20251103-016: Campaign Dashboard - Managers instantiated multiple times → BUG_HUNT_TODO.md:347 | src/campaign_dashboard.py:20-22\r\n- [ ] BUG-20251103-020: Live Session - Stop button enabled before Start → BUG_HUNT_TODO.md:373 | src/ui/live_session_tab.py:111-115\r\n- [ ] BUG-20251103-023: Social Insights - Temp file cleanup not guaranteed → BUG_HUNT_TODO.md:393 | src/ui/social_insights_tab.py:49-50\r\n- [ ] BUG-20251103-024: Social Insights - Stale nebula after campaign filter change → BUG_HUNT_TODO.md:399 | src/ui/social_insights_tab.py:130-134\r\n- [ ] BUG-20251103-030: Data - Profile filtering logic flaw with None handling → BUG_HUNT_TODO.md:441 | Multiple files\r\n\r\n---\r\n\r\n## Resolved Bugs\r\n\r\n### 2025-11-02\r\n- [x] BUG-20251102-111: Gradio NamedString coercion in audio_processor.py → BUG_HUNT_TODO.md:247\r\n\r\n### 2025-11-03\r\n- [x] BUG-20251103-001: Stage 2 NameError in HybridChunker progress callback → BUG_HUNT_TODO.md:251\r\n\r\n---\r\n\r\n## Recommended Work Order\r\n\r\n### Week 1: Critical UX Quick Wins\r\n1. BUG-20251103-006 - Add client-side validation to Process Session\r\n2. BUG-20251103-019 - Hide/disable Live Session tab (mark "Coming Soon")\r\n3. BUG-20251103-022 - Better WordCloud dependency error handling\r\n\r\n### Week 2: Data Integrity & Core Functionality\r\n4. BUG-20251103-027 - Add concurrent operation locking/coordination\r\n5. BUG-20251103-017 - Fix campaign filtering in dashboard sessions\r\n6. BUG-20251103-018 - Fix campaign filtering in dashboard narratives\r\n7. BUG-20251103-008 - Implement progress indicators for long operations\r\n\r\n### Week 3: UX Polish\r\n8. P2.1-UX Campaign Chat improvements (12 UX bugs from BUG_HUNT_TODO.md:150-198)\r\n9. BUG-20251103-007 - Auto-scroll to results\r\n10. BUG-20251103-021 - Add loading indicators to Social Insights\r\n\r\n### Month 2: Testing & Analytics\r\n11. High-priority LangChain integration tests (8 bugs: BUG-20251102-01, 08, 18, 22, 26, 32, 33, 35)\r\n12. P2-ANALYTICS features (session analytics, search, character filtering)\r\n13. Medium-priority UI fixes (remaining 13 medium bugs)\r\n\r\n### Month 3+: Remaining Quality & P3/P4\r\n14. Medium/Low priority LangChain tests (50 remaining test gaps)\r\n15. Low priority UI bugs (11 bugs)\r\n16. P3 features (if business priority shifts)\r\n17. P4 infrastructure (CI/CD, profiling, API docs)\r\n\r\n---\r\n\r\n## Notes\r\n\r\n- **Testing Strategy**: LangChain coverage improved from 49% → 87% (2025-11-06), but 58 test gaps remain for edge cases, integration scenarios, and performance benchmarks\r\n- **UI State**: Modern UI launched 2025-11-01, but 30 bugs discovered in functionality, data filtering, and error handling\r\n- **P2.1 Polish**: Core LangChain features work, but UX needs refinement (loading indicators, error messages, conversation management)\r\n- **Campaign Isolation**: Multiple bugs (BUG-20251103-017, 018, 029) indicate campaign filtering not consistently applied across dashboard components\r\n\r\n---\r\n\r\n**For detailed context, see**:\r\n- [ROADMAP.md](../ROADMAP.md) - Full feature roadmap with status\r\n- [BUG_HUNT_TODO.md](BUG_HUNT_TODO.md) - Detailed bug descriptions with reproduction steps\r\n- [BUG_SUMMARY.md](BUG_SUMMARY.md) - Quick reference for UI bugs\r\n- [IMPLEMENTATION_PLANS_SUMMARY.md](../IMPLEMENTATION_PLANS_SUMMARY.md) - Sprint planning & effort estimates\r\n
+# Outstanding Tasks - Master Checklist
+
+
+
+> **Last Updated**: 2025-11-06
+
+> **Purpose**: Single source of truth for all open work items
+
+> **Sources**: ROADMAP.md, BUG_HUNT_TODO.md, BUG_SUMMARY.md, IMPLEMENTATION_PLANS_*.md
+
+
+
+---
+
+
+
+## ⚠️ Task Locking Protocol (Multi-Agent Coordination)
+
+
+
+**CRITICAL**: When starting work on ANY task, you MUST lock it immediately to prevent duplicate work.
+
+
+
+### Locking Workflow
+
+
+
+1. **Before starting**: Change `[ ]` to `[~]` with agent name + timestamp
+
+2. **Commit immediately**: `git add docs/OUTSTANDING_TASKS.md && git commit -m "Lock task: Task-ID"`
+
+3. **After completion**: Update `[~]` to `[x]` with completion date
+
+
+
+### Status Meanings
+
+
+
+- `[ ]` = Available (no one working on this)
+
+- `[~]` = Locked (another agent is working - DO NOT START)
+
+- `[x]` = Complete (verified implementation exists)
+
+
+
+### Abandoned Tasks
+
+
+
+If you find a `[~]` task with timestamp >24 hours old:
+
+1. Check git history for recent commits on that task
+
+2. If no activity, ask user for permission to take over
+
+3. Update with your agent name and new timestamp
+
+
+
+---
+
+
+
+## Quick Stats
+
+
+
+- **P0**: ✅ ALL COMPLETE (9/9 done)
+
+- **P1**: ✅ ALL COMPLETE (6/6 done)
+
+- **P2**: 🟡 Core complete, 2 polish items remain
+
+- **P3**: ⏸️ Deferred (0/3 started)
+
+- **P4**: ⏸️ Deferred (0/4 started)
+
+- **Bugs**: 🔴 88 open (58 LangChain test gaps + 30 UI issues)
+
+
+
+**Legend**:
+
+- `[ ]` Not Started (available for work)
+
+- `[~]` In Progress (locked by agent - includes agent name + start timestamp)
+
+- `[x]` Completed (includes completion date)
+
+- ✅ Complete | 🟡 In Progress | 🔴 High Priority | ⏸️ Paused
+
+
+
+**Task Locking Format**:
+
+```
+
+[~] Task-ID: Description (Agent: Name, Started: YYYY-MM-DD HH:MM UTC) → source:line
+
+[x] Task-ID: Description (Agent: Name, Completed: YYYY-MM-DD) → source:line
+
+```
+
+
+
+---
+
+
+
+## P0 (Critical / Immediate)
+
+
+
+✅ **ALL COMPLETE** (2025-10-26)
+
+
+
+- [x] P0-BUG-001: Stale Clip Cleanup → ROADMAP.md:68-72
+
+- [x] P0-BUG-002: Unsafe Type Casting → ROADMAP.md:73-79
+
+- [x] P0-BUG-003: Checkpoint System → ROADMAP.md:80-84
+
+- [x] P0-BUG-004: Improve Resumable Checkpoints → ROADMAP.md:87-91
+
+- [x] P0-BUG-005: Surface Chunking Failures → ROADMAP.md:92-98
+
+- [x] P0-BUG-006: Refine Snippet Placeholder Output → ROADMAP.md:99-105
+
+- [x] P0-REFACTOR-001: Extract Campaign Dashboard → ROADMAP.md:118-124
+
+- [x] P0-REFACTOR-002: Extract Story Generation → ROADMAP.md:126-132
+
+- [x] P0-REFACTOR-003: Split app.py into UI Modules → ROADMAP.md:134-139
+
+
+
+---
+
+
+
+## P1 (High Impact)
+
+
+
+✅ **ALL COMPLETE** (6/6 done as of 2025-11-02)
+
+
+
+- [x] P1-FEATURE-001: Automatic Character Profile Extraction (2025-10-31) → IMPLEMENTATION_PLANS_PART2.md:29
+
+- [x] P1-FEATURE-002: Streaming Snippet Export (2025-11-01) → IMPLEMENTATION_PLANS_PART2.md:138
+
+- [x] P1-FEATURE-003: Batch Processing (2025-10-24) → ROADMAP.md:218-228
+
+- [x] P1-FEATURE-004: Gradio UI Modernization (2025-11-01) → docs/UI_MODERNIZATION_PROPOSAL.md
+
+- [x] P1-FEATURE-005: Campaign Lifecycle Manager (2025-11-02) → IMPLEMENTATION_PLANS_PART2.md:452
+
+- [x] P1-MAINTENANCE-001: Session Cleanup & Validation (2025-11-01) → IMPLEMENTATION_PLANS_PART2.md:704
+
+
+
+---
+
+
+
+## P2 (Important Enhancements)
+
+
+
+🟡 **Core Complete, Polish Remaining** (2/4 done)
+
+
+
+### Completed
+
+- [x] P2-LANGCHAIN-001: Conversational Campaign Interface (2025-10-25) → IMPLEMENTATION_PLANS_PART3.md:31
+
+- [x] P2-LANGCHAIN-002: Semantic Search with RAG (2025-10-25) → IMPLEMENTATION_PLANS_PART3.md:286
+
+- [x] P2.1-SECURITY: All critical security fixes (2025-10-25) → docs/LANGCHAIN_SECURITY_FIXES.md
+
+- [x] P2.1-TESTING: LangChain test coverage expansion (2025-11-06) → ROADMAP.md:340-352
+
+  - **Achievement**: 49% → 87% coverage (+38pp) - 70 new tests added
+
+
+
+### Remaining
+
+- [ ] **P2.1-UX: Campaign Chat UI Improvements** (1-2 days) → ROADMAP.md:364-370
+
+  - Missing loading indicators during LLM calls
+
+  - Raw exceptions shown to users
+
+  - No conversation management (delete/rename)
+
+  - Sources only shown for last message
+
+  - See BUG_HUNT_TODO.md:150-198 for detailed list (12 UX bugs)
+
+
+
+- [ ] **P2-ANALYTICS: Session Analytics & Search** (3-4 days) → ROADMAP.md:379-420
+
+  - Session analytics dashboard
+
+  - Character analytics & filtering
+
+  - Session search functionality
+
+  - Complete OOC topic analysis (in progress)
+
+
+
+---
+
+
+
+## P3 (Future Enhancements)
+
+
+
+⏸️ **Deferred** - Focus on P2 polish first
+
+
+
+- [~] P3-FEATURE-001: Real-time Processing → IMPLEMENTATION_PLANS_PART4.md:33 (audio ingestion scaffolding exists)
+
+- [ ] P3-FEATURE-002: Multi-language Support → IMPLEMENTATION_PLANS_PART4.md:160
+
+- [ ] P3-FEATURE-003: Custom Speaker Labels → IMPLEMENTATION_PLANS_PART4.md:256
+
+
+
+---
+
+
+
+## P4 (Infrastructure & Quality)
+
+
+
+⏸️ **Deferred** - Incremental alongside features
+
+
+
+- [ ] P4-INFRA-001: Comprehensive Test Suite → IMPLEMENTATION_PLANS_PART4.md:270
+
+- [ ] P4-INFRA-002: CI/CD Pipeline → IMPLEMENTATION_PLANS_PART4.md:340
+
+- [ ] P4-INFRA-003: Performance Profiling → IMPLEMENTATION_PLANS_PART4.md:411
+
+- [ ] P4-DOCS-001: API Documentation → IMPLEMENTATION_PLANS_PART4.md:477
+
+
+
+---
+
+
+
+## Bugs - LangChain Test Gaps
+
+
+
+🔴 **58 Test Coverage Gaps** (from 2025-11-02 bug hunt)
+
+
+
+**Source**: [BUG_HUNT_TODO.md:1-148](BUG_HUNT_TODO.md#area-1-langchain-test-coverage-p21-testing)
+
+
+
+### High Priority Integration Tests (8 bugs)
+
+- [ ] BUG-20251102-01: CampaignChatClient.ask - Add integration tests for full RAG pipeline → BUG_HUNT_TODO.md:9
+
+- [ ] BUG-20251102-08: CampaignChatChain.ask - Add integration tests for full chain → BUG_HUNT_TODO.md:37
+
+- [ ] BUG-20251102-18: HybridSearcher.search - Integration tests with real instances → BUG_HUNT_TODO.md:77
+
+- [ ] BUG-20251102-22: CampaignRetriever.retrieve - Integration tests with real files → BUG_HUNT_TODO.md:93
+
+- [ ] BUG-20251102-26: CampaignVectorStore.add_transcript_segments - Test with large batches → BUG_HUNT_TODO.md:109
+
+- [ ] BUG-20251102-32: General - Add performance tests for LangChain components → BUG_HUNT_TODO.md:132
+
+- [ ] BUG-20251102-33: General - Add concurrency tests for clients → BUG_HUNT_TODO.md:136
+
+- [ ] BUG-20251102-35: General - Add tests for error paths and edge cases → BUG_HUNT_TODO.md:145
+
+
+
+### Medium Priority Tests (42 bugs)
+
+- [ ] BUG-20251102-02: CampaignChatClient.ask - Test various context inputs → BUG_HUNT_TODO.md:13
+
+- [ ] BUG-20251102-03: CampaignChatClient.ask - Test retriever failure handling → BUG_HUNT_TODO.md:17
+
+- [ ] BUG-20251102-04: CampaignChatClient.ask - Test LLM failure handling → BUG_HUNT_TODO.md:21
+
+- [ ] BUG-20251102-07: _load_system_prompt - Test campaign placeholders → BUG_HUNT_TODO.md:33
+
+- [ ] BUG-20251102-09: CampaignChatChain.ask - Test various questions/sources → BUG_HUNT_TODO.md:41
+
+- [ ] BUG-20251102-10: CampaignChatChain.ask - Test chain failure handling → BUG_HUNT_TODO.md:45
+
+- [ ] BUG-20251102-12: ConversationStore.add_message - Test updating relevant_sessions → BUG_HUNT_TODO.md:53
+
+- [ ] BUG-20251102-13: ConversationStore.load_conversation - Test corrupted JSON → BUG_HUNT_TODO.md:57
+
+- [ ] BUG-20251102-14: ConversationStore.list_conversations - Test with large numbers → BUG_HUNT_TODO.md:61
+
+- [ ] BUG-20251102-15: ConversationStore.list_conversations - Test corrupted files → BUG_HUNT_TODO.md:65
+
+- [ ] BUG-20251102-19: HybridSearcher.search - Test varying top_k/semantic_weight → BUG_HUNT_TODO.md:81
+
+- [ ] BUG-20251102-20: HybridSearcher.search - Test when one search method fails → BUG_HUNT_TODO.md:85
+
+- [ ] BUG-20251102-21: HybridSearcher._reciprocal_rank_fusion - Test complex scenarios → BUG_HUNT_TODO.md:89
+
+- [ ] BUG-20251102-23: CampaignRetriever._search_knowledge_bases - Test various query types → BUG_HUNT_TODO.md:97
+
+- [ ] BUG-20251102-24: CampaignRetriever._search_transcripts - Test matching scenarios → BUG_HUNT_TODO.md:101
+
+- [ ] BUG-20251102-25: CampaignRetriever._load_knowledge_base - Test cache eviction → BUG_HUNT_TODO.md:105
+
+- [ ] BUG-20251102-27: CampaignVectorStore.add_knowledge_documents - Test various structures → BUG_HUNT_TODO.md:113
+
+- [ ] BUG-20251102-28: CampaignVectorStore.search - Test collection parameter → BUG_HUNT_TODO.md:117
+
+- [ ] BUG-20251102-30: CampaignVectorStore.clear_all - Test destructive operation → BUG_HUNT_TODO.md:125
+
+- [ ] BUG-20251102-34: General - Improve test data complexity → BUG_HUNT_TODO.md:141
+
+- [ ] BUG-20251102-48: Character Profile Extraction - Test unusual names/dialogue → BUG_HUNT_TODO.md:200
+
+- [ ] BUG-20251102-49: Character Profile Extraction - Test long transcripts (HIGH) → BUG_HUNT_TODO.md:204
+
+- [ ] BUG-20251102-50: Character Profile Extraction - Verify save/load → BUG_HUNT_TODO.md:208
+
+- [ ] BUG-20251102-51: UI Modernization - Test responsiveness on different screens → BUG_HUNT_TODO.md:212
+
+- [ ] BUG-20251102-52: UI Modernization - Verify progressive disclosure → BUG_HUNT_TODO.md:217
+
+- [ ] BUG-20251102-53: UI Modernization - Check for broken links/elements → BUG_HUNT_TODO.md:221
+
+- [ ] BUG-20251102-54: Campaign Lifecycle Manager - Test creation/loading/switching (HIGH) → BUG_HUNT_TODO.md:225
+
+- [ ] BUG-20251102-55: Campaign Lifecycle Manager - Verify campaign-aware UI → BUG_HUNT_TODO.md:229
+
+- [ ] BUG-20251102-56: Campaign Lifecycle Manager - Test migration edge cases → BUG_HUNT_TODO.md:233
+
+- [ ] BUG-20251102-57: General P1 - Check for performance regressions (HIGH) → BUG_HUNT_TODO.md:237
+
+- [ ] BUG-20251102-58: General P1 - Review logs for unexpected errors → BUG_HUNT_TODO.md:241
+
+
+
+### Low Priority Tests (8 bugs)
+
+- [ ] BUG-20251102-05: _initialize_llm - Test Ollama fallback → BUG_HUNT_TODO.md:25
+
+- [ ] BUG-20251102-06: _initialize_memory - Test ConversationBufferMemory fallbacks → BUG_HUNT_TODO.md:29
+
+- [ ] BUG-20251102-11: ConversationStore.add_message - Test with/without sources → BUG_HUNT_TODO.md:49
+
+- [ ] BUG-20251102-16: ConversationStore.delete_conversation - Test non-existent → BUG_HUNT_TODO.md:69
+
+- [ ] BUG-20251102-17: ConversationStore.get_chat_history - Test empty conversation → BUG_HUNT_TODO.md:73
+
+- [ ] BUG-20251102-29: CampaignVectorStore.delete_session - Test session with no segments → BUG_HUNT_TODO.md:121
+
+- [ ] BUG-20251102-31: CampaignVectorStore.get_stats - Test empty/populated collections → BUG_HUNT_TODO.md:129
+
+
+
+---
+
+
+
+## Bugs - UI Dashboard Issues
+
+
+
+🔴 **30 UI Issues** (from 2025-11-03 bug hunt)
+
+
+
+**Source**: [BUG_HUNT_TODO.md:253-446](BUG_HUNT_TODO.md#area-4-ui-dashboard-issues-2025-11-03) | **Quick Ref**: [BUG_SUMMARY.md](BUG_SUMMARY.md)
+
+
+
+### High Priority (6 bugs)
+
+- [~] BUG-20251103-006: Process Session - No client-side validation (Agent: Codex, Started: 2025-11-06 15:42 UTC) → BUG_HUNT_TODO.md:283 | app.py:509-601
+
+- [ ] BUG-20251103-008: Process Session - No progress indicator during processing → BUG_HUNT_TODO.md:295 | app.py:509-601
+
+- [ ] BUG-20251103-019: Live Session - Non-functional placeholder tab → BUG_HUNT_TODO.md:367 | src/ui/live_session_tab.py:92-163
+
+- [x] BUG-20251103-022: Social Insights - WordCloud dependency not handled gracefully (Agent: Gemini, Completed: 2025-11-06) → BUG_HUNT_TODO.md:387 | src/ui/social_insights_tab.py:20
+
+- [ ] BUG-20251103-027: Global - No conflict detection for concurrent operations → BUG_HUNT_TODO.md:421 | Multiple files
+
+
+
+### Medium Priority (13 bugs)
+
+- [ ] BUG-20251103-002: Main Dashboard - Campaign state not persisted across refreshes → BUG_HUNT_TODO.md:257 | app.py:623
+
+- [ ] BUG-20251103-004: Campaign Launcher - Dropdown not refreshed on external changes → BUG_HUNT_TODO.md:269 | app.py:630-635
+
+- [ ] BUG-20251103-007: Process Session - Results section doesn't auto-scroll → BUG_HUNT_TODO.md:289 | src/ui/process_session_tab_modern.py:219-226
+
+- [ ] BUG-20251103-009: Process Session - Audio path resolution inconsistent → BUG_HUNT_TODO.md:301 | app.py:499-507
+
+- [ ] BUG-20251103-011: Campaign Tab - Static content, no interactive features → BUG_HUNT_TODO.md:315 | src/ui/campaign_tab_modern.py:9-46
+
+- [ ] BUG-20251103-013: Campaign Dashboard - No error recovery for corrupted files → BUG_HUNT_TODO.md:327 | app.py:300-335
+
+- [ ] BUG-20251103-017: Campaign Dashboard - Sessions not filtered by campaign → BUG_HUNT_TODO.md:353 | src/campaign_dashboard.py:119-136
+
+- [ ] BUG-20251103-018: Campaign Dashboard - Narratives include other campaigns → BUG_HUNT_TODO.md:359 | src/campaign_dashboard.py:146-148
+
+- [ ] BUG-20251103-021: Social Insights - No loading indicator during analysis → BUG_HUNT_TODO.md:381 | src/ui/social_insights_tab.py:16-64
+
+- [ ] BUG-20251103-025: Settings & Tools - Static markdown only, no interactive controls → BUG_HUNT_TODO.md:407 | src/ui/settings_tools_tab_modern.py:29-41
+
+- [ ] BUG-20251103-026: Global - Campaign context update triggers excessive re-renders → BUG_HUNT_TODO.md:415 | app.py:681-778
+
+- [ ] BUG-20251103-028: Global - Error messages expose internal file paths/stack traces → BUG_HUNT_TODO.md:427 | Multiple files
+
+- [ ] BUG-20251103-029: Data - Session library doesn't verify campaign_id before display → BUG_HUNT_TODO.md:435 | app.py:397-426
+
+
+
+### Low Priority (11 bugs)
+
+- [ ] BUG-20251103-003: Campaign Launcher - No validation for empty/whitespace names → BUG_HUNT_TODO.md:263 | app.py:780-843
+
+- [ ] BUG-20251103-005: Campaign Manifest - Exception handling too broad → BUG_HUNT_TODO.md:275 | app.py:Multiple
+
+- [ ] BUG-20251103-010: Process Session - Name parsing doesn't handle edge cases → BUG_HUNT_TODO.md:307 | app.py:542-543
+
+- [ ] BUG-20251103-012: Campaign Dashboard - Knowledge base sample truncated without indication → BUG_HUNT_TODO.md:321 | app.py:337-366
+
+- [ ] BUG-20251103-014: Campaign Dashboard - Personality text truncated mid-word → BUG_HUNT_TODO.md:335 | src/campaign_dashboard.py:101
+
+- [ ] BUG-20251103-015: Campaign Dashboard - Health percentage edge case → BUG_HUNT_TODO.md:341 | src/campaign_dashboard.py:196
+
+- [ ] BUG-20251103-016: Campaign Dashboard - Managers instantiated multiple times → BUG_HUNT_TODO.md:347 | src/campaign_dashboard.py:20-22
+
+- [ ] BUG-20251103-020: Live Session - Stop button enabled before Start → BUG_HUNT_TODO.md:373 | src/ui/live_session_tab.py:111-115
+
+- [ ] BUG-20251103-023: Social Insights - Temp file cleanup not guaranteed → BUG_HUNT_TODO.md:393 | src/ui/social_insights_tab.py:49-50
+
+- [ ] BUG-20251103-024: Social Insights - Stale nebula after campaign filter change → BUG_HUNT_TODO.md:399 | src/ui/social_insights_tab.py:130-134
+
+- [ ] BUG-20251103-030: Data - Profile filtering logic flaw with None handling → BUG_HUNT_TODO.md:441 | Multiple files
+
+
+
+---
+
+
+
+## Resolved Bugs
+
+
+
+### 2025-11-02
+
+- [x] BUG-20251102-111: Gradio NamedString coercion in audio_processor.py → BUG_HUNT_TODO.md:247
+
+
+
+### 2025-11-03
+
+- [x] BUG-20251103-001: Stage 2 NameError in HybridChunker progress callback → BUG_HUNT_TODO.md:251
+
+
+
+---
+
+
+
+## Recommended Work Order
+
+
+
+### Week 1: Critical UX Quick Wins
+
+1. BUG-20251103-006 - Add client-side validation to Process Session
+
+2. BUG-20251103-019 - Hide/disable Live Session tab (mark "Coming Soon")
+
+3. BUG-20251103-022 - Better WordCloud dependency error handling
+
+
+
+### Week 2: Data Integrity & Core Functionality
+
+4. BUG-20251103-027 - Add concurrent operation locking/coordination
+
+5. BUG-20251103-017 - Fix campaign filtering in dashboard sessions
+
+6. BUG-20251103-018 - Fix campaign filtering in dashboard narratives
+
+7. BUG-20251103-008 - Implement progress indicators for long operations
+
+
+
+### Week 3: UX Polish
+
+8. P2.1-UX Campaign Chat improvements (12 UX bugs from BUG_HUNT_TODO.md:150-198)
+
+9. BUG-20251103-007 - Auto-scroll to results
+
+10. BUG-20251103-021 - Add loading indicators to Social Insights
+
+
+
+### Month 2: Testing & Analytics
+
+11. High-priority LangChain integration tests (8 bugs: BUG-20251102-01, 08, 18, 22, 26, 32, 33, 35)
+
+12. P2-ANALYTICS features (session analytics, search, character filtering)
+
+13. Medium-priority UI fixes (remaining 13 medium bugs)
+
+
+
+### Month 3+: Remaining Quality & P3/P4
+
+14. Medium/Low priority LangChain tests (50 remaining test gaps)
+
+15. Low priority UI bugs (11 bugs)
+
+16. P3 features (if business priority shifts)
+
+17. P4 infrastructure (CI/CD, profiling, API docs)
+
+
+
+---
+
+
+
+## Notes
+
+
+
+- **Testing Strategy**: LangChain coverage improved from 49% → 87% (2025-11-06), but 58 test gaps remain for edge cases, integration scenarios, and performance benchmarks
+
+- **UI State**: Modern UI launched 2025-11-01, but 30 bugs discovered in functionality, data filtering, and error handling
+
+- **P2.1 Polish**: Core LangChain features work, but UX needs refinement (loading indicators, error messages, conversation management)
+
+- **Campaign Isolation**: Multiple bugs (BUG-20251103-017, 018, 029) indicate campaign filtering not consistently applied across dashboard components
+
+
+
+---
+
+
+
+**For detailed context, see**:
+
+- [ROADMAP.md](../ROADMAP.md) - Full feature roadmap with status
+
+- [BUG_HUNT_TODO.md](BUG_HUNT_TODO.md) - Detailed bug descriptions with reproduction steps
+
+- [BUG_SUMMARY.md](BUG_SUMMARY.md) - Quick reference for UI bugs
+
+- [IMPLEMENTATION_PLANS_SUMMARY.md](../IMPLEMENTATION_PLANS_SUMMARY.md) - Sprint planning & effort estimates
+

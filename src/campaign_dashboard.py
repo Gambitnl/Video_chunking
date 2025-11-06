@@ -116,48 +116,42 @@ class CampaignDashboard:
             details += f"```\n{str(e)}\n```\n"
             return ComponentStatus(False, "Character Profiles (error)", details)
 
-    def _check_processed_sessions(self, campaign_id: Optional[str] = None) -> ComponentStatus:
+    def _check_processed_sessions(self, campaign_id: str) -> ComponentStatus:
+        """
+        Check for processed sessions belonging to the specified campaign.
+
+        Args:
+            campaign_id: Campaign identifier to filter sessions by
+
+        Returns:
+            ComponentStatus indicating session availability for this campaign
+        """
         try:
-            session_dirs = [d for d in Config.OUTPUT_DIR.iterdir() if d.is_dir()] if Config.OUTPUT_DIR.exists() else []
+            all_session_dirs = [d for d in Config.OUTPUT_DIR.iterdir() if d.is_dir()] if Config.OUTPUT_DIR.exists() else []
 
-            # Filter sessions by campaign_id if provided, but keep incomplete/corrupted visible
-            filtered_sessions = []
-            for session_dir in session_dirs:
-                # Find the *_data.json file
+            # Filter sessions by campaign_id
+            campaign_sessions = []
+            for session_dir in all_session_dirs:
+                # Find the session's _data.json file
                 data_files = list(session_dir.glob('*_data.json'))
-                if len(data_files) == 0:
-                    # Include incomplete sessions (no metadata to filter by)
-                    # Show them in all campaigns so users can spot failures
-                    filtered_sessions.append((session_dir, 'incomplete'))
-                    continue
-                elif len(data_files) > 1:
-                    # Include ambiguous sessions (multiple metadata files)
-                    # Show them in all campaigns so users can investigate
-                    filtered_sessions.append((session_dir, 'ambiguous'))
-                    continue
+                if data_files:
+                    try:
+                        with open(data_files[0], 'r', encoding='utf-8') as f:
+                            metadata = json.load(f)
+                            if isinstance(metadata, dict):
+                                # Check if session belongs to this campaign
+                                session_campaign_id = metadata.get('campaign_id')
+                                if session_campaign_id == campaign_id:
+                                    campaign_sessions.append(session_dir)
+                                # Handle legacy sessions without campaign_id (exclude them)
+                                # Empty campaign_id is treated as not matching
+                    except (json.JSONDecodeError, IOError):
+                        # Skip sessions with invalid or unreadable metadata
+                        continue
 
-                # Read metadata to check campaign_id
-                try:
-                    data_file = data_files[0]
-                    with open(data_file, 'r', encoding='utf-8') as f:
-                        data = json.load(f)
-                        session_campaign_id = data.get('metadata', {}).get('campaign_id')
-
-                        # Include session if:
-                        # 1. No campaign_id filter specified (show all)
-                        # 2. Session matches the campaign_id
-                        # 3. Legacy session (no campaign_id) and no filter specified
-                        if campaign_id is None or session_campaign_id == campaign_id:
-                            filtered_sessions.append((session_dir, 'complete'))
-                except (json.JSONDecodeError, IOError):
-                    # Include corrupted sessions so users can see them
-                    # Show in all campaigns since we can't determine ownership
-                    filtered_sessions.append((session_dir, 'corrupted'))
-                    continue
-
-            if filtered_sessions:
-                details = f"{StatusIndicators.SUCCESS} **Status**: {len(filtered_sessions)} session(s) found\n\n"
-                recent = sorted(filtered_sessions, key=lambda item: item[0].stat().st_mtime, reverse=True)[:5]
+            if campaign_sessions:
+                details = f"{StatusIndicators.SUCCESS} **Status**: {len(campaign_sessions)} session(s) found\n\n"
+                recent = sorted(campaign_sessions, key=lambda d: d.stat().st_mtime, reverse=True)[:5]
                 details += "**Recent Sessions:**\n"
                 for session_dir, status in recent:
                     if status == 'complete':
@@ -170,7 +164,7 @@ class CampaignDashboard:
                         details += f"- `{session_dir.name}` (corrupted metadata)\n"
                 return ComponentStatus(True, "Processed Sessions", details)
             else:
-                details = f"{StatusIndicators.WARNING} **Status**: No sessions processed yet\n\n"
+                details = f"{StatusIndicators.WARNING} **Status**: No sessions processed yet for this campaign\n\n"
                 details += "**Action**: Go to **Process Session** tab → Process your first recording\n"
                 return ComponentStatus(False, "Processed Sessions (none)", details)
         except Exception as e:

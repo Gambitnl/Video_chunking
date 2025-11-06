@@ -38,6 +38,7 @@ This directory contains all the documentation for the D&D Session Processor. Bel
 ### Development & Agent Workflows
 
 - **[TROUBLESHOOTING.md](./TROUBLESHOOTING.md)**: A guide to common problems and their solutions.
+- **[LOGGING_GUIDE.md](./LOGGING_GUIDE.md)**: Reference for runtime logging controls and the audit trail.
 
 - **[AGENT_ONBOARDING.md](../AGENT_ONBOARDING.md)**: (In root) **START HERE** - Comprehensive onboarding guide with structured reading path for new AI agents and contributors. Tells you what to read and in what order.
 - **[DEVELOPMENT.md](./DEVELOPMENT.md)**: A development chronicle logging major implementation and refactoring sessions.

@@ -105,11 +105,13 @@ Read("docs/OUTSTANDING_TASKS.md")
 - This is available work
 - Check source reference (→ filename:line) for detailed context
 - Review estimated effort and dependencies
+- **BEFORE starting**: Mark as `[~]` with your agent name and timestamp (prevents duplicate work)
 
 **If task is `[~] In progress`:**
-- May be partially complete or abandoned
-- Review git history and recent commits
-- Ask user if they want you to continue this work
+- **Another agent is working on this - DO NOT START**
+- Check the timestamp: If >24 hours old, agent may have abandoned it
+- If abandoned, ask user for permission to take over
+- If recently started, choose a different task
 
 ### Step 3: Follow Source References for Context
 
@@ -655,8 +657,16 @@ If no, simplify.
 
 ### Keep Plans in Sync - Update ALL Affected Sections:
 
+**When starting work on a task (REQUIRED - prevents duplicate work):**
+- [ ] **IMMEDIATELY**: Mark as `[~]` in `docs/OUTSTANDING_TASKS.md` with agent name and timestamp
+  ```
+  [~] Task-ID: Task name (Agent: Claude/GPT-4/Gemini, Started: 2025-11-06 12:30 UTC) → source:line
+  ```
+- [ ] This locks the task so other agents see it's in progress
+- [ ] Commit the change: `git add docs/OUTSTANDING_TASKS.md && git commit -m "Lock task: Task-ID"`
+
 **When marking tasks complete:**
-- [ ] **PRIMARY**: Mark as `[x]` in `docs/OUTSTANDING_TASKS.md` - This is the single source of truth
+- [ ] **PRIMARY**: Update `[~]` to `[x]` in `docs/OUTSTANDING_TASKS.md` - This is the single source of truth
 - [ ] Status tables in ROADMAP.md (P0, P1, P2 sections) - For detailed context
 - [ ] IMPLEMENTATION_PLANS_SUMMARY.md status - For sprint planning
 - [ ] Sprint summaries and progress percentages
@@ -665,14 +675,15 @@ If no, simplify.
 - [ ] Remove completed items from recommendations
 
 **Document Hierarchy** (update in this order):
-1. **docs/OUTSTANDING_TASKS.md** - Master checklist (MUST update first)
+1. **docs/OUTSTANDING_TASKS.md** - Master checklist (MUST update first - both start and completion)
 2. **ROADMAP.md** - Detailed status and metrics
 3. **IMPLEMENTATION_PLANS_SUMMARY.md** - Sprint planning view
 4. **IMPLEMENTATION_PLANS_PART*.md** - Implementation details (if needed)
 
 **Status format:**
 ```
-[x] Task-ID: Task name (YYYY-MM-DD) → source:line
+[~] Task-ID: Task name (Agent: <name>, Started: YYYY-MM-DD HH:MM UTC) → source:line  # In progress
+[x] Task-ID: Task name (Agent: <name>, Completed: YYYY-MM-DD) → source:line          # Complete
 ```
 
 **Progress tracking:**
@@ -831,7 +842,9 @@ Translate the session's process improvements into a generalized prompt adjustmen
 [ ] Recent health check valid? (local agents: check docs/TESTING.md Summary Log)
 [ ] System healthy? (local agents: run check_pipeline_health if >24hrs or failed)
 [ ] Checked docs/OUTSTANDING_TASKS.md? (PRIMARY source - all open work in one place)
-[ ] Task actually needed? (verify not marked [x] complete in OUTSTANDING_TASKS.md)
+[ ] Task not [x] complete or [~] in progress? (verify no other agent working on it)
+[ ] LOCKED TASK in OUTSTANDING_TASKS.md? (mark [~] with agent name + timestamp)
+[ ] Committed task lock? (git add/commit OUTSTANDING_TASKS.md immediately)
 [ ] Task in OUTSTANDING_TASKS.md? (if yes, check source reference for details)
 [ ] "Done" criteria clear? (files, tests, docs)
 [ ] Existing patterns understood? (read related code)
@@ -1060,8 +1073,68 @@ For session-specific work completed, timestamps, and detailed "what went well / 
 
 ---
 
+---
+
+## XVIII. Single-Prompt Session Kickoff
+
+**Copy-paste this prompt to start any session:**
+
+```
+Read WORK_INITIATION_PROMPT.md and docs/OUTSTANDING_TASKS.md.
+
+Session mode: [Choose one: DISCOVER / CONTINUE / SPECIFIC]
+- DISCOVER: Recommend 2-3 high-priority tasks from Week 1 work order
+- CONTINUE: Resume last incomplete work from git history
+- SPECIFIC: [Provide task ID or description]
+
+Skip all testing and health checks.
+
+Once you identify work:
+1. Verify task not marked [x] complete or [~] in progress in OUTSTANDING_TASKS.md
+2. Read source reference for full context
+3. **BEFORE starting work**: Mark task as [~] in OUTSTANDING_TASKS.md with format:
+   `[~] Task-ID: Task name (Agent: <your-name>, Started: YYYY-MM-DD HH:MM UTC)`
+4. Confirm scope and start implementation
+5. When complete, update to [x] with completion date in OUTSTANDING_TASKS.md
+```
+
+**Example usage:**
+
+```
+Read WORK_INITIATION_PROMPT.md and docs/OUTSTANDING_TASKS.md.
+Session mode: DISCOVER
+Skip all testing and health checks.
+```
+
+Or with specific task:
+
+```
+Read WORK_INITIATION_PROMPT.md and docs/OUTSTANDING_TASKS.md.
+Session mode: SPECIFIC - BUG-20251103-006 (client-side validation)
+Skip all testing and health checks.
+```
+
+**Example task locking workflow:**
+
+```
+# Agent finds available task
+- [ ] BUG-20251103-006: Process Session - No client-side validation → BUG_HUNT_TODO.md:283
+
+# Agent immediately locks it BEFORE starting work
+- [~] BUG-20251103-006: Process Session - No client-side validation (Agent: Claude-Sonnet-4.5, Started: 2025-11-06 12:45 UTC) → BUG_HUNT_TODO.md:283
+
+# Commit lock immediately
+git add docs/OUTSTANDING_TASKS.md
+git commit -m "Lock task: BUG-20251103-006 - client-side validation (Claude-Sonnet-4.5)"
+
+# After completion, update to complete
+- [x] BUG-20251103-006: Process Session - No client-side validation (Agent: Claude-Sonnet-4.5, Completed: 2025-11-06 14:20) → BUG_HUNT_TODO.md:283
+```
+
+---
+
 **End of Work Initiation Prompt**
 
-Begin each session by running system health checks, validating the task isn't already complete, and establishing clear success criteria. Work in small, testable increments. Surface uncertainty. Document reasoning. Deliver complete, maintainable solutions.
+Begin each session by clarifying user intent, validating tasks aren't already complete, and establishing clear success criteria. Work in small, testable increments. Surface uncertainty. Document reasoning. Deliver complete, maintainable solutions.
 
 **Remember**: Focus on extracting **timeless patterns** from your work, not documenting session changelogs (that's what git log is for).

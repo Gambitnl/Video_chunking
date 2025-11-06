@@ -6,9 +6,25 @@ from rich.table import Table
 from src.pipeline import DDSessionProcessor
 from src.config import Config
 from src.logger import get_log_file_path, set_console_log_level, LOG_LEVEL_CHOICES
+from src.audit import log_audit_event, audit_enabled
 from src.story_notebook import StoryNotebookManager, load_notebook_context_file
 
 console = Console()
+
+
+def _audit(ctx, action: str, *, status: str = "info", **metadata):
+    """Record an audit event when auditing is enabled."""
+    context = ctx.obj or {}
+    if not context.get("audit_enabled", audit_enabled()):
+        return
+    actor = context.get("audit_actor") or Config.AUDIT_LOG_ACTOR
+    log_audit_event(
+        action,
+        actor=actor,
+        source="cli",
+        status=status,
+        metadata=metadata or {},
+    )
 
 
 @click.group()
@@ -18,11 +34,24 @@ console = Console()
     default=None,
     help="Set console log verbosity for this CLI session."
 )
+@click.option(
+    "--audit-actor",
+    default=None,
+    help="Label audit log entries for this session (default: AUDIT_LOG_ACTOR)."
+)
+@click.option(
+    "--no-audit",
+    is_flag=True,
+    help="Temporarily disable audit logging for this CLI invocation."
+)
 @click.pass_context
-def cli(ctx, log_level):
+def cli(ctx, log_level, audit_actor, no_audit):
     """D&D Session Transcription & Diarization System"""
+    ctx.ensure_object(dict)
     if log_level:
         set_console_log_level(log_level)
+    ctx.obj["audit_actor"] = audit_actor or Config.AUDIT_LOG_ACTOR
+    ctx.obj["audit_enabled"] = Config.AUDIT_LOG_ENABLED and not no_audit
 
 
 @cli.command()
@@ -79,7 +108,9 @@ def cli(ctx, log_level):
     default=4,
     help='Expected number of speakers (default: 4)'
 )
+@click.pass_context
 def process(
+    ctx,
     input_file,
     session_id,
     party,
@@ -121,6 +152,18 @@ def process(
         )
 
     # Process
+    _audit(
+        ctx,
+        "cli.process.start",
+        session_id=session_id,
+        input_file=str(input_path),
+        party=party,
+        skip_diarization=skip_diarization,
+        skip_classification=skip_classification,
+        skip_snippets=skip_snippets,
+        num_speakers=num_speakers,
+    )
+
     try:
         result = processor.process(
             input_file=input_path,
@@ -133,10 +176,25 @@ def process(
         # Show success message
         console.print("\n[bold green]✓ Processing completed successfully![/bold green]")
         console.print(f"[dim]Verbose log: {get_log_file_path()}[/dim]")
+        _audit(
+            ctx,
+            "cli.process.complete",
+            status="success",
+            session_id=session_id,
+            output_dir=str(output_dir) if output_dir else None,
+            stats=(result or {}).get("statistics", {}),
+        )
 
     except Exception as e:
         console.print(f"\n[bold red]✗ Processing failed: {e}[/bold red]")
         console.print(f"[dim]Inspect log for details: {get_log_file_path()}[/dim]")
+        _audit(
+            ctx,
+            "cli.process.error",
+            status="error",
+            session_id=session_id,
+            error=str(e),
+        )
         raise click.Abort()
 
 
@@ -144,7 +202,8 @@ def process(
 @click.argument('session_id')
 @click.argument('speaker_id')
 @click.argument('person_name')
-def map_speaker(session_id, speaker_id, person_name):
+@click.pass_context
+def map_speaker(ctx, session_id, speaker_id, person_name):
     """
     Map a speaker ID to a person name.
 
@@ -156,6 +215,14 @@ def map_speaker(session_id, speaker_id, person_name):
     manager.map_speaker(session_id, speaker_id, person_name)
 
     console.print(f"[green]✓ Mapped {speaker_id} → {person_name} for session {session_id}[/green]")
+    _audit(
+        ctx,
+        "cli.speakers.map",
+        status="success",
+        session_id=session_id,
+        speaker_id=speaker_id,
+        person_name=person_name,
+    )
 
 
 @cli.command()
@@ -256,7 +323,8 @@ def show_party(party_id):
 @cli.command()
 @click.argument('party_id')
 @click.argument('output_file', type=click.Path())
-def export_party(party_id, output_file):
+@click.pass_context
+def export_party(ctx, party_id, output_file):
     """
     Export a party configuration to a JSON file.
 
@@ -269,15 +337,31 @@ def export_party(party_id, output_file):
     try:
         manager.export_party(party_id, Path(output_file))
         console.print(f"[green]SUCCESS: Exported party '{party_id}' to {output_file}[/green]")
+        _audit(
+            ctx,
+            "cli.party.export",
+            status="success",
+            party_id=party_id,
+            output=str(Path(output_file).resolve()),
+        )
     except ValueError as e:
         console.print(f"[red]ERROR: {e}[/red]")
+        _audit(
+            ctx,
+            "cli.party.export",
+            status="error",
+            party_id=party_id,
+            output=str(Path(output_file).resolve()),
+            error=str(e),
+        )
         raise click.Abort()
 
 
 @cli.command()
 @click.argument('input_file', type=click.Path(exists=True))
 @click.option('--party-id', help='Override party ID from file')
-def import_party(input_file, party_id):
+@click.pass_context
+def import_party(ctx, input_file, party_id):
     """
     Import a party configuration from a JSON file.
 
@@ -291,14 +375,30 @@ def import_party(input_file, party_id):
     try:
         imported_id = manager.import_party(Path(input_file), party_id)
         console.print(f"[green]SUCCESS: Imported party as '{imported_id}'[/green]")
+        _audit(
+            ctx,
+            "cli.party.import",
+            status="success",
+            imported_id=imported_id,
+            input=str(Path(input_file).resolve()),
+        )
     except Exception as e:
         console.print(f"[red]ERROR: Error importing party: {e}[/red]")
+        _audit(
+            ctx,
+            "cli.party.import",
+            status="error",
+            input=str(Path(input_file).resolve()),
+            override_party_id=party_id,
+            error=str(e),
+        )
         raise click.Abort()
 
 
 @cli.command()
 @click.argument('output_file', type=click.Path())
-def export_all_parties(output_file):
+@click.pass_context
+def export_all_parties(ctx, output_file):
     """
     Export all party configurations to a JSON file.
 
@@ -312,8 +412,22 @@ def export_all_parties(output_file):
         manager.export_all_parties(Path(output_file))
         party_count = len(manager.list_parties())
         console.print(f"[green]SUCCESS: Exported {party_count} parties to {output_file}[/green]")
+        _audit(
+            ctx,
+            "cli.party.export_all",
+            status="success",
+            output=str(Path(output_file).resolve()),
+            count=party_count,
+        )
     except Exception as e:
         console.print(f"[red]ERROR: {e}[/red]")
+        _audit(
+            ctx,
+            "cli.party.export_all",
+            status="error",
+            output=str(Path(output_file).resolve()),
+            error=str(e),
+        )
         raise click.Abort()
 
 
@@ -375,7 +489,8 @@ def show_character(character_name, format, output):
 @cli.command()
 @click.argument('character_name')
 @click.argument('output_file', type=click.Path())
-def export_character(character_name, output_file):
+@click.pass_context
+def export_character(ctx, character_name, output_file):
     """Export a character profile to JSON file"""
     from src.character_profile import CharacterProfileManager
 
@@ -384,15 +499,31 @@ def export_character(character_name, output_file):
     try:
         manager.export_profile(character_name, Path(output_file))
         console.print(f"[green]SUCCESS: Exported character '{character_name}' to {output_file}[/green]")
+        _audit(
+            ctx,
+            "cli.character.export",
+            status="success",
+            character=character_name,
+            output=str(Path(output_file).resolve()),
+        )
     except ValueError as e:
         console.print(f"[red]ERROR: {e}[/red]")
+        _audit(
+            ctx,
+            "cli.character.export",
+            status="error",
+            character=character_name,
+            output=str(Path(output_file).resolve()),
+            error=str(e),
+        )
         raise click.Abort()
 
 
 @cli.command()
 @click.argument('input_file', type=click.Path(exists=True))
 @click.option('--character-name', help='Override character name from file')
-def import_character(input_file, character_name):
+@click.pass_context
+def import_character(ctx, input_file, character_name):
     """Import a character profile from JSON file"""
     from src.character_profile import CharacterProfileManager
 
@@ -401,8 +532,23 @@ def import_character(input_file, character_name):
     try:
         imported_name = manager.import_profile(Path(input_file), character_name)
         console.print(f"[green]SUCCESS: Imported character '{imported_name}'[/green]")
+        _audit(
+            ctx,
+            "cli.character.import",
+            status="success",
+            input=str(Path(input_file).resolve()),
+            imported_name=imported_name,
+        )
     except Exception as e:
         console.print(f"[red]ERROR: {e}[/red]")
+        _audit(
+            ctx,
+            "cli.character.import",
+            status="error",
+            input=str(Path(input_file).resolve()),
+            override_name=character_name,
+            error=str(e),
+        )
         raise click.Abort()
 
 
@@ -499,9 +645,11 @@ def sessions():
     """Manage and audit processed sessions."""
     pass
 
+
 @sessions.command()
 @click.option('--output', '-o', type=click.Path(), help='Save report to markdown file')
-def audit(output):
+@click.pass_context
+def audit(ctx, output):
     """Audit all processed sessions for issues."""
     from src.session_manager import SessionManager
 
@@ -509,75 +657,84 @@ def audit(output):
     manager = SessionManager()
     report = manager.audit_sessions()
 
-    # Print summary statistics
-    console.print(f"[bold]Total Sessions:[/bold] {report.total_sessions}")
+    totals = {
+        "total": report.total_sessions,
+        "empty": len(report.empty_sessions),
+        "incomplete": len(report.incomplete_sessions),
+        "stale": len(report.stale_checkpoints),
+        "potential_cleanup_mb": report.potential_cleanup_mb,
+    }
+
+    console.print(f"[bold]Total Sessions:[/bold] {totals['total']}")
     console.print(f"[bold]Valid Sessions:[/bold] {len(report.valid_sessions)} ({report.total_size_mb - report.empty_size_mb - report.incomplete_size_mb:.2f} MB)")
-    console.print(f"[bold]Empty Sessions:[/bold] {len(report.empty_sessions)} ({report.empty_size_mb:.2f} MB)")
-    console.print(f"[bold]Incomplete Sessions:[/bold] {len(report.incomplete_sessions)} ({report.incomplete_size_mb:.2f} MB)")
-    console.print(f"[bold]Stale Checkpoints:[/bold] {len(report.stale_checkpoints)} ({report.stale_checkpoint_size_mb:.2f} MB)")
+    console.print(f"[bold]Empty Sessions:[/bold] {totals['empty']} ({report.empty_size_mb:.2f} MB)")
+    console.print(f"[bold]Incomplete Sessions:[/bold] {totals['incomplete']} ({report.incomplete_size_mb:.2f} MB)")
+    console.print(f"[bold]Stale Checkpoints:[/bold] {totals['stale']} ({report.stale_checkpoint_size_mb:.2f} MB)")
     console.print(f"[bold cyan]Potential Cleanup:[/bold cyan] {report.potential_cleanup_mb:.2f} MB\n")
 
     if not (report.empty_sessions or report.incomplete_sessions or report.stale_checkpoints):
-        console.print("[bold green]✓ All sessions are in good condition.[/bold green]")
-        return
+        console.print("[bold green][OK] All sessions are in good condition.[/bold green]")
+    else:
+        if report.empty_sessions:
+            table = Table(title="Empty Sessions")
+            table.add_column("Session ID", style="cyan")
+            table.add_column("Size", style="yellow")
+            table.add_column("Created", style="dim")
+            for session in report.empty_sessions:
+                table.add_row(
+                    session.session_id,
+                    f"{session.size_mb:.2f} MB",
+                    session.created_time.strftime('%Y-%m-%d')
+                )
+            console.print(table)
+            console.print()
 
-    # Show detailed issues if any exist
-    if report.empty_sessions:
-        table = Table(title="Empty Sessions")
-        table.add_column("Session ID", style="cyan")
-        table.add_column("Size", style="yellow")
-        table.add_column("Created", style="dim")
+        if report.incomplete_sessions:
+            table = Table(title="Incomplete Sessions")
+            table.add_column("Session ID", style="cyan")
+            table.add_column("Size", style="yellow")
+            table.add_column("Missing Components", style="red")
+            for session in report.incomplete_sessions:
+                missing = []
+                if not session.has_transcript:
+                    missing.append("transcript")
+                if not session.has_diarized_transcript:
+                    missing.append("diarized")
+                if not session.has_classified_transcript:
+                    missing.append("classified")
+                table.add_row(
+                    session.session_id,
+                    f"{session.size_mb:.2f} MB",
+                    ", ".join(missing)
+                )
+            console.print(table)
+            console.print()
 
-        for session in report.empty_sessions:
-            table.add_row(
-                session.session_id,
-                f"{session.size_mb:.2f} MB",
-                session.created_time.strftime('%Y-%m-%d')
-            )
-        console.print(table)
-        console.print()
+        if report.stale_checkpoints:
+            table = Table(title="Stale Checkpoints (>7 days)")
+            table.add_column("Checkpoint ID", style="cyan")
+            table.add_column("Size", style="yellow")
+            for checkpoint_name in report.stale_checkpoints:
+                size_mb = manager._get_directory_size(manager.checkpoint_dir / checkpoint_name) / (1024 * 1024)
+                table.add_row(checkpoint_name, f"{size_mb:.2f} MB")
+            console.print(table)
 
-    if report.incomplete_sessions:
-        table = Table(title="Incomplete Sessions")
-        table.add_column("Session ID", style="cyan")
-        table.add_column("Size", style="yellow")
-        table.add_column("Missing Components", style="red")
-
-        for session in report.incomplete_sessions:
-            missing = []
-            if not session.has_transcript:
-                missing.append("transcript")
-            if not session.has_diarized_transcript:
-                missing.append("diarized")
-            if not session.has_classified_transcript:
-                missing.append("classified")
-
-            table.add_row(
-                session.session_id,
-                f"{session.size_mb:.2f} MB",
-                ", ".join(missing)
-            )
-        console.print(table)
-        console.print()
-
-    if report.stale_checkpoints:
-        table = Table(title="Stale Checkpoints (>7 days)")
-        table.add_column("Checkpoint ID", style="cyan")
-        table.add_column("Size", style="yellow")
-
-        # We'll need to get sizes for checkpoints
-        for checkpoint_name in report.stale_checkpoints:
-            table.add_row(
-                checkpoint_name,
-                f"{manager._get_directory_size(manager.checkpoint_dir / checkpoint_name) / (1024 * 1024):.2f} MB"
-            )
-        console.print(table)
-
-    # Save markdown report if requested
     if output:
         markdown_report = manager.generate_audit_report_markdown(report)
         Path(output).write_text(markdown_report, encoding='utf-8')
-        console.print(f"\n[bold green]✓ Report saved to:[/bold green] {output}")
+        console.print(f"\n[bold green][OK] Report saved to:[/bold green] {output}")
+        report_path = str(Path(output).resolve())
+    else:
+        report_path = None
+
+    _audit(
+        ctx,
+        "cli.sessions.audit",
+        status="success",
+        report_path=report_path,
+        totals=totals,
+    )
+
 
 @sessions.command()
 @click.option("--empty/--no-empty", default=True, help="Delete empty session directories (default: yes)")
@@ -586,7 +743,8 @@ def audit(output):
 @click.option("--dry-run", is_flag=True, help="Show what would be deleted without actually deleting anything.")
 @click.option("--force", is_flag=True, help="Delete without prompting (non-interactive mode).")
 @click.option('--output', '-o', type=click.Path(), help='Save cleanup report to markdown file')
-def cleanup(empty, incomplete, stale_checkpoints, dry_run, force, output):
+@click.pass_context
+def cleanup(ctx, empty, incomplete, stale_checkpoints, dry_run, force, output):
     """Clean up empty, incomplete, and stale sessions.
 
     By default, this will:
@@ -601,7 +759,8 @@ def cleanup(empty, incomplete, stale_checkpoints, dry_run, force, output):
         console.print("[bold yellow]DRY RUN MODE - No files will be deleted[/bold yellow]\n")
 
     console.print("[bold]Running cleanup...[/bold]\n")
-    manager = SessionManager()
+    actor = ctx.obj.get("audit_actor") if ctx.obj else None
+    manager = SessionManager(audit_actor=actor)
 
     # Run cleanup with specified options
     report = manager.cleanup(
@@ -631,12 +790,36 @@ def cleanup(empty, incomplete, stale_checkpoints, dry_run, force, output):
     if output:
         markdown_report = manager.generate_cleanup_report_markdown(report)
         Path(output).write_text(markdown_report, encoding='utf-8')
-        console.print(f"\n[bold green]✓ Report saved to:[/bold green] {output}")
+        console.print(f"\n[bold green][OK] Report saved to:[/bold green] {output}")
+        report_path = str(Path(output).resolve())
+    else:
+        report_path = None
 
     if dry_run:
-        console.print(f"\n[bold yellow]This was a dry run. Run without --dry-run to actually delete files.[/bold yellow]")
+        console.print("\n[bold yellow]This was a dry run. Run without --dry-run to delete files.[/bold yellow]")
     else:
-        console.print(f"\n[bold green]✓ Cleanup complete![/bold green]")
+        console.print("\n[bold green][OK] Cleanup complete![/bold green]")
+
+    _audit(
+        ctx,
+        "cli.sessions.cleanup",
+        status="success",
+        dry_run=dry_run,
+        options={
+            "delete_empty": empty,
+            "delete_incomplete": incomplete,
+            "delete_stale_checkpoints": stale_checkpoints,
+            "forced": force,
+        },
+        results={
+            "deleted_empty": report.deleted_empty,
+            "deleted_incomplete": report.deleted_incomplete,
+            "deleted_checkpoints": report.deleted_checkpoints,
+            "freed_mb": report.total_freed_mb,
+            "errors": len(report.errors),
+        },
+        report_path=report_path,
+    )
 
 cli.add_command(sessions)
 

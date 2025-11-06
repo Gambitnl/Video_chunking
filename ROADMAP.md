@@ -608,7 +608,7 @@ Transform long-form D&D session recordings into rich, searchable transcripts wit
 - [x] SessionLogger integration in pipeline (COMPLETED)
 - [x] Funnel remaining `print()` statements through SessionLogger (2025-11-06)
 - [x] Expose log-level controls in UI/CLI (2025-11-06)
-- [ ] Add audit logging for security
+- [x] Add audit logging for security (2025-11-06)
 
 #### Performance Optimization
 

@@ -22,6 +22,7 @@ from src.logger import (
     set_console_log_level,
     LOG_LEVEL_CHOICES,
 )
+from src.audit import log_audit_event
 from src.party_config import PartyConfigManager, CampaignManager
 from src.knowledge_base import CampaignKnowledgeBase
 from src.preflight import PreflightIssue
@@ -580,6 +581,22 @@ def process_session(
 
         resolved_session_id = session_id or "session"
 
+        log_audit_event(
+            "ui.session.process.start",
+            actor="ui",
+            source="gradio",
+            metadata={
+                "session_id": resolved_session_id,
+                "party_selection": party_selection,
+                "num_speakers": num_speakers,
+                "skip_diarization": skip_diarization,
+                "skip_classification": skip_classification,
+                "skip_snippets": skip_snippets,
+                "skip_knowledge": skip_knowledge,
+                "campaign_id": campaign_id,
+            },
+        )
+
         # Determine if using party config or manual entry
         processor = _create_processor_for_context(
             resolved_session_id,
@@ -601,6 +618,17 @@ def process_session(
         )
 
         if not isinstance(pipeline_result, dict):
+            log_audit_event(
+                "ui.session.process.error",
+                actor="ui",
+                source="gradio",
+                status="error",
+                metadata={
+                    "session_id": resolved_session_id,
+                    "campaign_id": campaign_id,
+                    "error": "Non-dict pipeline response",
+                },
+            )
             return {
                 "status": "error",
                 "message": "Pipeline did not return a result. Check preflight checks and logs for details.",
@@ -624,6 +652,19 @@ def process_session(
             "manifest": str(snippet_export.get("manifest")) if snippet_export.get("manifest") else None,
         }
 
+        log_audit_event(
+            "ui.session.process.complete",
+            actor="ui",
+            source="gradio",
+            status="success",
+            metadata={
+                "session_id": resolved_session_id,
+                "campaign_id": campaign_id,
+                "outputs": list(output_files.keys()),
+                "has_snippets": bool(snippet_payload["segments_dir"]),
+            },
+        )
+
         return {
             "status": "success",
             "message": "Session processed successfully.",
@@ -638,6 +679,17 @@ def process_session(
 
     except Exception as e:
         logger.exception("Error during session processing in Gradio UI")
+        log_audit_event(
+            "ui.session.process.error",
+            actor="ui",
+            source="gradio",
+            status="error",
+            metadata={
+                "session_id": session_id or "session",
+                "campaign_id": campaign_id,
+                "error": str(e),
+            },
+        )
         return {
             "status": "error",
             "message": str(e),

@@ -8,6 +8,7 @@ import click
 
 from .config import Config
 from .logger import get_logger
+from .audit import log_audit_event, audit_enabled
 
 
 @dataclass
@@ -121,7 +122,8 @@ class SessionManager:
     def __init__(
         self,
         output_dir: Optional[Path] = None,
-        checkpoint_age_threshold_days: int = 7
+        checkpoint_age_threshold_days: int = 7,
+        audit_actor: Optional[str] = None,
     ):
         """Initialize session manager.
 
@@ -133,6 +135,7 @@ class SessionManager:
         self.checkpoint_dir = self.output_dir / "_checkpoints"
         self.checkpoint_age_threshold = timedelta(days=checkpoint_age_threshold_days)
         self.logger = get_logger('session_manager')
+        self.audit_actor = audit_actor or Config.AUDIT_LOG_ACTOR
 
     def _get_directory_size(self, path: Path) -> int:
         """Recursively calculate directory size in bytes."""
@@ -344,15 +347,33 @@ class SessionManager:
 
             # Delete associated snippets if they exist
             segments_dir = self.output_dir / "segments" / session_info.session_id
+            snippets_deleted = False
             if segments_dir.exists():
                 shutil.rmtree(segments_dir)
+                snippets_deleted = True
                 self.logger.info(f"Deleted snippets for: {session_info.session_id}")
 
             # Delete checkpoint if it exists
             checkpoint_path = self.checkpoint_dir / session_info.session_id
+            checkpoint_deleted = False
             if checkpoint_path.exists():
                 shutil.rmtree(checkpoint_path)
+                checkpoint_deleted = True
                 self.logger.info(f"Deleted checkpoint for: {session_info.session_id}")
+
+            if audit_enabled():
+                log_audit_event(
+                    "session_manager.delete_session",
+                    actor=self.audit_actor,
+                    source="session_manager",
+                    status="success",
+                    metadata={
+                        "session_id": session_info.session_id,
+                        "size_mb": session_info.size_mb,
+                        "snippets_deleted": snippets_deleted,
+                        "checkpoint_deleted": checkpoint_deleted,
+                    },
+                )
 
             return session_info.size_bytes
 
@@ -385,6 +406,17 @@ class SessionManager:
         try:
             shutil.rmtree(checkpoint_path)
             self.logger.info(f"Deleted checkpoint: {checkpoint_name} ({size / (1024 * 1024):.2f} MB)")
+            if audit_enabled():
+                log_audit_event(
+                    "session_manager.delete_checkpoint",
+                    actor=self.audit_actor,
+                    source="session_manager",
+                    status="success",
+                    metadata={
+                        "checkpoint": checkpoint_name,
+                        "size_mb": size / (1024 * 1024),
+                    },
+                )
             return size
         except Exception as e:
             self.logger.error(f"Error deleting checkpoint {checkpoint_name}: {e}")
@@ -501,6 +533,22 @@ class SessionManager:
             f"Cleanup complete: deleted {report.total_deleted} items, "
             f"freed {report.total_freed_mb:.2f} MB"
         )
+
+        if audit_enabled():
+            log_audit_event(
+                "session_manager.cleanup",
+                actor=self.audit_actor,
+                source="session_manager",
+                status="success",
+                metadata={
+                    "dry_run": dry_run,
+                    "deleted_empty": report.deleted_empty,
+                    "deleted_incomplete": report.deleted_incomplete,
+                    "deleted_checkpoints": report.deleted_checkpoints,
+                    "freed_mb": report.total_freed_mb,
+                    "errors": report.errors,
+                },
+            )
 
         return report
 

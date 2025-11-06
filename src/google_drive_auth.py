@@ -24,6 +24,7 @@ from googleapiclient.errors import HttpError
 
 from src.config import Config
 from src.logger import get_logger
+from src.audit import log_audit_event
 
 
 # OAuth 2.0 scopes - we only need read-only access to Drive files
@@ -88,101 +89,113 @@ class OAuthCallbackHandler(BaseHTTPRequestHandler):
         pass
 
 
+
 def authenticate_automatically() -> Tuple[bool, str]:
-    """
-    Perform OAuth authentication with automatic browser flow.
-
-    This function:
-    1. Starts a local HTTP server to catch the OAuth callback
-    2. Opens the user's browser to Google's authorization page
-    3. Waits for the user to authorize
-    4. Automatically captures and processes the authorization code
-
-    Returns:
-        Tuple of (success: bool, message: str)
-    """
+    """Perform Google Drive OAuth flow with audit logging."""
     global _oauth_code, _oauth_error
 
-    # Reset global state
     _oauth_code = None
     _oauth_error = None
 
-    # Check for credentials file
+    log_audit_event("google_drive.auth.start", actor="ui", source="google_drive")
+
     if not CLIENT_CONFIG_FILE.exists():
-        return False, (
-            f"⚠️ Setup Required: OAuth credentials file not found.\n\n"
-            f"📍 Expected location: {CLIENT_CONFIG_FILE}\n\n"
-            f"📖 Please follow the setup guide to create your credentials:\n"
-            f"   docs/GOOGLE_OAUTH_SIMPLE_SETUP.md\n\n"
-            f"⏱️ This is a one-time setup that takes about 5-10 minutes.\n"
-            f"💰 It's completely FREE - no billing required!\n\n"
-            f"Once you have the file, just click this button again."
+        message = (
+            "Setup required: OAuth credentials file not found.\n\n"
+            f"Expected location: {CLIENT_CONFIG_FILE}\n\n"
+            "Follow docs/GOOGLE_OAUTH_SIMPLE_SETUP.md to generate credentials. "
+            "The flow takes about 5-10 minutes and does not require billing. "
+            "After placing the file in the project root, rerun this authentication step."
         )
+        log_audit_event(
+            "google_drive.auth.missing_credentials",
+            actor="ui",
+            source="google_drive",
+            status="error",
+            metadata={"expected_path": str(CLIENT_CONFIG_FILE)},
+        )
+        return False, message
 
     try:
-        # Create the OAuth flow
         flow = Flow.from_client_secrets_file(
             str(CLIENT_CONFIG_FILE),
             scopes=SCOPES,
             redirect_uri='http://localhost:8080/'
         )
 
-        # Generate authorization URL
         auth_url, _ = flow.authorization_url(
             access_type='offline',
             include_granted_scopes='true',
             prompt='consent'
         )
 
-        # Start local server to catch callback
         server = HTTPServer(('localhost', 8080), OAuthCallbackHandler)
-        server.timeout = 300  # 5 minute timeout
+        server.timeout = 300
 
         def run_server():
-            """Run the server in a separate thread."""
             _server_ready.set()
-            server.handle_request()  # Handle one request then stop
+            server.handle_request()
 
-        # Start server in background thread
         server_thread = threading.Thread(target=run_server, daemon=True)
         server_thread.start()
 
-        # Wait for server to be ready
         _server_ready.wait(timeout=2)
         _server_ready.clear()
 
-        # Open browser for user to authorize
         webbrowser.open(auth_url)
 
-        # Wait for callback (server will handle one request)
-        server_thread.join(timeout=310)  # Wait up to 5 minutes + buffer
+        server_thread.join(timeout=310)
 
-        # Check results
         if _oauth_error:
+            log_audit_event(
+                "google_drive.auth.error",
+                actor="ui",
+                source="google_drive",
+                status="error",
+                metadata={"error": _oauth_error},
+            )
             return False, f"Authentication failed: {_oauth_error}"
 
         if not _oauth_code:
+            log_audit_event(
+                "google_drive.auth.error",
+                actor="ui",
+                source="google_drive",
+                status="error",
+                metadata={"error": "timeout_or_cancelled"},
+            )
             return False, (
                 "Authentication timed out or was cancelled.\n"
                 "Please try again and make sure to approve the authorization in your browser."
             )
 
-        # Exchange code for token
         flow.fetch_token(code=_oauth_code)
         creds = flow.credentials
 
-        # Save credentials
         TOKEN_FILE.parent.mkdir(parents=True, exist_ok=True)
         TOKEN_FILE.write_text(creds.to_json())
 
+        log_audit_event(
+            "google_drive.auth.success",
+            actor="ui",
+            source="google_drive",
+            status="success",
+            metadata={"token_path": str(TOKEN_FILE)},
+        )
         return True, (
             "Success! You are now authenticated with Google Drive.\n"
             "You can now load private Google Docs without making them publicly shared."
         )
 
-    except Exception as e:
-        return False, f"Error during authentication: {str(e)}"
-
+    except Exception as exc:
+        log_audit_event(
+            "google_drive.auth.error",
+            actor="ui",
+            source="google_drive",
+            status="error",
+            metadata={"error": str(exc)},
+        )
+        return False, f"Error during authentication: {str(exc)}"
 
 def get_auth_url() -> Tuple[str, Flow]:
     """

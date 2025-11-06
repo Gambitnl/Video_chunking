@@ -68,10 +68,6 @@ class Config:
         "No audio snippets were generated for this session."
     )
 
-    # Logging
-    LOG_LEVEL_CONSOLE: str = os.getenv("LOG_LEVEL_CONSOLE", "INFO")
-    LOG_LEVEL_FILE: str = os.getenv("LOG_LEVEL_FILE", "DEBUG")
-
     # Ollama Settings
     OLLAMA_MODEL: str = os.getenv("OLLAMA_MODEL", "gpt-oss:20b")
     OLLAMA_BASE_URL: str = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
@@ -81,6 +77,13 @@ class Config:
     OUTPUT_DIR: Path = PROJECT_ROOT / "output"
     TEMP_DIR: Path = PROJECT_ROOT / "temp"
     MODELS_DIR: Path = PROJECT_ROOT / "models"
+
+    # Logging
+    LOG_LEVEL_CONSOLE: str = os.getenv("LOG_LEVEL_CONSOLE", "INFO")
+    LOG_LEVEL_FILE: str = os.getenv("LOG_LEVEL_FILE", "DEBUG")
+    AUDIT_LOG_ENABLED: bool = get_env_as_bool("AUDIT_LOG_ENABLED", True)
+    AUDIT_LOG_ACTOR: str = os.getenv("AUDIT_LOG_ACTOR", "system")
+    AUDIT_LOG_PATH: Path = Path(os.getenv("AUDIT_LOG_PATH", "logs/audit.log"))
 
     @classmethod
     def ensure_directories(cls):

@@ -450,13 +450,7 @@ If you find a `[~]` task with timestamp >24 hours old:
 
 - [x] BUG-20251103-022: Social Insights - WordCloud dependency not handled gracefully (Agent: Gemini, Completed: 2025-11-06) → BUG_HUNT_TODO.md:387 | src/ui/social_insights_tab.py:20
 
-#### Available - Isolated (Low Conflict Risk)
-- [ ] **BUG-20251103-019**: Live Session - Non-functional placeholder tab
-  - **Files**: `src/ui/live_session_tab.py:92-163` (may also need `app.py` tab visibility)
-  - **Effort**: 30-60 min
-  - **Conflict Risk**: ⚠️ LOW (isolated UI file)
-  - **Fix**: Hide tab or mark "Coming Soon" until implemented
-  → BUG_HUNT_TODO.md:367
+- [x] BUG-20251103-017: Campaign Dashboard - Sessions not filtered by campaign (Agent: Claude, Completed: 2025-11-06) → BUG_HUNT_TODO.md:353 | src/campaign_dashboard.py:119-136
 
 #### Available - Core Logic (Medium Conflict Risk)
 - [ ] **BUG-20251103-008**: Process Session - No progress indicator during processing

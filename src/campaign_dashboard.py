@@ -153,8 +153,15 @@ class CampaignDashboard:
                 details = f"{StatusIndicators.SUCCESS} **Status**: {len(campaign_sessions)} session(s) found\n\n"
                 recent = sorted(campaign_sessions, key=lambda d: d.stat().st_mtime, reverse=True)[:5]
                 details += "**Recent Sessions:**\n"
-                for d in recent:
-                    details += f"- `{d.name}` {'✓' if list(d.glob('*_data.json')) else '(incomplete)'}\n"
+                for session_dir, status in recent:
+                    if status == 'complete':
+                        details += f"- `{session_dir.name}` ✓\n"
+                    elif status == 'incomplete':
+                        details += f"- `{session_dir.name}` (incomplete)\n"
+                    elif status == 'ambiguous':
+                        details += f"- `{session_dir.name}` (ambiguous - multiple metadata files)\n"
+                    else:  # corrupted
+                        details += f"- `{session_dir.name}` (corrupted metadata)\n"
                 return ComponentStatus(True, "Processed Sessions", details)
             else:
                 details = f"{StatusIndicators.WARNING} **Status**: No sessions processed yet for this campaign\n\n"

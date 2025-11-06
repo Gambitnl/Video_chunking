@@ -91,7 +91,7 @@ def _stop_session(
 
 def create_live_session_tab(blocks: gr.Blocks) -> Dict[str, gr.components.Component]:
     """Create the Live Session tab and return component references for integration."""
-    with gr.Tab("Live Session"):
+    with gr.Tab("🚧 Live Session (Coming Soon)"):
         gr.Markdown(
             """
             # Live Session Monitoring 🚧 Coming Soon

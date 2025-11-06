@@ -422,6 +422,23 @@ If you find a `[~]` task with timestamp >24 hours old:
 - Session 1: BUG-008 (app.py:509-601) + Session 2: BUG-009 (app.py:499-507) ⚠️ Same file, adjacent lines - HIGH risk
 - Session 1: BUG-007 (process_session_tab_modern.py) + Session 2: BUG-021 (social_insights_tab.py) ✅ No conflict
 
+### High Priority (6 bugs)
+
+- [x] BUG-20251103-006: Process Session - No client-side validation (Agent: Codex, Completed: 2025-11-06) → BUG_HUNT_TODO.md:283 | src/ui/process_session_tab_modern.py:228-475
+
+- [ ] BUG-20251103-008: Process Session - No progress indicator during processing → BUG_HUNT_TODO.md:295 | app.py:509-601
+
+- [x] BUG-20251103-019: Live Session - Non-functional placeholder tab (Agent: Claude, Completed: 2025-11-06) → BUG_HUNT_TODO.md:378 | src/ui/live_session_tab.py:92-163
+
+- [x] BUG-20251103-022: Social Insights - WordCloud dependency not handled gracefully (Agent: Gemini, Completed: 2025-11-06) → BUG_HUNT_TODO.md:387 | src/ui/social_insights_tab.py:20
+
+- [ ] BUG-20251103-027: Global - No conflict detection for concurrent operations → BUG_HUNT_TODO.md:421 | Multiple files
+
+
+
+### Medium Priority (13 bugs)
+
+- [ ] BUG-20251103-002: Main Dashboard - Campaign state not persisted across refreshes → BUG_HUNT_TODO.md:257 | app.py:623
 ---
 
 

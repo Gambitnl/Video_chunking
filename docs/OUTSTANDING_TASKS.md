@@ -428,7 +428,7 @@ If you find a `[~]` task with timestamp >24 hours old:
 
 - [ ] BUG-20251103-008: Process Session - No progress indicator during processing → BUG_HUNT_TODO.md:295 | app.py:509-601
 
-- [x] BUG-20251103-019: Live Session - Non-functional placeholder tab (Agent: Claude, Completed: 2025-11-06) → BUG_HUNT_TODO.md:367
+- [x] BUG-20251103-019: Live Session - Non-functional placeholder tab (Agent: Claude, Completed: 2025-11-06) → BUG_HUNT_TODO.md:378 | src/ui/live_session_tab.py:92-163
 
 - [x] BUG-20251103-022: Social Insights - WordCloud dependency not handled gracefully (Agent: Gemini, Completed: 2025-11-06) → BUG_HUNT_TODO.md:387 | src/ui/social_insights_tab.py:20
 

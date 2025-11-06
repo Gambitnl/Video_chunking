@@ -18,6 +18,22 @@ Before touching code, validate these three dimensions:
   - If tests exist but fail: Task is "fix broken tests", NOT "write new tests"
   - If tests pass: Feature may already be complete - verify functionality
 - **Review git history**: `git log --oneline --grep="<feature>"` - Was this completed recently?
+- **Confirm gated model access (pyannote)**: Run a quick Hugging Face check *before* long processing sessions:
+  ```powershell
+python - <<'PY'
+from huggingface_hub import HfApi
+from src.config import Config
+api = HfApi()
+for repo in [
+    "pyannote/speaker-diarization-3.1",
+    "pyannote/segmentation-3.0",
+    "pyannote/embedding",
+]:
+    api.model_info(repo, token=Config.HF_TOKEN)
+print("All pyannote repos accessible.")
+PY
+  ```
+  If any call raises `GatedRepoError`, re-accept the repo at https://huggingface.co/pyannote before proceeding.
 - **Check processed sessions**: Use `mcp__videochunking-dev__list_processed_sessions()` - Does the feature produce output?
 
 **Reconcile planning artifacts:**
@@ -42,6 +58,7 @@ Before touching code, validate these three dimensions:
 **Understand the system:**
 - Use `mcp__filesystem__read_multiple_files([...])` to read related code together
 - Run existing tests before adding features: `mcp__videochunking-dev__check_pipeline_health()`
+- Use the Gradio "Run Preflight Checks" button (or `DDSessionProcessor.run_preflight_checks_only`) to confirm diarizer/classifier/transcriber readiness before multi-hour runs
 - Check for similar patterns in the codebase
 - Understand dependencies between modules
 
@@ -107,6 +124,9 @@ mcp__videochunking-dev__list_processed_sessions(limit=5)
 **After running health checks:**
 - Log results in `docs/TESTING.md` - Individual component logs
 - Update Summary Log with timestamp and pass/fail counts
+
+**Before starting long processing runs:**
+- Run the in-app "Run Preflight Checks" (or equivalent CLI) to confirm Ollama connectivity and Hugging Face access are ready. Address any reported issues first to avoid multi-hour failures.
 
 **Review documentation (if first session):**
 - `AGENT_ONBOARDING.md` - Repository workflow and standards
@@ -816,435 +836,92 @@ mcp__context7__get-library-docs(context7CompatibleLibraryID="...", topic="...")
 
 ---
 
-## XVI. Session History & Lessons Learned
+## XVI. Common Patterns & Anti-Patterns
 
-### Session 2025-11-03: High-Priority UI Bug Fixes
+### UI Component Refactoring
 
-**Agent**: Claude (Sonnet 4.5)
-**Duration**: ~1 hour
-**Work Completed**: Fixed 3 high-priority UI bugs from BUG_SUMMARY.md
+**Removing Components Systematically:**
+- [ ] Identify component in UI module (e.g., `gr.Dropdown`, `gr.Button`)
+- [ ] Search for ALL references: `grep -r "component_name" .`
+- [ ] Check `component_refs` dictionary in UI module
+- [ ] Check output lists in app.py (`shared_outputs_load`, `create_campaign_outputs`, etc.)
+- [ ] Test app startup after changes
 
-#### What Went Well
+**Anti-Pattern: Duplicate State Management**
+- Problem: Same data in multiple selectors/inputs (e.g., campaign in launcher AND tab)
+- Solution: Single source of truth with `gr.State` shared across components
+- When user says "I have to do X twice", check for duplicate state
 
-1. **Clear Documentation Enabled Fast Start**
-   - BUG_SUMMARY.md provided exact file locations and line numbers
-   - BUG_HUNT_TODO.md included "Why it's an issue" explanations
-   - No time wasted understanding problem scope or impact
+### Configuration Data Patterns
 
-2. **MCP Tools Not Needed for Simple Bug Fixes**
-   - Used standard Read/Edit tools for targeted fixes
-   - `mcp__filesystem__read_multiple_files()` would have added overhead
-   - Lesson: Don't over-engineer tool selection for straightforward tasks
+**When Config Data is Incomplete:**
+- [ ] Check similar configs for patterns (e.g., other party configurations)
+- [ ] Offer to copy/adapt existing working configs as template
+- [ ] Provide data structure scaffold, don't just ask for details
+- [ ] Example: "I can copy the structure from 'default' party if you provide the names"
 
-3. **Small, Testable Increments**
-   - Fixed one bug at a time (validation → error handling → UI clarity)
-   - Tested syntax after each change (`python -m py_compile`)
-   - Verified imports worked (`python -c "import ..."`)
-   - Total time: 3 bugs fixed in ~30 minutes
+### Windows Development Gotchas
 
-4. **TodoWrite Tool Maintained Focus**
-   - Clear progress tracking prevented scope creep
-   - Easy to see what's done vs pending
-   - System reminders kept todo list current
+**Git Bash Command Escaping:**
+- `taskkill /PID` → interpreted as path by Git Bash
+- Use: `cmd //c taskkill //PID <pid> //F` (double slashes)
+- Applies to all Windows-specific commands with `/` flags
 
-#### What Could Be Improved
+**File Paths:**
+- Use `Path()` objects, not string concatenation
+- Forward slashes work in Python even on Windows
+- `Path.resolve()` to get absolute paths
 
-1. **Could Have Run Actual Tests**
-   - Only verified syntax and imports, didn't run pytest suite
-   - Should have run: `pytest tests/test_campaign_ui_helpers.py -v`
-   - Reason: Time constraints, but this is technical debt
+### UI Workflow Changes
 
-2. **No Integration Testing**
-   - Changes not verified in running Gradio app
-   - Should have started app and clicked through UI
-   - Risk: UI might render incorrectly or buttons might not work as expected
+**When Changing User Workflows:**
+- [ ] Document old workflow clearly (for context)
+- [ ] Document new workflow (for users)
+- [ ] Identify what users might miss or be confused by
+- [ ] Update user-facing docs (README, tooltips, help text)
+- [ ] Consider migration hints in UI
+- [ ] Test edge cases (empty state, null values, first-time users)
 
-3. **Didn't Check for Related Code**
-   - Validation logic added only to `process_session_tab_modern.py`
-   - Should have searched for other tabs with similar patterns
-   - Could have created reusable validation helper in `src/ui/helpers.py`
+### Integration Testing for UI
 
-#### Process Improvements Identified
+**Before Committing UI Changes:**
+- [ ] Start app and test affected workflows
+- [ ] Test edge cases (empty state, null values)
+- [ ] Verify error messages are still helpful
+- [ ] Check related features still work
+- [ ] Test with different user patterns (power user vs new user)
 
-1. **Add "Verification Checklist" to Section XI (Deliverables)**
-   ```
-   Before marking bug fix complete:
-   [ ] Syntax check passed (py_compile)
-   [ ] Import test passed
-   [ ] Unit tests run (if available)
-   [ ] Integration test performed (UI clicked through)
-   [ ] Related code reviewed for similar issues
-   ```
+### Component Output Synchronization
 
-2. **Clarify When to Use MCP vs Standard Tools**
-   - Added to Section IV: "When NOT to Use MCP"
-   - MCP filesystem tools are slower for 1-3 file operations
-   - Use standard Read/Edit for targeted fixes with known file paths
-   - Use MCP only for cross-file searches or batch operations
+**Pattern: When removing UI components, check BOTH:**
+1. Component creation in UI module (e.g., `create_process_session_tab_modern.py`)
+2. Output list references in app.py (e.g., `shared_outputs_load`, `create_campaign_outputs`)
 
-3. **Bug Fix Documentation Pattern**
-   - Always reference bug ID in commit message
-   - Always reference file:line in status updates
-   - Always explain the validation approach used
-
-#### Recommendations for Future Work
-
-1. **Create Reusable UI Validation Module**
-   - Extract validation logic to `src/ui/validation.py`
-   - Functions: `validate_file_upload()`, `validate_session_id()`, `validate_party_config()`
-   - Reduces code duplication across tabs
-
-2. **Add Unit Tests for UI Helpers**
-   - Test `StatusMessages.error()` formatting
-   - Test validation functions with edge cases
-   - Current gap: UI helpers have 0% test coverage
-
-3. **Integration Test Suite for Gradio UI**
-   - Use Gradio's testing utilities
-   - Test button clicks, dropdown changes, validation messages
-   - Current gap: No automated UI testing
-
-4. **Improve BUG_SUMMARY.md Format**
-   - Already excellent! Keep the structure
-   - Consider adding "Verification Steps" to each bug
-   - Example: "To verify fix, upload invalid file and check error message"
-
-#### Prompt Updates
-
-**Added Section XVI (this section)** to track session history and compound learning across sessions. This creates a feedback loop where each agent session improves the prompt for future agents.
-
-**Updated Section IV (Tool Usage)** with clarification:
-```
-When NOT to Use MCP:
-- Single file read (use Read tool)
-- Simple grep/glob operations (use Grep/Glob tools)
-- You already have the information in context
-- Tool overhead exceeds benefit
-- Targeted bug fixes with known file paths (1-3 files)
-```
-
-**Updated Section XI (Deliverables)** with verification checklist (see Process Improvements #1 above).
+**Why:** Easy to miss output list references → runtime errors when event handlers fire
 
 ---
 
-### Session 2025-11-04: Diarizer Token Handling Robustness
+## XVII. Session History (Detailed Logs)
 
-**Agent**: Claude (Sonnet 4.5)
-**Duration**: ~45 minutes
-**Work Completed**: Improved HuggingFace token parameter handling in diarizer with graceful fallback
+**Note:** Detailed session logs have been moved to `docs/SESSION_HISTORY.md` to keep this prompt focused on principles.
 
-#### What Went Well
-
-1. **Clear Starting Point from Uncommitted Changes**
-   - Git status showed exact files modified (src/diarizer.py, tests/test_diarizer.py)
-   - Git diff provided full context of changes made
-   - No time wasted understanding what needed to be done
-   - Lesson: Uncommitted work with clear diffs is excellent for picking up tasks
-
-2. **Test-First Validation Approach**
-   - Ran tests BEFORE committing to verify correctness
-   - All 15 diarizer tests passed in 8.71s
-   - Caught potential issues early (though none found)
-   - Confidence level: HIGH for commit
-
-3. **Comprehensive Documentation Added**
-   - IMPLEMENTATION_PLANS.md: Added follow-up section with problem, solution, design decisions
-   - docs/TESTING.md: Updated health check log and test metrics
-   - Future maintainers will understand the "why" behind the graceful fallback pattern
-   - Total documentation time: ~15 minutes (good investment)
-
-4. **Work Initiation Prompt Worked Perfectly**
-   - Health checks completed first
-   - Git status reviewed second
-   - Roadmap and priorities identified third
-   - Clear recommendation for which work to tackle
-   - No wasted effort or confusion about what to do
-
-5. **Small, Complete Increments**
-   - Single focused improvement (token parameter handling)
-   - Tested immediately (pytest)
-   - Committed with clear message
-   - Documented thoroughly
-   - Total time: 45 minutes start to finish
-   - Result: Production-ready improvement with full documentation
-
-#### What Could Be Improved
-
-1. **Could Have Run Full Test Suite**
-   - Only ran diarizer tests (15 tests)
-   - Should have verified no regressions in other modules: `pytest tests/ -q`
-   - Risk: Low (changes were isolated to diarizer.py)
-   - Time cost: Would add ~3-5 seconds
-
-2. **MCP Health Check Had False Negatives**
-   - MCP server reported Python packages as "not installed"
-   - Manual verification with `pip show` confirmed all packages present
-   - Issue: MCP server likely running in different Python environment
-   - Impact: Wasted 2-3 minutes investigating
-   - Mitigation: Added note to health check log about MCP env issue
-
-3. **Large Patch File Not Addressed**
-   - jules_session_11681752051833553582.patch (61k tokens) left untracked
-   - Should have asked user about disposition (commit/ignore/delete)
-   - This is technical debt for next session
-
-#### Process Improvements Identified
-
-1. **Add "Run Full Test Suite" to Commit Checklist**
-   Update Section XI (Deliverables) with:
-   ```
-   Before committing code changes:
-   [ ] Run targeted tests for changed module
-   [ ] Run full test suite to check for regressions (pytest tests/ -q)
-   [ ] Verify no new failures introduced
-   ```
-
-2. **MCP Health Check Caveat**
-   Add to Section III (Session Initialization):
-   ```
-   Known Issue: MCP server pip checks may report false negatives if running
-   in different Python environment. If health check fails, verify manually:
-   - pip show <package> for each reported failure
-   - python -c "import <module>" to verify importability
-   ```
-
-3. **Handle Uncommitted Artifacts Proactively**
-   Add to mental checklist:
-   ```
-   During git status review:
-   [ ] Identify all uncommitted changes
-   [ ] Identify all untracked files
-   [ ] For large untracked files (>1MB or >10k tokens):
-       - Ask user about disposition
-       - Add to .gitignore if noise
-       - Commit if relevant
-       - Document if from another session
-   ```
-
-#### Recommendations for Future Work
-
-1. **Complete the jules_session Patch**
-   - Review jules_session_11681752051833553582.patch
-   - Determine if it should be applied, archived, or deleted
-   - If it's from another agent's session, document in session history
-
-2. **Push 8 Commits to Origin**
-   - Currently 8 commits ahead of origin/main
-   - Includes today's work plus 6 previous commits
-   - Command: `git push origin main`
-   - Impact: Backup work and share with team
-
-3. **Next Priority Work** (from today's assessment):
-   - **Option A**: Bug fixes (BUG-006, BUG-019, BUG-022) - 2-3 hours total
-   - **Option B**: Test coverage for LangChain components - 1-2 days
-   - **Option C**: Streaming snippet export - 2 days
-
-4. **Consider Automated Documentation**
-   - Pattern identified: Code changes -> Tests -> Commit -> Document
-   - Could create a slash command: `/document-work <commit-hash>`
-   - Would auto-generate IMPLEMENTATION_PLANS.md sections from commits
-   - Effort: 2-3 hours to implement
-
-#### Prompt Updates
-
-**Updated Section III (Session Initialization)** with MCP health check caveat:
-```
-Known Issue: MCP server pip checks may report false negatives if running
-in different Python environment. If health check fails, verify manually
-with pip show <package> and python -c "import <module>".
-```
-
-**Updated Section V (Working Rhythm)** - Step 4 expanded:
-```
-4. TEST that piece in isolation
-   └─> Use mcp__videochunking-dev__run_specific_test(...)
-   └─> Run full suite to check for regressions: pytest tests/ -q
-```
-
-**Updated Section XI (Deliverables)** with full test suite requirement:
-```
-Before committing code changes:
-[ ] Run targeted tests for changed module
-[ ] Run full test suite to check for regressions
-[ ] Verify no new failures introduced
-```
-
-**Updated Section II (Review Current State)** with untracked file handling:
-```
-During git status review:
-[ ] Identify all uncommitted changes
-[ ] Identify all untracked files
-[ ] For large untracked files (>1MB or >10k tokens):
-    - Ask user about disposition
-    - Add to .gitignore, commit, or document
-```
+For session-specific work completed, timestamps, and detailed "what went well / what could improve" analyses, see:
+- `docs/SESSION_HISTORY.md` - Chronological session logs
+- `git log` - Code changes with commit messages
 
 ---
 
-### Session 2025-11-06: UX Refactoring - Campaign Selector Consolidation
-
-**Agent**: Claude (Sonnet 4.5)
-**Duration**: ~2 hours
-**Work Completed**:
-1. Investigated logging system comprehensiveness
-2. Removed redundant campaign selector from Process Session tab
-3. Streamlined campaign workflow (single source of truth)
-
-#### What Went Well
-
-1. **User Feedback Guided Architecture Decision**
-   - User identified redundancy: "currently when you select a campaign, you still have to indicate which campaign the audio file belongs to"
-   - Clear problem statement enabled quick understanding
-   - Solution was obvious once problem was articulated
-
-2. **Systematic Refactoring Approach**
-   - Identified all components to remove (campaign_selector, new_campaign_btn, load_campaign_settings)
-   - Traced data flow through app.py outputs list
-   - Updated all references systematically
-   - Result: Clean refactor with no broken references
-
-3. **Testing Before Committing**
-   - Started app to verify changes worked
-   - Killed old instances properly
-   - Confirmed app launched successfully at http://127.0.0.1:7860
-   - Integration test caught potential issues early
-
-4. **Logging Investigation Was Thorough**
-   - Read logger.py to understand architecture
-   - Checked pipeline.py for coverage across all 9 stages
-   - Verified error context capture with stack traces
-   - Conclusion: System is comprehensive, no gaps
-
-#### What Could Be Improved
-
-1. **Didn't Update User Documentation**
-   - Changed workflow from two campaign selectors to one
-   - Should have updated README or user guide to explain new flow
-   - Risk: Users may wonder where campaign selector went
-
-2. **No User Confirmation on Data Config Changes**
-   - User mentioned Team OP has missing members
-   - Asked for details instead of checking similar configs
-   - Could have proactively suggested copying from "default" party
-   - Lesson: When data is incomplete, offer solutions not just questions
-
-3. **Didn't Consider Edge Cases**
-   - What happens if active_campaign_state is None?
-   - What if user loads app with no campaigns created?
-   - Should have traced through that flow to verify graceful handling
-
-#### Process Improvements Identified
-
-1. **Add to Section IV (UX Changes)**
-   ```
-   For workflow changes affecting user habits:
-   [ ] Document the old workflow clearly
-   [ ] Document the new workflow clearly
-   [ ] Identify what users might miss or be confused by
-   [ ] Update user-facing documentation (README, tooltips, help text)
-   [ ] Consider adding migration hints in UI for first-time users
-   ```
-
-2. **Add to Section XI (Integration Testing)**
-   ```
-   For UI refactoring:
-   [ ] Start app and test affected workflows
-   [ ] Test edge cases (empty state, null values)
-   [ ] Verify error messages are still helpful
-   [ ] Check that related features still work
-   [ ] Test with different user patterns (power user vs new user)
-   ```
-
-3. **Add to Section I (Problem Validation)**
-   ```
-   For configuration/data issues:
-   [ ] Check similar configs for patterns
-   [ ] Offer to copy/adapt existing working configs
-   [ ] Don't just ask for details - provide scaffolding
-   [ ] Suggest data structure if user needs to provide info
-   ```
-
-#### Key Insights
-
-1. **Campaign Selector Redundancy Pattern**
-   - **Problem**: Having state in multiple places (Campaign Launcher + Process Session tab)
-   - **Solution**: Single source of truth (active_campaign_state)
-   - **Lesson**: When users say "I have to do X twice", check for duplicate state management
-   - **Applicability**: Look for this pattern in other tabs (Settings, Characters, etc.)
-
-2. **Output List Synchronization**
-   - When removing UI components, check BOTH:
-     - Component creation in UI module
-     - Output list references in app.py
-   - Easy to miss one and cause runtime errors
-   - Pattern: Search for component name across entire codebase
-
-3. **Git Bash Path Escaping on Windows**
-   - `taskkill /PID` gets interpreted as `/PID` = path by Git Bash
-   - Solution: Use `cmd //c taskkill //PID <pid> //F`
-   - Lesson: Windows commands in Git Bash need special escaping
-
-#### Recommendations for Future Work
-
-1. **Document New Campaign Workflow** (15 minutes)
-   - Add to README.md or docs/USER_GUIDE.md
-   - Show campaign launcher workflow with screenshots
-   - Explain why campaign selection was consolidated
-   - Priority: P2
-
-2. **Complete Team OP Configuration** (5 minutes)
-   - User needs to add 2 members + 1 companion to Team OP party
-   - Waiting for user to provide character details
-   - Priority: P1 (user-requested)
-
-3. **Audit Other Tabs for Duplicate Selectors** (30 minutes)
-   - Check if Characters, Stories, Settings tabs have similar redundancy
-   - Look for campaign/party selectors that could be removed
-   - Consolidate to active_campaign_state pattern
-   - Priority: P2
-
-#### Prompt Updates
-
-**Added to Section I (Problem Validation)**:
-```
-For configuration/data issues:
-[ ] Check similar configs for patterns
-[ ] Offer to copy/adapt existing working configs
-[ ] Don't just ask for details - provide scaffolding
-```
-
-**Added to Section IV (Implementation Guidelines)**:
-```
-For workflow/UX changes:
-[ ] Document old vs new workflow
-[ ] Update user-facing documentation
-[ ] Consider migration hints in UI
-[ ] Test edge cases (empty state, null values)
-```
-
-**Added to Section XI (Integration Testing)**:
-```
-For UI refactoring:
-[ ] Start app and test affected workflows
-[ ] Verify error messages still helpful
-[ ] Test with different user patterns
-```
-
-**Added this session entry to Section XVI** (you're reading it now).
-
----
-
-## XVII. CRITICAL: Session Completion Checklist
+## XVIII. CRITICAL: Session Completion Checklist
 
 **Before ending ANY session, you MUST complete ALL of the following:**
 
 ### Documentation Requirements
-- [ ] **Document lessons learned in Section XVI** (add new session entry)
-- [ ] **Apply process improvements to relevant sections** (I, XI, etc.)
-- [ ] **Update prompt with new patterns discovered**
-- [ ] **Commit work_initiation_prompt.md if modified**
+- [ ] **Extract timeless patterns** from this session's work
+- [ ] **Update Section XVI** (Common Patterns) if new patterns discovered
+- [ ] **Update relevant sections** (I-XV) with improved checklists/guidance
+- [ ] **Commit WORK_INITIATION_PROMPT.md** if modified
 
-### Time Tracking Requirements (NEW - See Section VI)
+### Time Tracking Requirements (See Section VI)
 - [ ] **Record SESSION START timestamp** at beginning
 - [ ] **Record CHECKPOINTS** at major completion points with elapsed time
 - [ ] **Record SESSION END timestamp** at conclusion
@@ -1260,192 +937,12 @@ For UI refactoring:
   - Phase 1: Immediate Steps (user-requested) - list ALL steps explicitly
   - Phase 2: Self-Selected Work (if any)
 - [ ] **Document all files modified with line number references**
-- [ ] **Include test results before/after (if applicable)**
-- [ ] **Include time analysis with actual timestamps** (not estimates!)
-- [ ] **State autonomous decision reasoning clearly**
+- [ ] **Include test results** (if applicable)
+- [ ] **List all user-facing changes**
 
-### Verification Requirements
-- [ ] **Verify all immediate steps user requested are completed**
-- [ ] **Verify all immediate steps are documented in session summary**
-- [ ] **Verify all commits are pushed to origin**
-- [ ] **Verify ROADMAP/planning docs updated if tasks completed**
-
-**WARNING**: If you skip this checklist, you waste future agent time by not sharing your learnings. Documentation is the institutional memory that prevents re-inventing the wheel.
-
----
-
-### Session 2025-11-04: Work Initiation Execution & LangChain Test Fixes
-
-**Agent**: Claude (Sonnet 4.5)
-**Duration**: ~3 hours
-**Work Completed**: Executed work initiation prompt, fixed 16 failing LangChain tests, updated documentation
-
-#### What Went Well
-
-1. **Work Initiation Prompt Followed Successfully**
-   - Session initialization steps executed correctly
-   - Health check skip logic worked (cloud agent, recent check valid)
-   - Priority identification was immediate and accurate
-   - Proper git status review identified uncommitted work
-   - Result: Clear starting point, no wasted effort
-
-2. **Test Failure Root Cause Analysis**
-   - Quickly identified dynamic import pattern as root cause
-   - Read implementation before fixing tests (avoid guessing)
-   - Systematic fix approach: LLM -> memory -> prompts -> ask() -> chain
-   - Fixed 16 failures in ~90 minutes
-   - Lesson: Understanding implementation > trial-and-error test fixes
-
-3. **Small, Verifiable Increments**
-   - Fixed tests in logical groups
-   - Ran test suite after each group
-   - Easy to isolate remaining failures
-   - High confidence before moving forward
-
-4. **Immediate Steps Execution**
-   - User requested: commit docs, push commits, then choose task
-   - All three completed successfully
-   - Autonomous task selection worked well (chose high-impact test fixes)
-
-#### What Could Be Improved
-
-1. **Documentation Completeness Failure**
-   - Identified lessons learned but **did not update work_initiation_prompt.md**
-   - Session summary buried immediate steps user requested
-   - Violated prompt's own guidance: "Each session should end with lessons learned documented"
-   - Impact: HIGH - breaks feedback loop, wastes future agent time
-   - Root cause: Forgot to apply findings back to source document
-
-2. **No Test Coverage Report Generated**
-   - Fixed tests but didn't verify coverage with pytest --cov
-   - Would show exact lines covered by tests
-   - Could identify remaining gaps
-   - Impact: MEDIUM - unit tests pass but coverage unknown
-
-3. **No Integration Smoke Test**
-   - Fixed unit tests but didn't test actual functionality
-   - Could have started Gradio app, tested Campaign Chat tab
-   - Would verify end-to-end behavior
-   - Impact: MEDIUM - unit tests passing is good but not complete validation
-
-4. **Session Summary Structure**
-   - Emphasized self-selected work over user-requested steps
-   - Should have clearly separated:
-     - Phase 1: Immediate Steps (user-requested)
-     - Phase 2: Self-Selected Work
-   - Future agents might miss that immediate steps were completed
-
-#### Process Improvements Identified
-
-1. **Add Test State Verification to Section I (Problem Validation)**
-   ```
-   Before claiming "missing tests" or "no test coverage":
-   [ ] Search for test files: `find tests -name "test_*.py" -o -name "*_test.py"`
-   [ ] Run test suite: `pytest tests/test_<module>.py -v`
-   [ ] Check test status: passing/failing/skipped
-   [ ] Distinguish between:
-       - "Tests don't exist" (need to write tests)
-       - "Tests exist but are failing" (need to fix tests)
-       - "Tests exist and pass" (task may be complete)
-   [ ] Generate coverage if fixing tests: `pytest --cov=src --cov-report=html`
-   ```
-
-2. **Add Coverage Verification to Section XI (Deliverables)**
-   ```
-   After fixing tests:
-   [ ] Run targeted tests for changed module
-   [ ] Generate coverage report: pytest --cov=src.<module> --cov-report=term
-   [ ] Review coverage percentage and missing lines
-   [ ] Document coverage gaps if <80%
-   [ ] Run full test suite to check for regressions
-   ```
-
-3. **Add Integration Smoke Test to Section XI**
-   ```
-   For UI-related changes or test fixes:
-   [ ] Start application if applicable (python app.py)
-   [ ] Manually test affected user flows
-   [ ] Verify no runtime errors or exceptions
-   [ ] Test with realistic data if possible
-   [ ] Document any issues discovered
-   ```
-
-4. **Enforce Session Summary Structure**
-   Add to Section XII (Lessons Learned):
-   ```
-   Session Summary Must Include:
-   [ ] Clear separation of user-requested vs self-selected work
-   [ ] All immediate steps explicitly listed and checked off
-   [ ] Autonomous decisions clearly documented with reasoning
-   [ ] Files modified with line number references
-   [ ] Test results before/after
-   ```
-
-5. **Enforce Prompt Update Discipline**
-   Add to end of prompt (before "End of Work Initiation Prompt"):
-   ```
-   ## CRITICAL: Session Completion Checklist
-
-   Before ending ANY session, MUST complete:
-   [ ] Document lessons learned in Section XVI
-   [ ] Add process improvements to relevant sections
-   [ ] Update prompt with new patterns discovered
-   [ ] Commit work_initiation_prompt.md if modified
-   [ ] Verify all user-requested steps are documented in summary
-
-   **If you skip this step, you waste future agent time by not sharing your learnings.**
-   ```
-
-#### Recommendations for Future Work
-
-1. **Generate Test Coverage Report** (5 minutes)
-   ```bash
-   pytest tests/test_langchain_*.py --cov=src.langchain --cov-report=html
-   open htmlcov/index.html
-   ```
-   - Document coverage percentage in TESTING.md
-   - Identify any remaining gaps
-   - Priority: P2
-
-2. **Create Testing Patterns Documentation** (1-2 hours)
-   - File: `docs/TESTING_PATTERNS.md`
-   - Document dynamic import mocking pattern (from today's fixes)
-   - Document initialization isolation pattern
-   - Include examples for future test writers
-   - Priority: P1 - would have saved time today
-
-3. **Next P0 Work**: Extract Story Generation Logic
-   - From ROADMAP P0 Priority 3
-   - Move from app.py to src/story_generator.py
-   - Enable CLI usage
-   - Estimated: 1 day
-   - Priority: P0
-
-#### Prompt Updates
-
-**Added to Section I (Problem Validation)**:
-```
-Test State Verification:
-- Search for existing test files before claiming "no tests"
-- Run tests to check pass/fail status
-- Distinguish "missing tests" from "broken tests"
-- Generate coverage report when fixing tests
-```
-
-**Added to Section XI (Deliverables)**:
-```
-After fixing tests:
-[ ] Generate coverage report
-[ ] Review coverage gaps
-[ ] Run integration smoke test for UI changes
-```
-
-**Added Session Completion Checklist** (new critical section before end):
-- Enforce prompt update discipline
-- Require documentation of all user-requested steps
-- Mandate Section XVI updates
-
-**Added this session entry to Section XVI** (you're reading it now).
+### Accountability
+- [ ] **Don't skip this checklist** - Your learnings help future agents work faster
+- [ ] **If you discover patterns, add them to Section XVI** - Make the prompt better
 
 ---
 
@@ -1453,4 +950,4 @@ After fixing tests:
 
 Begin each session by running system health checks, validating the task isn't already complete, and establishing clear success criteria. Work in small, testable increments. Surface uncertainty. Document reasoning. Deliver complete, maintainable solutions.
 
-**Remember**: Each session should end with lessons learned documented in Section XVI to improve the prompt for future agents.
+**Remember**: Focus on extracting **timeless patterns** from your work, not documenting session changelogs (that's what git log is for).

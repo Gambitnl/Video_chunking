@@ -416,7 +416,7 @@ If you find a `[~]` task with timestamp >24 hours old:
 
 - [ ] BUG-20251103-004: Campaign Launcher - Dropdown not refreshed on external changes → BUG_HUNT_TODO.md:269 | app.py:630-635
 
-- [ ] BUG-20251103-007: Process Session - Results section doesn't auto-scroll → BUG_HUNT_TODO.md:289 | src/ui/process_session_tab_modern.py:219-226
+- [~] BUG-20251103-007: Process Session - Results section doesn't auto-scroll (Agent: Claude, Started: 2025-11-06 14:40 UTC) → BUG_HUNT_TODO.md:289 | src/ui/process_session_tab_modern.py:219-226
 
 - [ ] BUG-20251103-009: Process Session - Audio path resolution inconsistent → BUG_HUNT_TODO.md:301 | app.py:499-507
 

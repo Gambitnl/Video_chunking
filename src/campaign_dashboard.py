@@ -138,12 +138,13 @@ class CampaignDashboard:
                     try:
                         with open(data_files[0], 'r', encoding='utf-8') as f:
                             metadata = json.load(f)
-                            # Check if session belongs to this campaign
-                            session_campaign_id = metadata.get('campaign_id')
-                            if session_campaign_id == campaign_id:
-                                campaign_sessions.append(session_dir)
-                            # Handle legacy sessions without campaign_id (exclude them)
-                            # Empty campaign_id is treated as not matching
+                            if isinstance(metadata, dict):
+                                # Check if session belongs to this campaign
+                                session_campaign_id = metadata.get('campaign_id')
+                                if session_campaign_id == campaign_id:
+                                    campaign_sessions.append(session_dir)
+                                # Handle legacy sessions without campaign_id (exclude them)
+                                # Empty campaign_id is treated as not matching
                     except (json.JSONDecodeError, IOError):
                         # Skip sessions with invalid or unreadable metadata
                         continue

@@ -2,8 +2,24 @@
 import logging
 from pathlib import Path
 from datetime import datetime
-from typing import Optional
+from typing import Optional, Union, Sequence
 import sys
+
+
+LOG_LEVEL_CHOICES: Sequence[str] = ("DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL")
+
+
+def _resolve_log_level(level: Union[str, int]) -> int:
+    """Normalize log level names and values into logging constants."""
+    if isinstance(level, int):
+        return level
+    if not isinstance(level, str):
+        raise ValueError(f"Unsupported log level: {level!r}")
+
+    normalized = level.strip().upper()
+    if normalized not in logging._nameToLevel:
+        raise ValueError(f"Unsupported log level: {level!r}")
+    return logging._nameToLevel[normalized]
 
 
 class SessionLogger:
@@ -43,7 +59,7 @@ class SessionLogger:
 
         # File handler - detailed logs
         file_handler = logging.FileHandler(log_file, encoding='utf-8')
-        file_handler.setLevel(logging.DEBUG)
+        file_handler.setLevel(_resolve_log_level(getattr(Config, "LOG_LEVEL_FILE", "DEBUG")))
         file_formatter = logging.Formatter(
             '%(asctime)s | %(levelname)-8s | %(name)s | %(funcName)s:%(lineno)d | %(message)s',
             datefmt='%Y-%m-%d %H:%M:%S'
@@ -52,7 +68,7 @@ class SessionLogger:
 
         # Console handler - important messages only
         console_handler = logging.StreamHandler(sys.stdout)
-        console_handler.setLevel(logging.INFO)
+        console_handler.setLevel(_resolve_log_level(getattr(Config, "LOG_LEVEL_CONSOLE", "INFO")))
         console_formatter = logging.Formatter(
             '%(asctime)s | %(levelname)-8s | %(message)s',
             datefmt='%Y-%m-%d %H:%M:%S'
@@ -62,6 +78,8 @@ class SessionLogger:
         # Add handlers
         self.logger.addHandler(file_handler)
         self.logger.addHandler(console_handler)
+        self.file_handler = file_handler
+        self.console_handler = console_handler
 
         # Store paths
         self.log_file = log_file
@@ -101,6 +119,32 @@ class SessionLogger:
     def critical(self, message: str, exc_info=True, **kwargs):
         """Log critical error message"""
         self.logger.critical(message, exc_info=exc_info, **kwargs)
+
+    def set_console_level(self, level: Union[str, int]):
+        """Adjust console handler log level at runtime."""
+        resolved = _resolve_log_level(level)
+        if hasattr(self, "console_handler"):
+            self.console_handler.setLevel(resolved)
+        self.logger.info("Console log level set to %s", logging.getLevelName(resolved))
+
+    def set_file_level(self, level: Union[str, int]):
+        """Adjust file handler log level at runtime."""
+        resolved = _resolve_log_level(level)
+        if hasattr(self, "file_handler"):
+            self.file_handler.setLevel(resolved)
+        self.logger.info("File log level set to %s", logging.getLevelName(resolved))
+
+    def get_console_level(self) -> str:
+        """Return active console log level name."""
+        if hasattr(self, "console_handler"):
+            return logging.getLevelName(self.console_handler.level)
+        return logging.getLevelName(logging.INFO)
+
+    def get_file_level(self) -> str:
+        """Return active file log level name."""
+        if hasattr(self, "file_handler"):
+            return logging.getLevelName(self.file_handler.level)
+        return logging.getLevelName(logging.DEBUG)
 
     def get_recent_logs(self, lines: int = 100) -> str:
         """Get recent log entries"""
@@ -200,6 +244,26 @@ def log_error_with_context(error: Exception, context: str = ""):
         logger.error(f"Error in {context}: {str(error)}", exc_info=True)
     else:
         logger.error(f"Error: {str(error)}", exc_info=True)
+
+
+def set_console_log_level(level: Union[str, int]) -> None:
+    """Public helper to adjust console logging verbosity."""
+    _logger_instance.set_console_level(level)
+
+
+def set_file_log_level(level: Union[str, int]) -> None:
+    """Public helper to adjust file logging verbosity."""
+    _logger_instance.set_file_level(level)
+
+
+def get_console_log_level() -> str:
+    """Return active console log level name."""
+    return _logger_instance.get_console_level()
+
+
+def get_file_log_level() -> str:
+    """Return active file log level name."""
+    return _logger_instance.get_file_level()
 
 
 # Initialize logging on module import

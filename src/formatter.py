@@ -5,6 +5,10 @@ from pathlib import Path
 from typing import List, Dict, Optional
 from datetime import timedelta
 from .classifier import ClassificationResult
+from .logger import get_logger
+
+
+logger = get_logger(__name__)
 
 def sanitize_filename(name: str) -> str:
     """Remove characters that are invalid for file paths."""
@@ -273,7 +277,7 @@ class TranscriptFormatter:
                 include_speaker=True
             )
         except Exception as e:
-            print(f"Warning: SRT export failed: {e}")
+            logger.warning(f"SRT export failed: {e}")
 
         return {
             'full': output_dir / f"{session_name}_full.txt",

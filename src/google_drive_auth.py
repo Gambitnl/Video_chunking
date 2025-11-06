@@ -23,6 +23,7 @@ from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 
 from src.config import Config
+from src.logger import get_logger
 
 
 # OAuth 2.0 scopes - we only need read-only access to Drive files
@@ -38,6 +39,7 @@ CLIENT_CONFIG_FILE = Path.cwd() / "gdrive_credentials.json"
 # Global variables to capture OAuth callback
 _oauth_code = None
 _oauth_error = None
+logger = get_logger(__name__)
 _server_ready = threading.Event()
 
 
@@ -231,7 +233,7 @@ def exchange_code_for_token(flow: Flow, auth_response: str) -> bool:
             parsed = urlparse(auth_response)
             code_params = parse_qs(parsed.query).get('code')
             if not code_params:
-                print("Error: No 'code' parameter found in redirect URL")
+                logger.error("No 'code' parameter found in redirect URL")
                 return False
             auth_code = code_params[0]
         else:
@@ -247,7 +249,7 @@ def exchange_code_for_token(flow: Flow, auth_response: str) -> bool:
 
         return True
     except Exception as e:
-        print(f"Error exchanging code for token: {e}")
+        logger.error(f"Error exchanging code for token: {e}")
         return False
 
 
@@ -269,7 +271,7 @@ def get_credentials() -> Optional[Credentials]:
             creds.refresh(Request())
             TOKEN_FILE.write_text(creds.to_json())
         except RefreshError as e:
-            print(f"Error refreshing token: {e}")
+            logger.error(f"Error refreshing token: {e}")
             # Token may be invalid, delete it to force re-auth
             TOKEN_FILE.unlink(missing_ok=True)
             return None

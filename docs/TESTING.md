@@ -223,7 +223,7 @@ The `mcp__videochunking-dev__check_pipeline_health()` function verifies all requ
 
 | Date/Time (UTC) | Status | Notes / Failure & Remedy |
 |-----------------|--------|--------------------------|
-| | | *No results logged yet* |
+| 2025-11-06 12:05:09 UTC | SUCCESS |                          |
 
 ---
 
@@ -231,7 +231,7 @@ The `mcp__videochunking-dev__check_pipeline_health()` function verifies all requ
 
 | Date/Time (UTC) | Status | Available Models / Failure & Remedy |
 |-----------------|--------|--------------------------------------|
-| | | *No results logged yet* |
+| 2025-11-06 12:05:09 UTC | SUCCESS | gpt-oss:20b                            |
 
 ---
 
@@ -239,7 +239,7 @@ The `mcp__videochunking-dev__check_pipeline_health()` function verifies all requ
 
 | Date/Time (UTC) | Status | Version / Failure & Remedy |
 |-----------------|--------|----------------------------|
-| | | *No results logged yet* |
+| 2025-11-06 12:05:09 UTC | SUCCESS | 1.2.0                      |
 
 ---
 
@@ -247,6 +247,7 @@ The `mcp__videochunking-dev__check_pipeline_health()` function verifies all requ
 
 | Date/Time (UTC) | Status | Version / Failure & Remedy |
 |-----------------|--------|----------------------------|
+| 2025-11-06 12:05:09 UTC | SUCCESS | 3.1.1                      |
 | 2025-11-04 07:20 | SUCCESS | v4.0.1 - All 15 diarizer tests passing |
 
 ---
@@ -255,7 +256,7 @@ The `mcp__videochunking-dev__check_pipeline_health()` function verifies all requ
 
 | Date/Time (UTC) | Status | Version / Failure & Remedy |
 |-----------------|--------|----------------------------|
-| | | *No results logged yet* |
+| 2025-11-06 12:05:09 UTC | SUCCESS | 0.25.1                     |
 
 ---
 
@@ -263,7 +264,7 @@ The `mcp__videochunking-dev__check_pipeline_health()` function verifies all requ
 
 | Date/Time (UTC) | Status | Version / Failure & Remedy |
 |-----------------|--------|----------------------------|
-| | | *No results logged yet* |
+| 2025-11-06 12:05:09 UTC | SUCCESS | 5.49.1                     |
 
 ---
 
@@ -271,7 +272,7 @@ The `mcp__videochunking-dev__check_pipeline_health()` function verifies all requ
 
 | Date/Time (UTC) | Status | Version / Failure & Remedy |
 |-----------------|--------|----------------------------|
-| | | *No results logged yet* |
+| 2025-11-06 12:05:09 UTC | SUCCESS | 8.3.0                      |
 
 ---
 
@@ -279,7 +280,7 @@ The `mcp__videochunking-dev__check_pipeline_health()` function verifies all requ
 
 | Date/Time (UTC) | Status | Version / Failure & Remedy |
 |-----------------|--------|----------------------------|
-| | | *No results logged yet* |
+| 2025-11-06 12:05:09 UTC | SUCCESS | 14.2.0                     |
 
 ---
 
@@ -287,7 +288,7 @@ The `mcp__videochunking-dev__check_pipeline_health()` function verifies all requ
 
 | Date/Time (UTC) | Status | Version / Failure & Remedy |
 |-----------------|--------|----------------------------|
-| | | *No results logged yet* |
+| 2025-11-06 12:05:09 UTC | SUCCESS | 2.5.1+cu121                |
 
 ---
 
@@ -295,7 +296,7 @@ The `mcp__videochunking-dev__check_pipeline_health()` function verifies all requ
 
 | Date/Time (UTC) | Status | Version / Failure & Remedy |
 |-----------------|--------|----------------------------|
-| | | *No results logged yet* |
+| 2025-11-06 12:05:09 UTC | SUCCESS | 0.32.0                     |
 
 ---
 
@@ -311,6 +312,7 @@ The `mcp__videochunking-dev__check_pipeline_health()` function verifies all requ
 
 | Date/Time (UTC) | Status | Passed | Failed | Duration | Notes |
 |-----------------|--------|--------|--------|----------|-------|
+| 2025-11-06 12:05:09 UTC | SUCCESS | 10 | 0 | ~20s | Manual health check by agent. |
 | 2025-11-04 07:15 | PARTIAL | 2 | 8 | ~5s | FFmpeg + Ollama OK, Python deps check failed (MCP server env issue, packages verified manually) |
 
 **Status Values**:

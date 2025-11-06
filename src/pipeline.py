@@ -18,7 +18,7 @@ from .snipper import AudioSnipper
 from .logger import get_logger, get_log_file_path, log_session_start, log_session_end, log_error_with_context
 from .status_tracker import StatusTracker
 from .knowledge_base import KnowledgeExtractor, CampaignKnowledgeBase
-from .preflight import PreflightChecker
+from .preflight import PreflightChecker, PreflightIssue
 
 try:  # pragma: no cover - convenience for test environment
     from unittest.mock import Mock as _Mock  # type: ignore
@@ -214,6 +214,23 @@ class DDSessionProcessor:
             classifier=self.classifier,
         )
         preflight_checker.verify(
+            skip_diarization=skip_diarization,
+            skip_classification=skip_classification,
+        )
+
+    def run_preflight_checks_only(
+        self,
+        *,
+        skip_diarization: bool,
+        skip_classification: bool,
+    ) -> List[PreflightIssue]:
+        """Collect preflight issues without running the full pipeline."""
+        preflight_checker = PreflightChecker(
+            transcriber=self.transcriber,
+            diarizer=self.diarizer,
+            classifier=self.classifier,
+        )
+        return preflight_checker.collect_issues(
             skip_diarization=skip_diarization,
             skip_classification=skip_classification,
         )

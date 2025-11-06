@@ -66,6 +66,38 @@
           "The Broken",
           "The Defect"
         ]
+      },
+      {
+        "name": "Pipira Shimmerlock",
+        "player": "Player2",
+        "race": "Gnome",
+        "class_name": "Wizard",
+        "description": "Pip - An ambitious gnome student wizard. Perceptive, eager to learn, fond of experiments and tinkering with mechanical objects.",
+        "aliases": [
+          "Pip",
+          "Pipira"
+        ]
+      },
+      {
+        "name": "Fan'nar Khe'Lek",
+        "player": "Player3",
+        "race": "Winter Eladrin",
+        "class_name": "Handyman/Ranger",
+        "description": "Pas'Ta - Snow-white skin, blond hair, wears fur clothing. Works for Culdor Academy. Sharp-witted, mysterious, prefers working alone. Uses archery and flail, carries a magical black leather Grimoire.",
+        "aliases": [
+          "Pas'Ta",
+          "Fan'nar"
+        ]
+      },
+      {
+        "name": "Furnax",
+        "player": "Companion",
+        "race": "Frost Hellhound",
+        "class_name": "Beast Companion",
+        "description": "Pip's companion - Black with dark blue stripes, cold aura. Unruly but well-trained, intelligent, rescued by the academy.",
+        "aliases": [
+          "Furnax"
+        ]
       }
     ],
     "campaign": "Team OP Adventures",

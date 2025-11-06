@@ -121,11 +121,12 @@ class SpeakerDiarizer:
                     # Proactively download community assets required by downstream
                     # diarization components so we fail fast if access is missing.
                     try:
-                        hf_hub_download(
-                            repo_id="pyannote/speaker-diarization-community-1",
-                            filename="plda/xvec_transform.npz",
-                            token=token,
-                        )
+                        if diarization_model_name == "pyannote/speaker-diarization-community-1":
+                            hf_hub_download(
+                                repo_id=diarization_model_name,
+                                filename="plda/xvec_transform.npz",
+                                token=token,
+                            )
                         hf_hub_download(
                             repo_id=embedding_model_name,
                             filename="pytorch_model.bin",
@@ -282,7 +283,6 @@ class SpeakerDiarizer:
         required_repos = [
             Config.PYANNOTE_DIARIZATION_MODEL,
             "pyannote/segmentation-3.0",
-            "pyannote/speaker-diarization-community-1",
             Config.PYANNOTE_EMBEDDING_MODEL,
         ]
 

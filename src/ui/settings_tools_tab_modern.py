@@ -1,9 +1,9 @@
 """Modern Settings & Tools tab - diagnostics and chat helpers."""
-from typing import Dict, Optional
+from typing import Dict, Optional, List
 
 import gradio as gr
 
-from src.ui.helpers import StatusMessages
+from src.ui.helpers import StatusMessages, UIComponents
 from src.ui.social_insights_tab import create_social_insights_tab
 from src.ui.speaker_manager_tab import create_speaker_manager_tab
 
@@ -14,8 +14,13 @@ def create_settings_tools_tab_modern(
     speaker_profile_manager,
     *,
     initial_campaign_id: Optional[str] = None,
+    log_level_choices: Optional[List[str]] = None,
+    initial_console_level: str = "INFO",
 ) -> Dict[str, gr.components.Component]:
     """Create the Settings & Tools tab and return components requiring campaign updates."""
+
+    available_log_levels = log_level_choices or ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]
+    active_console_level = initial_console_level or "INFO"
 
     with gr.Tab("Settings & Tools"):
         gr.Markdown(
@@ -47,6 +52,25 @@ def create_settings_tools_tab_modern(
         )
         create_speaker_manager_tab(speaker_profile_manager=speaker_profile_manager)
 
+        with gr.Accordion("Logging Controls", open=False):
+            log_level_dropdown = gr.Dropdown(
+                label="Console Log Level",
+                choices=available_log_levels,
+                value=active_console_level,
+                interactive=True,
+            )
+            apply_log_level_btn = UIComponents.create_action_button(
+                "Apply Log Level",
+                variant="secondary",
+                size="sm",
+            )
+            log_level_status = gr.Markdown(
+                value=StatusMessages.info(
+                    "Logging",
+                    f"Console output currently uses {active_console_level} level."
+                )
+            )
+
     return {
         "diagnostics": diagnostics_md,
         "chat": chat_md,
@@ -54,4 +78,7 @@ def create_settings_tools_tab_modern(
         "social_session_dropdown": social_refs["session_dropdown"],
         "social_keyword_output": social_refs["keyword_output"],
         "social_nebula_output": social_refs["nebula_output"],
+        "log_level_dropdown": log_level_dropdown,
+        "apply_log_level_btn": apply_log_level_btn,
+        "log_level_status": log_level_status,
     }

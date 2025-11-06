@@ -8,7 +8,14 @@
       "Bash(find:*)",
       "Bash(awk:*)",
       "Skill(test-pipeline)",
-      "Bash(pytest:*)"
+      "Bash(pytest:*)",
+      "Bash(netstat:*)",
+      "Bash(findstr:*)",
+      "Bash(taskkill:*)",
+      "Bash(timeout 15 bash:*)",
+      "Bash(cmd //c taskkill //PID 13256 //F)",
+      "Bash(git reset:*)",
+      "Bash(f:/Repos/VideoChunking/WORK_INITIATION_PROMPT_temp.md)"
     ],
     "deny": [],
     "ask": []

@@ -8,18 +8,21 @@ if sys.platform == "win32":
     sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8', errors='replace')
 
 from gradio_client import Client
+from src.logger import get_logger
 
-print("Connecting to Gradio server...")
+
+logger = get_logger(__name__)
+
+logger.info("Connecting to Gradio server...")
 client = Client("http://127.0.0.1:7860")
 
-print("\nAvailable API endpoints:")
-print("="*70)
+logger.info("Available API endpoints:")
+logger.info("=" * 70)
 
 # View the client info
-print(f"View info: {client.view_api()}")
+logger.info("View info: %s", client.view_api())
 
-print("\nClient attribute names:")
-print(dir(client))
+logger.info("Client attribute names: %s", dir(client))
 
-print("\n" + "="*70)
-print("Use these API names with client.predict(api_name='...')")
+logger.info("=" * 70)
+logger.info("Use these API names with client.predict(api_name='...')")

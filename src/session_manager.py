@@ -420,11 +420,15 @@ class SessionManager:
         # Handle empty sessions
         if delete_empty and audit.empty_sessions:
             if interactive and not dry_run:
-                print(f"\nFound {len(audit.empty_sessions)} empty sessions ({audit.empty_size_mb:.2f} MB):")
+                self.logger.info(
+                    "Found %s empty sessions (%.2f MB):",
+                    len(audit.empty_sessions),
+                    audit.empty_size_mb
+                )
                 for session in audit.empty_sessions[:5]:  # Show first 5
-                    print(f"  - {session.session_id} ({session.size_mb:.2f} MB)")
+                    self.logger.info("  - %s (%.2f MB)", session.session_id, session.size_mb)
                 if len(audit.empty_sessions) > 5:
-                    print(f"  ... and {len(audit.empty_sessions) - 5} more")
+                    self.logger.info("  ... and %s more", len(audit.empty_sessions) - 5)
 
                 response = input("\nDelete empty sessions? [y/N]: ")
                 if response.lower() != 'y':
@@ -443,11 +447,15 @@ class SessionManager:
         # Handle incomplete sessions
         if delete_incomplete and audit.incomplete_sessions:
             if interactive and not dry_run:
-                print(f"\nFound {len(audit.incomplete_sessions)} incomplete sessions ({audit.incomplete_size_mb:.2f} MB):")
+                self.logger.info(
+                    "Found %s incomplete sessions (%.2f MB):",
+                    len(audit.incomplete_sessions),
+                    audit.incomplete_size_mb
+                )
                 for session in audit.incomplete_sessions[:5]:
-                    print(f"  - {session.session_id} ({session.size_mb:.2f} MB)")
+                    self.logger.info("  - %s (%.2f MB)", session.session_id, session.size_mb)
                 if len(audit.incomplete_sessions) > 5:
-                    print(f"  ... and {len(audit.incomplete_sessions) - 5} more")
+                    self.logger.info("  ... and %s more", len(audit.incomplete_sessions) - 5)
 
                 response = input("\nDelete incomplete sessions? [y/N]: ")
                 if response.lower() != 'y':
@@ -466,11 +474,15 @@ class SessionManager:
         # Handle stale checkpoints
         if delete_stale_checkpoints and audit.stale_checkpoints:
             if interactive and not dry_run:
-                print(f"\nFound {len(audit.stale_checkpoints)} stale checkpoints ({audit.stale_checkpoint_size_mb:.2f} MB):")
+                self.logger.info(
+                    "Found %s stale checkpoints (%.2f MB):",
+                    len(audit.stale_checkpoints),
+                    audit.stale_checkpoint_size_mb
+                )
                 for checkpoint in audit.stale_checkpoints[:5]:
-                    print(f"  - {checkpoint}")
+                    self.logger.info("  - %s", checkpoint)
                 if len(audit.stale_checkpoints) > 5:
-                    print(f"  ... and {len(audit.stale_checkpoints) - 5} more")
+                    self.logger.info("  ... and %s more", len(audit.stale_checkpoints) - 5)
 
                 response = input("\nDelete stale checkpoints? [y/N]: ")
                 if response.lower() != 'y':

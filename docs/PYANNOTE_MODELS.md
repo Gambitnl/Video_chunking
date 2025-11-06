@@ -8,7 +8,7 @@ This document records key information from the gated pyannote repositories used 
 - Accept the user conditions for each gated repository before first use.
 - Create a Hugging Face access token and store it locally (the project expects `.env` to provide `HF_TOKEN`).
 - Provide the token to `Pipeline.from_pretrained` or `Model.from_pretrained` via the `token` or `use_auth_token` argument.
-- The default embedding model is `pyannote/wespeaker-voxceleb-resnet34-LM`. Override it by setting `PYANNOTE_EMBEDDING_MODEL` in `.env` if you prefer a different checkpoint.
+- The default embedding model is `pyannote/embedding`. Override it by setting `PYANNOTE_EMBEDDING_MODEL` in `.env` if you prefer a different checkpoint.
 
 ## pyannote/segmentation-3.0 ("Powerset" Speaker Segmentation)
 
@@ -54,7 +54,7 @@ with open("audio.rttm", "w") as rttm:
 - Processing from memory: supply `{"waveform": waveform, "sample_rate": sample_rate}` after loading with `torchaudio`.
 - Monitoring: wrap calls with `ProgressHook` to track pipeline progress.
 - Speaker bounds: provide `num_speakers`, `min_speakers`, and `max_speakers` arguments to steer clustering when prior knowledge exists.
-- Embedding: The pipeline pairs with the `pyannote/wespeaker-voxceleb-resnet34-LM` embedding by default (configurable via `PYANNOTE_EMBEDDING_MODEL`).
+- Embedding: The pipeline pairs with the `pyannote/embedding` speaker encoder by default (configurable via `PYANNOTE_EMBEDDING_MODEL`).
 - Benchmarks: Evaluated with the "Full" diarization error rate settings (no forgiveness collar, overlap counted) on AISHELL-4, AliMeeting, AMI (IHM/SDM), AVA-AVD, CALLHOME, DIHARD 3, Ego4D, REPERE, VoxConverse, and more. Refer to the upstream README for full DER/FA/Miss/Conf breakdowns.
 
 ## pyannote/speaker-diarization-community-1

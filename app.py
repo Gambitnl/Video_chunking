@@ -15,7 +15,13 @@ from src.pipeline import DDSessionProcessor
 from src.config import Config
 from src.diarizer import SpeakerProfileManager
 from src.character_profile import CharacterProfileManager
-from src.logger import get_log_file_path
+from src.logger import (
+    get_log_file_path,
+    get_logger,
+    get_console_log_level,
+    set_console_log_level,
+    LOG_LEVEL_CHOICES,
+)
 from src.party_config import PartyConfigManager, CampaignManager
 from src.knowledge_base import CampaignKnowledgeBase
 from src.preflight import PreflightIssue
@@ -46,6 +52,7 @@ PROJECT_ROOT = Path(__file__).resolve().parent
 NOTEBOOK_CONTEXT = ""
 story_manager = StoryNotebookManager()
 speaker_profile_manager = SpeakerProfileManager()
+logger = get_logger(__name__)
 
 
 def _notebook_status() -> str:
@@ -630,9 +637,7 @@ def process_session(
         }
 
     except Exception as e:
-        import traceback
-
-        traceback.print_exc()
+        logger.exception("Error during session processing in Gradio UI")
         return {
             "status": "error",
             "message": str(e),
@@ -788,7 +793,20 @@ with gr.Blocks(
         refresh_campaign_names=_refresh_campaign_names,
         initial_campaign_id=initial_campaign_id,
         speaker_profile_manager=speaker_profile_manager,
+        log_level_choices=list(LOG_LEVEL_CHOICES),
+        initial_console_level=get_console_log_level(),
     )
+
+    def _apply_console_log_level(level: Optional[str]) -> str:
+        if not level:
+            return StatusMessages.warning("Logging", "Select a log level before applying.")
+        try:
+            set_console_log_level(level)
+            logger.info("Console log level updated via UI: %s", level)
+            return StatusMessages.success("Logging", f"Console log level set to {level}.")
+        except ValueError:
+            logger.error("Unsupported log level selected in UI: %s", level)
+            return StatusMessages.error("Logging", f"Unsupported log level: {level}")
 
     def _compute_process_updates(campaign_id: Optional[str]) -> Tuple:
         settings = _process_defaults_for_campaign(campaign_id)
@@ -982,6 +1000,12 @@ with gr.Blocks(
         settings_tab_refs["social_nebula_output"],
     ]
 
+    settings_tab_refs["apply_log_level_btn"].click(
+        fn=_apply_console_log_level,
+        inputs=settings_tab_refs["log_level_dropdown"],
+        outputs=settings_tab_refs["log_level_status"],
+    )
+
     load_campaign_btn.click(
         fn=_load_campaign,
         inputs=[existing_campaign_dropdown, active_campaign_state],
@@ -1046,22 +1070,21 @@ def is_port_in_use(port):
 if __name__ == "__main__":
     # Check if port is already in use
     if is_port_in_use(7860):
-        print("=" * 80)
-        print("WARNING: ERROR: Gradio app already running on port 7860!")
-        print("=" * 80)
-        print("\nAnother instance of the application is already running.")
-        print("Please close the existing instance before starting a new one.")
-        print("To kill the existing process:")
-        print("  1. Find the process ID (PID) of the application that is listening on port 7860:")
-        print("     netstat -ano | findstr :7860 | findstr LISTENING")
-        print("  2. The PID will be in the last column of the output. Look for the line with \"LISTENING\" in the \"State\" column.")
-        print("  3. Kill the process using its PID:")
-        print("     taskkill /PID <process_id> /F")
-        print("=" * 80)
+        logger.error("=" * 80)
+        logger.error("WARNING: Gradio app already running on port 7860!")
+        logger.error("=" * 80)
+        logger.error("Another instance of the application is already running.")
+        logger.error("Please close the existing instance before starting a new one.")
+        logger.info("To kill the existing process:")
+        logger.info("  1. Find the process ID (PID) monitoring port 7860:")
+        logger.info("     netstat -ano | findstr :7860 | findstr LISTENING")
+        logger.info("  2. The PID appears in the last column on the LISTENING entry.")
+        logger.info("  3. Kill the process using its PID: taskkill /PID <process_id> /F")
+        logger.error("=" * 80)
         sys.exit(1)
 
-    print("Starting D&D Session Processor - Modern UI")
-    print("Access the interface at http://127.0.0.1:7860")
+    logger.info("Starting D&D Session Processor - Modern UI")
+    logger.info("Access the interface at http://127.0.0.1:7860")
     demo.launch(
         server_name="127.0.0.1",
         server_port=7860,

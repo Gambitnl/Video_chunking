@@ -138,8 +138,8 @@ def create_campaign_chat_tab(project_root: Path) -> None:
                 content=message
             )
 
-            # Show loading indicator (don't add to chat_history, just UI message)
-            loading_msg = f"{SI.LOADING} Thinking... (querying LLM)"
+            # Show loading indicator with better UX
+            loading_msg = f"{SI.LOADING} 🤔 Thinking... (querying campaign data)"
 
             return chat_history, "", gr.update(), loading_msg
 
@@ -147,8 +147,8 @@ def create_campaign_chat_tab(project_root: Path) -> None:
             logger.error(f"Error in send_message_show_loading: {e}", exc_info=True)
             error_msg = StatusMessages.error(
                 "Message Setup Failed",
-                "Unable to prepare your message.",
-                str(e)
+                "Unable to send your message. Please try again.",
+                "Error details have been logged for troubleshooting."
             )
             return chat_history, "", gr.update(), error_msg
 
@@ -351,9 +351,11 @@ def create_campaign_chat_tab(project_root: Path) -> None:
                     )
                     send_btn = gr.Button(SI.ACTION_SEND, scale=1, variant="primary")
 
-                with gr.Row():
-                    clear_btn = gr.Button(f"{SI.ACTION_CLEAR} Chat", size="sm")
-                    new_conv_btn = gr.Button(f"{SI.ACTION_NEW} Conversation", size="sm", variant="primary")
+        with gr.Row():
+            clear_btn = gr.Button(f"{SI.ACTION_CLEAR} Chat", size="sm")
+            new_conv_btn = gr.Button(f"{SI.ACTION_NEW} Conversation", size="sm", variant="primary")
+            delete_btn = gr.Button(f"{SI.ACTION_DELETE} Selected", size="sm", variant="secondary")
+            rename_btn = gr.Button(f"{SI.ACTION_EDIT} Rename", size="sm", variant="secondary")
 
             with gr.Column(scale=1):
                 gr.Markdown("### Conversations")

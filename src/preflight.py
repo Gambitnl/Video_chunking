@@ -46,18 +46,10 @@ class PreflightChecker:
         skip_classification: bool,
     ) -> None:
         """Run preflight checks and raise if any blocking issues are found."""
-        issues: List[PreflightIssue] = []
-
-        issues.extend(self._collect("transcriber", self.transcriber.preflight_check()))
-
-        if not skip_diarization:
-            issues.extend(self._collect("diarizer", self.diarizer.preflight_check()))
-
-        if not skip_classification:
-            issues.extend(
-                self._collect("classifier", self.classifier.preflight_check())
-            )
-
+        issues = self.collect_issues(
+            skip_diarization=skip_diarization,
+            skip_classification=skip_classification,
+        )
         if not issues:
             return
 
@@ -74,6 +66,27 @@ class PreflightChecker:
             )
             raise RuntimeError(f"Preflight checks failed:\n{bullet_list}")
 
+    def collect_issues(
+        self,
+        *,
+        skip_diarization: bool,
+        skip_classification: bool,
+    ) -> List[PreflightIssue]:
+        """Collect all preflight issues without logging or raising."""
+        issues: List[PreflightIssue] = []
+
+        issues.extend(self._collect("transcriber", self.transcriber.preflight_check()))
+
+        if not skip_diarization:
+            issues.extend(self._collect("diarizer", self.diarizer.preflight_check()))
+
+        if not skip_classification:
+            issues.extend(
+                self._collect("classifier", self.classifier.preflight_check())
+            )
+
+        return issues
+
     @staticmethod
     def _collect(
         component_name: str, items: Iterable[PreflightIssue]
@@ -85,4 +98,3 @@ class PreflightChecker:
                 issue.component = component_name
             results.append(issue)
         return results
-

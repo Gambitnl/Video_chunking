@@ -988,6 +988,59 @@ To get underway, tackle these four concrete items (documenting reasoning/actions
 
 ---
 
+## P2-SEARCH-001: Session Search Functionality
+
+**Owner**: Gemini
+**Effort**: 1 day
+**Priority**: MEDIUM
+**Dependencies**: None
+**Status**: DONE
+
+### Problem Statement
+Users need a way to search for specific text across all processed session transcripts. This is essential for finding key moments, quotes, or information that isn't captured by the structured knowledge base.
+
+### Success Criteria
+- [ ] A new "Session Search" tab or feature is added to the UI.
+- [ ] Users can enter a search query (string).
+- [ ] The search should scan the `*_full.txt` files in all session directories under `output/`.
+- [ ] Results should be displayed showing the session ID, the line containing the match, and the line number.
+- [ ] The search should support case-insensitive matching.
+- [ ] The search should be reasonably fast, even with many sessions.
+
+### Implementation Plan
+
+#### Subtask 1: Create Search Module
+**Effort**: 3 hours
+
+- Create a new module `src/session_search.py`.
+- Implement a `SessionSearcher` class with a `search()` method.
+- The `search()` method will take a query string and an output directory path.
+- It will glob for all `*_full.txt` files, read them line by line, and return a list of match objects.
+- Each match object should contain `session_id`, `file_path`, `line_number`, and `line_content`.
+
+#### Subtask 2: UI Integration
+**Effort**: 3 hours
+
+- Add a new tab or an accordion section in the "Stories & Output" tab for "Session Search".
+- Add a `gr.Textbox` for the search query and a `gr.Button` to trigger the search.
+- Add a `gr.Dataframe` or `gr.Markdown` component to display the search results.
+- Wire the UI to the `SessionSearcher` class.
+
+#### Subtask 3: Testing
+**Effort**: 2 hours
+
+- Create a new test file `tests/test_session_search.py`.
+- Add unit tests for the `SessionSearcher` class.
+- Create mock session files in `tests/fixtures/` to test against.
+- Test cases:
+    - No matches found.
+    - Single match found.
+    - Multiple matches in one file.
+    - Matches across multiple files.
+    - Case-insensitive matching.
+
+---
+
 **See IMPLEMENTATION_PLANS.md for templates and P0 features**
 **See IMPLEMENTATION_PLANS_PART3.md for P2 LangChain Integration**
 **See IMPLEMENTATION_PLANS_SUMMARY.md for effort estimates and sprint planning**

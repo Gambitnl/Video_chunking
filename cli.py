@@ -5,16 +5,24 @@ from rich.console import Console
 from rich.table import Table
 from src.pipeline import DDSessionProcessor
 from src.config import Config
-from src.logger import get_log_file_path
+from src.logger import get_log_file_path, set_console_log_level, LOG_LEVEL_CHOICES
 from src.story_notebook import StoryNotebookManager, load_notebook_context_file
 
 console = Console()
 
 
 @click.group()
-def cli():
+@click.option(
+    "--log-level",
+    type=click.Choice(LOG_LEVEL_CHOICES, case_sensitive=False),
+    default=None,
+    help="Set console log verbosity for this CLI session."
+)
+@click.pass_context
+def cli(ctx, log_level):
     """D&D Session Transcription & Diarization System"""
-    pass
+    if log_level:
+        set_console_log_level(log_level)
 
 
 @cli.command()
@@ -527,7 +535,7 @@ def audit(output):
                 session.created_time.strftime('%Y-%m-%d')
             )
         console.print(table)
-        print()
+        console.print()
 
     if report.incomplete_sessions:
         table = Table(title="Incomplete Sessions")
@@ -550,7 +558,7 @@ def audit(output):
                 ", ".join(missing)
             )
         console.print(table)
-        print()
+        console.print()
 
     if report.stale_checkpoints:
         table = Table(title="Stale Checkpoints (>7 days)")

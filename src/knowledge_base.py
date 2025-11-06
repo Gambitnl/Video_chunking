@@ -6,6 +6,10 @@ from dataclasses import dataclass, asdict, field
 from datetime import datetime
 import ollama
 from .config import Config
+from .logger import get_logger
+
+
+logger = get_logger(__name__)
 
 
 @dataclass
@@ -244,7 +248,7 @@ Return ONLY the JSON, no other text."""
             return result
 
         except Exception as e:
-            print(f"Knowledge extraction error: {e}")
+            logger.error(f"Knowledge extraction error: {e}", exc_info=True)
             return {
                 'quests': [],
                 'npcs': [],
@@ -291,7 +295,7 @@ class CampaignKnowledgeBase:
 
             return data
         except Exception as e:
-            print(f"Error loading knowledge base: {e}")
+            logger.error(f"Error loading knowledge base: {e}", exc_info=True)
             return self._load_knowledge.__wrapped__(self)
 
     def _save_knowledge(self):

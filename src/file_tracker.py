@@ -6,6 +6,10 @@ from typing import Dict, List, Optional
 from dataclasses import dataclass, asdict
 from datetime import datetime
 from .config import Config
+from .logger import get_logger
+
+
+logger = get_logger(__name__)
 
 
 @dataclass
@@ -57,7 +61,7 @@ class FileProcessingTracker:
 
             return records
         except Exception as e:
-            print(f"Warning: Could not load processing records: {e}")
+            logger.warning(f"Could not load processing records: {e}")
             return {}
 
     def _save_records(self):

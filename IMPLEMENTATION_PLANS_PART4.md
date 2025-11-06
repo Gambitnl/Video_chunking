@@ -201,97 +201,52 @@ Test real-time processing with simulated streams.
 
 ---
 
-## P3-FEATURE-002: Multi-language Support
+## P3-FEATURE-002: Multi-language Support (Dutch & English)
 
 **Files**: `src/transcriber.py`, `src/config.py`
-**Effort**: 2-3 days
+**Effort**: 1 day
 **Priority**: LOW
 **Dependencies**: None
 **Status**: NOT STARTED
 
 ### Problem Statement
-Currently assumes English-only sessions. Need to support campaigns run in other languages (Spanish, French, German, Japanese, etc.).
+The system is primarily designed for Dutch but should officially support English as a first-class language.
 
 ### Success Criteria
-- [_] UI allows language selection
-- [_] Whisper model uses specified language
-- [_] IC/OOC classification works for non-English
-- [_] Character profile extraction supports non-English
-- [_] Documentation updated with supported languages
+- [ ] UI allows selecting between "Dutch" and "English".
+- [ ] Whisper model uses the specified language for transcription.
+- [ ] IC/OOC classification prompts are optimized for the selected language.
+- [ ] Documentation is updated to reflect dual-language support.
 
 ### Implementation Plan
 
 #### Subtask 2.1: Add Language Configuration
 **Effort**: 2 hours
 
-Add language setting to config and UI.
-
-**Config Changes**:
-```python
-# .env
-WHISPER_LANGUAGE=en  # en, es, fr, de, ja, etc.
-
-# src/config.py
-class Config:
-    WHISPER_LANGUAGE: str = os.getenv("WHISPER_LANGUAGE", "en")
-```
+Add a `WHISPER_LANGUAGE` setting to the configuration, accepting `en` or `nl`. Default to `nl`.
 
 **Files**: `.env.example`, `src/config.py`
 
-#### Subtask 2.2: Update Transcriber
+#### Subtask 2.2: Update Transcriber & Prompts
 **Effort**: 4 hours
 
-Pass language parameter to Whisper model.
+- Pass the language parameter to the Whisper model during transcription.
+- Create a `prompts/ic_ooc_classification_en.txt` for English-language classification.
+- Update the classifier to use the correct prompt based on the selected language.
 
-**Code Changes**:
-```python
-# src/transcriber.py
-segments, info = self.model.transcribe(
-    audio_path,
-    language=self.config.WHISPER_LANGUAGE,  # Explicit language
-    # ...
-)
-```
+**Files**: `src/transcriber.py`, `src/classifier.py`, `prompts/`
 
-**Files**: `src/transcriber.py`
+#### Subtask 2.3: UI Language Selector
+**Effort**: 2 hours
 
-#### Subtask 2.3: Multilingual IC/OOC Classification
-**Effort**: 1 day
-
-Update IC/OOC prompts for multiple languages.
-
-**Approach**:
-1. Create prompt templates per language
-2. Auto-detect language if not specified
-3. Use multilingual models (e.g., GPT-4, Claude support most languages)
-
-**Files**: New `prompts/ic_ooc_classification_{lang}.txt`
-
-#### Subtask 2.4: UI Language Selector
-**Effort**: 4 hours
-
-Add language dropdown to processing tab.
-
-**UI Addition**:
-```python
-language_dropdown = gr.Dropdown(
-    label="Session Language",
-    choices=["en", "es", "fr", "de", "ja", "ko", "zh"],
-    value="en"
-)
-```
+Add a simple dropdown to the UI to select either "Dutch" or "English".
 
 **Files**: `app.py`
 
-#### Subtask 2.5: Testing
-**Effort**: 1 day
+#### Subtask 2.4: Testing
+**Effort**: 2 hours
 
-Test with non-English audio samples.
-
-**Test Cases**:
-- Spanish D&D session
-- French D&D session
-- Mixed language (English + Spanish)
+Test with both a Dutch and an English audio sample to ensure the correct models and prompts are used and the output is accurate.
 
 **Files**: `tests/test_multilingual.py`
 

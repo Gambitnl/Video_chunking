@@ -4,6 +4,10 @@ from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 from dataclasses import dataclass, asdict
 from .config import Config
+from .logger import get_logger
+
+
+logger = get_logger(__name__)
 
 
 @dataclass
@@ -55,7 +59,7 @@ class PartyConfigManager:
 
             return parties
         except Exception as e:
-            print(f"Warning: Could not load parties: {e}")
+            logger.warning(f"Could not load parties: {e}", exc_info=True)
             return {}
 
     def _ensure_default_party(self):
@@ -373,7 +377,7 @@ class CampaignManager:
 
             return campaigns
         except Exception as e:
-            print(f"Error loading campaigns: {e}")
+            logger.error(f"Error loading campaigns: {e}", exc_info=True)
             return {}
 
     def get_campaign(self, campaign_id: str) -> Optional[Campaign]:

@@ -68,6 +68,10 @@ class Config:
         "No audio snippets were generated for this session."
     )
 
+    # Logging
+    LOG_LEVEL_CONSOLE: str = os.getenv("LOG_LEVEL_CONSOLE", "INFO")
+    LOG_LEVEL_FILE: str = os.getenv("LOG_LEVEL_FILE", "DEBUG")
+
     # Ollama Settings
     OLLAMA_MODEL: str = os.getenv("OLLAMA_MODEL", "gpt-oss:20b")
     OLLAMA_BASE_URL: str = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")

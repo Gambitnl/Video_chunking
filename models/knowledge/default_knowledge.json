@@ -1,27 +1,29 @@
 {
   "campaign_id": "default",
-  "last_updated": "2025-11-04T08:45:31.190699",
+  "last_updated": "2025-11-05T00:27:37.430609",
   "sessions_processed": [
     "test_sep19_5m",
-    "test"
+    "test",
+    "test_5min",
+    "test_5min_quick"
   ],
   "quests": [
     {
       "title": "Find Friend at the Mansion",
-      "description": "Locate a friend who may be at a mansion, as instructed by the quest giver.",
-      "status": "unknown",
+      "description": "Locate and locate a friend of the requestor within the mansion.",
+      "status": "active",
       "first_mentioned": "test_sep19_5m",
-      "last_updated": "test_sep19_5m",
+      "last_updated": "test_5min_quick",
       "related_npcs": [],
       "related_locations": [],
       "notes": []
     },
     {
       "title": "Find Friend at Mansion",
-      "description": "Locate a friend in a mansion and investigate the surroundings.",
+      "description": "Go to the mansion to locate a friend of the speaker.",
       "status": "unknown",
       "first_mentioned": "test_sep19_5m",
-      "last_updated": "test_sep19_5m",
+      "last_updated": "test_5min",
       "related_npcs": [],
       "related_locations": [],
       "notes": []
@@ -60,14 +62,29 @@
   "npcs": [
     {
       "name": "Sjaak",
-      "description": "A figure who attacks the party and later teleports away.",
+      "description": "Party member/fast runner who was sent on the quest.",
       "first_mentioned": "test_sep19_5m",
-      "last_updated": "test_sep19_5m",
-      "role": "enemy",
+      "last_updated": "test_5min_quick",
+      "role": "ally",
       "location": "Mansion (or hidden laboratory)",
       "relationships": {},
       "appearances": [
-        "test_sep19_5m"
+        "test_sep19_5m",
+        "test_5min",
+        "test_5min_quick"
+      ],
+      "notes": []
+    },
+    {
+      "name": "Unknown Friend",
+      "description": "The friend Sjaak is meant to find.",
+      "first_mentioned": "test_5min_quick",
+      "last_updated": "test_5min_quick",
+      "role": "unknown",
+      "location": "Mansion",
+      "relationships": {},
+      "appearances": [
+        "test_5min_quick"
       ],
       "notes": []
     }
@@ -252,55 +269,122 @@
       "related_quests": [],
       "resolved": false,
       "resolution": null
+    },
+    {
+      "summary": "Hidden passage with crystal and machine",
+      "details": "A hidden passage leads to a study/laboratory containing a crystal and a machine. The crystal was warned against using.",
+      "first_mentioned": "test_5min",
+      "last_updated": "test_5min",
+      "related_npcs": [],
+      "related_quests": [],
+      "resolved": false,
+      "resolution": null
+    },
+    {
+      "summary": "Sjaak teleported away",
+      "details": "Sjaak entered the hidden passage and was quickly teleported away, leaving the players uncertain of his fate.",
+      "first_mentioned": "test_5min",
+      "last_updated": "test_5min",
+      "related_npcs": [],
+      "related_quests": [],
+      "resolved": false,
+      "resolution": null
+    },
+    {
+      "summary": "Advice about crystal",
+      "details": "Characters were warned not to interact with a certain crystal, yet someone did so to gain more money.",
+      "first_mentioned": "test_5min",
+      "last_updated": "test_5min",
+      "related_npcs": [],
+      "related_quests": [],
+      "resolved": false,
+      "resolution": null
+    },
+    {
+      "summary": "Crystal that should not be used",
+      "details": "Advice was given to avoid interacting with a crystal, yet the friend used it for money.",
+      "first_mentioned": "test_5min_quick",
+      "last_updated": "test_5min_quick",
+      "related_npcs": [],
+      "related_quests": [],
+      "resolved": false,
+      "resolution": null
+    },
+    {
+      "summary": "Hidden passage to a laboratory",
+      "details": "A passage was discovered leading to a study/lab with a crystal and a machine; Sjaak was teleported away through it.",
+      "first_mentioned": "test_5min_quick",
+      "last_updated": "test_5min_quick",
+      "related_npcs": [],
+      "related_quests": [],
+      "resolved": false,
+      "resolution": null
+    },
+    {
+      "summary": "Teleported away incident",
+      "details": "Sjaak was quickly teleported away after entering the laboratory; the narrator also hints at being teleported.",
+      "first_mentioned": "test_5min_quick",
+      "last_updated": "test_5min_quick",
+      "related_npcs": [],
+      "related_quests": [],
+      "resolved": false,
+      "resolution": null
     }
   ],
   "locations": [
     {
       "name": "Mansion",
-      "description": "An old mansion of faded glory visited by the party.",
+      "description": "Large building with traces of Ouzes; contains bathrooms and bedrooms.",
       "first_mentioned": "test_sep19_5m",
-      "last_updated": "test_sep19_5m",
+      "last_updated": "test_5min_quick",
       "type": "building",
       "notable_features": [],
       "npcs_present": [],
       "visits": [
-        "test_sep19_5m"
+        "test_sep19_5m",
+        "test_5min",
+        "test_5min_quick"
       ]
     },
     {
       "name": "Basement",
-      "description": "The mansion's basement, containing vats and a hidden passage.",
+      "description": "Basement of the mansion, contains a big bottle of beer and a broken access door.",
       "first_mentioned": "test_sep19_5m",
-      "last_updated": "test_sep19_5m",
+      "last_updated": "test_5min_quick",
       "type": "building",
       "notable_features": [],
       "npcs_present": [],
       "visits": [
-        "test_sep19_5m"
+        "test_sep19_5m",
+        "test_5min",
+        "test_5min_quick"
       ]
     },
     {
       "name": "Hidden Passage",
-      "description": "A secret corridor behind barrels, leading to a study/lab.",
+      "description": "A passage discovered in the basement leading to a hidden study/lab.",
       "first_mentioned": "test_sep19_5m",
-      "last_updated": "test_sep19_5m",
+      "last_updated": "test_5min_quick",
       "type": "building",
       "notable_features": [],
       "npcs_present": [],
       "visits": [
-        "test_sep19_5m"
+        "test_sep19_5m",
+        "test_5min",
+        "test_5min_quick"
       ]
     },
     {
       "name": "Study/ Laboratory",
-      "description": "A hidden room in the mansion housing a crystal and a mysterious machine.",
+      "description": "Room behind the hidden passage with a crystal and a machine.",
       "first_mentioned": "test_sep19_5m",
-      "last_updated": "test_sep19_5m",
+      "last_updated": "test_5min",
       "type": "building",
       "notable_features": [],
       "npcs_present": [],
       "visits": [
-        "test_sep19_5m"
+        "test_sep19_5m",
+        "test_5min"
       ]
     },
     {
@@ -338,24 +422,48 @@
       "visits": [
         "test_sep19_5m"
       ]
+    },
+    {
+      "name": "Small bar",
+      "description": "Briefly mentioned as a place where characters met.",
+      "first_mentioned": "test_5min",
+      "last_updated": "test_5min",
+      "type": "building",
+      "notable_features": [],
+      "npcs_present": [],
+      "visits": [
+        "test_5min"
+      ]
+    },
+    {
+      "name": "Study/Lab",
+      "description": "Laboratory-like room behind the hidden passage, contains a crystal and a machine.",
+      "first_mentioned": "test_5min_quick",
+      "last_updated": "test_5min_quick",
+      "type": "building",
+      "notable_features": [],
+      "npcs_present": [],
+      "visits": [
+        "test_5min_quick"
+      ]
     }
   ],
   "items": [
     {
       "name": "Crystal",
-      "description": "A crystal used in an unnamed machine in the secret laboratory.",
+      "description": "Magical crystal, advised against using; likely involved in teleportation.",
       "first_mentioned": "test_sep19_5m",
-      "last_updated": "test_sep19_5m",
-      "owner": "Secret Laboratory (currently unclaimed)",
+      "last_updated": "test_5min_quick",
+      "owner": "Unknown Friend",
       "location": null,
       "properties": [],
       "significance": null
     },
     {
       "name": "Machine",
-      "description": "An unknown machine in the hidden laboratory, likely a teleportation device.",
+      "description": "Unspecified machine located in the laboratory.",
       "first_mentioned": "test_sep19_5m",
-      "last_updated": "test_sep19_5m",
+      "last_updated": "test_5min_quick",
       "owner": null,
       "location": null,
       "properties": [],
@@ -366,6 +474,16 @@
       "description": "A machine capable of teleporting individuals, powered by the crystal.",
       "first_mentioned": "test_sep19_5m",
       "last_updated": "test_sep19_5m",
+      "owner": null,
+      "location": null,
+      "properties": [],
+      "significance": null
+    },
+    {
+      "name": "Big Bottle of Beer",
+      "description": "Large bottle of beer found in the basement.",
+      "first_mentioned": "test_5min_quick",
+      "last_updated": "test_5min_quick",
       "owner": null,
       "location": null,
       "properties": [],

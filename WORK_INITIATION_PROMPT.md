@@ -36,12 +36,22 @@ PY
   If any call raises `GatedRepoError`, re-accept the repo at https://huggingface.co/pyannote before proceeding.
 - **Check processed sessions**: Use `mcp__videochunking-dev__list_processed_sessions()` - Does the feature produce output?
 
-**Reconcile planning artifacts:**
+**Check the master task list:**
+- **PRIMARY SOURCE**: `docs/OUTSTANDING_TASKS.md` - Single source of truth for ALL open work
+  - Quick stats (P0-P4 status, bug counts)
+  - All 88+ tracked bugs with source references
+  - Recommended work order (Week 1-3, Month 2-3+)
+  - Direct links to detailed context (ROADMAP.md, BUG_HUNT_TODO.md, etc.)
+- If task appears in OUTSTANDING_TASKS.md as `[x] Complete`, verify implementation exists
+- If task appears as `[ ] Not started`, check if user is asking for that specific work
+- If task NOT in OUTSTANDING_TASKS.md, it may be new work or already completed
+
+**Reconcile planning artifacts (if needed):**
 - Cross-check ROADMAP.md, IMPLEMENTATION_PLANS*.md, and IMPLEMENTATION_PLANS_SUMMARY.md
 - Ensure status tables, completion dates, and success metrics align
 - Resolve discrepancies before coding
 
-**If already done:** Update planning documents to reflect completion status. Don't re-implement.
+**If already done:** Update docs/OUTSTANDING_TASKS.md to mark complete. Don't re-implement.
 
 ### 2. Scope Validation: "Do I understand what 'done' looks like?"
 
@@ -129,9 +139,10 @@ mcp__videochunking-dev__list_processed_sessions(limit=5)
 - Run the in-app "Run Preflight Checks" (or equivalent CLI) to confirm Ollama connectivity and Hugging Face access are ready. Address any reported issues first to avoid multi-hour failures.
 
 **Review documentation (if first session):**
+- `docs/OUTSTANDING_TASKS.md` - **START HERE** - Master checklist of all open work (88+ bugs, P0-P4 status)
 - `AGENT_ONBOARDING.md` - Repository workflow and standards
 - `docs/MCP_SERVERS.md` - Available MCP tools and usage patterns
-- `ROADMAP.md` - Current priorities and task status
+- `ROADMAP.md` - Detailed feature roadmap (use OUTSTANDING_TASKS.md for quick overview)
 
 ---
 
@@ -403,6 +414,8 @@ Reason: Tests existed but were broken, not missing - different task than ROADMAP
 - <Tests added/updated>
 ```
 
+**Conversation vs. Documentation:** Use the full status template above when recording internal documentation (implementation plans, session logs, or hand-off notes). During real-time chat updates with collaborators, include only the UTC timestamp unless the requester explicitly asks for the remaining sections.
+
 ### Key Communication Principles:
 
 1. **Surface uncertainty early** - "I'm not sure if..." is better than silent confusion
@@ -554,16 +567,23 @@ If no, simplify.
 ### Keep Plans in Sync - Update ALL Affected Sections:
 
 **When marking tasks complete:**
-- [ ] Status tables in ROADMAP.md (P0, P1, P2 sections)
-- [ ] IMPLEMENTATION_PLANS_SUMMARY.md status
+- [ ] **PRIMARY**: Mark as `[x]` in `docs/OUTSTANDING_TASKS.md` - This is the single source of truth
+- [ ] Status tables in ROADMAP.md (P0, P1, P2 sections) - For detailed context
+- [ ] IMPLEMENTATION_PLANS_SUMMARY.md status - For sprint planning
 - [ ] Sprint summaries and progress percentages
 - [ ] Success Metrics sections
 - [ ] "Quick Reference / What to Work On Next" sections
 - [ ] Remove completed items from recommendations
 
+**Document Hierarchy** (update in this order):
+1. **docs/OUTSTANDING_TASKS.md** - Master checklist (MUST update first)
+2. **ROADMAP.md** - Detailed status and metrics
+3. **IMPLEMENTATION_PLANS_SUMMARY.md** - Sprint planning view
+4. **IMPLEMENTATION_PLANS_PART*.md** - Implementation details (if needed)
+
 **Status format:**
 ```
-[DONE] Completed YYYY-MM-DD - <Task name>
+[x] Task-ID: Task name (YYYY-MM-DD) → source:line
 ```
 
 **Progress tracking:**
@@ -584,8 +604,10 @@ If no, simplify.
   - Run: `mcp__videochunking-dev__check_pipeline_health()`
 - [ ] **Documentation updated** - If user-facing change (docs/ files, README.md)
   - Update docs/README.md index if adding new docs
-- [ ] **Planning docs updated** - ROADMAP.md and IMPLEMENTATION_PLANS_SUMMARY.md
-  - Status changes, completion dates, progress percentages
+- [ ] **Planning docs updated** - MUST update in this order:
+  1. `docs/OUTSTANDING_TASKS.md` - Mark task as `[x]` complete (PRIMARY)
+  2. `ROADMAP.md` - Status changes, completion dates, progress percentages
+  3. `IMPLEMENTATION_PLANS_SUMMARY.md` - Sprint status (if applicable)
 - [ ] **Code quality verified** - Follows ASCII-only, existing patterns, clear naming
 - [ ] **You can explain WHY** - Each significant decision has documented reasoning
 
@@ -719,10 +741,12 @@ Translate the session's process improvements into a generalized prompt adjustmen
 [ ] Cloud/web-based agent? (if yes, skip health checks entirely)
 [ ] Recent health check valid? (local agents: check docs/TESTING.md Summary Log)
 [ ] System healthy? (local agents: run check_pipeline_health if >24hrs or failed)
-[ ] Task actually needed? (search, test, git history)
+[ ] Checked docs/OUTSTANDING_TASKS.md? (PRIMARY source - all open work in one place)
+[ ] Task actually needed? (verify not marked [x] complete in OUTSTANDING_TASKS.md)
+[ ] Task in OUTSTANDING_TASKS.md? (if yes, check source reference for details)
 [ ] "Done" criteria clear? (files, tests, docs)
 [ ] Existing patterns understood? (read related code)
-[ ] Planning docs reconciled? (ROADMAP, IMPLEMENTATION_PLANS)
+[ ] Planning docs reconciled? (only if OUTSTANDING_TASKS.md unclear)
 ```
 
 ### While Implementing:
@@ -739,7 +763,8 @@ Translate the session's process improvements into a generalized prompt adjustmen
 [ ] All tests pass? (run test suite)
 [ ] System still healthy? (check_pipeline_health)
 [ ] Docs updated? (user-facing changes)
-[ ] Planning docs synced? (ROADMAP, status tables)
+[ ] Planning docs synced? (PRIMARY: docs/OUTSTANDING_TASKS.md marked [x])
+[ ] Secondary docs synced? (ROADMAP.md, status tables if needed)
 [ ] Can explain decisions? (documented reasoning)
 [ ] Confidence level stated? (High/Medium/Low in status)
 ```

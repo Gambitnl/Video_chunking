@@ -483,7 +483,7 @@ If you find a `[~]` task with timestamp >24 hours old:
   → BUG_HUNT_TODO.md:407
 
 #### Campaign Dashboard Module (Medium Conflict Risk)
-- [ ] **BUG-20251103-017**: Campaign Dashboard - Sessions not filtered by campaign
+- [~] **BUG-20251103-017**: Campaign Dashboard - Sessions not filtered by campaign (Agent: Claude, Started: 2025-11-06 22:09:56, Files: src/campaign_dashboard.py:119-136)
   - **Files**: `src/campaign_dashboard.py:119-136`
   - **Effort**: 1-2 hours | **Conflict Risk**: ⚠️⚠️ MEDIUM
   → BUG_HUNT_TODO.md:353

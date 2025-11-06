@@ -124,9 +124,12 @@ Transform long-form D&D session recordings into rich, searchable transcripts wit
    - Status: [DONE] Completed 2025-10-23
 
 3. **Priority 3: Extract Story Generation Logic**
-   - Move narrative generation from app.py to `src/story_generator.py`
-   - Enable CLI usage of story generation
+   - [x] Move narrative generation from app.py to `src/story_generator.py`
+   - [x] Enable CLI usage of story generation
+   - [x] Created `StoryNotebookManager` class in `src/story_notebook.py`
+   - [x] Added `generate-story` CLI command
    - Estimated effort: 1 day
+   - Status: [DONE] Completed (already implemented)
 
 4. **Priority 2: Split app.py into UI Modules**
    - Create `src/ui/` module structure
@@ -261,7 +264,7 @@ Transform long-form D&D session recordings into rich, searchable transcripts wit
 **Known Issues**: [DONE] All critical security issues resolved! (P2.1 completed 2025-10-25)
 - ~~Security vulnerabilities (path traversal, prompt injection)~~ **FIXED**
 - ~~Performance issues with large datasets~~ **FIXED**
-- Missing test coverage for some components (improved to 50%+ with security tests)
+- ~~Missing test coverage for components~~ **FIXED** (improved from 49% to 87% - 2025-11-06)
 - UX improvements needed in Campaign Chat UI (deferred to future release)
 
 #### LangChain Quality & Security Fixes (P2.1)
@@ -334,14 +337,18 @@ Transform long-form D&D session recordings into rich, searchable transcripts wit
 
 **Test Coverage Expansion**:
 8. **LangChain Component Tests**
-   - Status: [DONE] **COMPLETED** (2025-11-04)
-   - CampaignChatClient: 27 tests (was 0%, now comprehensive coverage)
-   - CampaignChatChain: Covered with initialization and ask() tests
-   - HybridSearcher: 15 tests already exist (test_langchain_hybrid_search.py)
-   - **Achievement**: Fixed 16 failing tests, now 82 passing, 1 skipped
-   - **Files**: tests/test_langchain_campaign_chat_v2.py
-   - Impact: HIGH - prevents regressions, validates security fixes
-   - Completed: 2025-11-04 (~2 hours actual effort)
+   - Status: [DONE] **COMPLETED** (2025-11-06)
+   - **Overall Coverage**: 49% → **87%** (+38 percentage points) - **TARGET EXCEEDED**
+   - **New Test Files Created** (4 files, 70 new tests):
+     - test_langchain_vector_store.py: 28 tests (vector_store.py: 12% → 96%)
+     - test_langchain_embeddings.py: 10 tests (embeddings.py: 0% → 100%)
+     - test_langchain_data_ingestion.py: 23 tests (data_ingestion.py: 0% → 97%)
+     - test_langchain_retriever.py: 9 tests (retriever.py: 36% → 81%)
+   - **Existing Test Coverage**: CampaignChatClient (27 tests), HybridSearcher (15 tests)
+   - **Total LangChain Tests**: 152 passing, 1 skipped (153 total)
+   - **Files**: tests/test_langchain_*.py (9 test files)
+   - Impact: HIGH - prevents regressions, validates security fixes, comprehensive coverage
+   - Completed: 2025-11-06 (~20 minutes actual effort for 70 new tests)
 
 9. **Concurrency Tests**
    - No tests for concurrent conversation writes
@@ -759,7 +766,7 @@ Transform long-form D&D session recordings into rich, searchable transcripts wit
 - [x] Semantic search with RAG functional
 - [x] Vector database persistent storage working
 - [x] LangChain security vulnerabilities fixed (P2.1) - **COMPLETED 2025-10-25**
-- [ ] LangChain test coverage >80% (currently 35% - SHOULD DO)
+- [x] LangChain test coverage >80% (now 87% - COMPLETED 2025-11-06)
 - [ ] Session analytics dashboard operational
 - [ ] Search functionality across all sessions
 - [ ] OOC topic analysis generating insights (in progress - social_insights_tab.py)
@@ -813,18 +820,23 @@ Transform long-form D&D session recordings into rich, searchable transcripts wit
 
 ### Test Coverage Analysis
 
-**Current State**: 35% overall coverage
-- 18 total tests (7 in test_campaign_chat.py, 11 in test_semantic_search.py)
-- 0% coverage: CampaignChatClient, CampaignChatChain, HybridSearcher
-- Missing: Concurrency tests, error path tests, performance tests, integration tests
+**Current State (2025-11-06)**: **87% overall coverage** - TARGET EXCEEDED
+- **153 total tests** (152 passing, 1 skipped)
+- **Test files**: 9 comprehensive test files covering all major LangChain modules
+- **Coverage by module**:
+  - embeddings.py: 100% ✅
+  - hybrid_search.py: 100% ✅
+  - semantic_retriever.py: 100% ✅
+  - data_ingestion.py: 97% ✅
+  - vector_store.py: 96% ✅
+  - campaign_chat.py: 85% ✅
+  - retriever.py: 81% ✅
+  - conversation_store.py: 73% ⚠️ (acceptable, edge cases remain)
 
-**Critical Gaps**:
-- No tests for main user-facing APIs
-- No concurrency/race condition tests
-- No LLM failure simulation tests
-- No large dataset performance tests
-- Weak assertions (check "something returned" vs actual behavior)
-- Unrealistic test data (single segments, minimal complexity)
+**Remaining Gaps** (Lower Priority):
+- Concurrency stress tests for heavy load scenarios
+- Performance benchmarks for 10k+ segment datasets
+- Some edge case error paths in conversation_store.py (27% uncovered)
 
 ### UX Issues (Campaign Chat Tab)
 
@@ -953,9 +965,10 @@ See COLLECTIVE_ROADMAP.md "Recently Completed" section for:
      - Reduce regressions before future P3 features
 
 2. **Quality & Testing** (Build foundations):
-   - **P2.1-TESTING**: LangChain test coverage expansion (2 days)
-     - Current: 35%, Target: 80%
-     - Prevents regressions in critical features
+   - **P2.1-TESTING**: ~~LangChain test coverage expansion~~ **COMPLETED 2025-11-06**
+     - **Achievement**: 49% → 87% (+38pp), Target 80% EXCEEDED
+     - 70 new tests added across 4 new test files
+     - Prevents regressions in critical features ✅
    - **P4-INFRA-001**: General test coverage expansion
      - Target: >60% overall coverage
      - Integration tests for full pipeline

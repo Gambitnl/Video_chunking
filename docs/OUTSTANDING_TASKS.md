@@ -424,7 +424,7 @@ If you find a `[~]` task with timestamp >24 hours old:
 
 - [ ] BUG-20251103-013: Campaign Dashboard - No error recovery for corrupted files → BUG_HUNT_TODO.md:327 | app.py:300-335
 
-- [ ] BUG-20251103-017: Campaign Dashboard - Sessions not filtered by campaign → BUG_HUNT_TODO.md:353 | src/campaign_dashboard.py:119-136
+- [~] BUG-20251103-017: Campaign Dashboard - Sessions not filtered by campaign (Agent: Claude, Started: 2025-11-06 14:35 UTC) → BUG_HUNT_TODO.md:353 | src/campaign_dashboard.py:119-136
 
 - [ ] BUG-20251103-018: Campaign Dashboard - Narratives include other campaigns → BUG_HUNT_TODO.md:359 | src/campaign_dashboard.py:146-148
 

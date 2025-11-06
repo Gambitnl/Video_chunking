@@ -116,15 +116,41 @@ class CampaignDashboard:
             details += f"```\n{str(e)}\n```\n"
             return ComponentStatus(False, "Character Profiles (error)", details)
 
-    def _check_processed_sessions(self) -> ComponentStatus:
+    def _check_processed_sessions(self, campaign_id: Optional[str] = None) -> ComponentStatus:
         try:
             session_dirs = [d for d in Config.OUTPUT_DIR.iterdir() if d.is_dir()] if Config.OUTPUT_DIR.exists() else []
-            if session_dirs:
-                details = f"{StatusIndicators.SUCCESS} **Status**: {len(session_dirs)} session(s) found\n\n"
-                recent = sorted(session_dirs, key=lambda d: d.stat().st_mtime, reverse=True)[:5]
+
+            # Filter sessions by campaign_id if provided
+            filtered_sessions = []
+            for session_dir in session_dirs:
+                # Find the *_data.json file
+                data_files = list(session_dir.glob('*_data.json'))
+                if not data_files:
+                    continue  # Skip incomplete sessions
+
+                # Read metadata to check campaign_id
+                try:
+                    data_file = data_files[0]
+                    with open(data_file, 'r', encoding='utf-8') as f:
+                        data = json.load(f)
+                        session_campaign_id = data.get('metadata', {}).get('campaign_id')
+
+                        # Include session if:
+                        # 1. No campaign_id filter specified (show all)
+                        # 2. Session matches the campaign_id
+                        # 3. Legacy session (no campaign_id) and no filter specified
+                        if campaign_id is None or session_campaign_id == campaign_id:
+                            filtered_sessions.append(session_dir)
+                except (json.JSONDecodeError, IOError):
+                    # Skip sessions with corrupted data files
+                    continue
+
+            if filtered_sessions:
+                details = f"{StatusIndicators.SUCCESS} **Status**: {len(filtered_sessions)} session(s) found\n\n"
+                recent = sorted(filtered_sessions, key=lambda d: d.stat().st_mtime, reverse=True)[:5]
                 details += "**Recent Sessions:**\n"
                 for d in recent:
-                    details += f"- `{d.name}` {'✓' if list(d.glob('*_data.json')) else '(incomplete)'}\n"
+                    details += f"- `{d.name}` ✓\n"
                 return ComponentStatus(True, "Processed Sessions", details)
             else:
                 details = f"{StatusIndicators.WARNING} **Status**: No sessions processed yet\n\n"
@@ -184,7 +210,7 @@ class CampaignDashboard:
             self._check_processing_settings(campaign),
             self._check_knowledge_base(campaign_id),
             self._check_character_profiles(campaign),
-            self._check_processed_sessions(),
+            self._check_processed_sessions(campaign_id),
             self._check_session_narratives(),
         ]
 

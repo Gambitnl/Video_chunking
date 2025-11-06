@@ -402,7 +402,7 @@ If you find a `[~]` task with timestamp >24 hours old:
 
 - [ ] BUG-20251103-008: Process Session - No progress indicator during processing → BUG_HUNT_TODO.md:295 | app.py:509-601
 
-- [~] BUG-20251103-019: Live Session - Non-functional placeholder tab (Agent: Claude, Started: 2025-11-06 14:30 UTC) → BUG_HUNT_TODO.md:367 | src/ui/live_session_tab.py:92-163
+- [x] BUG-20251103-019: Live Session - Non-functional placeholder tab (Agent: Claude, Completed: 2025-11-06) → BUG_HUNT_TODO.md:367 | src/ui/live_session_tab.py:92-163
 
 - [x] BUG-20251103-022: Social Insights - WordCloud dependency not handled gracefully (Agent: Gemini, Completed: 2025-11-06) → BUG_HUNT_TODO.md:387 | src/ui/social_insights_tab.py:20
 
@@ -416,7 +416,7 @@ If you find a `[~]` task with timestamp >24 hours old:
 
 - [ ] BUG-20251103-004: Campaign Launcher - Dropdown not refreshed on external changes → BUG_HUNT_TODO.md:269 | app.py:630-635
 
-- [~] BUG-20251103-007: Process Session - Results section doesn't auto-scroll (Agent: Claude, Started: 2025-11-06 14:40 UTC) → BUG_HUNT_TODO.md:289 | src/ui/process_session_tab_modern.py:219-226
+- [x] BUG-20251103-007: Process Session - Results section doesn't auto-scroll (Agent: Claude, Completed: 2025-11-06) → BUG_HUNT_TODO.md:289 | src/ui/process_session_tab_modern.py:219-226
 
 - [ ] BUG-20251103-009: Process Session - Audio path resolution inconsistent → BUG_HUNT_TODO.md:301 | app.py:499-507
 
@@ -424,7 +424,7 @@ If you find a `[~]` task with timestamp >24 hours old:
 
 - [ ] BUG-20251103-013: Campaign Dashboard - No error recovery for corrupted files → BUG_HUNT_TODO.md:327 | app.py:300-335
 
-- [~] BUG-20251103-017: Campaign Dashboard - Sessions not filtered by campaign (Agent: Claude, Started: 2025-11-06 14:35 UTC) → BUG_HUNT_TODO.md:353 | src/campaign_dashboard.py:119-136
+- [x] BUG-20251103-017: Campaign Dashboard - Sessions not filtered by campaign (Agent: Claude, Completed: 2025-11-06) → BUG_HUNT_TODO.md:353 | src/campaign_dashboard.py:119-136
 
 - [ ] BUG-20251103-018: Campaign Dashboard - Narratives include other campaigns → BUG_HUNT_TODO.md:359 | src/campaign_dashboard.py:146-148
 

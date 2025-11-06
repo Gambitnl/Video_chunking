@@ -223,13 +223,16 @@ def create_process_session_tab_modern(
                 )
             )
 
-        with gr.Group(visible=False) as results_section:
+        with gr.Group(visible=False, elem_id="process-results-section") as results_section:
             gr.Markdown("### Step 4: Review Results")
             full_output = gr.Textbox(label="Full Transcript", lines=10)
             ic_output = gr.Textbox(label="In-Character Transcript", lines=10)
             ooc_output = gr.Textbox(label="Out-of-Character Transcript", lines=10)
             stats_output = gr.Markdown()
             snippet_output = gr.Markdown()
+
+        # Auto-scroll JavaScript component (hidden, triggers when results appear)
+        scroll_trigger = gr.HTML(visible=False)
 
         should_process_state = gr.State(value=False)
 
@@ -311,6 +314,18 @@ def create_process_session_tab_modern(
             return "\n".join(lines) if len(lines) > 1 else StatusMessages.info("Snippet Export", "No snippet data.")
 
         def _render_processing_response(response: Dict[str, Any]):
+            # JavaScript to scroll to results section when it becomes visible
+            scroll_js = """
+            <script>
+            setTimeout(function() {
+                const resultsSection = document.getElementById('process-results-section');
+                if (resultsSection) {
+                    resultsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
+            }, 100);
+            </script>
+            """
+
             if not isinstance(response, dict):
                 return (
                     StatusMessages.error("Processing Failed", "Unexpected response from pipeline."),
@@ -320,6 +335,7 @@ def create_process_session_tab_modern(
                     "",
                     StatusMessages.info("Statistics", "No statistics available."),
                     StatusMessages.info("Snippet Export", "No snippet information available."),
+                    gr.update(visible=False),
                 )
 
             if response.get("status") != "success":
@@ -335,6 +351,7 @@ def create_process_session_tab_modern(
                     response.get("ooc", ""),
                     StatusMessages.info("Statistics", "No statistics available."),
                     StatusMessages.info("Snippet Export", "No snippet information available."),
+                    gr.update(visible=False),
                 )
 
             stats_markdown = _format_statistics(response.get("stats") or {}, response.get("knowledge") or {})
@@ -348,6 +365,7 @@ def create_process_session_tab_modern(
                 response.get("ooc", ""),
                 stats_markdown,
                 snippet_markdown,
+                gr.update(value=scroll_js, visible=True),
             )
 
         def validate_inputs(
@@ -444,6 +462,7 @@ def create_process_session_tab_modern(
                     gr.update(),
                     gr.update(),
                     gr.update(),
+                    gr.update(visible=False),
                 )
 
             # Validate inputs first
@@ -469,6 +488,7 @@ def create_process_session_tab_modern(
                     "",
                     StatusMessages.info("Statistics", "No statistics available."),
                     StatusMessages.info("Snippet Export", "No snippet information available."),
+                    gr.update(visible=False),
                 )
 
             response = process_session_fn(
@@ -603,6 +623,7 @@ def create_process_session_tab_modern(
                 ooc_output,
                 stats_output,
                 snippet_output,
+                scroll_trigger,
             ],
             queue=True,
         )

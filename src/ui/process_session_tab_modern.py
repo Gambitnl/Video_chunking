@@ -1,6 +1,8 @@
 """Modern Process Session tab with campaign-aware workflow."""
 from __future__ import annotations
 
+from pathlib import Path
+import re
 from typing import Any, Callable, Dict, List, Optional, Tuple
 
 import gradio as gr
@@ -9,6 +11,10 @@ from src.party_config import PartyConfigManager
 from src.file_tracker import FileProcessingTracker
 from src.ui.constants import StatusIndicators as SI
 from src.ui.helpers import InfoText, Placeholders, StatusMessages, UIComponents
+
+
+ALLOWED_AUDIO_EXTENSIONS: Tuple[str, ...] = (".m4a", ".mp3", ".wav", ".flac")
+SESSION_ID_PATTERN = re.compile(r"^[A-Za-z0-9_-]+$")
 
 
 def create_workflow_header() -> gr.HTML:
@@ -225,10 +231,42 @@ def create_process_session_tab_modern(
             stats_output = gr.Markdown()
             snippet_output = gr.Markdown()
 
-        def _prepare_processing_outputs():
+        should_process_state = gr.State(value=False)
+
+        def _prepare_processing_outputs(
+            audio_file,
+            session_id,
+            party_selection,
+            character_names,
+            player_names,
+            num_speakers,
+        ):
+            """Validate inputs and prepare status output before processing."""
+            validation_errors = validate_inputs(
+                audio_file,
+                session_id,
+                party_selection,
+                character_names,
+                player_names,
+                num_speakers,
+            )
+
+            if validation_errors:
+                error_details = "\n".join(f"- {err}" for err in validation_errors)
+                return (
+                    StatusMessages.error(
+                        "Validation Failed",
+                        "Please resolve these issues before starting processing.",
+                        error_details,
+                    ),
+                    gr.update(visible=False),
+                    False,
+                )
+
             return (
                 StatusMessages.loading("Processing session"),
                 gr.update(visible=False),
+                True,
             )
 
         def _format_statistics(stats: Dict[str, Any], knowledge: Dict[str, Any]) -> str:
@@ -312,18 +350,73 @@ def create_process_session_tab_modern(
                 snippet_markdown,
             )
 
-        def validate_inputs(audio_file, session_id, party_selection, character_names):
+        def validate_inputs(
+            audio_file,
+            session_id,
+            party_selection,
+            character_names,
+            player_names,
+            num_speakers,
+        ):
             """Validate inputs before processing."""
             errors = []
 
             if not audio_file:
-                errors.append("Audio file is required")
+                errors.append("Upload a session audio file before processing.")
+            else:
+                file_name = getattr(audio_file, "name", None) or getattr(audio_file, "orig_name", None)
+                if not file_name:
+                    errors.append("Unable to read the uploaded audio file. Please try re-uploading.")
+                else:
+                    file_extension = Path(file_name).suffix.lower()
+                    if file_extension and file_extension not in ALLOWED_AUDIO_EXTENSIONS:
+                        allowed = ", ".join(ALLOWED_AUDIO_EXTENSIONS)
+                        errors.append(f"Audio format {file_extension} is not supported. Allowed formats: {allowed}.")
+                    try:
+                        file_path = Path(file_name)
+                        if not file_path.exists():
+                            errors.append("Uploaded audio file could not be found on disk. Please upload it again.")
+                    except OSError:
+                        errors.append("Uploaded audio file path is invalid. Please upload the file again.")
 
             if not session_id or not session_id.strip():
-                errors.append("Session ID is required")
+                errors.append("Session ID is required.")
+            else:
+                session_id = session_id.strip()
+                if not SESSION_ID_PATTERN.match(session_id):
+                    errors.append("Session ID may only contain letters, numbers, underscores, and hyphens.")
 
-            if party_selection == "Manual Entry" and not character_names:
-                errors.append("Character names are required when using Manual Entry")
+            try:
+                speaker_count = int(num_speakers)
+            except (TypeError, ValueError):
+                speaker_count = 0
+                errors.append("Expected speakers must be a whole number between 2 and 10.")
+            else:
+                if speaker_count < 2:
+                    errors.append("Expected speakers must be at least 2.")
+
+            if party_selection == "Manual Entry":
+                if not character_names or not character_names.strip():
+                    errors.append("Enter at least one character name when using Manual Entry.")
+                else:
+                    character_list = [name.strip() for name in character_names.split(",") if name.strip()]
+                    if not character_list:
+                        errors.append("Character names cannot be empty or whitespace only.")
+                    else:
+                        deduped = {name.lower() for name in character_list}
+                        if len(deduped) != len(character_list):
+                            errors.append("Character names must be unique to avoid diarization conflicts.")
+                    if player_names and player_names.strip():
+                        player_list = [name.strip() for name in player_names.split(",") if name.strip()]
+                        if len(player_list) != len(character_list):
+                            errors.append("Number of player names must match the number of character names.")
+            else:
+                party_manager = PartyConfigManager()
+                selected_party = party_manager.get_party(party_selection)
+                if selected_party is None:
+                    errors.append(f"Party '{party_selection}' could not be loaded. Refresh Campaign Launcher and try again.")
+                elif not selected_party.characters:
+                    errors.append(f"Party '{party_selection}' has no characters configured.")
 
             return errors
 
@@ -340,9 +433,28 @@ def create_process_session_tab_modern(
             skip_snippets,
             skip_knowledge,
             campaign_id,
+            should_proceed,
         ):
+            if not should_proceed:
+                return (
+                    gr.update(),
+                    gr.update(),
+                    gr.update(),
+                    gr.update(),
+                    gr.update(),
+                    gr.update(),
+                    gr.update(),
+                )
+
             # Validate inputs first
-            validation_errors = validate_inputs(audio_file, session_id, party_selection, character_names)
+            validation_errors = validate_inputs(
+                audio_file,
+                session_id,
+                party_selection,
+                character_names,
+                player_names,
+                num_speakers,
+            )
             if validation_errors:
                 error_details = "\n".join(f"- {err}" for err in validation_errors)
                 return (
@@ -452,11 +564,20 @@ def create_process_session_tab_modern(
 
         process_btn.click(
             fn=_prepare_processing_outputs,
+            inputs=[
+                audio_input,
+                session_id_input,
+                party_selection_input,
+                character_names_input,
+                player_names_input,
+                num_speakers_input,
+            ],
             outputs=[
                 status_output,
                 results_section,
+                should_process_state,
             ],
-            queue=True,
+            queue=False,
         ).then(
             fn=process_session_handler,
             inputs=[
@@ -472,6 +593,7 @@ def create_process_session_tab_modern(
                 skip_snippets_input,
                 skip_knowledge_input,
                 active_campaign_state,
+                should_process_state,
             ],
             outputs=[
                 status_output,

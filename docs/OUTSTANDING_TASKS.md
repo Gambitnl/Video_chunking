@@ -398,7 +398,7 @@ If you find a `[~]` task with timestamp >24 hours old:
 
 ### High Priority (6 bugs)
 
-- [~] BUG-20251103-006: Process Session - No client-side validation (Agent: Codex, Started: 2025-11-06 15:42 UTC) → BUG_HUNT_TODO.md:283 | app.py:509-601
+- [x] BUG-20251103-006: Process Session - No client-side validation (Agent: Codex, Completed: 2025-11-06) → BUG_HUNT_TODO.md:283 | src/ui/process_session_tab_modern.py:228-475
 
 - [ ] BUG-20251103-008: Process Session - No progress indicator during processing → BUG_HUNT_TODO.md:295 | app.py:509-601
 

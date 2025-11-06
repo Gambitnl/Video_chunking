@@ -14,7 +14,7 @@
 
 | ID | Title | File | Line | Details |
 |----|-------|------|------|---------|
-| BUG-20251103-006 | Process Session - No client-side validation | src/ui/process_session_tab_modern.py | 205-210 | [View](BUG_HUNT_TODO.md#L283) |
+| BUG-20251103-006 | Process Session - No client-side validation | src/ui/process_session_tab_modern.py | 228-475 | [View](BUG_HUNT_TODO.md#L283) |
 | BUG-20251103-008 | Process Session - No progress indicator | app.py | 509-601 | [View](BUG_HUNT_TODO.md#L295) |
 | BUG-20251103-019 | Live Session - Non-functional placeholder | src/ui/live_session_tab.py | 92-163 | [View](BUG_HUNT_TODO.md#L367) |
 | BUG-20251103-022 | Social Insights - WordCloud dependency not handled | src/ui/social_insights_tab.py | 20 | [View](BUG_HUNT_TODO.md#L387) |

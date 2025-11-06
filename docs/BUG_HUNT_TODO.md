@@ -281,9 +281,20 @@ This list summarizes preliminary findings from the bug hunt session on 2025-11-0
 #### Process Session Tab
 
 -   **BUG-20251103-006**: Process Session - No client-side validation before starting processing. (High)
-    *   **Issue**: The "Start Processing" button in `process_session_tab_modern.py:205-210` doesn't validate inputs before submission. Users can click process without uploading audio, without entering session ID, or with invalid party configurations, triggering backend errors instead of immediate feedback.
+    *   **Issue**: The "Start Processing" button in `process_session_tab_modern.py:228-475` doesn't validate inputs before submission. Users can click process without uploading audio, without entering session ID, or with invalid party configurations, triggering backend errors instead of immediate feedback.
     *   **Why it's an issue**: Backend processing is expensive. Invalid submissions waste resources and create poor UX. Users see cryptic error messages from the pipeline instead of helpful validation messages explaining what's missing.
-    *   **File**: `src/ui/process_session_tab_modern.py:205-210` (process button)
+    *   **File**: `src/ui/process_session_tab_modern.py:228-475` (process button and validation guard)
+    *   **Status (2025-11-06 Codex)**: Added pre-flight validation that blocks processing when required fields are missing or inconsistent. The button now sets status errors client-side and skips the pipeline call when validation fails.
+
+##### Implementation Notes & Reasoning (2025-11-06 Codex)
+
+- Introduced a queued guard that evaluates inputs before processing and uses `gr.State` to short-circuit heavy jobs when validation fails.
+- Expanded validation coverage to include session ID formatting, supported audio extensions, manual entry name uniqueness, and party configuration availability.
+- Retained a defensive server-side validation pass so direct API calls still receive clear error messages.
+
+##### Code Review Findings (2025-11-06 Codex)
+
+- [APPROVED] Self-review: validation logic covers reported gaps. Residual risk: file existence check depends on Gradio upload temp path; monitor for non-local deployments.
     *   **Impact**: HIGH - Resource waste, poor UX
 
 -   **BUG-20251103-007**: Process Session - Results section doesn't scroll to view automatically. (Medium)

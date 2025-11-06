@@ -230,7 +230,7 @@ If you find a `[~]` task with timestamp >24 hours old:
 
 
 
-- [~] P3-FEATURE-001: Real-time Processing → IMPLEMENTATION_PLANS_PART4.md:33 (audio ingestion scaffolding exists)
+- [ ] P3-FEATURE-001: Real-time Processing → IMPLEMENTATION_PLANS_PART4.md:33 (audio ingestion scaffolding exists)
 
 - [ ] P3-FEATURE-002: Multi-language Support → IMPLEMENTATION_PLANS_PART4.md:160
 
@@ -394,75 +394,204 @@ If you find a `[~]` task with timestamp >24 hours old:
 
 **Source**: [BUG_HUNT_TODO.md:253-446](BUG_HUNT_TODO.md#area-4-ui-dashboard-issues-2025-11-03) | **Quick Ref**: [BUG_SUMMARY.md](BUG_SUMMARY.md)
 
+---
+
+### 🤝 Multi-Session Coordination Guide
+
+**For parallel work on same branch:**
+
+1. **Pull latest** before choosing a task: `git pull origin <branch>`
+2. **Check locked tasks** in this file (look for `[~]` status)
+3. **Pick non-conflicting work** using conflict risk ratings:
+   - ⚠️ LOW: Safe to work on anytime (isolated files)
+   - ⚠️⚠️ MEDIUM: Check if another agent is working on same module
+   - ⚠️⚠️⚠️ HIGH: Coordinate explicitly before starting
+4. **Lock immediately** before starting work:
+   ```markdown
+   [~] BUG-ID: Description (Agent: YourName, Started: YYYY-MM-DD HH:MM UTC, Files: list) → source
+   ```
+5. **Commit & push lock** right away: `git add docs/OUTSTANDING_TASKS.md && git commit -m "Lock task: BUG-ID" && git push`
+6. **Do the work**
+7. **Update to complete** when done:
+   ```markdown
+   [x] BUG-ID: Description (Agent: YourName, Completed: YYYY-MM-DD) → source
+   ```
+
+**Conflict-free task selection examples:**
+- Session 1: BUG-019 (live_session_tab.py) + Session 2: BUG-017 (campaign_dashboard.py) ✅ No conflict
+- Session 1: BUG-008 (app.py:509-601) + Session 2: BUG-009 (app.py:499-507) ⚠️ Same file, adjacent lines - HIGH risk
+- Session 1: BUG-007 (process_session_tab_modern.py) + Session 2: BUG-021 (social_insights_tab.py) ✅ No conflict
+
+---
+
 
 
 ### High Priority (6 bugs)
 
+#### Completed
 - [x] BUG-20251103-006: Process Session - No client-side validation (Agent: Codex, Completed: 2025-11-06) → BUG_HUNT_TODO.md:283 | src/ui/process_session_tab_modern.py:228-475
-
-- [ ] BUG-20251103-008: Process Session - No progress indicator during processing → BUG_HUNT_TODO.md:295 | app.py:509-601
-
-- [ ] BUG-20251103-019: Live Session - Non-functional placeholder tab → BUG_HUNT_TODO.md:367 | src/ui/live_session_tab.py:92-163
 
 - [x] BUG-20251103-022: Social Insights - WordCloud dependency not handled gracefully (Agent: Gemini, Completed: 2025-11-06) → BUG_HUNT_TODO.md:387 | src/ui/social_insights_tab.py:20
 
-- [ ] BUG-20251103-027: Global - No conflict detection for concurrent operations → BUG_HUNT_TODO.md:421 | Multiple files
+#### Available - Isolated (Low Conflict Risk)
+- [ ] **BUG-20251103-019**: Live Session - Non-functional placeholder tab
+  - **Files**: `src/ui/live_session_tab.py:92-163` (may also need `app.py` tab visibility)
+  - **Effort**: 30-60 min
+  - **Conflict Risk**: ⚠️ LOW (isolated UI file)
+  - **Fix**: Hide tab or mark "Coming Soon" until implemented
+  → BUG_HUNT_TODO.md:367
+
+#### Available - Core Logic (Medium Conflict Risk)
+- [ ] **BUG-20251103-008**: Process Session - No progress indicator during processing
+  - **Files**: `app.py:509-601` (process_session function), possibly `src/ui/process_session_tab_modern.py` for UI updates
+  - **Effort**: 2-4 hours
+  - **Conflict Risk**: ⚠️⚠️ MEDIUM (touches app.py core processing logic)
+  - **Fix**: Add progress callbacks and UI status updates
+  → BUG_HUNT_TODO.md:295
+
+#### Available - Cross-Cutting (High Conflict Risk)
+- [ ] **BUG-20251103-027**: Global - No conflict detection for concurrent operations
+  - **Files**: Multiple (`app.py`, `campaign_dashboard.py`, all tab files, potentially new lock manager module)
+  - **Effort**: 4-6 hours
+  - **Conflict Risk**: ⚠️⚠️⚠️ HIGH (touches many files, architectural change)
+  - **Fix**: Implement operation locking/coordination mechanism
+  → BUG_HUNT_TODO.md:421
 
 
 
 ### Medium Priority (13 bugs)
 
-- [ ] BUG-20251103-002: Main Dashboard - Campaign state not persisted across refreshes → BUG_HUNT_TODO.md:257 | app.py:623
+#### Isolated UI Files (Low Conflict Risk)
+- [ ] **BUG-20251103-007**: Process Session - Results section doesn't auto-scroll
+  - **Files**: `src/ui/process_session_tab_modern.py:219-226`
+  - **Effort**: 30 min | **Conflict Risk**: ⚠️ LOW
+  → BUG_HUNT_TODO.md:289
 
-- [ ] BUG-20251103-004: Campaign Launcher - Dropdown not refreshed on external changes → BUG_HUNT_TODO.md:269 | app.py:630-635
+- [ ] **BUG-20251103-011**: Campaign Tab - Static content, no interactive features
+  - **Files**: `src/ui/campaign_tab_modern.py:9-46`
+  - **Effort**: 2-3 hours | **Conflict Risk**: ⚠️ LOW
+  → BUG_HUNT_TODO.md:315
 
-- [ ] BUG-20251103-007: Process Session - Results section doesn't auto-scroll → BUG_HUNT_TODO.md:289 | src/ui/process_session_tab_modern.py:219-226
+- [ ] **BUG-20251103-021**: Social Insights - No loading indicator during analysis
+  - **Files**: `src/ui/social_insights_tab.py:16-64`
+  - **Effort**: 1 hour | **Conflict Risk**: ⚠️ LOW
+  → BUG_HUNT_TODO.md:381
 
-- [ ] BUG-20251103-009: Process Session - Audio path resolution inconsistent → BUG_HUNT_TODO.md:301 | app.py:499-507
+- [ ] **BUG-20251103-025**: Settings & Tools - Static markdown only, no interactive controls
+  - **Files**: `src/ui/settings_tools_tab_modern.py:29-41`
+  - **Effort**: 1-2 hours | **Conflict Risk**: ⚠️ LOW
+  → BUG_HUNT_TODO.md:407
 
-- [ ] BUG-20251103-011: Campaign Tab - Static content, no interactive features → BUG_HUNT_TODO.md:315 | src/ui/campaign_tab_modern.py:9-46
+#### Campaign Dashboard Module (Medium Conflict Risk)
+- [x] **BUG-20251103-017**: Campaign Dashboard - Sessions not filtered by campaign (Agent: Claude, Completed: 2025-11-06)
+  - **Files**: `src/campaign_dashboard.py:119-166`
+  - **Effort**: 1-2 hours | **Conflict Risk**: ⚠️⚠️ MEDIUM
+  → BUG_HUNT_TODO.md:353
 
-- [ ] BUG-20251103-013: Campaign Dashboard - No error recovery for corrupted files → BUG_HUNT_TODO.md:327 | app.py:300-335
+- [ ] **BUG-20251103-018**: Campaign Dashboard - Narratives include other campaigns
+  - **Files**: `src/campaign_dashboard.py:146-148`
+  - **Effort**: 30-60 min | **Conflict Risk**: ⚠️⚠️ MEDIUM
+  → BUG_HUNT_TODO.md:359
 
-- [ ] BUG-20251103-017: Campaign Dashboard - Sessions not filtered by campaign → BUG_HUNT_TODO.md:353 | src/campaign_dashboard.py:119-136
+#### App.py Core Logic (Medium-High Conflict Risk)
+- [ ] **BUG-20251103-002**: Main Dashboard - Campaign state not persisted across refreshes
+  - **Files**: `app.py:623` (State initialization)
+  - **Effort**: 1-2 hours | **Conflict Risk**: ⚠️⚠️ MEDIUM
+  → BUG_HUNT_TODO.md:257
 
-- [ ] BUG-20251103-018: Campaign Dashboard - Narratives include other campaigns → BUG_HUNT_TODO.md:359 | src/campaign_dashboard.py:146-148
+- [ ] **BUG-20251103-004**: Campaign Launcher - Dropdown not refreshed on external changes
+  - **Files**: `app.py:630-635`
+  - **Effort**: 1 hour | **Conflict Risk**: ⚠️⚠️ MEDIUM
+  → BUG_HUNT_TODO.md:269
 
-- [ ] BUG-20251103-021: Social Insights - No loading indicator during analysis → BUG_HUNT_TODO.md:381 | src/ui/social_insights_tab.py:16-64
+- [ ] **BUG-20251103-009**: Process Session - Audio path resolution inconsistent
+  - **Files**: `app.py:499-507`
+  - **Effort**: 1 hour | **Conflict Risk**: ⚠️⚠️ MEDIUM
+  → BUG_HUNT_TODO.md:301
 
-- [ ] BUG-20251103-025: Settings & Tools - Static markdown only, no interactive controls → BUG_HUNT_TODO.md:407 | src/ui/settings_tools_tab_modern.py:29-41
+- [ ] **BUG-20251103-013**: Campaign Dashboard - No error recovery for corrupted files
+  - **Files**: `app.py:300-335`
+  - **Effort**: 1-2 hours | **Conflict Risk**: ⚠️⚠️ MEDIUM
+  → BUG_HUNT_TODO.md:327
 
-- [ ] BUG-20251103-026: Global - Campaign context update triggers excessive re-renders → BUG_HUNT_TODO.md:415 | app.py:681-778
+- [ ] **BUG-20251103-026**: Global - Campaign context update triggers excessive re-renders
+  - **Files**: `app.py:681-778` (_compute_process_updates, _load_campaign)
+  - **Effort**: 3-4 hours | **Conflict Risk**: ⚠️⚠️⚠️ HIGH
+  → BUG_HUNT_TODO.md:415
 
-- [ ] BUG-20251103-028: Global - Error messages expose internal file paths/stack traces → BUG_HUNT_TODO.md:427 | Multiple files
+- [ ] **BUG-20251103-029**: Data - Session library doesn't verify campaign_id before display
+  - **Files**: `app.py:397-426`
+  - **Effort**: 1 hour | **Conflict Risk**: ⚠️⚠️ MEDIUM
+  → BUG_HUNT_TODO.md:435
 
-- [ ] BUG-20251103-029: Data - Session library doesn't verify campaign_id before display → BUG_HUNT_TODO.md:435 | app.py:397-426
+#### Cross-Cutting (High Conflict Risk)
+- [ ] **BUG-20251103-028**: Global - Error messages expose internal file paths/stack traces
+  - **Files**: Multiple files (error handling across app)
+  - **Effort**: 2-3 hours | **Conflict Risk**: ⚠️⚠️⚠️ HIGH
+  → BUG_HUNT_TODO.md:427
 
 
 
 ### Low Priority (11 bugs)
 
-- [ ] BUG-20251103-003: Campaign Launcher - No validation for empty/whitespace names → BUG_HUNT_TODO.md:263 | app.py:780-843
+#### Quick Fixes (Isolated, Low Conflict)
+- [ ] **BUG-20251103-020**: Live Session - Stop button enabled before Start
+  - **Files**: `src/ui/live_session_tab.py:111-115`
+  - **Effort**: 15 min | **Conflict Risk**: ⚠️ LOW
+  → BUG_HUNT_TODO.md:373
 
-- [ ] BUG-20251103-005: Campaign Manifest - Exception handling too broad → BUG_HUNT_TODO.md:275 | app.py:Multiple
+- [ ] **BUG-20251103-023**: Social Insights - Temp file cleanup not guaranteed
+  - **Files**: `src/ui/social_insights_tab.py:49-50`
+  - **Effort**: 20 min | **Conflict Risk**: ⚠️ LOW
+  → BUG_HUNT_TODO.md:393
 
-- [ ] BUG-20251103-010: Process Session - Name parsing doesn't handle edge cases → BUG_HUNT_TODO.md:307 | app.py:542-543
+- [ ] **BUG-20251103-024**: Social Insights - Stale nebula after campaign filter change
+  - **Files**: `src/ui/social_insights_tab.py:130-134`
+  - **Effort**: 30 min | **Conflict Risk**: ⚠️ LOW
+  → BUG_HUNT_TODO.md:399
 
-- [ ] BUG-20251103-012: Campaign Dashboard - Knowledge base sample truncated without indication → BUG_HUNT_TODO.md:321 | app.py:337-366
+#### Campaign Dashboard Polish
+- [ ] **BUG-20251103-014**: Campaign Dashboard - Personality text truncated mid-word
+  - **Files**: `src/campaign_dashboard.py:101`
+  - **Effort**: 20 min | **Conflict Risk**: ⚠️⚠️ MEDIUM
+  → BUG_HUNT_TODO.md:335
 
-- [ ] BUG-20251103-014: Campaign Dashboard - Personality text truncated mid-word → BUG_HUNT_TODO.md:335 | src/campaign_dashboard.py:101
+- [ ] **BUG-20251103-015**: Campaign Dashboard - Health percentage edge case
+  - **Files**: `src/campaign_dashboard.py:196`
+  - **Effort**: 15 min | **Conflict Risk**: ⚠️⚠️ MEDIUM
+  → BUG_HUNT_TODO.md:341
 
-- [ ] BUG-20251103-015: Campaign Dashboard - Health percentage edge case → BUG_HUNT_TODO.md:341 | src/campaign_dashboard.py:196
+- [ ] **BUG-20251103-016**: Campaign Dashboard - Managers instantiated multiple times
+  - **Files**: `src/campaign_dashboard.py:20-22`
+  - **Effort**: 30-60 min | **Conflict Risk**: ⚠️⚠️ MEDIUM
+  → BUG_HUNT_TODO.md:347
 
-- [ ] BUG-20251103-016: Campaign Dashboard - Managers instantiated multiple times → BUG_HUNT_TODO.md:347 | src/campaign_dashboard.py:20-22
+#### App.py Edge Cases
+- [ ] **BUG-20251103-003**: Campaign Launcher - No validation for empty/whitespace names
+  - **Files**: `app.py:780-843`
+  - **Effort**: 30 min | **Conflict Risk**: ⚠️⚠️ MEDIUM
+  → BUG_HUNT_TODO.md:263
 
-- [ ] BUG-20251103-020: Live Session - Stop button enabled before Start → BUG_HUNT_TODO.md:373 | src/ui/live_session_tab.py:111-115
+- [ ] **BUG-20251103-010**: Process Session - Name parsing doesn't handle edge cases
+  - **Files**: `app.py:542-543`
+  - **Effort**: 30 min | **Conflict Risk**: ⚠️⚠️ MEDIUM
+  → BUG_HUNT_TODO.md:307
 
-- [ ] BUG-20251103-023: Social Insights - Temp file cleanup not guaranteed → BUG_HUNT_TODO.md:393 | src/ui/social_insights_tab.py:49-50
+- [ ] **BUG-20251103-012**: Campaign Dashboard - Knowledge base sample truncated without indication
+  - **Files**: `app.py:337-366`
+  - **Effort**: 30 min | **Conflict Risk**: ⚠️⚠️ MEDIUM
+  → BUG_HUNT_TODO.md:321
 
-- [ ] BUG-20251103-024: Social Insights - Stale nebula after campaign filter change → BUG_HUNT_TODO.md:399 | src/ui/social_insights_tab.py:130-134
+#### Cross-Cutting (Defer)
+- [ ] **BUG-20251103-005**: Campaign Manifest - Exception handling too broad
+  - **Files**: `app.py:Multiple` locations
+  - **Effort**: 2-3 hours | **Conflict Risk**: ⚠️⚠️⚠️ HIGH
+  → BUG_HUNT_TODO.md:275
 
-- [ ] BUG-20251103-030: Data - Profile filtering logic flaw with None handling → BUG_HUNT_TODO.md:441 | Multiple files
+- [ ] **BUG-20251103-030**: Data - Profile filtering logic flaw with None handling
+  - **Files**: Multiple files
+  - **Effort**: 1-2 hours | **Conflict Risk**: ⚠️⚠️ MEDIUM
+  → BUG_HUNT_TODO.md:441
 
 
 

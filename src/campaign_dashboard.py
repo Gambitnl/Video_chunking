@@ -116,18 +116,48 @@ class CampaignDashboard:
             details += f"```\n{str(e)}\n```\n"
             return ComponentStatus(False, "Character Profiles (error)", details)
 
-    def _check_processed_sessions(self) -> ComponentStatus:
+    def _check_processed_sessions(self, campaign_id: str) -> ComponentStatus:
+        """
+        Check for processed sessions belonging to the specified campaign.
+
+        Args:
+            campaign_id: Campaign identifier to filter sessions by
+
+        Returns:
+            ComponentStatus indicating session availability for this campaign
+        """
         try:
-            session_dirs = [d for d in Config.OUTPUT_DIR.iterdir() if d.is_dir()] if Config.OUTPUT_DIR.exists() else []
-            if session_dirs:
-                details = f"{StatusIndicators.SUCCESS} **Status**: {len(session_dirs)} session(s) found\n\n"
-                recent = sorted(session_dirs, key=lambda d: d.stat().st_mtime, reverse=True)[:5]
+            all_session_dirs = [d for d in Config.OUTPUT_DIR.iterdir() if d.is_dir()] if Config.OUTPUT_DIR.exists() else []
+
+            # Filter sessions by campaign_id
+            campaign_sessions = []
+            for session_dir in all_session_dirs:
+                # Find the session's _data.json file
+                data_files = list(session_dir.glob('*_data.json'))
+                if data_files:
+                    try:
+                        with open(data_files[0], 'r', encoding='utf-8') as f:
+                            metadata = json.load(f)
+                            if isinstance(metadata, dict):
+                                # Check if session belongs to this campaign
+                                session_campaign_id = metadata.get('campaign_id')
+                                if session_campaign_id == campaign_id:
+                                    campaign_sessions.append(session_dir)
+                                # Handle legacy sessions without campaign_id (exclude them)
+                                # Empty campaign_id is treated as not matching
+                    except (json.JSONDecodeError, IOError):
+                        # Skip sessions with invalid or unreadable metadata
+                        continue
+
+            if campaign_sessions:
+                details = f"{StatusIndicators.SUCCESS} **Status**: {len(campaign_sessions)} session(s) found\n\n"
+                recent = sorted(campaign_sessions, key=lambda d: d.stat().st_mtime, reverse=True)[:5]
                 details += "**Recent Sessions:**\n"
                 for d in recent:
                     details += f"- `{d.name}` {'✓' if list(d.glob('*_data.json')) else '(incomplete)'}\n"
                 return ComponentStatus(True, "Processed Sessions", details)
             else:
-                details = f"{StatusIndicators.WARNING} **Status**: No sessions processed yet\n\n"
+                details = f"{StatusIndicators.WARNING} **Status**: No sessions processed yet for this campaign\n\n"
                 details += "**Action**: Go to **Process Session** tab → Process your first recording\n"
                 return ComponentStatus(False, "Processed Sessions (none)", details)
         except Exception as e:
@@ -184,7 +214,7 @@ class CampaignDashboard:
             self._check_processing_settings(campaign),
             self._check_knowledge_base(campaign_id),
             self._check_character_profiles(campaign),
-            self._check_processed_sessions(),
+            self._check_processed_sessions(campaign_id),
             self._check_session_narratives(),
         ]
 

@@ -257,6 +257,28 @@ tests/test_story_notebook_campaign_filtering.py::test_list_sessions_corrupted_me
 **Test Coverage**: [`tests/test_character_profiles_tab_campaign_filtering.py`](../tests/test_character_profiles_tab_campaign_filtering.py)
 **Status**: Implementation complete, 2 tests passing
 
+### Character Profiles Tab ✅ Complete (Modern UI Parity - 2025-11-07)
+
+**Files Modified**: [`src/ui/characters_tab_modern.py`](../src/ui/characters_tab_modern.py), [`app.py`](../app.py), [`app_modern_preview.py`](../app_modern_preview.py)
+
+**Tests Added**: [`tests/test_characters_tab_modern.py`](../tests/test_characters_tab_modern.py)
+
+#### Changes Implemented
+
+1. **Feature Parity with Legacy Tab**
+   - Ported the campaign-filtered table, character overview viewer, import/export controls, and automatic transcript extraction workflow into the modern Characters tab.
+   - Added helper `character_tab_snapshot()` so both the UI and the Campaign Launcher can share a single source of truth for available profiles.
+
+2. **Campaign Launcher Integration**
+   - `app.py` now updates the modern tab’s table, selectors, overview, and extraction party defaults whenever the active campaign changes or a new campaign is created.
+   - Added `_character_tab_updates()` and `_extract_party_dropdown_update()` helpers to keep the tab synchronized with the launcher state.
+
+3. **Preview + ASCII Cleanup**
+   - Updated `app_modern_preview.py` so the standalone preview passes the new parameters and removed the remaining emoji-based text.
+
+4. **Regression Coverage**
+   - `tests/test_characters_tab_modern.py` exercises `character_tab_snapshot()` for the no-campaign, empty-campaign, and populated-campaign scenarios to guard against regressions in future UI updates.
+
 ---
 
 ### LLM Chat Tab ✅ Complete

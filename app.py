@@ -35,7 +35,10 @@ from src.story_notebook import StoryNotebookManager
 from src.ui.theme import create_modern_theme, MODERN_CSS
 from src.ui.process_session_tab_modern import create_process_session_tab_modern
 from src.ui.campaign_tab_modern import create_campaign_tab_modern
-from src.ui.characters_tab_modern import create_characters_tab_modern
+from src.ui.characters_tab_modern import (
+    create_characters_tab_modern,
+    character_tab_snapshot,
+)
 from src.ui.stories_output_tab_modern import create_stories_output_tab_modern
 from src.ui.settings_tools_tab_modern import create_settings_tools_tab_modern
 
@@ -373,33 +376,58 @@ def _knowledge_summary_markdown(campaign_id: Optional[str]) -> str:
     return "\n".join(lines)
 
 
+def _character_overview_placeholder() -> str:
+    return StatusMessages.info(
+        "Character Overview",
+        "Select a character to view their profile summary."
+    )
+
+
+def _character_tab_updates(
+    campaign_id: Optional[str]
+) -> Tuple[Any, Any, Any, Any, Any]:
+    snapshot = character_tab_snapshot(campaign_id)
+    characters = snapshot["characters"]
+    default_value = characters[0] if characters else None
+    dropdown_update = gr.update(choices=characters, value=default_value)
+    table_update = gr.update(value=snapshot["table"])
+    status_update = gr.update(value=snapshot["status"])
+    overview_update = gr.update(value=_character_overview_placeholder())
+    return status_update, table_update, dropdown_update, dropdown_update, overview_update
+
+
 def _character_profiles_markdown(campaign_id: Optional[str]) -> str:
+    snapshot = character_tab_snapshot(campaign_id)
+    characters = snapshot["characters"]
+    if not campaign_id or not characters:
+        return snapshot["status"]
+
     manager = CharacterProfileManager()
-    if not campaign_id:
-        return StatusMessages.info(
-            "Character Profiles",
-            "Load a campaign to list character profiles associated with it."
-        )
-
-    profiles = [
-        profile for profile in manager.profiles.values()
-        if getattr(profile, "campaign_id", None) == campaign_id
-    ]
-    if not profiles:
-        return StatusMessages.warning(
-            "No Profiles Found",
-            "No character profiles are assigned to this campaign yet."
-        )
-
     lines = ["### Characters"]
-    for profile in sorted(profiles, key=lambda p: p.name.lower()):
-        class_name = getattr(profile, "class_name", "Unknown class")
-        level = getattr(profile, "level", "n/a")
-        last_updated = getattr(profile, "last_updated", "unknown")
+    for name in characters:
+        profile = manager.get_profile(name)
+        if not profile:
+            continue
+        class_name = profile.class_name or "Unknown class"
+        level = profile.level if profile.level is not None else "n/a"
+        last_updated = profile.last_updated or "unknown"
         lines.append(
-            f"- **{profile.name}** ({class_name}, level {level}) — last updated {last_updated}"
+            f"- **{profile.name}** ({class_name}, level {level}) - last updated {last_updated}"
         )
     return "\n".join(lines)
+
+
+def _extract_party_dropdown_update(campaign_id: Optional[str]) -> Any:
+    party_choices = [party for party in party_manager.list_parties() if party != "Manual Entry"]
+    preferred_party = None
+    if campaign_id:
+        campaign = campaign_manager.get_campaign(campaign_id)
+        if campaign and campaign.party_id and campaign.party_id in party_choices:
+            preferred_party = campaign.party_id
+    if preferred_party is None and party_choices:
+        preferred_party = party_choices[0]
+    return gr.update(choices=party_choices, value=preferred_party)
+
 
 
 def _session_library_markdown(campaign_id: Optional[str]) -> str:
@@ -837,7 +865,13 @@ with gr.Blocks(
     )
 
     campaign_tab_refs = create_campaign_tab_modern(demo)
-    characters_tab_refs = create_characters_tab_modern(demo, available_parties)
+    characters_tab_refs = create_characters_tab_modern(
+        demo,
+        available_parties,
+        refresh_campaign_names=_refresh_campaign_names,
+        active_campaign_state=active_campaign_state,
+        initial_campaign_id=initial_campaign_id,
+    )
     stories_tab_refs = create_stories_output_tab_modern(demo)
     settings_tab_refs = create_settings_tools_tab_modern(
         demo,
@@ -900,7 +934,14 @@ with gr.Blocks(
         overview_update = gr.update(value=_campaign_overview_markdown(campaign_id))
         knowledge_update = gr.update(value=_knowledge_summary_markdown(campaign_id))
         session_library_update = gr.update(value=_session_library_markdown(campaign_id))
-        character_profiles_update = gr.update(value=_character_profiles_markdown(campaign_id))
+        (
+            character_profiles_update,
+            character_table_update,
+            character_select_update,
+            character_export_update,
+            character_overview_update,
+        ) = _character_tab_updates(campaign_id)
+        extract_party_update = _extract_party_dropdown_update(campaign_id)
         story_session_update = gr.update(value=_session_library_markdown(campaign_id))
         narrative_hint_update = gr.update(value=_narrative_hint_markdown(campaign_id))
         diagnostics_update = gr.update(value=_diagnostics_markdown(campaign_id))
@@ -942,6 +983,11 @@ with gr.Blocks(
             knowledge_update,
             session_library_update,
             character_profiles_update,
+            character_table_update,
+            character_select_update,
+            character_export_update,
+            character_overview_update,
+            extract_party_update,
             story_session_update,
             narrative_hint_update,
             diagnostics_update,
@@ -975,7 +1021,14 @@ with gr.Blocks(
         overview_update = gr.update(value=_campaign_overview_markdown(new_campaign_id))
         knowledge_update = gr.update(value=_knowledge_summary_markdown(new_campaign_id))
         session_library_update = gr.update(value=_session_library_markdown(new_campaign_id))
-        character_profiles_update = gr.update(value=_character_profiles_markdown(new_campaign_id))
+        (
+            character_profiles_update,
+            character_table_update,
+            character_select_update,
+            character_export_update,
+            character_overview_update,
+        ) = _character_tab_updates(new_campaign_id)
+        extract_party_update = _extract_party_dropdown_update(new_campaign_id)
         story_session_update = gr.update(value=_session_library_markdown(new_campaign_id))
         narrative_hint_update = gr.update(value=_narrative_hint_markdown(new_campaign_id))
         diagnostics_update = gr.update(value=_diagnostics_markdown(new_campaign_id))
@@ -1006,6 +1059,11 @@ with gr.Blocks(
             knowledge_update,
             session_library_update,
             character_profiles_update,
+            character_table_update,
+            character_select_update,
+            character_export_update,
+            character_overview_update,
+            extract_party_update,
             story_session_update,
             narrative_hint_update,
             diagnostics_update,
@@ -1042,6 +1100,11 @@ with gr.Blocks(
         campaign_tab_refs["knowledge"],
         campaign_tab_refs["session_library"],
         characters_tab_refs["profiles"],
+        characters_tab_refs["table"],
+        characters_tab_refs["character_dropdown"],
+        characters_tab_refs["export_dropdown"],
+        characters_tab_refs["overview"],
+        characters_tab_refs["extract_party_dropdown"],
         stories_tab_refs["session_list"],
         stories_tab_refs["narrative_hint"],
         settings_tab_refs["diagnostics"],
@@ -1091,6 +1154,11 @@ with gr.Blocks(
         campaign_tab_refs["knowledge"],
         campaign_tab_refs["session_library"],
         characters_tab_refs["profiles"],
+        characters_tab_refs["table"],
+        characters_tab_refs["character_dropdown"],
+        characters_tab_refs["export_dropdown"],
+        characters_tab_refs["overview"],
+        characters_tab_refs["extract_party_dropdown"],
         stories_tab_refs["session_list"],
         stories_tab_refs["narrative_hint"],
         settings_tab_refs["diagnostics"],

@@ -1,5 +1,7 @@
 """In-Character / Out-of-Character classification using LLM"""
-from typing import List, Dict, Optional
+import os
+import re
+from typing import List, Dict, Optional, Any
 from dataclasses import dataclass
 from abc import ABC, abstractmethod
 from pathlib import Path
@@ -114,6 +116,9 @@ class OllamaClassifier(BaseClassifier):
                     severity="error",
                 )
             )
+        memory_issue = self._memory_requirement_issue()
+        if memory_issue:
+            issues.append(memory_issue)
         return issues
 
     def classify_segments(
@@ -301,6 +306,92 @@ class OllamaClassifier(BaseClassifier):
             "oom",
         ]
         return any(trigger in message for trigger in triggers)
+
+    def _memory_requirement_issue(self) -> Optional[PreflightIssue]:
+        required_gb = self._estimate_required_memory_gb(self.model)
+        if required_gb is None:
+            return None
+
+        available_gb = self._estimate_total_memory_gb()
+        if available_gb is None or available_gb >= required_gb:
+            return None
+
+        message = (
+            f"Ollama model '{self.model}' typically needs ~{required_gb}GB RAM, "
+            f"but only {available_gb:.1f}GB was detected. Expect memory layout "
+            "errors unless you enable low_vram, reduce context, or choose a smaller model."
+        )
+        return PreflightIssue(
+            component="classifier",
+            message=message,
+            severity="warning",
+        )
+
+    def _estimate_required_memory_gb(self, model_name: str) -> Optional[int]:
+        model_lower = model_name.lower()
+        match = re.search(r"(\d+)\s*b", model_lower)
+        if not match:
+            return None
+        try:
+            size = int(match.group(1))
+        except (TypeError, ValueError):
+            return None
+
+        if size >= 20:
+            return 16
+        if size >= 14:
+            return 12
+        if size >= 10:
+            return 10
+        if size >= 7:
+            return 8
+        if size >= 5:
+            return 6
+        return None
+
+    def _estimate_total_memory_gb(self) -> Optional[float]:
+        bytes_per_gb = 1024 ** 3
+        try:
+            import psutil  # type: ignore
+
+            return psutil.virtual_memory().total / bytes_per_gb
+        except Exception:
+            pass
+
+        if hasattr(os, "sysconf"):
+            try:
+                page_size = os.sysconf("SC_PAGE_SIZE")
+                phys_pages = os.sysconf("SC_PHYS_PAGES")
+                if isinstance(page_size, int) and isinstance(phys_pages, int):
+                    return (page_size * phys_pages) / bytes_per_gb
+            except (ValueError, OSError, AttributeError):
+                pass
+
+        if os.name == "nt":
+            try:
+                import ctypes
+
+                class MEMORYSTATUSEX(ctypes.Structure):
+                    _fields_: List[tuple[str, Any]] = [
+                        ("dwLength", ctypes.c_ulong),
+                        ("dwMemoryLoad", ctypes.c_ulong),
+                        ("ullTotalPhys", ctypes.c_ulonglong),
+                        ("ullAvailPhys", ctypes.c_ulonglong),
+                        ("ullTotalPageFile", ctypes.c_ulonglong),
+                        ("ullAvailPageFile", ctypes.c_ulonglong),
+                        ("ullTotalVirtual", ctypes.c_ulonglong),
+                        ("ullAvailVirtual", ctypes.c_ulonglong),
+                        ("ullAvailExtendedVirtual", ctypes.c_ulonglong),
+                    ]
+
+                status = MEMORYSTATUSEX()
+                status.dwLength = ctypes.sizeof(MEMORYSTATUSEX)
+                if ctypes.windll.kernel32.GlobalMemoryStatusEx(ctypes.byref(status)):
+                    return float(status.ullTotalPhys) / bytes_per_gb
+            except Exception:
+                pass
+
+        return None
 
     def _parse_response(
         self,

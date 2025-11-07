@@ -163,6 +163,43 @@ class TestOllamaClassifier:
         assert "defaulted to IC" in results[0].reasoning
         assert mock_ollama_client.generate.call_count == 2
 
+    def test_preflight_warns_when_memory_insufficient(self, mock_ollama_client, mock_prompt_file, monkeypatch):
+        classifier = OllamaClassifier()
+        monkeypatch.setattr(
+            OllamaClassifier,
+            "_estimate_required_memory_gb",
+            lambda self, model: 16
+        )
+        monkeypatch.setattr(
+            OllamaClassifier,
+            "_estimate_total_memory_gb",
+            lambda self: 8.0
+        )
+
+        issues = classifier.preflight_check()
+
+        assert issues
+        warning = issues[0]
+        assert warning.severity == "warning"
+        assert "needs ~16GB" in warning.message
+
+    def test_preflight_ok_when_memory_sufficient(self, mock_ollama_client, mock_prompt_file, monkeypatch):
+        classifier = OllamaClassifier()
+        monkeypatch.setattr(
+            OllamaClassifier,
+            "_estimate_required_memory_gb",
+            lambda self, model: 16
+        )
+        monkeypatch.setattr(
+            OllamaClassifier,
+            "_estimate_total_memory_gb",
+            lambda self: 32.0
+        )
+
+        issues = classifier.preflight_check()
+
+        assert not issues
+
 
 class TestClassificationResult:
     def test_to_dict(self):

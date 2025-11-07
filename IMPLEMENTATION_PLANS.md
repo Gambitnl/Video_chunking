@@ -920,6 +920,7 @@ Stage 6 IC/OOC classification fails with `memory layout cannot be allocated (sta
 1. Add an optional `OLLAMA_FALLBACK_MODEL` setting (blank by default) and propagate it through `Config`.
 2. Enhance `OllamaClassifier` to inspect `Exception` text for `memory layout` (and similar) failures, log guidance, and retry the same model using low-VRAM generation settings before considering any fallback.
 3. Document the new setting, low-VRAM retry behavior, and add tests that mock the Ollama client to simulate both the low-VRAM and fallback paths.
+4. Extend classifier preflight checks to warn operators when the selected model likely exceeds detected system memory so they can adjust before processing.
 
 ### Implementation Notes & Reasoning
 **Implementer**: Codex (GPT-5)  
@@ -933,6 +934,10 @@ Stage 6 IC/OOC classification fails with `memory layout cannot be allocated (sta
    - **Choice**: Made `OLLAMA_FALLBACK_MODEL` opt-in; when configured we retry after the low-VRAM attempt and log guidance referencing the relevant env vars.
    - **Reasoning**: Provides an escape hatch for constrained hosts without forcing lighter models on those who can support the default.
    - **Trade-offs**: Operators who never set the fallback still see the warning once per failure (instead of silent drops), which aids debugging.
+3. **Preflight Memory Guard**
+   - **Choice**: Added a preflight probe that estimates available RAM (via psutil/sysconf when available) and warns when it falls short of the selected Ollama model’s documented requirement.
+   - **Reasoning**: Surfaces “memory layout” risks before transcription runs, giving operators time to switch to low_vram/fallback models or upgrade hardware.
+   - **Trade-offs**: Detection best-effort; skips silently when the platform doesn’t expose memory metrics.
 
 #### Validation
 - `pytest tests/test_diarizer.py tests/test_classifier.py -q`

@@ -218,23 +218,6 @@ class DDSessionProcessor:
             skip_classification=skip_classification,
         )
 
-    def run_preflight_checks_only(
-        self,
-        *,
-        skip_diarization: bool,
-        skip_classification: bool,
-    ) -> List[PreflightIssue]:
-        """Collect preflight issues without running the full pipeline."""
-        preflight_checker = PreflightChecker(
-            transcriber=self.transcriber,
-            diarizer=self.diarizer,
-            classifier=self.classifier,
-        )
-        return preflight_checker.collect_issues(
-            skip_diarization=skip_diarization,
-            skip_classification=skip_classification,
-        )
-
         session_options = {
             'input_file': str(input_file),
             'base_output_dir': str(base_output_dir),
@@ -1048,6 +1031,23 @@ class DDSessionProcessor:
             log_session_end(self.session_id, duration_seconds, success=False)
             self.logger.error("Processing failed for session '%s'", self.session_id, exc_info=True)
             raise
+
+    def run_preflight_checks_only(
+        self,
+        *,
+        skip_diarization: bool,
+        skip_classification: bool,
+    ) -> List[PreflightIssue]:
+        """Collect preflight issues without running the full pipeline."""
+        preflight_checker = PreflightChecker(
+            transcriber=self.transcriber,
+            diarizer=self.diarizer,
+            classifier=self.classifier,
+        )
+        return preflight_checker.collect_issues(
+            skip_diarization=skip_diarization,
+            skip_classification=skip_classification,
+        )
     def update_speaker_mapping(
         self,
         speaker_id: str,

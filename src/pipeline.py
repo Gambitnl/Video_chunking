@@ -454,6 +454,8 @@ class DDSessionProcessor:
                 for index, chunk in enumerate(chunks, start=1):
                     transcription = self.transcriber.transcribe_chunk(chunk, language=self.language)
                     chunk_transcriptions.append(transcription)
+                    preview_text = transcription.preview_text(220)
+                    chunk_duration = round(chunk.end_time - chunk.start_time, 2)
                     if (
                         index == 1
                         or index == total_chunks
@@ -471,6 +473,11 @@ class DDSessionProcessor:
                                 "chunks_transcribed": index,
                                 "total_chunks": total_chunks,
                                 "progress_percent": round(percent, 1),
+                                "last_chunk_index": transcription.chunk_index,
+                                "last_chunk_preview": preview_text,
+                                "last_chunk_start": round(chunk.start_time, 2),
+                                "last_chunk_end": round(chunk.end_time, 2),
+                                "last_chunk_duration": chunk_duration,
                             },
                         )
                         self.logger.info(

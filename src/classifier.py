@@ -297,6 +297,12 @@ class OllamaClassifier(BaseClassifier):
             return None
 
     def _is_memory_error(self, error: Exception) -> bool:
+        # Check for specific Ollama response error status if possible
+        if hasattr(error, "status_code") and isinstance(getattr(error, "status_code"), int):
+            # 500 is a common code for server-side issues like memory allocation
+            if getattr(error, "status_code") == 500:
+                return True
+
         message = str(error).lower()
         triggers = [
             "memory layout",

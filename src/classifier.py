@@ -60,11 +60,21 @@ class BaseClassifier(ABC):
 class OllamaClassifier(BaseClassifier):
     """IC/OOC classifier using local Ollama LLM."""
 
-    def __init__(self, model: str = None, base_url: str = None):
+    def __init__(
+        self,
+        model: str = None,
+        base_url: str = None,
+        fallback_model: Optional[str] = None
+    ):
         import ollama
 
         self.model = model or Config.OLLAMA_MODEL
         self.base_url = base_url or Config.OLLAMA_BASE_URL
+        self.fallback_model = fallback_model or getattr(
+            Config,
+            "OLLAMA_FALLBACK_MODEL",
+            None
+        )
         self.logger = get_logger("classifier.ollama")
 
         # Load prompt template
@@ -150,24 +160,16 @@ class OllamaClassifier(BaseClassifier):
             player_names
         )
 
-        try:
-            response = self.client.generate(
-                model=self.model,
-                prompt=prompt,
-                options={
-                    'temperature': 0.1,
-                    'num_predict': 200
-                }
-            )
-            return self._parse_response(response['response'], index)
-        except Exception as e:
-            self.logger.warning("Classification failed for segment %s: %s", index, e)
+        response_text = self._generate_with_retry(prompt, index)
+        if response_text is None:
             return ClassificationResult(
                 segment_index=index,
                 classification="IC",
                 confidence=0.5,
                 reasoning="Classification failed, defaulted to IC"
             )
+
+        return self._parse_response(response_text, index)
 
     def _build_prompt(
         self,
@@ -188,6 +190,117 @@ class OllamaClassifier(BaseClassifier):
             current_text=current_text,
             next_text=next_text
         )
+
+    def _generate_with_retry(self, prompt: str, index: int) -> Optional[str]:
+        try:
+            response = self._generate_with_model(self.model, prompt)
+            return response['response']
+        except Exception as exc:
+            low_vram_response = self._maybe_retry_with_low_vram(prompt, index, exc)
+            if low_vram_response is not None:
+                return low_vram_response['response']
+
+            fallback_response = self._maybe_retry_with_fallback(prompt, index, exc)
+            if fallback_response is not None:
+                return fallback_response['response']
+
+            self.logger.warning(
+                "Classification failed for segment %s using %s: %s",
+                index,
+                self.model,
+                exc
+            )
+            return None
+
+    def _generate_with_model(self, model: str, prompt: str, *, low_vram: bool = False):
+        options = self._default_generation_options()
+        if low_vram:
+            options["low_vram"] = True
+            if "num_ctx" in options:
+                options["num_ctx"] = min(options["num_ctx"], 1024)
+        return self.client.generate(
+            model=model,
+            prompt=prompt,
+            options=options
+        )
+
+    def _default_generation_options(self) -> Dict[str, float]:
+        return {
+            'temperature': 0.1,
+            'num_predict': 200,
+            'num_ctx': 2048,
+        }
+
+    def _maybe_retry_with_low_vram(
+        self,
+        prompt: str,
+        index: int,
+        error: Exception
+    ):
+        if not self._is_memory_error(error):
+            return None
+
+        self.logger.warning(
+            "Model %s hit a memory error on segment %s (%s). Retrying with low_vram settings.",
+            self.model,
+            index,
+            error
+        )
+
+        try:
+            return self._generate_with_model(self.model, prompt, low_vram=True)
+        except Exception as low_vram_exc:
+            self.logger.warning(
+                "Low-VRAM retry also failed for segment %s: %s",
+                index,
+                low_vram_exc
+            )
+            return None
+
+    def _maybe_retry_with_fallback(
+        self,
+        prompt: str,
+        index: int,
+        error: Exception
+    ):
+        fallback_model = self.fallback_model
+        if not fallback_model or fallback_model == self.model:
+            return None
+
+        if not self._is_memory_error(error):
+            return None
+
+        self.logger.warning(
+            "Model %s failed for segment %s (%s). Retrying with fallback %s. "
+            "Update OLLAMA_MODEL or OLLAMA_FALLBACK_MODEL in your .env to avoid retries.",
+            self.model,
+            index,
+            error,
+            fallback_model
+        )
+
+        try:
+            return self._generate_with_model(fallback_model, prompt)
+        except Exception as fallback_exc:
+            self.logger.warning(
+                "Fallback model %s also failed for segment %s: %s. "
+                "Update your Ollama model selection if the issue persists.",
+                fallback_model,
+                index,
+                fallback_exc
+            )
+            return None
+
+    def _is_memory_error(self, error: Exception) -> bool:
+        message = str(error).lower()
+        triggers = [
+            "memory layout",
+            "out of memory",
+            "cuda out of memory",
+            "not enough memory",
+            "oom",
+        ]
+        return any(trigger in message for trigger in triggers)
 
     def _parse_response(
         self,

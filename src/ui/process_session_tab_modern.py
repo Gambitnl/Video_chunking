@@ -11,6 +11,7 @@ from src.party_config import PartyConfigManager
 from src.file_tracker import FileProcessingTracker
 from src.ui.constants import StatusIndicators as SI
 from src.ui.helpers import InfoText, Placeholders, StatusMessages, UIComponents
+from src.status_tracker import StatusTracker
 
 
 ALLOWED_AUDIO_EXTENSIONS: Tuple[str, ...] = (".m4a", ".mp3", ".wav", ".flac")
@@ -222,6 +223,13 @@ def create_process_session_tab_modern(
                     "Provide a session ID and audio file, then click Start Processing."
                 )
             )
+
+            transcription_progress = gr.Markdown(
+                value="",
+                visible=False,
+            )
+
+            transcription_timer = gr.Timer(value=2.0, active=True)
 
         with gr.Group(visible=False, elem_id="process-results-section") as results_section:
             gr.Markdown("### Step 4: Review Results")
@@ -507,6 +515,68 @@ def create_process_session_tab_modern(
             )
             return _render_processing_response(response)
 
+        def _poll_transcription_progress(session_id_value: str):
+            snapshot = StatusTracker.get_snapshot()
+            if not snapshot or not snapshot.get("processing"):
+                return gr.update(value="", visible=False)
+
+            active_session = snapshot.get("session_id")
+            target_session = (session_id_value or "").strip()
+            if target_session and active_session != target_session:
+                return gr.update(value="", visible=False)
+
+            stages = snapshot.get("stages") or []
+            stage_three = next((stage for stage in stages if stage.get("id") == 3), None)
+            if not stage_three:
+                return gr.update(value="", visible=False)
+
+            details = stage_three.get("details") or {}
+            preview = details.get("last_chunk_preview") or ""
+            if not preview.strip():
+                return gr.update(value="", visible=False)
+
+            chunks_transcribed = details.get("chunks_transcribed")
+            total_chunks = details.get("total_chunks")
+            percent = details.get("progress_percent")
+            chunk_label = details.get("last_chunk_index") or chunks_transcribed or "?"
+            timing_range = ""
+            start_time = details.get("last_chunk_start")
+            end_time = details.get("last_chunk_end")
+            duration = details.get("last_chunk_duration")
+            if isinstance(start_time, (int, float)) and isinstance(end_time, (int, float)):
+                timing_range = f" ({start_time:.2f}s → {end_time:.2f}s"
+                if isinstance(duration, (int, float)):
+                    timing_range += f", {duration:.2f}s"
+                timing_range += ")"
+
+            progress_bits: List[str] = []
+            if chunks_transcribed is not None and total_chunks:
+                progress_bits.append(f"{chunks_transcribed}/{total_chunks}")
+            if percent is not None:
+                progress_bits.append(f"{percent}%")
+            progress_line = " | ".join(progress_bits)
+
+            lines = [
+                "### Live Transcription Preview",
+                f"{SI.PROCESSING} Chunk {chunk_label}{timing_range}",
+            ]
+            if progress_line:
+                lines.append(progress_line)
+            lines.extend([
+                "",
+                "```",
+                preview.strip(),
+                "```",
+            ])
+            return gr.update(value="\n".join(lines), visible=True)
+
+        transcription_timer.tick(
+            fn=_poll_transcription_progress,
+            inputs=[session_id_input],
+            outputs=[transcription_progress],
+            queue=False,
+        )
+
         def update_party_display(party_id: str):
             """Display character names when a party is selected."""
             if not party_id or party_id == "Manual Entry":
@@ -685,6 +755,7 @@ def create_process_session_tab_modern(
         "skip_snippets_input": skip_snippets_input,
         "skip_knowledge_input": skip_knowledge_input,
         "status_output": status_output,
+        "transcription_progress": transcription_progress,
         "results_section": results_section,
         "full_output": full_output,
         "ic_output": ic_output,

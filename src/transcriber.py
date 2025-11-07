@@ -50,6 +50,19 @@ class ChunkTranscription:
     segments: List[TranscriptionSegment]
     language: str
 
+    def preview_text(self, max_chars: int = 200) -> str:
+        """Return a short text preview for UI status updates."""
+        combined = " ".join(
+            segment.text.strip()
+            for segment in self.segments
+            if segment.text and segment.text.strip()
+        ).strip()
+        if not combined:
+            return ""
+        if len(combined) <= max_chars:
+            return combined
+        return f"{combined[:max_chars].rstrip()}..."
+
     def to_dict(self) -> dict:
         """Converts the ChunkTranscription to a dictionary for serialization."""
         return {

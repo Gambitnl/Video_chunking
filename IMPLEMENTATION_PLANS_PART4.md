@@ -260,6 +260,44 @@ Test with both a Dutch and an English audio sample to ensure the correct models 
 **Dependencies**: None
 **Status**: NOT STARTED
 
+---
+
+## P2-FEATURE-006: Live Chunk Transcription Preview
+
+**Files**: `src/pipeline.py`, `src/transcriber.py`, `src/ui/process_session_tab_modern.py`
+**Effort**: 0.5 days
+**Priority**: MEDIUM
+**Status**: [DONE] Completed 2025-11-07
+
+### Problem Statement
+Operators wait ~30 minutes for long recordings yet have no visibility into what Stage 3 (chunk transcription) is producing. They want to verify that Whisper is returning intelligible text and see chunk-level progress before the entire session completes.
+
+### Success Criteria
+- [x] Stage 3 surfaces the latest chunk text and timing metadata through `StatusTracker` without bloating logs or checkpoints.
+- [x] The Gradio UI displays a live-updating chunk transcript preview (Markdown/monospace) while Stage 3 is running.
+- [x] Polling is lightweight (≤1 update per 2 seconds) and automatically hides when no session is in progress.
+
+### Implementation Plan
+1. Add a `ChunkTranscription.preview_text()` helper and include its output in the Stage 3 `StatusTracker.update_stage` details payload alongside timing metadata.
+2. Introduce a hidden `gr.Timer` + Markdown component on the Process tab that polls `StatusTracker.get_snapshot()` every 2 seconds and renders the latest chunk preview.
+3. Guard the UI updater so it only shows data for the active session ID and hides itself when preview text is absent or the pipeline is idle.
+
+### Implementation Notes & Reasoning
+**Implementer**: Codex (GPT-5)  
+**Date**: 2025-11-07
+
+1. **Structured Preview Data**
+   - **Choice**: Extend `StatusTracker` stage details rather than logging raw text to disk.
+   - **Reasoning**: Keeps a single source of truth for all stage progress that is already sanitized and available to the UI.
+   - **Trade-offs**: Stage detail records now include short text snippets; previews are capped at 220 chars to avoid ballooning the JSON.
+2. **UI Polling**
+   - **Choice**: Use Gradio’s `Timer` to poll progress every 2 seconds, showing the current chunk number, percent complete, and a fenced code block with the transcript sample.
+   - **Reasoning**: Avoids invasive streaming refactors while still presenting near-real-time feedback.
+   - **Trade-offs**: Polling continues while any session is running; negligible overhead (~JSON read + Markdown render).
+
+#### Validation
+- `pytest tests/test_classifier.py tests/test_diarizer.py -q`
+
 ### Problem Statement
 Diarization outputs generic labels ("Speaker 1", "Speaker 2"). Users must manually map these to player names. Need UI to assign custom labels and persist mappings.
 

@@ -71,7 +71,7 @@ class Config:
     # Ollama Settings
     OLLAMA_MODEL: str = os.getenv("OLLAMA_MODEL", "gpt-oss:20b")
     OLLAMA_BASE_URL: str = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
-    _fallback_model = os.getenv("OLLAMA_FALLBACK_MODEL", "") or ""
+    _fallback_model = os.getenv("OLLAMA_FALLBACK_MODEL", "")
     OLLAMA_FALLBACK_MODEL: Optional[str] = _fallback_model.strip() or None
 
     # Paths

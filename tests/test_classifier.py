@@ -4,10 +4,11 @@ from unittest.mock import patch, MagicMock, mock_open
 
 # Mock the config before other imports
 @pytest.fixture(autouse=True)
-def mock_config():
+def patched_config():
     with patch('src.classifier.Config') as MockConfig:
         MockConfig.LLM_BACKEND = 'ollama'
         MockConfig.OLLAMA_MODEL = 'test-model'
+        MockConfig.OLLAMA_FALLBACK_MODEL = None
         MockConfig.OLLAMA_BASE_URL = 'http://localhost:11434'
         # Create a dummy prompt file path
         MockConfig.PROJECT_ROOT.return_value = MagicMock()
@@ -108,6 +109,96 @@ class TestOllamaClassifier:
         assert results[0].confidence == 0.8
         assert results[0].character == "TestChar"
         assert results[1].segment_index == 1
+
+    def test_classify_retries_with_low_vram_on_memory_error(self, mock_ollama_client, mock_prompt_file):
+        classifier = OllamaClassifier()
+        mock_ollama_client.generate.side_effect = [
+            Exception("memory layout cannot be allocated (status code: 500)"),
+            {'response': "Classificatie: OOC\nVertrouwen: 0.6\nPersonage: N/A"}
+        ]
+
+        segments = [{'text': 'Segment 1'}]
+        results = classifier.classify_segments(segments, [], [])
+
+        assert len(results) == 1
+        assert results[0].classification == "OOC"
+        assert mock_ollama_client.generate.call_count == 2
+        first_call = mock_ollama_client.generate.call_args_list[0]
+        second_call = mock_ollama_client.generate.call_args_list[1]
+        assert first_call.kwargs['model'] == 'test-model'
+        assert second_call.kwargs['model'] == 'test-model'
+        assert second_call.kwargs['options']['low_vram'] is True
+
+    def test_classify_retries_with_fallback_if_configured(self, mock_ollama_client, mock_prompt_file, patched_config):
+        patched_config.OLLAMA_FALLBACK_MODEL = 'test-fallback'
+        classifier = OllamaClassifier()
+        mock_ollama_client.generate.side_effect = [
+            Exception("memory layout cannot be allocated (status code: 500)"),
+            Exception("still running low vram"),
+            {'response': "Classificatie: OOC\nVertrouwen: 0.6\nPersonage: N/A"}
+        ]
+
+        segments = [{'text': 'Segment 1'}]
+        results = classifier.classify_segments(segments, [], [])
+
+        assert len(results) == 1
+        assert results[0].classification == "OOC"
+        assert mock_ollama_client.generate.call_count == 3
+        fallback_call = mock_ollama_client.generate.call_args_list[2]
+        assert fallback_call.kwargs['model'] == 'test-fallback'
+
+    def test_classify_defaults_when_retries_fail(self, mock_ollama_client, mock_prompt_file):
+        classifier = OllamaClassifier()
+        mock_ollama_client.generate.side_effect = [
+            Exception("memory layout cannot be allocated"),
+            Exception("still failing")
+        ]
+
+        segments = [{'text': 'Segment 1'}]
+        results = classifier.classify_segments(segments, [], [])
+
+        assert len(results) == 1
+        assert results[0].classification == "IC"
+        assert results[0].confidence == 0.5
+        assert "defaulted to IC" in results[0].reasoning
+        assert mock_ollama_client.generate.call_count == 2
+
+    def test_preflight_warns_when_memory_insufficient(self, mock_ollama_client, mock_prompt_file, monkeypatch):
+        classifier = OllamaClassifier()
+        monkeypatch.setattr(
+            OllamaClassifier,
+            "_estimate_required_memory_gb",
+            lambda self, model: 16
+        )
+        monkeypatch.setattr(
+            OllamaClassifier,
+            "_estimate_total_memory_gb",
+            lambda self: 8.0
+        )
+
+        issues = classifier.preflight_check()
+
+        assert issues
+        warning = issues[0]
+        assert warning.severity == "warning"
+        assert "needs ~16GB" in warning.message
+
+    def test_preflight_ok_when_memory_sufficient(self, mock_ollama_client, mock_prompt_file, monkeypatch):
+        classifier = OllamaClassifier()
+        monkeypatch.setattr(
+            OllamaClassifier,
+            "_estimate_required_memory_gb",
+            lambda self, model: 16
+        )
+        monkeypatch.setattr(
+            OllamaClassifier,
+            "_estimate_total_memory_gb",
+            lambda self: 32.0
+        )
+
+        issues = classifier.preflight_check()
+
+        assert not issues
 
 
 class TestClassificationResult:

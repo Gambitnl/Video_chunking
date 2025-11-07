@@ -1,5 +1,7 @@
 """In-Character / Out-of-Character classification using LLM"""
-from typing import List, Dict, Optional
+import os
+import re
+from typing import List, Dict, Optional, Any
 from dataclasses import dataclass
 from abc import ABC, abstractmethod
 from pathlib import Path
@@ -60,11 +62,21 @@ class BaseClassifier(ABC):
 class OllamaClassifier(BaseClassifier):
     """IC/OOC classifier using local Ollama LLM."""
 
-    def __init__(self, model: str = None, base_url: str = None):
+    def __init__(
+        self,
+        model: str = None,
+        base_url: str = None,
+        fallback_model: Optional[str] = None
+    ):
         import ollama
 
         self.model = model or Config.OLLAMA_MODEL
         self.base_url = base_url or Config.OLLAMA_BASE_URL
+        self.fallback_model = fallback_model or getattr(
+            Config,
+            "OLLAMA_FALLBACK_MODEL",
+            None
+        )
         self.logger = get_logger("classifier.ollama")
 
         # Load prompt template
@@ -104,6 +116,9 @@ class OllamaClassifier(BaseClassifier):
                     severity="error",
                 )
             )
+        memory_issue = self._memory_requirement_issue()
+        if memory_issue:
+            issues.append(memory_issue)
         return issues
 
     def classify_segments(
@@ -150,24 +165,16 @@ class OllamaClassifier(BaseClassifier):
             player_names
         )
 
-        try:
-            response = self.client.generate(
-                model=self.model,
-                prompt=prompt,
-                options={
-                    'temperature': 0.1,
-                    'num_predict': 200
-                }
-            )
-            return self._parse_response(response['response'], index)
-        except Exception as e:
-            self.logger.warning("Classification failed for segment %s: %s", index, e)
+        response_text = self._generate_with_retry(prompt, index)
+        if response_text is None:
             return ClassificationResult(
                 segment_index=index,
                 classification="IC",
                 confidence=0.5,
                 reasoning="Classification failed, defaulted to IC"
             )
+
+        return self._parse_response(response_text, index)
 
     def _build_prompt(
         self,
@@ -188,6 +195,203 @@ class OllamaClassifier(BaseClassifier):
             current_text=current_text,
             next_text=next_text
         )
+
+    def _generate_with_retry(self, prompt: str, index: int) -> Optional[str]:
+        try:
+            response = self._generate_with_model(self.model, prompt)
+            return response['response']
+        except Exception as exc:
+            low_vram_response = self._maybe_retry_with_low_vram(prompt, index, exc)
+            if low_vram_response is not None:
+                return low_vram_response['response']
+
+            fallback_response = self._maybe_retry_with_fallback(prompt, index, exc)
+            if fallback_response is not None:
+                return fallback_response['response']
+
+            self.logger.warning(
+                "Classification failed for segment %s using %s: %s",
+                index,
+                self.model,
+                exc
+            )
+            return None
+
+    def _generate_with_model(self, model: str, prompt: str, *, low_vram: bool = False):
+        options = self._default_generation_options()
+        if low_vram:
+            options["low_vram"] = True
+            if "num_ctx" in options:
+                options["num_ctx"] = min(options["num_ctx"], 1024)
+        return self.client.generate(
+            model=model,
+            prompt=prompt,
+            options=options
+        )
+
+    def _default_generation_options(self) -> Dict[str, float]:
+        return {
+            'temperature': 0.1,
+            'num_predict': 200,
+            'num_ctx': 2048,
+        }
+
+    def _maybe_retry_with_low_vram(
+        self,
+        prompt: str,
+        index: int,
+        error: Exception
+    ):
+        if not self._is_memory_error(error):
+            return None
+
+        self.logger.warning(
+            "Model %s hit a memory error on segment %s (%s). Retrying with low_vram settings.",
+            self.model,
+            index,
+            error
+        )
+
+        try:
+            return self._generate_with_model(self.model, prompt, low_vram=True)
+        except Exception as low_vram_exc:
+            self.logger.warning(
+                "Low-VRAM retry also failed for segment %s: %s",
+                index,
+                low_vram_exc
+            )
+            return None
+
+    def _maybe_retry_with_fallback(
+        self,
+        prompt: str,
+        index: int,
+        error: Exception
+    ):
+        fallback_model = self.fallback_model
+        if not fallback_model or fallback_model == self.model:
+            return None
+
+        if not self._is_memory_error(error):
+            return None
+
+        self.logger.warning(
+            "Model %s failed for segment %s (%s). Retrying with fallback %s. "
+            "Update OLLAMA_MODEL or OLLAMA_FALLBACK_MODEL in your .env to avoid retries.",
+            self.model,
+            index,
+            error,
+            fallback_model
+        )
+
+        try:
+            return self._generate_with_model(fallback_model, prompt)
+        except Exception as fallback_exc:
+            self.logger.warning(
+                "Fallback model %s also failed for segment %s: %s. "
+                "Update your Ollama model selection if the issue persists.",
+                fallback_model,
+                index,
+                fallback_exc
+            )
+            return None
+
+    def _is_memory_error(self, error: Exception) -> bool:
+        message = str(error).lower()
+        triggers = [
+            "memory layout",
+            "out of memory",
+            "cuda out of memory",
+            "not enough memory",
+            "oom",
+        ]
+        return any(trigger in message for trigger in triggers)
+
+    def _memory_requirement_issue(self) -> Optional[PreflightIssue]:
+        required_gb = self._estimate_required_memory_gb(self.model)
+        if required_gb is None:
+            return None
+
+        available_gb = self._estimate_total_memory_gb()
+        if available_gb is None or available_gb >= required_gb:
+            return None
+
+        message = (
+            f"Ollama model '{self.model}' typically needs ~{required_gb}GB RAM, "
+            f"but only {available_gb:.1f}GB was detected. Expect memory layout "
+            "errors unless you enable low_vram, reduce context, or choose a smaller model."
+        )
+        return PreflightIssue(
+            component="classifier",
+            message=message,
+            severity="warning",
+        )
+
+    def _estimate_required_memory_gb(self, model_name: str) -> Optional[int]:
+        model_lower = model_name.lower()
+        match = re.search(r"(\d+)\s*b", model_lower)
+        if not match:
+            return None
+        try:
+            size = int(match.group(1))
+        except (TypeError, ValueError):
+            return None
+
+        if size >= 20:
+            return 16
+        if size >= 14:
+            return 12
+        if size >= 10:
+            return 10
+        if size >= 7:
+            return 8
+        if size >= 5:
+            return 6
+        return None
+
+    def _estimate_total_memory_gb(self) -> Optional[float]:
+        bytes_per_gb = 1024 ** 3
+        try:
+            import psutil  # type: ignore
+
+            return psutil.virtual_memory().total / bytes_per_gb
+        except Exception:
+            pass
+
+        if hasattr(os, "sysconf"):
+            try:
+                page_size = os.sysconf("SC_PAGE_SIZE")
+                phys_pages = os.sysconf("SC_PHYS_PAGES")
+                if isinstance(page_size, int) and isinstance(phys_pages, int):
+                    return (page_size * phys_pages) / bytes_per_gb
+            except (ValueError, OSError, AttributeError):
+                pass
+
+        if os.name == "nt":
+            try:
+                import ctypes
+
+                class MEMORYSTATUSEX(ctypes.Structure):
+                    _fields_: List[tuple[str, Any]] = [
+                        ("dwLength", ctypes.c_ulong),
+                        ("dwMemoryLoad", ctypes.c_ulong),
+                        ("ullTotalPhys", ctypes.c_ulonglong),
+                        ("ullAvailPhys", ctypes.c_ulonglong),
+                        ("ullTotalPageFile", ctypes.c_ulonglong),
+                        ("ullAvailPageFile", ctypes.c_ulonglong),
+                        ("ullTotalVirtual", ctypes.c_ulonglong),
+                        ("ullAvailVirtual", ctypes.c_ulonglong),
+                        ("ullAvailExtendedVirtual", ctypes.c_ulonglong),
+                    ]
+
+                status = MEMORYSTATUSEX()
+                status.dwLength = ctypes.sizeof(MEMORYSTATUSEX)
+                if ctypes.windll.kernel32.GlobalMemoryStatusEx(ctypes.byref(status)):
+                    return float(status.ullTotalPhys) / bytes_per_gb
+            except Exception:
+                pass
+
+        return None
 
     def _parse_response(
         self,

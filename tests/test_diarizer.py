@@ -6,6 +6,7 @@ import json
 import numpy as np
 import torch
 import sys
+from types import SimpleNamespace
 
 from src.diarizer import SpeakerDiarizer, SpeakerProfileManager, SpeakerSegment
 from src.transcriber import TranscriptionSegment
@@ -47,6 +48,26 @@ class TestSpeakerDiarizer:
         assert enriched[0]['speaker'] == "SPEAKER_00"
         assert enriched[1]['speaker'] == "SPEAKER_01"
         assert enriched[2]['speaker'] == "UNKNOWN"
+
+    def test_embedding_to_numpy_handles_tensor_and_numpy(self, diarizer):
+        tensor = torch.tensor([[0.1, 0.2, 0.3]], dtype=torch.float32)
+        tensor_result = diarizer._embedding_to_numpy(tensor)
+        assert isinstance(tensor_result, np.ndarray)
+        assert tensor_result.shape == (3,)
+        assert np.allclose(tensor_result, [0.1, 0.2, 0.3])
+
+        wrapper = SimpleNamespace(data=np.array([[0.4, 0.5, 0.6]], dtype=np.float32))
+        numpy_result = diarizer._embedding_to_numpy(wrapper)
+        assert numpy_result.shape == (3,)
+        assert np.allclose(numpy_result, [0.4, 0.5, 0.6])
+
+        class DummyEmbedding:
+            def numpy(self):
+                return np.array([[0.7, 0.8]], dtype=np.float32)
+
+        dummy_result = diarizer._embedding_to_numpy(DummyEmbedding())
+        assert dummy_result.shape == (2,)
+        assert np.allclose(dummy_result, [0.7, 0.8])
 
     @patch('pydub.AudioSegment')
     @patch.dict('sys.modules', {'torchaudio': None})
@@ -127,6 +148,64 @@ class TestSpeakerDiarizer:
         assert segments[1].speaker_id == "SPEAKER_01"
         assert "SPEAKER_00" in embeddings
         assert "SPEAKER_01" in embeddings
+
+    @patch('pydub.AudioSegment')
+    @patch.dict('sys.modules', {'torchaudio': None})
+    def test_diarize_embedding_failure_is_logged(self, MockAudioSegment, diarizer, tmp_path, caplog):
+        mock_pipeline_instance = MagicMock()
+        mock_diarization_result = MagicMock()
+        mock_diarization_result.itertracks.return_value = [
+            (MagicMock(start=0.0, end=1.0), None, "SPEAKER_00"),
+            (MagicMock(start=1.5, end=2.5), None, "SPEAKER_01"),
+        ]
+        mock_diarization_result.labels.return_value = ["SPEAKER_00", "SPEAKER_01"]
+
+        def mock_label_timeline(speaker_id):
+            if speaker_id == "SPEAKER_00":
+                return [MagicMock(start=0.0, end=1.0)]
+            return [MagicMock(start=1.5, end=2.5)]
+
+        mock_diarization_result.label_timeline = mock_label_timeline
+        mock_pipeline_instance.return_value = mock_diarization_result
+        diarizer.pipeline = mock_pipeline_instance
+
+        failing_embedding_model = MagicMock(side_effect=RuntimeError("numpy.ndarray object has no attribute numpy"))
+        diarizer.embedding_model = failing_embedding_model
+
+        mock_audio_chunk = MagicMock()
+        mock_audio_chunk.frame_rate = 16000
+        mock_audio_chunk.__len__.return_value = 2000
+        mock_audio_chunk.get_array_of_samples.return_value = np.zeros(16000, dtype=np.int16)
+
+        mock_full_audio = MagicMock()
+        mock_full_audio.frame_rate = 16000
+        mock_full_audio.__getitem__ = lambda self, key: mock_audio_chunk
+
+        accumulated_audio = MagicMock()
+        accumulated_audio.frame_rate = 16000
+        accumulated_audio.__len__.return_value = 2000
+        accumulated_audio.get_array_of_samples.return_value = np.zeros(16000, dtype=np.int16)
+        accumulated_audio.__add__ = lambda self, other: accumulated_audio
+        accumulated_audio.__iadd__ = lambda self, other: accumulated_audio
+
+        mock_empty = MagicMock()
+        mock_empty.frame_rate = 16000
+        mock_empty.__len__.return_value = 0
+        mock_empty.__add__ = lambda self, other: accumulated_audio
+        mock_empty.__iadd__ = lambda self, other: accumulated_audio
+
+        MockAudioSegment.from_wav.return_value = mock_full_audio
+        MockAudioSegment.empty.return_value = mock_empty
+
+        dummy_audio_path = tmp_path / "audio.wav"
+        dummy_audio_path.touch()
+
+        with caplog.at_level("WARNING"):
+            segments, embeddings = diarizer.diarize(dummy_audio_path)
+
+        assert len(segments) == 2
+        assert embeddings == {}
+        assert "Failed to extract embedding for SPEAKER_00" in caplog.text
 
     @patch('pyannote.audio.Pipeline.from_pretrained', side_effect=Exception("Model loading failed"))
     @patch('pydub.AudioSegment.from_file')

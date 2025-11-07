@@ -16,7 +16,7 @@ This directory contains all the documentation for the D&D Session Processor. Bel
 
 - **[SETUP.md](./SETUP.md)**: The complete and detailed setup instructions for the application, including HF token setup and GPU (`INFERENCE_DEVICE`) guidance.
 - **[FIRST_TIME_SETUP.md](./FIRST_TIME_SETUP.md)**: A quick-start guide for setting up the application and its dependencies for the first time.
-- **[OLLAMA_SETUP.md](./OLLAMA_SETUP.md)**: A guide for installing Ollama and downloading the required LLM models.
+- **[OLLAMA_SETUP.md](./OLLAMA_SETUP.md)**: A guide for installing Ollama, downloading the required LLM models, and tuning `OLLAMA_MODEL` (plus optional `OLLAMA_FALLBACK_MODEL`) to match your available memory.
 - **[INSTALL_GPT_OSS.md](./INSTALL_GPT_OSS.md)**: Setup guide specifically for the OpenAI GPT-OSS model with Ollama.
 - **[GOOGLE_DRIVE_SETUP.md](./GOOGLE_DRIVE_SETUP.md)**: Instructions for setting up Google Drive OAuth to access private Google Docs.
 - **[GOOGLE_OAUTH_SIMPLE_SETUP.md](./GOOGLE_OAUTH_SIMPLE_SETUP.md)**: A streamlined walkthrough for generating Google OAuth credentials and enabling one-click authentication.

@@ -861,3 +861,85 @@ Operators frequently discover missing GPU acceleration, Hugging Face access, or 
 - `pytest tests/test_diarizer.py::TestSpeakerDiarizer::test_preflight_reports_repo_access_errors -q`
 
 ---
+
+## P0-BUG-009: PyAnnote Embedding Extraction Crashes Diarization
+
+**Files**: `src/diarizer.py`, `tests/test_diarizer.py`
+**Effort**: 0.5 days
+**Priority**: HIGH
+**Status**: [DONE] Completed 2025-11-07
+
+### Problem Statement
+During Stage 5 diarization on pyannote.audio 3.x, the embedding inference step now returns numpy arrays rather than torch tensors. Our extraction blindly calls `.numpy()` on the result and raises `'numpy.ndarray' object has no attribute 'numpy'`, which aborts the speaker pass and leaves the UI without diarization labels.
+
+### Success Criteria
+- [x] Speaker embeddings are normalized to numpy arrays whether the backend returns torch tensors or numpy arrays.
+- [x] Failures inside the embedding aggregation never crash diarization; we log a warning and continue with the available segments.
+- [x] Unit tests cover both tensor and numpy embedding outputs plus the failure guard.
+
+### Implementation Plan
+1. Normalize embeddings with a helper that accepts torch tensors, numpy arrays, or `SlidingWindowFeature` objects and always returns a CPU numpy array.
+2. Wrap per-speaker extraction in `try/except` so a single malformed chunk does not halt the stage; surface a concise warning with the speaker id.
+3. Extend diarizer tests to exercise tensor, numpy, and exception scenarios.
+
+### Implementation Notes & Reasoning
+**Implementer**: Codex (GPT-5)  
+**Date**: 2025-11-07
+
+1. **Embedding Normalization**
+   - **Choice**: Added `_embedding_to_numpy` to coerce torch tensors, numpy arrays, and `SlidingWindowFeature` data into CPU numpy arrays.
+   - **Reasoning**: PyAnnote 3.1 switched to numpy outputs, so centralizing conversion avoids brittle `.numpy()` calls and simplifies future adjustments.
+   - **Trade-offs**: Minor recursive conversion overhead, acceptable given per-speaker frequency.
+2. **Resilient Extraction Loop**
+   - **Choice**: Load the WAV once, rebuild segments from cached audio, and wrap embedding inference in `try/except` so individual failures only emit warnings.
+   - **Reasoning**: Prevents `'numpy.ndarray'` crashes from aborting diarization while still surfacing which speaker failed.
+   - **Trade-offs**: Additional warnings when embeddings cannot be computed, but processing now completes with usable speaker segments.
+
+#### Validation
+- `pytest tests/test_diarizer.py tests/test_classifier.py -q`
+
+---
+
+## P0-BUG-010: Ollama Classifier Exhausts Memory
+
+**Files**: `src/classifier.py`, `src/config.py`, `.env.example`, `docs/README.md`, `tests/test_classifier.py`
+**Effort**: 0.5 days
+**Priority**: HIGH
+**Status**: [DONE] Completed 2025-11-07
+
+### Problem Statement
+Stage 6 IC/OOC classification fails with `memory layout cannot be allocated (status code: 500)` when running the default `gpt-oss:20b` model on hosts with less than 16 GB of free RAM. The classifier catches the exception and defaults to IC, but every segment logs a warning and users receive unusable results.
+
+### Success Criteria
+- [x] The classifier detects Ollama 500 errors tied to memory pressure and automatically retries the same model with low-VRAM settings.
+- [x] Operators receive an actionable warning that links the failure to their selected model and shows how to adjust generation options (and optionally opt into a fallback).
+- [x] `.env.example` and docs mention the optional fallback so new installs can decide whether to enable it.
+- [x] Automated tests cover the low-VRAM retry plus the optional fallback flow.
+
+### Implementation Plan
+1. Add an optional `OLLAMA_FALLBACK_MODEL` setting (blank by default) and propagate it through `Config`.
+2. Enhance `OllamaClassifier` to inspect `Exception` text for `memory layout` (and similar) failures, log guidance, and retry the same model using low-VRAM generation settings before considering any fallback.
+3. Document the new setting, low-VRAM retry behavior, and add tests that mock the Ollama client to simulate both the low-VRAM and fallback paths.
+4. Extend classifier preflight checks to warn operators when the selected model likely exceeds detected system memory so they can adjust before processing.
+
+### Implementation Notes & Reasoning
+**Implementer**: Codex (GPT-5)  
+**Date**: 2025-11-07
+
+1. **Low-VRAM Retry Path**
+   - **Choice**: Added `_generate_with_retry` that first reissues the request against the selected model using `low_vram=True` (and a reduced context window) whenever Ollama reports alloc failures.
+   - **Reasoning**: Keeps the operator-selected model (`gpt-oss:20b`) while lowering transient memory pressure so large hosts can continue without switching models.
+   - **Trade-offs**: Low-VRAM runs are slower, but they only trigger when the primary attempt fails.
+2. **Optional Fallback & Messaging**
+   - **Choice**: Made `OLLAMA_FALLBACK_MODEL` opt-in; when configured we retry after the low-VRAM attempt and log guidance referencing the relevant env vars.
+   - **Reasoning**: Provides an escape hatch for constrained hosts without forcing lighter models on those who can support the default.
+   - **Trade-offs**: Operators who never set the fallback still see the warning once per failure (instead of silent drops), which aids debugging.
+3. **Preflight Memory Guard**
+   - **Choice**: Added a preflight probe that estimates available RAM (via psutil/sysconf when available) and warns when it falls short of the selected Ollama model’s documented requirement.
+   - **Reasoning**: Surfaces “memory layout” risks before transcription runs, giving operators time to switch to low_vram/fallback models or upgrade hardware.
+   - **Trade-offs**: Detection best-effort; skips silently when the platform doesn’t expose memory metrics.
+
+#### Validation
+- `pytest tests/test_diarizer.py tests/test_classifier.py -q`
+
+---

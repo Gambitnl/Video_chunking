@@ -1,6 +1,6 @@
 """Speaker diarization using PyAnnote.audio"""
 from pathlib import Path
-from typing import List, Dict, Optional, Tuple
+from typing import List, Dict, Optional, Tuple, Any
 from dataclasses import dataclass
 import os
 import sys
@@ -227,25 +227,60 @@ class SpeakerDiarizer:
             ))
 
         # Extract speaker embeddings using the loaded model
-        speaker_embeddings = {}
+        speaker_embeddings: Dict[str, np.ndarray] = {}
         if self.embedding_model is not None:
-            for speaker_id in diarization.labels():
-                # Get all segments for this speaker
-                speaker_segments = diarization.label_timeline(speaker_id)
-                # Extract the audio for this speaker
+            try:
                 from pydub import AudioSegment
-                audio = AudioSegment.from_wav(str(audio_path))
-                speaker_audio = AudioSegment.empty()
-                for segment in speaker_segments:
-                    speaker_audio += audio[segment.start * 1000:segment.end * 1000]
+            except Exception as exc:
+                self.logger.warning(
+                    "Unable to import pydub for embedding extraction: %s",
+                    exc
+                )
+                AudioSegment = None  # type: ignore
 
-                # Get the embedding for this speaker
-                if len(speaker_audio) > 0:
-                    # Convert to numpy array
-                    samples = np.array(speaker_audio.get_array_of_samples()).astype(np.float32) / 32768.0
+            audio = None
+            if AudioSegment is not None:
+                try:
+                    audio = AudioSegment.from_wav(str(audio_path))
+                except Exception as exc:
+                    self.logger.warning(
+                        "Unable to load %s for speaker embeddings: %s",
+                        audio_path,
+                        exc
+                    )
+
+            if audio is None:
+                self.logger.warning(
+                    "Skipping speaker embedding extraction because audio could not be loaded."
+                )
+            else:
+                for speaker_id in diarization.labels():
+                    speaker_segments = diarization.label_timeline(speaker_id)
+                    speaker_audio = AudioSegment.empty()
+                    for segment in speaker_segments:
+                        speaker_audio += audio[segment.start * 1000:segment.end * 1000]
+
+                    if len(speaker_audio) <= 0:
+                        continue
+
+                    samples = np.array(
+                        speaker_audio.get_array_of_samples(),
+                        dtype=np.float32
+                    ) / 32768.0
+
                     samples_tensor = torch.from_numpy(samples).unsqueeze(0)
-                    embedding = self.embedding_model({"waveform": samples_tensor, "sample_rate": audio.frame_rate})
-                    speaker_embeddings[speaker_id] = embedding.squeeze().numpy()
+                    try:
+                        embedding = self.embedding_model({
+                            "waveform": samples_tensor,
+                            "sample_rate": audio.frame_rate
+                        })
+                        speaker_embeddings[speaker_id] = self._embedding_to_numpy(embedding)
+                    except Exception as exc:
+                        self.logger.warning(
+                            "Failed to extract embedding for %s: %s",
+                            speaker_id,
+                            exc
+                        )
 
         return segments, speaker_embeddings
 
@@ -393,6 +428,36 @@ class SpeakerDiarizer:
             return 0.0
 
         return overlap_end - overlap_start
+
+    def _embedding_to_numpy(self, embedding: Any) -> np.ndarray:
+        """
+        Normalize PyAnnote embedding outputs to numpy arrays.
+
+        PyAnnote 3.x may return tensors, numpy arrays, or SlidingWindowFeature objects.
+        """
+        if embedding is None:
+            raise ValueError("Embedding output is None")
+
+        if torch is not None and isinstance(embedding, torch.Tensor):
+            return embedding.detach().cpu().float().squeeze().numpy()
+
+        if isinstance(embedding, np.ndarray):
+            return np.asarray(embedding, dtype=np.float32).squeeze()
+
+        data_attr = getattr(embedding, "data", None)
+        if data_attr is not None:
+            return self._embedding_to_numpy(data_attr)
+
+        numpy_method = getattr(embedding, "numpy", None)
+        if callable(numpy_method):
+            return np.asarray(numpy_method(), dtype=np.float32).squeeze()
+
+        try:
+            return np.asarray(embedding, dtype=np.float32).squeeze()
+        except Exception as exc:
+            raise TypeError(
+                f"Unsupported embedding type: {type(embedding)}"
+            ) from exc
 
 
 class SpeakerProfileManager:

@@ -454,3 +454,117 @@ This list summarizes preliminary findings from the bug hunt session on 2025-11-0
     *   **Why it's an issue**: Logic error in filtering. If both old profile (no campaign_id attr) and filter (campaign_id=None) are None, profile incorrectly matches. Should check hasattr first or treat missing campaign_id as unassigned rather than matching None.
     *   **Files**: `app.py:215,377`, `campaign_dashboard.py` (similar pattern likely exists)
     *   **Impact**: LOW - Filtering logic flaw
+
+### Area 5: Core Pipeline Bugs (2025-11-07)
+
+- **BUG-20251107-01**: Fix Critical Bug - num_speakers Parameter Ignored in Speaker Diarization (🔴 Critical)
+    *   **Problem**: The `num_speakers` parameter (set to 4 in your case) is completely ignored during speaker diarization. Users can set it in the UI and it gets stored in the pipeline configuration, but it's never passed to the PyAnnote diarization model. This causes PyAnnote to auto-detect the number of speakers using clustering algorithms, which frequently results in severe over-segmentation.
+    *   **Impact**:
+        *   In your Session 6 processing: Expected 4 speakers, detected 20 speakers
+        *   This creates 5x more speaker labels than necessary (SPEAKER_00 through SPEAKER_19)
+        *   Downstream effects cascade through the entire pipeline:
+            *   Wrong speaker attributions in transcripts
+            *   IC/OOC classification has to process more segments with incorrect speaker context
+            *   Character profile extraction assigns dialogue to wrong speakers
+            *   Knowledge base extraction gets confused by fragmented speaker patterns
+        *   With PyAnnote version mismatches (model trained on pyannote 0.0.1/torch 1.8.1, running on pyannote 3.1.1/torch 2.5.1), the auto-detection is even less reliable
+    *   **Root Cause**: File: `src/diarizer.py`, Line 218
+        *   `diarization = self.pipeline(diarization_input)  # ❌ No parameters passed`
+        *   The pipeline stores `self.num_speakers = 4` but never uses it when calling PyAnnote.
+    *   **Solution**:
+        *   Modify `diarize()` method signature to accept `num_speakers` parameter:
+            *   `def diarize(self, audio_path: Path, num_speakers: int = None) -> Tuple[List[SpeakerSegment], Dict[str, np.ndarray]]:`
+        *   Pass `num_speakers` to PyAnnote pipeline:
+            *   `diarization = self.pipeline(diarization_input, num_speakers=num_speakers  # ✅ Pass the parameter)`
+        *   Update `pipeline.py` (Line 589) to pass the parameter:
+            *   `speaker_segments, speaker_embeddings = self.diarizer.diarize(wav_file, num_speakers=self.num_speakers  # ✅ Wire from pipeline config)`
+        *   Add validation to ensure `num_speakers` is reasonable (2-10 range)
+        *   Add logging to confirm the parameter is being used:
+            *   `self.logger.info(f"Running diarization with num_speakers={num_speakers}")`
+    *   **Expected Outcome**:
+        *   Diarization respects user's speaker count setting
+        *   Accurate speaker detection: 4 speakers instead of 20
+        *   Faster downstream processing (fewer segments to classify)
+        *   Better speaker profile matching with party configuration
+        *   More accurate character attribution in transcripts
+    *   **Testing**:
+        *   Re-run Session 6 with this fix
+        *   Verify log shows "Running diarization with num_speakers=4"
+        *   Check output shows exactly 4 speaker labels (SPEAKER_00 through SPEAKER_03)
+        *   Validate speaker assignments match party config (3 players + 1 DM)
+    *   **Files to Modify**:
+        *   `src/diarizer.py` (add parameter, pass to pipeline)
+        *   `src/pipeline.py` (wire parameter from config to diarizer)
+        *   `tests/test_diarizer.py` (add test for `num_speakers` parameter)
+
+- **BUG-20251107-02**: Add Progress Logging to Stage 6 IC/OOC Classification (🟡 High)
+    *   **Problem**: Stage 6 (IC/OOC classification) processes thousands of segments with ZERO progress updates. In your Session 6 processing, Stage 6 started at 10:59:09 with 5726 segments and appeared to hang because there were no log messages for hours. Users have no way to know if:
+        *   The process is working normally
+        *   It's stuck in an infinite loop
+        *   Ollama has crashed
+        *   How long it will take to complete
+    *   **Impact**:
+        *   User anxiety: "Is it frozen or just slow?"
+        *   No ETA information for pipeline completion
+        *   Can't detect if Ollama is actually failing silently
+        *   Users may kill the process thinking it's hung, losing hours of work
+        *   No visibility into classification throughput (segments/minute)
+    *   **Root Cause**: File: `src/classifier.py`, Line 133-146 (`OllamaClassifier.classify_segments`)
+        *   `for i, segment in enumerate(segments): # ... process segment silently ... results.append(result)  # ❌ No progress logging`
+        *   There's a simple for-loop with no logging, progress updates, or ETA calculation.
+    *   **Solution**:
+        *   Add progress logging every N segments (e.g., every 50 or 100 segments):
+            *   `PROGRESS_INTERVAL = 50  # Log every 50 segments`
+            *   `if (i + 1) % PROGRESS_INTERVAL == 0 or (i + 1) == len(segments): ... self.logger.info(...)`
+        *   Add ETA calculation based on average time per segment:
+            *   `start_time = time.time() ... eta_minutes = remaining / 60 ... self.logger.info(...)`
+        *   Update `StatusTracker` to show live progress in UI:
+            *   `StatusTracker.update_stage(session_id, 6, "running", f"Classified {i + 1}/{len(segments)} segments ({percentage:.1f}%)")`
+        *   Add batch summary at the end:
+            *   `self.logger.info(f"Classification complete: {len(segments)} segments in {total_time/60:.1f} minutes ({avg_time:.2f}s per segment)")`
+    *   **Expected Outcome**:
+        *   Visible progress updates every 50 segments
+        *   ETA calculation shows estimated completion time
+        *   Users can see the process is working
+        *   Can detect performance issues (if suddenly takes 10s per segment instead of 2s)
+        *   Better debugging: can see exactly which segment range caused issues
+    *   **Files to Modify**:
+        *   `src/classifier.py` (`OllamaClassifier.classify_segments` method)
+        *   Consider adding progress logging to OpenAI/Groq classifiers too
+        *   Update tests to verify progress logging
+
+- **BUG-20251107-03**: Implement Batched Classification for Stage 6 Performance Optimization (🟢 Medium)
+    *   **Problem**: Stage 6 currently makes one LLM API call per segment - for Session 6 that's 5,726 individual API calls! Each call has overhead: Network latency, Model cold start, Context switching, Sequential processing.
+    *   **Impact**:
+        *   Stage 6 is the slowest stage in the pipeline (often 40-60% of total processing time)
+        *   Users wait hours for classification to complete
+        *   High API costs if using OpenAI/Groq (5726 API calls × $0.0001 = ~$0.57 per session)
+        *   Ollama GPU underutilized - could process multiple segments in parallel
+    *   **Opportunity**: Modern LLMs can process multiple segments in a single prompt with minimal quality degradation. By batching 10-20 segments together, we can:
+        *   Reduce 5726 calls → ~300 calls (batch size 20)
+        *   Reduce processing time from 3+ hours → under 1 hour
+        *   Reduce API costs by 95%
+        *   Better GPU utilization
+    *   **Solution Overview**:
+        *   **Approach 1: Batch Multiple Segments in Single Prompt (Recommended)**
+        *   Create batching logic in `classifier.py`: `classify_segments_batched`
+        *   Create batch prompt template (`src/prompts/classifier_batch_prompt_en.txt`)
+        *   Parse batch responses with error handling
+        *   Add configuration option in `config.py`: `CLASSIFICATION_BATCH_SIZE`, `CLASSIFICATION_USE_BATCHING`
+        *   Update pipeline to use batched classification
+    *   **Expected Outcome**:
+        *   Processing time: 5726 segments with batch_size=20 = 287 batches
+        *   At 5 seconds per batch = 24 minutes (was 3+ hours)
+        *   87% time reduction
+        *   API costs: 287 calls instead of 5726 = 95% cost reduction
+    *   **Risks & Mitigation**:
+        *   Risk: LLM might get confused with too many segments in one prompt -> Mitigation: Use conservative `batch_size=20`, make configurable
+        *   Risk: JSON parsing might fail on complex responses -> Mitigation: Robust error handling with fallback parsing
+        *   Risk: One bad batch could fail entire set -> Mitigation: Catch exceptions per-batch, fallback to one-by-one for failed batches
+    *   **Files to Modify**:
+        *   `src/classifier.py` (add `classify_segments_batched` method)
+        *   `src/prompts/classifier_batch_prompt_en.txt` (new batch prompt template)
+        *   `src/prompts/classifier_batch_prompt_nl.txt` (Dutch version)
+        *   `src/config.py` (add batching configuration options)
+        *   `src/pipeline.py` (switch to batched classification)
+        *   `tests/test_classifier.py` (add batching tests)

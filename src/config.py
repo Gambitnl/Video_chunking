@@ -1,6 +1,7 @@
 """Configuration management"""
 import logging
 import os
+import sys
 from pathlib import Path
 from typing import Optional, Union
 from dotenv import load_dotenv
@@ -95,21 +96,27 @@ class Config:
         cls.MODELS_DIR.mkdir(exist_ok=True)
 
     @classmethod
+    def is_colab(cls) -> bool:
+        """Return True if running in a Google Colab environment."""
+        return "google.colab" in sys.modules
+
+    @classmethod
     def get_inference_device(cls) -> str:
         """
         Resolve the preferred device for model inference.
 
         Priority:
         1. Explicit INFERENCE_DEVICE environment variable.
-        2. CUDA if available.
-        3. CPU fallback.
+        2. CUDA if in Colab environment with a GPU.
+        3. CUDA if available.
+        4. CPU fallback.
         """
         env_device = os.getenv("INFERENCE_DEVICE")
         if env_device:
             device = env_device.strip().lower()
             if device == "cuda":
                 try:
-                    import torch  # type: ignore
+                    import torch
                     if torch.cuda.is_available():
                         return "cuda"
                 except Exception:
@@ -122,11 +129,20 @@ class Config:
                 return device
             _logger.warning(
                 "Unknown INFERENCE_DEVICE value '%s'. Falling back to auto-detection.",
-                device
+                device,
             )
 
+        if cls.is_colab():
+            try:
+                import torch
+                if torch.cuda.is_available():
+                    return "cuda"
+            except Exception:
+                pass
+            return "cpu"
+
         try:
-            import torch  # type: ignore
+            import torch
             if torch.cuda.is_available():
                 return "cuda"
         except Exception:

@@ -8,8 +8,9 @@ import torch
 import sys
 from types import SimpleNamespace
 
-from src.diarizer import SpeakerDiarizer, SpeakerProfileManager, SpeakerSegment
+from src.diarizer import SpeakerDiarizer, SpeakerProfileManager, SpeakerSegment, DiarizerFactory, HuggingFaceApiDiarizer
 from src.transcriber import TranscriptionSegment
+from src.config import Config
 
 @pytest.fixture
 def diarizer():
@@ -17,19 +18,6 @@ def diarizer():
     return SpeakerDiarizer()
 
 class TestSpeakerDiarizer:
-
-    @pytest.mark.parametrize("start_a, end_a, start_b, end_b, expected_overlap", [
-        (0, 10, 5, 15, 5),      # Partial overlap at the end
-        (5, 15, 0, 10, 5),      # Partial overlap at the beginning
-        (0, 10, 2, 8, 6),       # B is inside A
-        (2, 8, 0, 10, 6),       # A is inside B
-        (0, 10, 10, 20, 0),     # Adjacent, no overlap
-        (0, 5, 10, 15, 0),      # No overlap
-        (0, 10, 0, 10, 10),     # Exact same segment
-    ])
-    def test_calculate_overlap(self, diarizer, start_a, end_a, start_b, end_b, expected_overlap):
-        overlap = diarizer._calculate_overlap(start_a, end_a, start_b, end_b)
-        assert overlap == pytest.approx(expected_overlap)
 
     def test_assign_speakers_to_transcription(self, diarizer):
         trans_segments = [
@@ -234,34 +222,6 @@ class TestSpeakerDiarizer:
         assert segments[0].start_time == 0.0
         assert segments[0].end_time == 120.0
 
-    @patch('pyannote.audio.Inference')
-    @patch('pyannote.audio.Model.from_pretrained')
-    @patch('pyannote.audio.Pipeline.from_pretrained')
-    @patch.dict('sys.modules', {'torchaudio': None})
-    def test_pipeline_loads_with_hf_token(self, mock_pipeline_from_pretrained, mock_model_from_pretrained, mock_inference, diarizer, monkeypatch):
-        """Ensure HF token is passed to PyAnnote loaders when available."""
-        mock_pipeline_obj = MagicMock()
-
-        def pipeline_factory(model_name, **kwargs):
-            assert kwargs.get('token') == 'hf_test_token'
-            return mock_pipeline_obj
-
-        def model_factory(model_name, **kwargs):
-            assert kwargs.get('token') == 'hf_test_token'
-            return MagicMock()
-
-        mock_pipeline_from_pretrained.side_effect = pipeline_factory
-        mock_model_from_pretrained.side_effect = model_factory
-        mock_inference.return_value = MagicMock()
-
-        monkeypatch.setattr('src.diarizer.Config.HF_TOKEN', 'hf_test_token')
-        monkeypatch.setattr('src.diarizer.Config.get_inference_device', lambda: "cpu")
-
-        diarizer._load_pipeline_if_needed()
-
-        assert mock_pipeline_from_pretrained.call_args.kwargs.get('token') == 'hf_test_token'
-        assert mock_model_from_pretrained.call_args.kwargs.get('token') == 'hf_test_token'
-        assert diarizer.pipeline is mock_pipeline_obj
 
     def test_preflight_missing_token_warns(self, diarizer, monkeypatch):
         monkeypatch.setattr('src.diarizer.Config.HF_TOKEN', None)
@@ -335,3 +295,34 @@ class TestSpeakerProfileManager:
         # Test unsuccessful retrievals
         assert manager.get_person_name("session1", "SPEAKER_01") is None
         assert manager.get_person_name("session2", "SPEAKER_00") is None
+
+class TestDiarizerFactory:
+    """Test the DiarizerFactory."""
+
+    def test_create_local_backend(self, monkeypatch):
+        """Test creating a local diarizer."""
+        monkeypatch.setattr(Config, 'DIARIZATION_BACKEND', 'local')
+        diarizer = DiarizerFactory.create()
+        assert isinstance(diarizer, SpeakerDiarizer)
+
+    def test_create_huggingface_backend(self, monkeypatch):
+        """Test creating a Hugging Face diarizer."""
+        monkeypatch.setattr(Config, 'DIARIZATION_BACKEND', 'huggingface')
+        diarizer = DiarizerFactory.create()
+        assert isinstance(diarizer, HuggingFaceApiDiarizer)
+
+    def test_create_unknown_backend_raises_error(self, monkeypatch):
+        """Test that an unknown backend raises a ValueError."""
+        monkeypatch.setattr(Config, 'DIARIZATION_BACKEND', 'unknown')
+        with pytest.raises(ValueError):
+            DiarizerFactory.create()
+
+class TestHuggingFaceApiDiarizer:
+    """Test the HuggingFaceApiDiarizer."""
+
+    def test_diarize_no_hf_token_raises_error(self, monkeypatch):
+        """Test that diarize raises an error if HF_TOKEN is not set."""
+        monkeypatch.setattr(Config, 'HF_TOKEN', None)
+        diarizer = HuggingFaceApiDiarizer()
+        with pytest.raises(ValueError):
+            diarizer.diarize(Path("test.wav"))

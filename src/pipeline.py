@@ -10,7 +10,7 @@ from .audio_processor import AudioProcessor
 from .chunker import HybridChunker, AudioChunk
 from .transcriber import TranscriberFactory, ChunkTranscription, TranscriptionSegment
 from .merger import TranscriptionMerger
-from .diarizer import SpeakerDiarizer, SpeakerProfileManager
+from .diarizer import DiarizerFactory, SpeakerDiarizer, SpeakerProfileManager
 from .classifier import ClassifierFactory, ClassificationResult
 from .formatter import TranscriptFormatter, StatisticsGenerator, sanitize_filename
 from .party_config import PartyConfigManager
@@ -137,7 +137,7 @@ class DDSessionProcessor:
         self.chunker = HybridChunker()
         self.transcriber = TranscriberFactory.create()
         self.merger = TranscriptionMerger()
-        self.diarizer = SpeakerDiarizer()
+        self.diarizer = DiarizerFactory.create()
         self.classifier = ClassifierFactory.create()
         self.formatter = TranscriptFormatter()
         self.speaker_profile_manager = SpeakerProfileManager()

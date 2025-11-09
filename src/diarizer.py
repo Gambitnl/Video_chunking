@@ -11,6 +11,7 @@ from .config import Config
 from .transcriber import TranscriptionSegment
 from .logger import get_logger
 from .preflight import PreflightIssue
+from .retry import retry_with_backoff
 
 try:
     import torchaudio  # type: ignore
@@ -69,7 +70,117 @@ class SpeakerSegment:
     confidence: Optional[float] = None
 
 
-class SpeakerDiarizer:
+class BaseDiarizer:
+    """Abstract base class for diarization backends."""
+    def diarize(self, audio_path: Path) -> Tuple[List[SpeakerSegment], Dict[str, np.ndarray]]:
+        raise NotImplementedError
+
+    def assign_speakers_to_transcription(
+        self,
+        transcription_segments: List[TranscriptionSegment],
+        speaker_segments: List[SpeakerSegment]
+    ) -> List[Dict]:
+        """Assign speaker labels based on timing overlap."""
+        enriched_segments = []
+        for trans_seg in transcription_segments:
+            best_speaker, max_overlap = "UNKNOWN", 0.0
+            for speaker_seg in speaker_segments:
+                overlap = max(0, min(trans_seg.end_time, speaker_seg.end_time) - max(trans_seg.start_time, speaker_seg.start_time))
+                if overlap > max_overlap:
+                    max_overlap = overlap
+                    best_speaker = speaker_seg.speaker_id
+            enriched_segments.append({
+                'text': trans_seg.text, 'start_time': trans_seg.start_time, 'end_time': trans_seg.end_time,
+                'speaker': best_speaker, 'confidence': trans_seg.confidence, 'words': trans_seg.words
+            })
+        return enriched_segments
+
+    def preflight_check(self) -> List:
+        return []
+
+
+import requests
+import time
+
+class HuggingFaceApiDiarizer(BaseDiarizer):
+    """Diarization using the Hugging Face Inference API."""
+
+    def __init__(self):
+        self.logger = get_logger("diarizer.huggingface")
+        self.api_token = Config.HF_TOKEN
+        self.api_url = f"https://api-inference.huggingface.co/models/{Config.PYANNOTE_DIARIZATION_MODEL}"
+        if not self.api_token:
+            self.logger.warning(
+                "HF_TOKEN is not set. Hugging Face diarizer will be unavailable."
+            )
+
+    @retry_with_backoff()
+    def _make_api_call(self, data, headers):
+        response = requests.post(self.api_url, headers=headers, data=data, timeout=120)
+        if response.status_code == 503:
+            self.logger.warning("Model is loading on Hugging Face, retrying in 30s...")
+            time.sleep(30)
+            response = requests.post(self.api_url, headers=headers, data=data, timeout=120)
+        response.raise_for_status()
+        return response.json()
+
+    def diarize(self, audio_path: Path) -> Tuple[List[SpeakerSegment], Dict[str, np.ndarray]]:
+        """Perform speaker diarization using the Hugging Face API."""
+        if not self.api_token:
+            raise ValueError("HF_TOKEN is not set. Cannot use Hugging Face API.")
+
+        self.logger.info("Offloading diarization to Hugging Face API for %s", audio_path.name)
+        headers = {"Authorization": f"Bearer {self.api_token}"}
+
+        with open(audio_path, "rb") as f:
+            data = f.read()
+
+        try:
+            result = self._make_api_call(data, headers)
+
+        except requests.exceptions.RequestException as e:
+            err_body = getattr(e, "response", None)
+            err_text = getattr(err_body, "text", "(no response body)")
+            self.logger.error("Error calling Hugging Face API: %s. Body: %s", e, err_text)
+            return [], {}
+
+        if not isinstance(result, list):
+            self.logger.error("Unexpected response format from Hugging Face API: %s", result)
+            return [], {}
+
+        segments = []
+        for segment_data in result:
+            speaker = segment_data.get("label")
+            start = segment_data.get("start_time")
+            end = segment_data.get("end_time")
+
+            if speaker is None or start is None or end is None:
+                self.logger.warning("Skipping invalid segment from API: %s", segment_data)
+                continue
+
+            segments.append(SpeakerSegment(
+                speaker_id=str(speaker),
+                start_time=float(start),
+                end_time=float(end),
+            ))
+
+        self.logger.info("Received %d speaker segments from Hugging Face API.", len(segments))
+        return segments, {}
+
+    def preflight_check(self):
+        """Check if the Hugging Face API is configured."""
+        issues = []
+        if not self.api_token:
+            issues.append(
+                PreflightIssue(
+                    component="diarizer",
+                    message="HF_TOKEN not set; Hugging Face diarization backend is unavailable.",
+                    severity="warning",
+                )
+            )
+        return issues
+
+class SpeakerDiarizer(BaseDiarizer):
     """
     Speaker diarization using PyAnnote.audio.
 
@@ -363,72 +474,6 @@ class SpeakerDiarizer:
             end_time=duration
         )]
 
-    def assign_speakers_to_transcription(
-        self,
-        transcription_segments: List[TranscriptionSegment],
-        speaker_segments: List[SpeakerSegment]
-    ) -> List[Dict]:
-        """
-        Assign speaker labels to transcription segments.
-
-        Strategy:
-        - For each transcription segment, find overlapping speaker segment
-        - Use the speaker with maximum overlap
-        - Return enriched segments with speaker info
-
-        Args:
-            transcription_segments: Transcribed text segments
-            speaker_segments: Speaker diarization results
-
-        Returns:
-            List of dicts with {text, start, end, speaker, ...}
-        """
-        enriched_segments = []
-
-        for trans_seg in transcription_segments:
-            # Find speaker with maximum overlap
-            best_speaker = None
-            max_overlap = 0.0
-
-            for speaker_seg in speaker_segments:
-                overlap = self._calculate_overlap(
-                    trans_seg.start_time,
-                    trans_seg.end_time,
-                    speaker_seg.start_time,
-                    speaker_seg.end_time
-                )
-
-                if overlap > max_overlap:
-                    max_overlap = overlap
-                    best_speaker = speaker_seg.speaker_id
-
-            enriched_segments.append({
-                'text': trans_seg.text,
-                'start_time': trans_seg.start_time,
-                'end_time': trans_seg.end_time,
-                'speaker': best_speaker or "UNKNOWN",
-                'confidence': trans_seg.confidence,
-                'words': trans_seg.words
-            })
-
-        return enriched_segments
-
-    def _calculate_overlap(
-        self,
-        start_a: float,
-        end_a: float,
-        start_b: float,
-        end_b: float
-    ) -> float:
-        """Calculate overlap duration between two time segments"""
-        overlap_start = max(start_a, start_b)
-        overlap_end = min(end_a, end_b)
-
-        if overlap_end <= overlap_start:
-            return 0.0
-
-        return overlap_end - overlap_start
-
     def _embedding_to_numpy(self, embedding: Any) -> np.ndarray:
         """
         Normalize PyAnnote embedding outputs to numpy arrays.
@@ -546,3 +591,25 @@ class SpeakerProfileManager:
                 self.profiles[session_id][speaker_id] = {}
             self.profiles[session_id][speaker_id]["embedding"] = embedding.tolist()
         self.save_profiles()
+
+class DiarizerFactory:
+    """Factory to create the appropriate diarizer based on config."""
+
+    @staticmethod
+    def create(backend: str = None):
+        """
+        Create a diarizer instance.
+
+        Args:
+            backend (str): 'local' or 'huggingface'. Defaults to config.
+
+        Returns:
+            An instance of a diarizer class.
+        """
+        backend = backend or Config.DIARIZATION_BACKEND
+        if backend == "huggingface":
+            return HuggingFaceApiDiarizer()
+        elif backend == "local":
+            return SpeakerDiarizer()
+        else:
+            raise ValueError(f"Unknown diarizer backend: {backend}")

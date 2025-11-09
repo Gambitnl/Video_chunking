@@ -30,7 +30,6 @@ This directory contains all the documentation for the D&D Session Processor. Bel
 - **[PARTY_CONFIG.md](./PARTY_CONFIG.md)**: Explains how to use Party Configurations to manage character and player information.
 - **[SESSION_NOTEBOOK.md](./SESSION_NOTEBOOK.md)**: A guide to the Story Notebooks feature for generating narrative summaries from transcripts.
 - **[STATUS_INDICATORS.md](./STATUS_INDICATORS.md)**: A reference guide for all status indicators, icons, and symbols used throughout the application.
-- **[COLAB_OFFLOAD_PLAN.md](./COLAB_OFFLOAD_PLAN.md)**: Detailed plan for running the heavy GPU stages in Google Colab, including prep scripts, notebook flow, and sync steps.
 
 ### Model References
 

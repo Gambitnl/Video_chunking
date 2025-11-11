@@ -54,7 +54,7 @@ class RestartManager:
                 restart_cmd = [
                     "sh",
                     "-c",
-                    f"sleep {delay_seconds} && {python_executable} {script_path}"
+f"sleep {delay_seconds} && \"{python_executable}\" \"{script_path}\""
                 ]
 
             logger.info(f"Restart command: {' '.join(restart_cmd)}")

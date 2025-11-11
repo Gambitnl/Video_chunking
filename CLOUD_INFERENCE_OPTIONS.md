@@ -169,29 +169,27 @@ python test_api_keys.py
 
 **Symptoms:**
 - Processing fails at classification stage
+- Errors like: `model requires more system memory (12.8 GiB) than is available (9.3 GiB)`
+- Errors like: `memory layout cannot be allocated`
 - CUDA out of memory errors
 - Ollama timeouts
 
-**Solutions:**
+**Root Cause:**
+VRAM contention between PyAnnote (diarization) and Ollama (classification). PyAnnote occupies ~8GB VRAM and doesn't fully release it before Ollama tries to load large models.
 
-1. **Switch to Groq (recommended):**
-   ```
-   Classification Backend: groq
-   ```
-   - Completely free
-   - No VRAM usage
-   - Faster than local
+**Quick Fix:**
+Switch classification to Groq (100% free, no VRAM usage):
+```
+Classification Backend: groq
+```
 
-2. **Increase Ollama memory:**
-   ```bash
-   # In Ollama Modelfile or config
-   PARAMETER num_gpu 0  # Force CPU if VRAM is full
-   ```
-
-3. **Sequential processing:**
-   - Run diarization first (PyAnnote uses GPU)
-   - Wait for completion
-   - Then run classification (Ollama uses GPU)
+**Detailed Troubleshooting:**
+See [TROUBLESHOOTING_OLLAMA.md](TROUBLESHOOTING_OLLAMA.md) for:
+- Complete root cause analysis with log examples
+- 5 different solution approaches
+- Model size comparisons
+- Performance benchmarks
+- Step-by-step diagnostic commands
 
 ---
 

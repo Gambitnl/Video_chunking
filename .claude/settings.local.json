@@ -15,7 +15,15 @@
       "Bash(timeout 15 bash:*)",
       "Bash(cmd //c taskkill //PID 13256 //F)",
       "Bash(git reset:*)",
-      "Bash(f:/Repos/VideoChunking/WORK_INITIATION_PROMPT_temp.md)"
+      "Bash(f:/Repos/VideoChunking/WORK_INITIATION_PROMPT_temp.md)",
+      "Bash(git checkout:*)",
+      "Bash(git pull:*)",
+      "Bash(git stash show:*)",
+      "Bash(git fetch:*)",
+      "Bash(git stash:*)",
+      "Bash(git push:*)",
+      "WebFetch(domain:www.gitkraken.com)",
+      "Bash(nul)"
     ],
     "deny": [],
     "ask": []

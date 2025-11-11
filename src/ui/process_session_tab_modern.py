@@ -249,6 +249,27 @@ def create_process_session_tab_modern(
                 visible=False,
             )
 
+            # Enhanced Runtime Updates Section
+            with gr.Accordion("Runtime Updates & Event Log", open=False) as runtime_accordion:
+                gr.Markdown("**Live processing status, stage progress, and detailed event log**")
+
+                # Stage Progress Overview
+                stage_progress_display = gr.Markdown(
+                    value="",
+                    visible=False,
+                )
+
+                # Persistent Event Log
+                event_log_display = gr.Textbox(
+                    label="Event Log",
+                    lines=15,
+                    max_lines=30,
+                    value="",
+                    interactive=False,
+                    show_copy_button=True,
+                    elem_classes=["event-log-textbox"],
+                )
+
             transcription_timer = gr.Timer(value=2.0, active=True)
 
         with gr.Group(visible=False, elem_id="process-results-section") as results_section:
@@ -292,12 +313,14 @@ def create_process_session_tab_modern(
                     ),
                     gr.update(visible=False),
                     False,
+                    "",  # Clear event log on error
                 )
 
             return (
                 StatusMessages.loading("Processing session"),
                 gr.update(visible=False),
                 True,
+                "",  # Clear event log when starting new session
             )
 
         def _format_statistics(stats: Dict[str, Any], knowledge: Dict[str, Any]) -> str:
@@ -603,6 +626,132 @@ def create_process_session_tab_modern(
             queue=False,
         )
 
+        def _poll_runtime_updates(session_id_value: str, current_log: str):
+            """Poll for comprehensive runtime updates including stage progress and event log."""
+            snapshot = StatusTracker.get_snapshot()
+
+            # If no processing active, return empty updates
+            if not snapshot or not snapshot.get("processing"):
+                return gr.update(value="", visible=False), current_log
+
+            # Check if session matches
+            active_session = snapshot.get("session_id")
+            target_session = (session_id_value or "").strip()
+            if target_session and active_session != target_session:
+                return gr.update(value="", visible=False), current_log
+
+            # Build stage progress display
+            stages = snapshot.get("stages") or []
+            stage_lines = ["### Stage Progress"]
+
+            for stage in stages:
+                stage_id = stage.get("id", "?")
+                stage_name = stage.get("name", "Unknown")
+                stage_state = stage.get("state", "pending")
+                stage_message = stage.get("message", "")
+                details = stage.get("details") or {}
+
+                # State icon
+                state_icon = {
+                    "pending": "⏸",
+                    "running": SI.PROCESSING,
+                    "completed": SI.COMPLETE,
+                    "skipped": "⏭",
+                    "failed": SI.ERROR,
+                }.get(stage_state, "❓")
+
+                # Build stage line
+                stage_line = f"{state_icon} **Stage {stage_id}: {stage_name}** - {stage_state}"
+
+                # Add timing info if available
+                started_at = stage.get("started_at")
+                ended_at = stage.get("ended_at")
+                duration = stage.get("duration_seconds")
+
+                if started_at and not ended_at:
+                    stage_line += f" (started: {started_at})"
+                elif duration:
+                    stage_line += f" (duration: {duration:.2f}s)"
+
+                stage_lines.append(stage_line)
+
+                # Add message if present
+                if stage_message:
+                    stage_lines.append(f"  ↳ {stage_message}")
+
+                # Add progress details for active stages
+                if stage_state == "running" and details:
+                    if "progress_percent" in details:
+                        stage_lines.append(f"  ↳ Progress: {details['progress_percent']}%")
+                    if "chunks_transcribed" in details and "total_chunks" in details:
+                        stage_lines.append(
+                            f"  ↳ Chunks: {details['chunks_transcribed']}/{details['total_chunks']}"
+                        )
+
+                stage_lines.append("")  # Empty line between stages
+
+            # Build event log (append new events to existing log)
+            events = snapshot.get("events") or []
+            new_log_lines = []
+
+            # Parse existing log to find last event timestamp to avoid duplicates
+            last_logged_timestamp = None
+            if current_log.strip():
+                log_lines = current_log.strip().split("\n")
+                for line in reversed(log_lines):
+                    if line.startswith("["):
+                        # Extract timestamp from line like "[2025-01-11 10:30:45]"
+                        parts = line.split("]", 1)
+                        if len(parts) > 1:
+                            last_logged_timestamp = parts[0] + "]"
+                            break
+
+            # Add new events
+            for event in events:
+                timestamp = event.get("timestamp", "")
+                event_type = event.get("type", "info")
+                message = event.get("message", "")
+
+                # Skip if already logged
+                if last_logged_timestamp and timestamp <= last_logged_timestamp:
+                    continue
+
+                # Format event line
+                type_prefix = {
+                    "info": "ℹ",
+                    "success": "✓",
+                    "warning": "⚠",
+                    "error": "✗",
+                    "debug": "⚙",
+                }.get(event_type, "•")
+
+                event_line = f"[{timestamp}] {type_prefix} {message}"
+                new_log_lines.append(event_line)
+
+            # Append new events to existing log
+            if new_log_lines:
+                updated_log = current_log + "\n" + "\n".join(new_log_lines)
+            else:
+                updated_log = current_log
+
+            # Limit log size to prevent excessive growth (keep last 500 lines)
+            log_lines = updated_log.strip().split("\n")
+            if len(log_lines) > 500:
+                updated_log = "\n".join(log_lines[-500:])
+
+            return (
+                gr.update(value="\n".join(stage_lines), visible=True),
+                updated_log
+            )
+
+        # Wire up enhanced runtime updates polling
+        transcription_timer.tick(
+            fn=_poll_runtime_updates,
+            inputs=[session_id_input, event_log_display],
+            outputs=[stage_progress_display, event_log_display],
+            queue=False,
+        )
+
         def update_party_display(party_id: str):
             """Display character names when a party is selected."""
             if not party_id or party_id == "Manual Entry":
@@ -692,6 +841,7 @@ def create_process_session_tab_modern(
                 status_output,
                 results_section,
                 should_process_state,
+                event_log_display,
             ],
             queue=False,
         ).then(
@@ -794,6 +944,8 @@ def create_process_session_tab_modern(
         "skip_knowledge_input": skip_knowledge_input,
         "status_output": status_output,
         "transcription_progress": transcription_progress,
+        "stage_progress_display": stage_progress_display,
+        "event_log_display": event_log_display,
         "results_section": results_section,
         "full_output": full_output,
         "ic_output": ic_output,

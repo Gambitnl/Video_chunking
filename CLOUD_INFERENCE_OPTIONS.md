@@ -22,10 +22,12 @@ This document outlines 100% free cloud API options for offloading compute-intens
    ```
 
 ### Supported Models
-- **LLaMA 3.3 70B Versatile** (`llama-3.3-70b-versatile`) - Best for classification
-- **LLaMA 3.1 8B Instant** (`llama-3.1-8b-instant`) - Fast, efficient
+- **LLaMA 3.3 70B Versatile** (`llama-3.3-70b-versatile`) - **DEFAULT** for classification/transcription
+- **LLaMA 3.1 8B Instant** (`llama-3.1-8b-instant`) - Fast, efficient alternative
 - **Mixtral 8x7B** (`mixtral-8x7b-32768`) - Large context window
 - **Whisper Large V3** (`whisper-large-v3`) - Speech-to-text transcription
+
+**Note:** Older models like `llama3-8b-8192` and `llama-3.2-1b-preview` have been decommissioned.
 
 ### Configuration in UI
 1. Navigate to **Step 2: Configure Session**

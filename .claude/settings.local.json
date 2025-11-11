@@ -19,6 +19,7 @@
       "Bash(git checkout:*)",
       "Bash(git pull:*)",
       "Bash(git stash show:*)",
+      "Bash(git fetch:*)",
       "Bash(git stash:*)"
     ],
     "deny": [],

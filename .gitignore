@@ -77,3 +77,5 @@ nul
 tools/graphviz/
 docs/pipeline_flowchart.svg
 *.patch
+
+dxdiag.xml

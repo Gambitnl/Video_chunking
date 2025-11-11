@@ -307,7 +307,7 @@ class TestDiarizerFactory:
 
     def test_create_huggingface_backend(self, monkeypatch):
         """Test creating a Hugging Face diarizer."""
-        monkeypatch.setattr(Config, 'DIARIZATION_BACKEND', 'huggingface')
+        monkeypatch.setattr(Config, 'DIARIZATION_BACKEND', 'hf_api')
         diarizer = DiarizerFactory.create()
         assert isinstance(diarizer, HuggingFaceApiDiarizer)
 

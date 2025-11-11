@@ -43,6 +43,7 @@ class Config:
     GROQ_API_KEY: Optional[str] = os.getenv("GROQ_API_KEY")
     OPENAI_API_KEY: Optional[str] = os.getenv("OPENAI_API_KEY")
     HF_TOKEN: Optional[str] = os.getenv("HF_TOKEN")
+    HUGGING_FACE_API_KEY: Optional[str] = os.getenv("HUGGING_FACE_API_KEY")
 
     # Model Settings
     WHISPER_MODEL: str = os.getenv("WHISPER_MODEL", "large-v3")

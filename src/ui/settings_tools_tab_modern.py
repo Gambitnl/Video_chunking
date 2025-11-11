@@ -52,6 +52,37 @@ def create_settings_tools_tab_modern(
         )
         create_speaker_manager_tab(speaker_profile_manager=speaker_profile_manager)
 
+        with gr.Accordion("API Key Management", open=False):
+            gr.Markdown(
+                """
+                Enter your API keys for cloud services below. These are stored locally in your `.env` file.
+                """
+            )
+
+            groq_api_key_input = gr.Textbox(
+                label="Groq API Key",
+                placeholder="gsk_...",
+                type="password",
+                interactive=True,
+            )
+            hugging_face_api_key_input = gr.Textbox(
+                label="Hugging Face API Key",
+                placeholder="hf_...",
+                type="password",
+                interactive=True,
+            )
+            save_api_keys_btn = UIComponents.create_action_button(
+                "Save API Keys",
+                variant="primary",
+                size="sm",
+            )
+            api_keys_status = gr.Markdown(
+                value=StatusMessages.info(
+                    "API Keys",
+                    "API keys will be loaded from your `.env` file if it exists."
+                )
+            )
+
         with gr.Accordion("Logging Controls", open=False):
             log_level_dropdown = gr.Dropdown(
                 label="Console Log Level",
@@ -78,6 +109,10 @@ def create_settings_tools_tab_modern(
         "social_session_dropdown": social_refs["session_dropdown"],
         "social_keyword_output": social_refs["keyword_output"],
         "social_nebula_output": social_refs["nebula_output"],
+        "groq_api_key_input": groq_api_key_input,
+        "hugging_face_api_key_input": hugging_face_api_key_input,
+        "save_api_keys_btn": save_api_keys_btn,
+        "api_keys_status": api_keys_status,
         "log_level_dropdown": log_level_dropdown,
         "apply_log_level_btn": apply_log_level_btn,
         "log_level_status": log_level_status,

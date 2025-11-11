@@ -374,7 +374,7 @@ class TranscriberFactory:
         """
         backend = backend or Config.WHISPER_BACKEND
 
-        if backend == "local":
+        if backend in ("local", "whisper"):
             return FasterWhisperTranscriber()
         elif backend == "groq":
             return GroqTranscriber()

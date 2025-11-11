@@ -703,7 +703,7 @@ def create_process_session_tab_modern(
                         # Extract timestamp from line like "[2025-01-11 10:30:45]"
                         parts = line.split("]", 1)
                         if len(parts) > 1:
-                            last_logged_timestamp = parts[0] + "]"
+                            last_logged_timestamp = parts[0][1:]
                             break
 
             # Add new events

@@ -3,8 +3,6 @@ import os
 import json
 import socket
 import sys
-from pathlib import Path
-sys.path.append(str(Path(__file__).resolve().parent))
 import subprocess
 from pathlib import Path
 
@@ -53,6 +51,31 @@ from src.google_drive_auth import (
     revoke_credentials,
     authenticate_automatically
 )
+
+
+def ui_load_api_keys() -> Tuple[str, str, str]:
+    """Load API keys on UI startup and format for Gradio."""
+    keys = load_api_keys()
+    groq_key = keys.get("GROQ_API_KEY", "")
+    hf_key = keys.get("HUGGING_FACE_API_KEY", "")
+
+    if groq_key or hf_key:
+        status = StatusMessages.success("API Keys", "Existing API keys loaded from `.env`.")
+    else:
+        status = StatusMessages.info("API Keys", "Enter your API keys to enable cloud services.")
+    return groq_key, hf_key, status
+
+def ui_save_api_keys(groq_api_key: str, hugging_face_api_key: str) -> str:
+    """UI wrapper to save API keys from Gradio inputs."""
+    try:
+        save_api_keys(
+            groq_api_key=groq_api_key,
+            hugging_face_api_key=hugging_face_api_key
+        )
+        return StatusMessages.success("API Keys", "API keys saved successfully to `.env`.")
+    except Exception as e:
+        logger.exception("Failed to save API keys from UI")
+        return StatusMessages.error("API Keys", f"Failed to save API keys: {e}")
 
 
 PROJECT_ROOT = Path(__file__).resolve().parent
@@ -1133,7 +1156,7 @@ with gr.Blocks(
     ]
 
     settings_tab_refs["save_api_keys_btn"].click(
-        fn=save_api_keys,
+        fn=ui_save_api_keys,
         inputs=[
             settings_tab_refs["groq_api_key_input"],
             settings_tab_refs["hugging_face_api_key_input"],
@@ -1142,7 +1165,7 @@ with gr.Blocks(
     )
 
     demo.load(
-        fn=load_api_keys,
+        fn=ui_load_api_keys,
         outputs=[
             settings_tab_refs["groq_api_key_input"],
             settings_tab_refs["hugging_face_api_key_input"],
@@ -1209,6 +1232,7 @@ with gr.Blocks(
         inputs=[new_campaign_name],
         outputs=create_campaign_outputs,
     )
+
 
 
 

@@ -357,6 +357,50 @@ class GroqTranscriber(BaseTranscriber):
                 temp_path.unlink()
                 self.logger.debug("Cleaned temporary chunk file %s", temp_path)
 
+    def preflight_check(self):
+        """Check Groq API availability and authentication."""
+        issues = []
+
+        if not self.api_key:
+            issues.append(
+                PreflightIssue(
+                    component="transcriber.groq",
+                    message="Groq API key not configured. Set GROQ_API_KEY in .env file.",
+                    severity="error",
+                )
+            )
+            return issues
+
+        try:
+            # Test API with minimal request
+            response = self.client.chat.completions.create(
+                messages=[{"role": "user", "content": "test"}],
+                model="llama-3.3-70b-versatile",
+                max_tokens=1,
+            )
+            self.logger.debug("Groq API preflight check passed")
+        except Exception as e:
+            issues.append(
+                PreflightIssue(
+                    component="transcriber.groq",
+                    message=f"Groq API test failed: {str(e)}. Check API key and internet connection.",
+                    severity="error",
+                )
+            )
+
+        return issues
+
+    @retry_with_backoff(retries=3, backoff_in_seconds=1)
+    def _make_api_call(self, audio_file, language):
+        """Make API call with retry logic."""
+        return self.client.audio.transcriptions.create(
+            file=audio_file,
+            model="whisper-large-v3-turbo",
+            language=language if language != "auto" else None,
+            response_format="verbose_json",
+            timestamp_granularities=["segment", "word"]
+        )
+
 
 class TranscriberFactory:
     """Factory to create appropriate transcriber based on config"""

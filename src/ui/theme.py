@@ -441,6 +441,53 @@ details > div {
         padding: 1rem;
     }
 }
+
+/* Event Log Styling */
+.event-log-textbox {
+    font-family: 'Consolas', 'Monaco', 'Courier New', monospace !important;
+    font-size: 0.85rem !important;
+    line-height: 1.6 !important;
+    background-color: #1e1e1e !important;
+    color: #d4d4d4 !important;
+    border-radius: 8px !important;
+    padding: 1rem !important;
+}
+
+.event-log-textbox textarea {
+    font-family: 'Consolas', 'Monaco', 'Courier New', monospace !important;
+    font-size: 0.85rem !important;
+    line-height: 1.6 !important;
+    background-color: #1e1e1e !important;
+    color: #d4d4d4 !important;
+    scrollbar-width: thin;
+    scrollbar-color: #4a4a4a #1e1e1e;
+}
+
+.event-log-textbox textarea::-webkit-scrollbar {
+    width: 8px;
+}
+
+.event-log-textbox textarea::-webkit-scrollbar-track {
+    background: #1e1e1e;
+    border-radius: 4px;
+}
+
+.event-log-textbox textarea::-webkit-scrollbar-thumb {
+    background: #4a4a4a;
+    border-radius: 4px;
+}
+
+.event-log-textbox textarea::-webkit-scrollbar-thumb:hover {
+    background: #5a5a5a;
+}
+
+/* Stage Progress Styling */
+.stage-progress-display {
+    background: #f9fafb;
+    border-radius: 8px;
+    padding: 1rem;
+    border-left: 4px solid #6366f1;
+}
 """
 
 def create_modern_theme():

@@ -77,3 +77,7 @@ nul
 tools/graphviz/
 docs/pipeline_flowchart.svg
 *.patch
+
+# Test data - generated during test runs
+models/knowledge/default_knowledge.json
+models/speaker_profiles.json

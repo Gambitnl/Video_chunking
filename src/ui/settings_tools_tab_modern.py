@@ -102,6 +102,30 @@ def create_settings_tools_tab_modern(
                 )
             )
 
+        with gr.Accordion("Application Control", open=False):
+            gr.Markdown(
+                """
+                **Restart Application**
+
+                Use this to restart the Gradio app without manually stopping and restarting the server.
+                Useful after configuration changes or to clear any stuck processes.
+
+                ⚠️ **Warning:** Any active processing sessions will be terminated.
+                """
+            )
+            restart_app_btn = UIComponents.create_action_button(
+                "🔄 Restart Application",
+                variant="secondary",
+                size="md",
+            )
+            restart_status = gr.Markdown(
+                value=StatusMessages.info(
+                    "Application Status",
+                    "Click the button above to restart the application. "
+                    "The app will close and reopen automatically in ~2 seconds."
+                )
+            )
+
     return {
         "diagnostics": diagnostics_md,
         "chat": chat_md,
@@ -116,4 +140,6 @@ def create_settings_tools_tab_modern(
         "log_level_dropdown": log_level_dropdown,
         "apply_log_level_btn": apply_log_level_btn,
         "log_level_status": log_level_status,
+        "restart_app_btn": restart_app_btn,
+        "restart_status": restart_status,
     }

@@ -107,7 +107,7 @@ class HuggingFaceApiDiarizer(BaseDiarizer):
 
     def __init__(self):
         self.logger = get_logger("diarizer.huggingface")
-        self.api_token = Config.HF_TOKEN
+        self.api_token = Config.HUGGING_FACE_API_KEY
         self.api_url = f"https://api-inference.huggingface.co/models/{Config.PYANNOTE_DIARIZATION_MODEL}"
         if not self.api_token:
             self.logger.warning(
@@ -607,9 +607,9 @@ class DiarizerFactory:
             An instance of a diarizer class.
         """
         backend = backend or Config.DIARIZATION_BACKEND
-        if backend == "huggingface":
+        if backend == "hf_api":
             return HuggingFaceApiDiarizer()
-        elif backend == "local":
+        elif backend in ("pyannote", "local"):
             return SpeakerDiarizer()
         else:
             raise ValueError(f"Unknown diarizer backend: {backend}")

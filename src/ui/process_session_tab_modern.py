@@ -178,7 +178,27 @@ def create_process_session_tab_modern(
                 info="Optional player name mapping for manual entry.",
             )
 
-            with gr.Row():
+        with gr.Accordion("Advanced Backend Settings", open=False):
+            transcription_backend_input = gr.Dropdown(
+                label="Transcription Backend",
+                choices=["whisper", "groq"],
+                value="whisper",
+                info="Use local Whisper or cloud Groq API.",
+            )
+            diarization_backend_input = gr.Dropdown(
+                label="Diarization Backend",
+                choices=["pyannote", "hf_api"],
+                value="pyannote",
+                info="Use local PyAnnote or cloud Hugging Face API.",
+            )
+            classification_backend_input = gr.Dropdown(
+                label="Classification Backend",
+                choices=["ollama", "groq"],
+                value="ollama",
+                info="Use local Ollama or cloud Groq API.",
+            )
+
+        with gr.Row():
                 skip_diarization_input = gr.Checkbox(
                     label="Skip Speaker Identification",
                     value=initial_defaults.get("skip_diarization", False),
@@ -458,6 +478,9 @@ def create_process_session_tab_modern(
             skip_classification,
             skip_snippets,
             skip_knowledge,
+            transcription_backend,
+            diarization_backend,
+            classification_backend,
             campaign_id,
             should_proceed,
         ):
@@ -511,6 +534,9 @@ def create_process_session_tab_modern(
                 skip_classification,
                 skip_snippets,
                 skip_knowledge,
+                transcription_backend,
+                diarization_backend,
+                classification_backend,
                 campaign_id,
             )
             return _render_processing_response(response)
@@ -682,6 +708,9 @@ def create_process_session_tab_modern(
                 skip_classification_input,
                 skip_snippets_input,
                 skip_knowledge_input,
+                transcription_backend_input,
+                diarization_backend_input,
+                classification_backend_input,
                 active_campaign_state,
                 should_process_state,
             ],
@@ -706,6 +735,9 @@ def create_process_session_tab_modern(
             language,
             skip_diarization,
             skip_classification,
+            transcription_backend,
+            diarization_backend,
+            classification_backend,
             campaign_id,
         ):
             response = preflight_fn(
@@ -716,6 +748,9 @@ def create_process_session_tab_modern(
                 language,
                 skip_diarization,
                 skip_classification,
+                transcription_backend,
+                diarization_backend,
+                classification_backend,
                 campaign_id,
             )
             return response, gr.update(visible=False)
@@ -730,6 +765,9 @@ def create_process_session_tab_modern(
                 language_input,
                 skip_diarization_input,
                 skip_classification_input,
+                transcription_backend_input,
+                diarization_backend_input,
+                classification_backend_input,
                 active_campaign_state,
             ],
             outputs=[
@@ -762,6 +800,9 @@ def create_process_session_tab_modern(
         "ooc_output": ooc_output,
         "stats_output": stats_output,
         "snippet_output": snippet_output,
+        "transcription_backend_input": transcription_backend_input,
+        "diarization_backend_input": diarization_backend_input,
+        "classification_backend_input": classification_backend_input,
     }
 
     return available_parties, component_refs

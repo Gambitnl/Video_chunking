@@ -3,6 +3,8 @@ import os
 import json
 import socket
 import sys
+from pathlib import Path
+sys.path.append(str(Path(__file__).resolve().parent))
 import subprocess
 from pathlib import Path
 
@@ -34,6 +36,7 @@ from src.story_notebook import StoryNotebookManager
 # Modern UI imports
 from src.ui.theme import create_modern_theme, MODERN_CSS
 from src.ui.process_session_tab_modern import create_process_session_tab_modern
+from src.ui.api_key_manager import load_api_keys, save_api_keys
 from src.ui.campaign_tab_modern import create_campaign_tab_modern
 from src.ui.characters_tab_modern import (
     create_characters_tab_modern,
@@ -550,6 +553,9 @@ def _create_processor_for_context(
     num_speakers: Optional[int],
     language: Optional[str],
     campaign_id: Optional[str],
+    transcription_backend: str,
+    diarization_backend: str,
+    classification_backend: str,
     *,
     allow_empty_names: bool = False,
 ) -> DDSessionProcessor:
@@ -557,14 +563,18 @@ def _create_processor_for_context(
     resolved_speakers = int(num_speakers) if num_speakers else 4
     resolved_language = language or "en"
 
+    kwargs: Dict[str, Any] = {
+        "session_id": session_id,
+        "campaign_id": campaign_id,
+        "num_speakers": resolved_speakers,
+        "language": resolved_language,
+        "transcription_backend": transcription_backend,
+        "diarization_backend": diarization_backend,
+        "classification_backend": classification_backend,
+    }
+
     if party_selection and party_selection != "Manual Entry":
-        processor = DDSessionProcessor(
-            session_id=session_id,
-            campaign_id=campaign_id,
-            num_speakers=resolved_speakers,
-            party_id=party_selection,
-            language=resolved_language,
-        )
+        kwargs["party_id"] = party_selection
     else:
         chars = [c.strip() for c in (character_names or "").split(',') if c.strip()]
         players = [p.strip() for p in (player_names or "").split(',') if p.strip()]
@@ -572,20 +582,12 @@ def _create_processor_for_context(
         if not chars and not allow_empty_names:
             raise ValueError("Character names are required when using Manual Entry")
 
-        kwargs: Dict[str, Any] = {
-            "session_id": session_id,
-            "campaign_id": campaign_id,
-            "num_speakers": resolved_speakers,
-            "language": resolved_language,
-        }
         if chars:
             kwargs["character_names"] = chars
         if players:
             kwargs["player_names"] = players
 
-        processor = DDSessionProcessor(**kwargs)
-
-    return processor
+    return DDSessionProcessor(**kwargs)
 
 
 def process_session(
@@ -600,6 +602,9 @@ def process_session(
     skip_classification: bool,
     skip_snippets: bool,
     skip_knowledge: bool,
+    transcription_backend: str,
+    diarization_backend: str,
+    classification_backend: str,
     campaign_id: Optional[str] = None,
 ) -> Dict:
     """Main session processing function."""
@@ -621,6 +626,9 @@ def process_session(
                 "skip_classification": skip_classification,
                 "skip_snippets": skip_snippets,
                 "skip_knowledge": skip_knowledge,
+                "transcription_backend": transcription_backend,
+                "diarization_backend": diarization_backend,
+                "classification_backend": classification_backend,
                 "campaign_id": campaign_id,
             },
         )
@@ -634,6 +642,9 @@ def process_session(
             num_speakers,
             language,
             campaign_id,
+            transcription_backend,
+            diarization_backend,
+            classification_backend,
             allow_empty_names=False,
         )
 
@@ -733,6 +744,9 @@ def run_preflight_checks(
     language,
     skip_diarization,
     skip_classification,
+    transcription_backend,
+    diarization_backend,
+    classification_backend,
     campaign_id,
 ):
     """Run dependency checks before long-running processing."""
@@ -745,6 +759,9 @@ def run_preflight_checks(
             num_speakers=num_speakers,
             language=language,
             campaign_id=campaign_id,
+            transcription_backend=transcription_backend,
+            diarization_backend=diarization_backend,
+            classification_backend=classification_backend,
             allow_empty_names=True,
         )
         processor.is_test_run = True
@@ -1115,6 +1132,24 @@ with gr.Blocks(
         settings_tab_refs["social_nebula_output"],
     ]
 
+    settings_tab_refs["save_api_keys_btn"].click(
+        fn=save_api_keys,
+        inputs=[
+            settings_tab_refs["groq_api_key_input"],
+            settings_tab_refs["hugging_face_api_key_input"],
+        ],
+        outputs=settings_tab_refs["api_keys_status"],
+    )
+
+    demo.load(
+        fn=load_api_keys,
+        outputs=[
+            settings_tab_refs["groq_api_key_input"],
+            settings_tab_refs["hugging_face_api_key_input"],
+            settings_tab_refs["api_keys_status"],
+        ],
+    )
+
     settings_tab_refs["apply_log_level_btn"].click(
         fn=_apply_console_log_level,
         inputs=settings_tab_refs["log_level_dropdown"],
@@ -1174,6 +1209,7 @@ with gr.Blocks(
         inputs=[new_campaign_name],
         outputs=create_campaign_outputs,
     )
+
 
 
 

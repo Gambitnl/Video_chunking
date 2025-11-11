@@ -77,7 +77,10 @@ class DDSessionProcessor:
         num_speakers: int = 4,
         party_id: Optional[str] = None,
         language: str = "en",
-        resume: bool = True
+        resume: bool = True,
+        transcription_backend: str = "whisper",
+        diarization_backend: str = "pyannote",
+        classification_backend: str = "ollama",
     ):
         """
         Args:
@@ -135,10 +138,10 @@ class DDSessionProcessor:
         # Initialize components
         self.audio_processor = AudioProcessor()
         self.chunker = HybridChunker()
-        self.transcriber = TranscriberFactory.create()
+        self.transcriber = TranscriberFactory.create(backend=transcription_backend)
         self.merger = TranscriptionMerger()
-        self.diarizer = DiarizerFactory.create()
-        self.classifier = ClassifierFactory.create()
+        self.diarizer = DiarizerFactory.create(backend=diarization_backend)
+        self.classifier = ClassifierFactory.create(backend=classification_backend)
         self.formatter = TranscriptFormatter()
         self.speaker_profile_manager = SpeakerProfileManager()
         self.snipper = AudioSnipper()

@@ -67,10 +67,13 @@ def test_create_session_output_dir_idempotent(tmp_path):
 # Initialization Tests
 # ============================================================================
 
+@patch('src.pipeline.TranscriberFactory')
+@patch('src.pipeline.DiarizerFactory')
+@patch('src.pipeline.ClassifierFactory')
 class TestDDSessionProcessorInit:
     """Test initialization of DDSessionProcessor."""
 
-    def test_init_basic(self):
+    def test_init_basic(self, MockClassifierFactory, MockDiarizerFactory, MockTranscriberFactory):
         """Test basic initialization with minimal parameters."""
         processor = DDSessionProcessor("test_session")
 
@@ -78,7 +81,7 @@ class TestDDSessionProcessorInit:
         assert processor.safe_session_id == "test_session"
         assert processor.logger is not None
 
-    def test_init_sanitizes_session_id(self):
+    def test_init_sanitizes_session_id(self, MockClassifierFactory, MockDiarizerFactory, MockTranscriberFactory):
         """Test session ID sanitization for filesystem safety."""
         # Test with session_id containing filesystem-unsafe characters
         processor = DDSessionProcessor("test/session:2*file?")
@@ -93,7 +96,7 @@ class TestDDSessionProcessorInit:
         assert processor.session_id == "test/session:2*file?"
         assert len(processor.safe_session_id) > 0
 
-    def test_init_with_party_config(self, tmp_path):
+    def test_init_with_party_config(self, MockClassifierFactory, MockDiarizerFactory, MockTranscriberFactory, tmp_path):
         """Test initialization with party configuration."""
         # Test with explicit character and player names
         processor = DDSessionProcessor(
@@ -107,7 +110,7 @@ class TestDDSessionProcessorInit:
         assert processor.party_id is None  # No party_id provided
         assert processor.party_context is None
 
-    def test_init_creates_checkpoint_manager(self):
+    def test_init_creates_checkpoint_manager(self, MockClassifierFactory, MockDiarizerFactory, MockTranscriberFactory):
         """Test that checkpoint manager is created when resume=True."""
         processor = DDSessionProcessor("test", resume=True)
 
@@ -140,20 +143,23 @@ class TestPipelineStageExecution:
         input_file.touch()
 
         # Mock all components to avoid full pipeline execution
-        mock_audio_processor = MagicMock()
         wav_file = tmp_path / "test.wav"
         wav_file.touch()
-        mock_audio_processor.convert_to_wav.return_value = wav_file
-        mock_audio_processor.get_duration.return_value = 120.0
 
         # Patch all pipeline components
-        with patch('src.pipeline.AudioProcessor', return_value=mock_audio_processor), \
+        with patch('src.pipeline.AudioProcessor') as mock_audio_cls, \
              patch('src.pipeline.HybridChunker'), \
              patch('src.pipeline.TranscriberFactory'), \
+             patch('src.pipeline.DiarizerFactory'), \
+             patch('src.pipeline.ClassifierFactory'), \
              patch('src.pipeline.TranscriptionMerger'), \
              patch('src.pipeline.TranscriptFormatter'), \
              patch('src.pipeline.AudioSnipper'), \
              patch('src.pipeline.StatusTracker'):
+
+            mock_audio_processor = mock_audio_cls.return_value
+            mock_audio_processor.convert_to_wav.return_value = wav_file
+            mock_audio_processor.get_duration.return_value = 120.0
 
             processor = DDSessionProcessor("test", resume=False)
 
@@ -220,13 +226,15 @@ class TestPipelineStageExecution:
              patch('src.pipeline.AudioSnipper'), \
              patch('src.pipeline.CheckpointManager'), \
              patch('src.pipeline.StatusTracker'), \
-             patch('src.pipeline.SpeakerDiarizer') as mock_diarizer_cls:
+             patch('src.pipeline.DiarizerFactory') as mock_diarizer_factory, \
+             patch('src.pipeline.ClassifierFactory'):
 
             mock_audio = mock_audio_cls.return_value
             mock_audio.convert_to_wav.return_value = wav_file
             mock_audio.get_duration.return_value = 60.0
 
-            mock_diarizer = mock_diarizer_cls.return_value
+            mock_diarizer = MagicMock()
+            mock_diarizer_factory.create.return_value = mock_diarizer
             mock_diarizer.diarize.return_value = ([{'speaker': 'SPEAKER_00'}], {})  # Return tuple: (segments, embeddings)
             mock_diarizer.assign_speakers_to_transcription.return_value = [
                 {'text': 'test', 'speaker': 'SPEAKER_00', 'start_time': 0, 'end_time': 1,
@@ -276,14 +284,15 @@ class TestPipelineStageExecution:
              patch('src.pipeline.AudioSnipper'), \
              patch('src.pipeline.CheckpointManager'), \
              patch('src.pipeline.StatusTracker'), \
-             patch('src.pipeline.ClassifierFactory'), \
-             patch('src.pipeline.SpeakerDiarizer') as mock_diarizer_cls:
+             patch('src.pipeline.DiarizerFactory') as mock_diarizer_factory, \
+             patch('src.pipeline.ClassifierFactory'):
 
             mock_audio = mock_audio_cls.return_value
             mock_audio.convert_to_wav.return_value = wav_file
             mock_audio.get_duration.return_value = 60.0
 
-            mock_diarizer = mock_diarizer_cls.return_value
+            mock_diarizer = MagicMock()
+            mock_diarizer_factory.create.return_value = mock_diarizer
 
             processor = DDSessionProcessor("test", resume=False)
             processor.chunker.chunk_audio = MagicMock(return_value=[])
@@ -323,6 +332,8 @@ class TestPipelineStageExecution:
         with patch('src.pipeline.AudioProcessor') as mock_audio_cls, \
              patch('src.pipeline.HybridChunker'), \
              patch('src.pipeline.TranscriberFactory'), \
+             patch('src.pipeline.DiarizerFactory'), \
+             patch('src.pipeline.ClassifierFactory'), \
              patch('src.pipeline.TranscriptionMerger'), \
              patch('src.pipeline.TranscriptFormatter'), \
              patch('src.pipeline.AudioSnipper'), \
@@ -339,9 +350,9 @@ class TestPipelineStageExecution:
             mock_classifier.classify_segments.return_value = [
                 ClassificationResult(segment_index=0, classification="IC", confidence=0.9, reasoning="test")
             ]
+            mock_classifier_factory.create.return_value = mock_classifier
 
             processor = DDSessionProcessor("test", resume=False)
-            processor.classifier = mock_classifier
             processor.chunker.chunk_audio = MagicMock(return_value=[])
             processor.transcriber.transcribe_chunk = MagicMock(return_value=Mock(
                 text='test', start_time=0, end_time=1, confidence=0.9, words=[]
@@ -378,18 +389,22 @@ class TestPipelineStageExecution:
         with patch('src.pipeline.AudioProcessor') as mock_audio_cls, \
              patch('src.pipeline.HybridChunker'), \
              patch('src.pipeline.TranscriberFactory'), \
+             patch('src.pipeline.DiarizerFactory'), \
+             patch('src.pipeline.ClassifierFactory'), \
              patch('src.pipeline.TranscriptionMerger'), \
              patch('src.pipeline.TranscriptFormatter'), \
              patch('src.pipeline.AudioSnipper'), \
-             patch('src.pipeline.StatusTracker'):
+             patch('src.pipeline.StatusTracker'), \
+             patch('src.pipeline.ClassifierFactory') as mock_classifier_factory:
 
             mock_audio = mock_audio_cls.return_value
             mock_audio.convert_to_wav.return_value = wav_file
             mock_audio.get_duration.return_value = 60.0
 
-            processor = DDSessionProcessor("test", resume=False)
             mock_classifier = MagicMock()
-            processor.classifier = mock_classifier
+            mock_classifier_factory.create.return_value = mock_classifier
+
+            processor = DDSessionProcessor("test", resume=False)
             processor.chunker.chunk_audio = MagicMock(return_value=[])
             processor.transcriber.transcribe_chunk = MagicMock(return_value=Mock(
                 text='test', start_time=0, end_time=1, confidence=0.9, words=[]
@@ -434,6 +449,8 @@ class TestPipelineCheckpointResume:
         with patch('src.pipeline.AudioProcessor') as mock_audio_cls, \
              patch('src.pipeline.HybridChunker'), \
              patch('src.pipeline.TranscriberFactory'), \
+             patch('src.pipeline.DiarizerFactory'), \
+             patch('src.pipeline.ClassifierFactory'), \
              patch('src.pipeline.TranscriptionMerger'), \
              patch('src.pipeline.TranscriptFormatter'), \
              patch('src.pipeline.AudioSnipper'), \
@@ -485,6 +502,8 @@ class TestPipelineCheckpointResume:
         with patch('src.pipeline.AudioProcessor') as mock_audio_cls, \
              patch('src.pipeline.HybridChunker'), \
              patch('src.pipeline.TranscriberFactory'), \
+             patch('src.pipeline.DiarizerFactory'), \
+             patch('src.pipeline.ClassifierFactory'), \
              patch('src.pipeline.TranscriptionMerger'), \
              patch('src.pipeline.TranscriptFormatter'), \
              patch('src.pipeline.AudioSnipper'), \
@@ -545,6 +564,8 @@ class TestPipelineCheckpointResume:
         with patch('src.pipeline.AudioProcessor') as mock_audio_cls, \
              patch('src.pipeline.HybridChunker'), \
              patch('src.pipeline.TranscriberFactory'), \
+             patch('src.pipeline.DiarizerFactory'), \
+             patch('src.pipeline.ClassifierFactory') as mock_classifier_factory, \
              patch('src.pipeline.TranscriptionMerger'), \
              patch('src.pipeline.TranscriptFormatter'), \
              patch('src.pipeline.AudioSnipper'), \
@@ -553,6 +574,8 @@ class TestPipelineCheckpointResume:
             mock_audio = mock_audio_cls.return_value
             mock_audio.convert_to_wav.return_value = wav_file
             mock_audio.get_duration.return_value = 60.0
+            mock_classifier_factory.create.return_value = MagicMock()
+
 
             # Initialize with resume=False
             processor = DDSessionProcessor("test", resume=False)
@@ -597,6 +620,8 @@ class TestPipelineCheckpointResume:
         with patch('src.pipeline.AudioProcessor') as mock_audio_cls, \
              patch('src.pipeline.HybridChunker'), \
              patch('src.pipeline.TranscriberFactory'), \
+             patch('src.pipeline.DiarizerFactory'), \
+             patch('src.pipeline.ClassifierFactory'), \
              patch('src.pipeline.TranscriptionMerger'), \
              patch('src.pipeline.TranscriptFormatter'), \
              patch('src.pipeline.AudioSnipper'), \
@@ -644,8 +669,7 @@ class TestPipelineCheckpointResume:
 class TestPipelineErrorHandling:
     """Test error handling and graceful degradation."""
 
-    @patch('src.pipeline.ClassifierFactory')
-    def test_continue_on_diarization_failure(self, mock_classifier_factory, monkeypatch, tmp_path):
+    def test_continue_on_diarization_failure(self, monkeypatch, tmp_path):
         """Test pipeline continues if diarization fails."""
         # Create test input file
         input_file = tmp_path / "test.m4a"
@@ -662,14 +686,16 @@ class TestPipelineErrorHandling:
              patch('src.pipeline.AudioSnipper'), \
              patch('src.pipeline.CheckpointManager'), \
              patch('src.pipeline.StatusTracker'), \
-             patch('src.pipeline.SpeakerDiarizer') as mock_diarizer_cls:
+             patch('src.pipeline.DiarizerFactory') as mock_diarizer_factory, \
+             patch('src.pipeline.ClassifierFactory'):
 
             mock_audio = mock_audio_cls.return_value
             mock_audio.convert_to_wav.return_value = wav_file
             mock_audio.get_duration.return_value = 60.0
 
             # Mock diarizer to raise an exception
-            mock_diarizer = mock_diarizer_cls.return_value
+            mock_diarizer = MagicMock()
+            mock_diarizer_factory.create.return_value = mock_diarizer
             mock_diarizer.diarize.side_effect = RuntimeError("Diarization failed")
 
             processor = DDSessionProcessor("test", resume=False)
@@ -712,6 +738,8 @@ class TestPipelineErrorHandling:
         with patch('src.pipeline.AudioProcessor') as mock_audio_cls, \
              patch('src.pipeline.HybridChunker'), \
              patch('src.pipeline.TranscriberFactory'), \
+             patch('src.pipeline.DiarizerFactory'), \
+             patch('src.pipeline.ClassifierFactory'), \
              patch('src.pipeline.TranscriptionMerger'), \
              patch('src.pipeline.TranscriptFormatter'), \
              patch('src.pipeline.AudioSnipper'), \
@@ -726,9 +754,9 @@ class TestPipelineErrorHandling:
             # Mock classifier to raise an exception
             mock_classifier = MagicMock()
             mock_classifier.classify_segments.side_effect = RuntimeError("Classification failed")
+            mock_classifier_factory.create.return_value = mock_classifier
 
             processor = DDSessionProcessor("test", resume=False)
-            processor.classifier = mock_classifier
             processor.chunker.chunk_audio = MagicMock(return_value=[])
             processor.transcriber.transcribe_chunk = MagicMock(return_value=Mock(
                 text='test', start_time=0, end_time=1, confidence=0.9, words=[]
@@ -908,6 +936,8 @@ class TestPipelineOutputs:
         with patch('src.pipeline.AudioProcessor') as mock_audio_cls, \
              patch('src.pipeline.HybridChunker'), \
              patch('src.pipeline.TranscriberFactory'), \
+             patch('src.pipeline.DiarizerFactory'), \
+             patch('src.pipeline.ClassifierFactory'), \
              patch('src.pipeline.TranscriptionMerger'), \
              patch('src.pipeline.TranscriptFormatter'), \
              patch('src.pipeline.AudioSnipper'), \
@@ -991,6 +1021,8 @@ class TestPipelineOutputs:
         with patch('src.pipeline.AudioProcessor') as mock_audio_cls, \
              patch('src.pipeline.HybridChunker'), \
              patch('src.pipeline.TranscriberFactory'), \
+             patch('src.pipeline.DiarizerFactory'), \
+             patch('src.pipeline.ClassifierFactory'), \
              patch('src.pipeline.TranscriptionMerger'), \
              patch('src.pipeline.TranscriptFormatter'), \
              patch('src.pipeline.AudioSnipper'), \
@@ -1065,6 +1097,8 @@ class TestPipelineStatusTracking:
         with patch('src.pipeline.AudioProcessor') as mock_audio_cls, \
              patch('src.pipeline.HybridChunker'), \
              patch('src.pipeline.TranscriberFactory'), \
+             patch('src.pipeline.DiarizerFactory'), \
+             patch('src.pipeline.ClassifierFactory'), \
              patch('src.pipeline.TranscriptionMerger'), \
              patch('src.pipeline.TranscriptFormatter'), \
              patch('src.pipeline.AudioSnipper'), \
@@ -1110,6 +1144,8 @@ class TestPipelineStatusTracking:
         with patch('src.pipeline.AudioProcessor') as mock_audio_cls, \
              patch('src.pipeline.HybridChunker'), \
              patch('src.pipeline.TranscriberFactory'), \
+             patch('src.pipeline.DiarizerFactory'), \
+             patch('src.pipeline.ClassifierFactory'), \
              patch('src.pipeline.TranscriptionMerger'), \
              patch('src.pipeline.TranscriptFormatter'), \
              patch('src.pipeline.AudioSnipper'), \
@@ -1153,6 +1189,8 @@ class TestPipelineStatusTracking:
         with patch('src.pipeline.AudioProcessor') as mock_audio_cls, \
              patch('src.pipeline.HybridChunker'), \
              patch('src.pipeline.TranscriberFactory'), \
+             patch('src.pipeline.DiarizerFactory'), \
+             patch('src.pipeline.ClassifierFactory'), \
              patch('src.pipeline.TranscriptionMerger'), \
              patch('src.pipeline.TranscriptFormatter'), \
              patch('src.pipeline.AudioSnipper'), \
@@ -1211,6 +1249,8 @@ class TestPipelineKnowledgeExtraction:
         with patch('src.pipeline.AudioProcessor') as mock_audio_cls, \
              patch('src.pipeline.HybridChunker'), \
              patch('src.pipeline.TranscriberFactory'), \
+             patch('src.pipeline.DiarizerFactory'), \
+             patch('src.pipeline.ClassifierFactory'), \
              patch('src.pipeline.TranscriptionMerger'), \
              patch('src.pipeline.TranscriptFormatter'), \
              patch('src.pipeline.AudioSnipper'), \
@@ -1268,6 +1308,8 @@ class TestPipelineKnowledgeExtraction:
         with patch('src.pipeline.AudioProcessor') as mock_audio_cls, \
              patch('src.pipeline.HybridChunker'), \
              patch('src.pipeline.TranscriberFactory'), \
+             patch('src.pipeline.DiarizerFactory'), \
+             patch('src.pipeline.ClassifierFactory'), \
              patch('src.pipeline.TranscriptionMerger'), \
              patch('src.pipeline.TranscriptFormatter'), \
              patch('src.pipeline.AudioSnipper'), \
@@ -1317,6 +1359,8 @@ class TestPipelineKnowledgeExtraction:
         with patch('src.pipeline.AudioProcessor') as mock_audio_cls, \
              patch('src.pipeline.HybridChunker'), \
              patch('src.pipeline.TranscriberFactory'), \
+             patch('src.pipeline.DiarizerFactory'), \
+             patch('src.pipeline.ClassifierFactory'), \
              patch('src.pipeline.TranscriptionMerger'), \
              patch('src.pipeline.TranscriptFormatter'), \
              patch('src.pipeline.AudioSnipper'), \
@@ -1407,7 +1451,7 @@ class TestPipelineResume:
              patch('src.pipeline.StatusTracker'), \
              patch('src.pipeline.KnowledgeExtractor') as mock_extractor_cls, \
              patch('src.pipeline.CampaignKnowledgeBase') as mock_kb_cls, \
-             patch('src.pipeline.SpeakerDiarizer') as mock_diarizer_cls, \
+             patch('src.pipeline.DiarizerFactory') as mock_diarizer_factory, \
              patch('src.pipeline.ClassifierFactory') as mock_classifier_factory:
 
             mock_audio = mock_audio_cls.return_value
@@ -1425,8 +1469,10 @@ class TestPipelineResume:
             mock_merger = mock_merger_cls.return_value
             mock_merger.merge_transcriptions.return_value = [transcription_segment]
 
-            mock_diarizer = mock_diarizer_cls.return_value
-            mock_diarizer.diarize_segments.return_value = [{
+            mock_diarizer = MagicMock()
+            mock_diarizer_factory.create.return_value = mock_diarizer
+            mock_diarizer.diarize.return_value = ([], {})
+            mock_diarizer.assign_speakers_to_transcription.return_value = [{
                 "text": "hello",
                 "start_time": 0.0,
                 "end_time": 1.0,
@@ -1546,9 +1592,11 @@ class TestPipelineResume:
              patch('src.pipeline.StatusTracker'), \
              patch('src.pipeline.KnowledgeExtractor') as mock_extractor_cls, \
              patch('src.pipeline.CampaignKnowledgeBase') as mock_kb_cls, \
-             patch('src.pipeline.SpeakerDiarizer'), \
-             patch('src.pipeline.ClassifierFactory'):
+             patch('src.pipeline.DiarizerFactory') as mock_diarizer_factory, \
+             patch('src.pipeline.ClassifierFactory') as mock_classifier_factory:
 
+            mock_diarizer_factory.create.return_value = MagicMock()
+            mock_classifier_factory.create.return_value = MagicMock()
             mock_audio = mock_audio_cls.return_value
             mock_audio.convert_to_wav.return_value = wav_file
             mock_audio.get_duration.return_value = 60.0

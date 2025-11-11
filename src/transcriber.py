@@ -8,6 +8,7 @@ from .config import Config
 from .chunker import AudioChunk
 from .logger import get_logger
 from .preflight import PreflightIssue
+from .retry import retry_with_backoff
 
 
 @dataclass
@@ -87,6 +88,16 @@ class ChunkTranscription:
 
 class BaseTranscriber(ABC):
     """Abstract base class for transcription backends"""
+
+    @retry_with_backoff()
+    def _make_api_call(self, audio_file, language):
+        return self.client.audio.transcriptions.create(
+            file=audio_file,
+            model="whisper-large-v3",
+            language=language,
+            response_format="verbose_json",
+            timestamp_granularities=["segment", "word"]
+        )
 
     def transcribe_chunk(
         self,
@@ -302,13 +313,7 @@ class GroqTranscriber(BaseTranscriber):
         try:
             # Call Groq API
             with open(str(temp_path), "rb") as audio_file:
-                response = self.client.audio.transcriptions.create(
-                    file=audio_file,
-                    model="whisper-large-v3",
-                    language=language,
-                    response_format="verbose_json",
-                    timestamp_granularities=["segment", "word"]
-                )
+                response = self._make_api_call(audio_file, language)
 
             # Parse response
             segments = []
@@ -369,7 +374,7 @@ class TranscriberFactory:
         """
         backend = backend or Config.WHISPER_BACKEND
 
-        if backend == "local":
+        if backend in ("local", "whisper"):
             return FasterWhisperTranscriber()
         elif backend == "groq":
             return GroqTranscriber()

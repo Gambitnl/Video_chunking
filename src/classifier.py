@@ -8,6 +8,7 @@ from pathlib import Path
 from .config import Config
 from .logger import get_logger
 from .preflight import PreflightIssue
+from .retry import retry_with_backoff
 
 
 @dataclass
@@ -434,6 +435,124 @@ class OllamaClassifier(BaseClassifier):
         )
 
 
+class GroqClassifier(BaseClassifier):
+    """IC/OOC classifier using the Groq API."""
+
+    def __init__(self, api_key: str = None, model: str = "llama3-8b-8192"):
+        from groq import Groq
+        self.api_key = api_key or Config.GROQ_API_KEY
+        if not self.api_key:
+            raise ValueError("Groq API key required. Set GROQ_API_KEY in .env")
+
+        self.client = Groq(api_key=self.api_key)
+        self.model = model
+        self.logger = get_logger("classifier.groq")
+        prompt_path = Config.PROJECT_ROOT / "src" / "prompts" / f"classifier_prompt_{Config.WHISPER_LANGUAGE}.txt"
+        if not prompt_path.exists():
+            self.logger.warning(f"Prompt file for language '{Config.WHISPER_LANGUAGE}' not found. Falling back to English.")
+            prompt_path = Config.PROJECT_ROOT / "src" / "prompts" / "classifier_prompt_en.txt"
+        try:
+            with open(prompt_path, 'r', encoding='utf-8') as f:
+                self.prompt_template = f.read()
+        except FileNotFoundError:
+            raise RuntimeError(f"Prompt file not found at: {prompt_path}")
+
+    def classify_segments(
+        self,
+        segments: List[Dict],
+        character_names: List[str],
+        player_names: List[str]
+    ) -> List[ClassificationResult]:
+        """Classify each segment using the Groq API."""
+        results = []
+        for i, segment in enumerate(segments):
+            prev_text = segments[i-1]['text'] if i > 0 else ""
+            current_text = segment['text']
+            next_text = segments[i+1]['text'] if i < len(segments) - 1 else ""
+
+            prompt = self._build_prompt(prev_text, current_text, next_text, character_names, player_names)
+
+            try:
+                response_text = self._make_api_call(prompt)
+                results.append(self._parse_response(response_text, i))
+            except Exception as e:
+                self.logger.error(f"Error classifying segment {i} with Groq: {e}")
+                results.append(ClassificationResult(
+                    segment_index=i,
+                    classification="IC",
+                    confidence=0.5,
+                    reasoning="Classification failed, defaulted to IC"
+                ))
+        return results
+
+    @retry_with_backoff()
+    def _make_api_call(self, prompt):
+        chat_completion = self.client.chat.completions.create(
+            messages=[{"role": "user", "content": prompt}],
+            model=self.model,
+        )
+        return chat_completion.choices[0].message.content
+
+    def _build_prompt(
+        self,
+        prev_text: str,
+        current_text: str,
+        next_text: str,
+        character_names: List[str],
+        player_names: List[str]
+    ) -> str:
+        """Build classification prompt from the template."""
+        char_list = ", ".join(character_names) if character_names else "Unknown"
+        player_list = ", ".join(player_names) if player_names else "Unknown"
+
+        return self.prompt_template.format(
+            char_list=char_list,
+            player_list=player_list,
+            prev_text=prev_text,
+            current_text=current_text,
+            next_text=next_text
+        )
+
+    def _parse_response(
+        self,
+        response: str,
+        index: int
+    ) -> ClassificationResult:
+        """Parse LLM response into ClassificationResult."""
+        classification = "IC"
+        confidence = 0.5
+        reasoning = "Could not parse response"
+        character = None
+
+        lines = response.strip().split('\n')
+        for line in lines:
+            line = line.strip()
+            if line.startswith("Classificatie:"):
+                class_text = line.split(":", 1)[1].strip().upper()
+                if class_text in ["IC", "OOC", "MIXED"]:
+                    classification = class_text
+            elif line.startswith("Reden:"):
+                reasoning = line.split(":", 1)[1].strip()
+            elif line.startswith("Vertrouwen:"):
+                try:
+                    conf_text = line.split(":", 1)[1].strip()
+                    confidence = float(conf_text)
+                    confidence = max(0.0, min(1.0, confidence))
+                except ValueError:
+                    pass
+            elif line.startswith("Personage:"):
+                char_text = line.split(":", 1)[1].strip()
+                if char_text.upper() != "N/A":
+                    character = char_text
+
+        return ClassificationResult(
+            segment_index=index,
+            classification=classification,
+            confidence=confidence,
+            reasoning=reasoning,
+            character=character
+        )
+
 class ClassifierFactory:
     """Factory to create appropriate classifier."""
 
@@ -443,6 +562,8 @@ class ClassifierFactory:
         backend = backend or Config.LLM_BACKEND
         if backend == "ollama":
             return OllamaClassifier()
+        elif backend == "groq":
+            return GroqClassifier()
         elif backend == "openai":
             raise NotImplementedError("OpenAI classifier not yet implemented")
         else:

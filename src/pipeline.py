@@ -10,7 +10,7 @@ from .audio_processor import AudioProcessor
 from .chunker import HybridChunker, AudioChunk
 from .transcriber import TranscriberFactory, ChunkTranscription, TranscriptionSegment
 from .merger import TranscriptionMerger
-from .diarizer import SpeakerDiarizer, SpeakerProfileManager
+from .diarizer import DiarizerFactory, SpeakerDiarizer, SpeakerProfileManager
 from .classifier import ClassifierFactory, ClassificationResult
 from .formatter import TranscriptFormatter, StatisticsGenerator, sanitize_filename
 from .party_config import PartyConfigManager
@@ -77,7 +77,10 @@ class DDSessionProcessor:
         num_speakers: int = 4,
         party_id: Optional[str] = None,
         language: str = "en",
-        resume: bool = True
+        resume: bool = True,
+        transcription_backend: str = "whisper",
+        diarization_backend: str = "pyannote",
+        classification_backend: str = "ollama",
     ):
         """
         Args:
@@ -135,10 +138,10 @@ class DDSessionProcessor:
         # Initialize components
         self.audio_processor = AudioProcessor()
         self.chunker = HybridChunker()
-        self.transcriber = TranscriberFactory.create()
+        self.transcriber = TranscriberFactory.create(backend=transcription_backend)
         self.merger = TranscriptionMerger()
-        self.diarizer = SpeakerDiarizer()
-        self.classifier = ClassifierFactory.create()
+        self.diarizer = DiarizerFactory.create(backend=diarization_backend)
+        self.classifier = ClassifierFactory.create(backend=classification_backend)
         self.formatter = TranscriptFormatter()
         self.speaker_profile_manager = SpeakerProfileManager()
         self.snipper = AudioSnipper()

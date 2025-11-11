@@ -43,11 +43,13 @@ class Config:
     GROQ_API_KEY: Optional[str] = os.getenv("GROQ_API_KEY")
     OPENAI_API_KEY: Optional[str] = os.getenv("OPENAI_API_KEY")
     HF_TOKEN: Optional[str] = os.getenv("HF_TOKEN")
+    HUGGING_FACE_API_KEY: Optional[str] = os.getenv("HUGGING_FACE_API_KEY")
 
     # Model Settings
     WHISPER_MODEL: str = os.getenv("WHISPER_MODEL", "large-v3")
     WHISPER_BACKEND: str = os.getenv("WHISPER_BACKEND", "local")  # local, groq, openai
-    LLM_BACKEND: str = os.getenv("LLM_BACKEND", "ollama")  # ollama, openai
+    DIARIZATION_BACKEND: str = os.getenv("DIARIZATION_BACKEND", "local") # local, huggingface
+    LLM_BACKEND: str = os.getenv("LLM_BACKEND", "ollama")  # ollama, openai, groq
     WHISPER_LANGUAGE: str = os.getenv("WHISPER_LANGUAGE", "nl")  # Supported: en, nl
     PYANNOTE_DIARIZATION_MODEL: str = os.getenv(
         "PYANNOTE_DIARIZATION_MODEL",

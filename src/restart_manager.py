@@ -70,7 +70,7 @@ f"sleep {delay_seconds} && \"{python_executable}\" \"{script_path}\""
                     close_fds=True,
                 )
             else:
-                # Unix-like: Use nohup for detachment
+# Unix-like: Use start_new_session=True for detachment
                 subprocess.Popen(
                     restart_cmd,
                     cwd=Path.cwd(),

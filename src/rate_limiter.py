@@ -34,7 +34,7 @@ class RateLimiter:
         """Block until a new call fits within the configured window."""
         now = self._clock()
         self._prune(now)
-        if len(self._timestamps) >= self.burst_size:
+        if len(self._timestamps) >= self.max_calls:
             sleep_time = self._period - (now - self._timestamps[0])
             if sleep_time > 0:
                 self._sleep(sleep_time)

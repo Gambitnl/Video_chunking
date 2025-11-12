@@ -53,8 +53,8 @@ else:
                 torchaudio.set_audio_backend = _noop_set_backend  # type: ignore[attr-defined]
             if hasattr(torchaudio, "get_audio_backend"):
                 torchaudio.get_audio_backend = _noop_get_backend  # type: ignore[attr-defined]
-        except Exception:
-            pass
+        except Exception as exc:
+            get_logger("diarizer").debug("Failed to silence torchaudio backend calls: %s", exc)
 
     _silence_deprecated_backend_calls()
 

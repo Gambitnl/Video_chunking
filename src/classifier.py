@@ -520,6 +520,11 @@ class GroqClassifier(BaseClassifier):
     @staticmethod
     def _is_rate_limit_error(exc: Exception) -> bool:
         status_code = getattr(exc, "status_code", None) or getattr(exc, "status", None)
+        if not status_code:
+            response = getattr(exc, "response", None)
+            if response:
+                status_code = getattr(response, "status_code", None)
+
         if status_code == 429:
             return True
         message = str(exc).lower()

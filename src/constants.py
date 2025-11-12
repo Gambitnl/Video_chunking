@@ -28,6 +28,18 @@ class Classification(str, Enum):
         return names[self]
 
 
+class TranscriptFilter(str, Enum):
+    """Filter options for transcript formatting."""
+    ALL = "all"
+    IN_CHARACTER_ONLY = "ic_only"
+    OUT_OF_CHARACTER_ONLY = "ooc_only"
+    MIXED_ONLY = "mixed_only"
+
+    def __str__(self) -> str:
+        """Return the string value for backward compatibility."""
+        return self.value
+
+
 class ProcessingStatus(str, Enum):
     """Status of a processing stage or session"""
     PENDING = "pending"

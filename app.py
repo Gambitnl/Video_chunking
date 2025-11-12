@@ -32,6 +32,7 @@ from src.ui.constants import StatusIndicators
 from src.ui.helpers import StatusMessages, UIComponents
 from src.campaign_dashboard import CampaignDashboard
 from src.story_notebook import StoryNotebookManager
+from src.artifact_counter import CampaignArtifactCounter
 
 # Modern UI imports
 from src.ui.theme import create_modern_theme, MODERN_CSS
@@ -113,6 +114,13 @@ story_manager = StoryNotebookManager()
 speaker_profile_manager = SpeakerProfileManager()
 logger = get_logger(__name__)
 
+# Create global artifact counter with 5-minute cache
+_artifact_counter = CampaignArtifactCounter(
+    output_dir=Config.OUTPUT_DIR,
+    cache_ttl_seconds=300,
+    logger=logger
+)
+
 
 def _notebook_status() -> str:
     return StoryNotebookManager.format_notebook_status(NOTEBOOK_CONTEXT)
@@ -175,29 +183,24 @@ def _format_campaign_badge(campaign_id: Optional[str]) -> str:
 
 
 def _count_campaign_artifacts(campaign_id: str) -> Tuple[int, int]:
-    """Count processed sessions and narratives for a campaign."""
-    if not campaign_id:
-        return 0, 0
+    """
+    Count processed sessions and narratives for a campaign.
 
-    session_count = 0
-    narrative_count = 0
-    output_dir = Config.OUTPUT_DIR
-    if not output_dir.exists():
-        return 0, 0
+    This function now uses CampaignArtifactCounter for better
+    performance, error handling, and observability.
 
-    for data_path in output_dir.glob("**/*_data.json"):
-        try:
-            payload = json.loads(data_path.read_text(encoding="utf-8"))
-        except Exception:
-            continue
-        metadata = payload.get("metadata") or {}
-        if metadata.get("campaign_id") != campaign_id:
-            continue
-        session_count += 1
-        narratives_dir = data_path.parent / "narratives"
-        if narratives_dir.exists():
-            narrative_count += len([p for p in narratives_dir.glob("*.md") if p.is_file()])
-    return session_count, narrative_count
+    Args:
+        campaign_id: Campaign identifier to count artifacts for
+
+    Returns:
+        Tuple of (session_count, narrative_count)
+    """
+    try:
+        counts = _artifact_counter.count_artifacts(campaign_id)
+        return counts.to_tuple()
+    except Exception as e:
+        logger.error(f"Failed to count campaign artifacts for '{campaign_id}': {e}", exc_info=True)
+        return (0, 0)
 
 
 def _status_tracker_summary(campaign_id: str) -> str:
@@ -755,6 +758,11 @@ def process_session(
                 "has_snippets": bool(snippet_payload["segments_dir"]),
             },
         )
+
+        # Clear artifact cache for this campaign to ensure fresh counts on next UI refresh
+        if campaign_id:
+            _artifact_counter.clear_cache(campaign_id)
+            logger.debug(f"Cleared artifact cache for campaign '{campaign_id}' after processing session '{resolved_session_id}'")
 
         return {
             "status": "success",

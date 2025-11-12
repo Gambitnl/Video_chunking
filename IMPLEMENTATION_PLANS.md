@@ -943,3 +943,66 @@ Stage 6 IC/OOC classification fails with `memory layout cannot be allocated (sta
 - `pytest tests/test_diarizer.py tests/test_classifier.py -q`
 
 ---
+
+## P0-BUG-011: PyAnnote Runtime Warnings & Groq Rate Limits
+
+**Files**: `src/diarizer.py`, `src/config.py`, `src/classifier.py`, `src/retry.py`, `src/rate_limiter.py` (new), `.env.example`, `requirements.txt`, `tests/test_classifier.py`
+
+**Effort**: 1 day  
+**Priority**: HIGH  
+**Status**: [IN_PROGRESS] (2025-11-12)  
+**Dependencies**: P0-BUG-008 (preflight) & P0-BUG-009 (PyAnnote embedding fix)
+
+### Problem Statement
+Stage 5 diarization emits a wall of warnings and repeatedly fails to compute embeddings on CUDA GPUs:
+
+- `torchaudio._backend.set_audio_backend has been deprecated` (printed dozens of times)
+- PyTorch Lightning auto-upgrade warnings followed by `Model was trained with pyannote.audio 0.0.1` and task-dependent loss errors
+- `Failed to extract embedding for SPEAKER_##: CUDA error: an illegal memory access was encountered`
+- TF32 reproducibility warnings plus `std(): degrees of freedom is <= 0` noise
+
+At Stage 6 the Groq-backed IC/OOC classifier alternates between HTTP 200s and `429 rate_limit_exceeded`, leaving many classification requests unprocessed.
+
+### Success Criteria
+- [ ] PyAnnote initialization no longer produces deprecated torchaudio warnings or Lightning upgrade spam on a fresh cache.
+- [ ] CUDA embedding extraction automatically falls back to CPU after the first GPU failure and succeeds for all speakers.
+- [ ] TF32 / pooling warnings are suppressed (with guardrail logging) so operators only see actionable logs.
+- [ ] Groq classifier enforces a configurable rate limit with jittered backoff so pipelines no longer trip 429s under normal load.
+- [ ] `.env.example` and docs describe the new Groq pacing knobs.
+- [ ] Unit tests cover the Groq rate limiter and diarizer CUDA fallback branch.
+
+### Implementation Plan
+1. **Tame PyAnnote warnings**
+   - Monkey-patch deprecated `torchaudio` backend setters/getters to no-ops.
+   - Automatically run Lightning’s checkpoint migration on downloaded embedding weights and load them with `strict=False`.
+   - Quiet TF32 and pooling warnings via targeted warning filters.
+2. **Robust embedding extraction**
+   - Track the device used by the embedding inference helper.
+   - When a CUDA `RuntimeError` surfaces, log once, move the inference helper to CPU, re-run the embedding, and cache the CPU fallback for the remainder of the session.
+3. **Groq rate limiting**
+   - Add a reusable token-bucket style `RateLimiter`.
+   - Gate `_make_api_call` with the limiter and introduce config/env knobs for `GROQ_MAX_CALLS_PER_SECOND` and `GROQ_BURST_SIZE`.
+   - Extend retry/backoff logging to mention 429 causes explicitly.
+4. **Docs & tests**
+   - Update `.env.example`, `requirements.txt` (if new helper deps), and Implementation Notes.
+   - Add unit tests that simulate CUDA failures (via mocks) and verify the Groq limiter spacing + retry behavior.
+   - Record validation commands plus Implementation Notes & Reasoning.
+
+### Implementation Notes & Reasoning
+**Implementer**: Codex (GPT-5)  
+**Date**: 2025-11-12
+
+1. **PyAnnote checkpoint + warning control**
+   - **Choice**: Run Lightning’s migration utility on downloaded embedding checkpoints, load with `strict=False`, and mask deprecated `torchaudio` backend calls while filtering the TF32/pooling warnings.
+   - **Reasoning**: Keeps upstream models compatible with Torch 2.5+ without noisy logs and prevents import-time failures on Windows shells that treat those warnings as errors.
+   - **Trade-offs**: Adds a tiny amount of startup work (single checkpoint migration) but removes repeated warning spam for every session.
+2. **Embedding fallback strategy**
+   - **Choice**: Track the embedding device and rerun the inference helper on CPU after the first CUDA `illegal memory access`, persisting the CPU path for the rest of the run.
+   - **Reasoning**: PyAnnote’s community checkpoints occasionally trip low-level CUDA bugs on long sessions; dropping to CPU for the handful of speaker vectors is inexpensive and restores determinism.
+   - **Trade-offs**: CPU embedding extraction is slightly slower (tens of milliseconds per speaker) but only after a GPU fault, so steady-state CUDA performance is unchanged.
+3. **Groq rate limiter**
+   - **Choice**: Introduced a reusable token-bucket limiter with configurable throughput/burst knobs (`GROQ_MAX_CALLS_PER_SECOND`, `GROQ_RATE_LIMIT_BURST`, `GROQ_RATE_LIMIT_PERIOD_SECONDS`) and wired it into the Groq classifier, penalizing the limiter whenever the API returns `rate_limit_exceeded`.
+   - **Reasoning**: Aligns client behavior with Groq’s documented quotas, preventing waves of `429` responses and making retries cheap.
+   - **Trade-offs**: Adds minimal latency between classification requests (default 2 req/s) but keeps the pipeline running instead of spamming failed calls.
+
+---

@@ -29,6 +29,14 @@ This document outlines 100% free cloud API options for offloading compute-intens
 
 **Note:** Older models like `llama3-8b-8192` and `llama-3.2-1b-preview` have been decommissioned.
 
+### Rate limit tuning
+Free-tier Groq accounts enforce short bursts. Configure the `.env` knobs to prevent `rate_limit_exceeded` responses:
+- `GROQ_MAX_CALLS_PER_SECOND` – steady throughput target (defaults to 2 req/s)
+- `GROQ_RATE_LIMIT_BURST` – how many calls may fire inside the window before throttling
+- `GROQ_RATE_LIMIT_PERIOD_SECONDS` – moving window duration used by the limiter
+
+The IC/OOC classifier now enforces these limits automatically and backs off whenever the API reports a rate limit.
+
 ### Configuration in UI
 1. Navigate to **Step 2: Configure Session**
 2. Expand **Advanced Backend Settings** accordion

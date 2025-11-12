@@ -1,24 +1,63 @@
 """Speaker diarization using PyAnnote.audio"""
 from pathlib import Path
-from typing import List, Dict, Optional, Tuple, Any
+from typing import List, Dict, Optional, Tuple, Any, Callable
 from dataclasses import dataclass
 import os
 import sys
 import torch
 import numpy as np
 import threading
+import warnings
+import shutil
 from .config import Config
 from .transcriber import TranscriptionSegment
 from .logger import get_logger
 from .preflight import PreflightIssue
 from .retry import retry_with_backoff
 
+warnings.filterwarnings(
+    "ignore",
+    message=r"TensorFloat-32 \(TF32\) has been disabled.*",
+    category=UserWarning,
+    module="pyannote.audio.utils.reproducibility",
+)
+warnings.filterwarnings(
+    "ignore",
+    message=r"std\(\): degrees of freedom is <= 0.*",
+    category=UserWarning,
+    module="pyannote.audio.models.blocks.pooling",
+)
+
 try:
     import torchaudio  # type: ignore
 except Exception:
     torchaudio = None  # type: ignore
+else:
+    def _silence_deprecated_backend_calls() -> None:
+        """Mask deprecated torchaudio backend helpers that spam warnings on torch>=2.5."""
+        try:
+            def _noop_set_backend(*args, **kwargs):  # type: ignore[return-type]
+                return None
 
-if torchaudio is not None:
+            def _noop_get_backend(*args, **kwargs):  # type: ignore[return-type]
+                return "soundfile"
+
+            backend = getattr(torchaudio, "_backend", None)
+            if backend is not None:
+                if hasattr(backend, "set_audio_backend"):
+                    backend.set_audio_backend = _noop_set_backend  # type: ignore[attr-defined]
+                if hasattr(backend, "get_audio_backend"):
+                    backend.get_audio_backend = _noop_get_backend  # type: ignore[attr-defined]
+
+            if hasattr(torchaudio, "set_audio_backend"):
+                torchaudio.set_audio_backend = _noop_set_backend  # type: ignore[attr-defined]
+            if hasattr(torchaudio, "get_audio_backend"):
+                torchaudio.get_audio_backend = _noop_get_backend  # type: ignore[attr-defined]
+        except Exception as exc:
+            get_logger("diarizer").debug("Failed to silence torchaudio backend calls: %s", exc)
+
+    _silence_deprecated_backend_calls()
+
     try:
         if not hasattr(torchaudio, "list_audio_backends"):
             from torchaudio.utils import list_audio_backends as _list_audio_backends  # type: ignore
@@ -59,6 +98,26 @@ for candidate in _ffmpeg_candidates:
         path_str = str(candidate)
         if path_str not in os.environ.get("PATH", ""):
             os.environ["PATH"] = f"{path_str}{os.pathsep}{os.environ.get('PATH', '')}"
+
+
+def _upgrade_lightning_checkpoint(checkpoint_path: Path, logger) -> None:
+    """Run Lightning's checkpoint migration on cached weights to avoid upgrade spam."""
+    try:
+        checkpoint_file = Path(checkpoint_path)
+        if not checkpoint_file.exists():
+            return
+        from pytorch_lightning.utilities.migration import migrate_checkpoint, pl_legacy_patch  # type: ignore
+
+        backup_path = checkpoint_file.with_suffix(checkpoint_file.suffix + ".bak")
+        if not backup_path.exists():
+            shutil.copy2(checkpoint_file, backup_path)
+
+        with pl_legacy_patch():
+            state = torch.load(checkpoint_file, map_location=torch.device("cpu"))
+            migrate_checkpoint(state)
+        torch.save(state, checkpoint_file)
+    except Exception as exc:  # pragma: no cover - best-effort helper
+        logger.debug("Skipping Lightning checkpoint upgrade for %s: %s", checkpoint_path, exc)
 
 
 @dataclass
@@ -194,6 +253,8 @@ class SpeakerDiarizer(BaseDiarizer):
         self.embedding_model = None
         self.model_load_lock = threading.Lock()
         self.logger = get_logger("diarizer")
+        self.embedding_device = "cpu"
+        self._cuda_embedding_failed = False
 
     def _load_pipeline_if_needed(self):
         """Load the PyAnnote pipeline on first use, in a thread-safe manner."""
@@ -238,47 +299,57 @@ class SpeakerDiarizer(BaseDiarizer):
                                 filename="plda/xvec_transform.npz",
                                 token=token,
                             )
-                        hf_hub_download(
+                        embedding_checkpoint = hf_hub_download(
                             repo_id=embedding_model_name,
                             filename="pytorch_model.bin",
                             token=token,
                         )
+                        _upgrade_lightning_checkpoint(Path(embedding_checkpoint), self.logger)
                     except Exception as exc:
                         raise RuntimeError(
                             f"Unable to download required Hugging Face asset: {exc}"
                         ) from exc
 
-                def _load_component(factory, model_name: str):
+                def _load_component(factory: Callable, model_name: str, **factory_kwargs):
                     if not token:
-                        return factory(model_name)
+                        return factory(model_name, **factory_kwargs)
                     try:
-                        return factory(model_name, token=token)
+                        return factory(model_name, token=token, **factory_kwargs)
                     except TypeError:
                         pass
                     try:
-                        return factory(model_name, use_auth_token=token)
+                        return factory(model_name, use_auth_token=token, **factory_kwargs)
                     except TypeError:
                         self.logger.warning(
                             "%s does not accept token parameters; relying on environment.",
                             factory.__qualname__
                         )
-                        return factory(model_name)
+                        return factory(model_name, **factory_kwargs)
 
                 self.pipeline = _load_component(Pipeline.from_pretrained, diarization_model_name)
 
                 # Load embedding model for speaker identification
-                embedding_model = _load_component(Model.from_pretrained, embedding_model_name)
+                embedding_model = _load_component(
+                    Model.from_pretrained,
+                    embedding_model_name,
+                    strict=False
+                )
                 self.embedding_model = Inference(embedding_model, window="whole")
 
                 preferred_device = Config.get_inference_device()
-                if preferred_device == "cuda":
+                use_cuda = preferred_device == "cuda" and torch.cuda.is_available()
+                if use_cuda:
                     device = torch.device("cuda")
                     self.pipeline = self.pipeline.to(device)
                     if hasattr(self.embedding_model, 'to'):
                         self.embedding_model = self.embedding_model.to(device)
+                    self.embedding_device = "cuda"
                     self.logger.info("PyAnnote pipeline moved to CUDA.")
                 else:
                     self.logger.info("PyAnnote pipeline running on CPU.")
+                    if hasattr(self.embedding_model, 'to'):
+                        self.embedding_model = self.embedding_model.to(torch.device("cpu"))
+                    self.embedding_device = "cpu"
 
                 self.logger.info("PyAnnote pipeline initialized successfully.")
 
@@ -379,12 +450,9 @@ class SpeakerDiarizer(BaseDiarizer):
                         dtype=np.float32
                     ) / 32768.0
 
-                    samples_tensor = torch.from_numpy(samples).unsqueeze(0)
+                    samples_tensor = self._prepare_waveform_tensor(samples)
                     try:
-                        embedding = self.embedding_model({
-                            "waveform": samples_tensor,
-                            "sample_rate": audio.frame_rate
-                        })
+                        embedding = self._run_embedding_inference(samples_tensor, audio.frame_rate)
                         speaker_embeddings[speaker_id] = self._embedding_to_numpy(embedding)
                     except Exception as exc:
                         self.logger.warning(
@@ -394,6 +462,49 @@ class SpeakerDiarizer(BaseDiarizer):
                         )
 
         return segments, speaker_embeddings
+
+    def _prepare_waveform_tensor(self, samples: np.ndarray) -> torch.Tensor:
+        tensor = torch.from_numpy(samples).unsqueeze(0)
+        if self.embedding_device == "cuda" and torch.cuda.is_available():
+            return tensor.to("cuda")
+        return tensor
+
+    def _run_embedding_inference(self, waveform: torch.Tensor, sample_rate: int):
+        if self.embedding_model is None:
+            raise RuntimeError("Embedding model is not initialized.")
+
+        payload = {
+            "waveform": waveform,
+            "sample_rate": sample_rate
+        }
+
+        try:
+            with torch.inference_mode():
+                return self.embedding_model(payload)
+        except RuntimeError as exc:
+            message = str(exc).lower()
+            if "cuda error" in message and self.embedding_device == "cuda":
+                if not self._cuda_embedding_failed:
+                    self.logger.warning(
+                        "CUDA embedding failed (%s). Switching embeddings to CPU for the remainder of the session.",
+                        exc
+                    )
+                    self._cuda_embedding_failed = True
+                self._move_embedding_model_to_cpu()
+                cpu_payload = {
+                    "waveform": waveform.to("cpu"),
+                    "sample_rate": sample_rate
+                }
+                with torch.inference_mode():
+                    return self.embedding_model(cpu_payload)
+            raise
+
+    def _move_embedding_model_to_cpu(self) -> None:
+        if self.embedding_model is None:
+            return
+        if hasattr(self.embedding_model, "to"):
+            self.embedding_model = self.embedding_model.to(torch.device("cpu"))
+        self.embedding_device = "cpu"
 
     def preflight_check(self):
         issues = []

@@ -9,6 +9,12 @@ from .config import Config
 from .logger import get_logger
 from .preflight import PreflightIssue
 from .retry import retry_with_backoff
+from .rate_limiter import RateLimiter
+
+try:  # Optional dependency for cloud inference
+    from groq import Groq  # type: ignore
+except Exception:  # pragma: no cover - optional import
+    Groq = None
 
 
 @dataclass
@@ -439,7 +445,8 @@ class GroqClassifier(BaseClassifier):
     """IC/OOC classifier using the Groq API."""
 
     def __init__(self, api_key: str = None, model: str = "llama-3.3-70b-versatile"):
-        from groq import Groq
+        if Groq is None:
+            raise ImportError("groq package is required for GroqClassifier.")
         self.api_key = api_key or Config.GROQ_API_KEY
         if not self.api_key:
             raise ValueError("Groq API key required. Set GROQ_API_KEY in .env")
@@ -456,6 +463,12 @@ class GroqClassifier(BaseClassifier):
                 self.prompt_template = f.read()
         except FileNotFoundError:
             raise RuntimeError(f"Prompt file not found at: {prompt_path}")
+
+        self.rate_limiter = RateLimiter(
+            max_calls=Config.GROQ_MAX_CALLS_PER_SECOND,
+            period=Config.GROQ_RATE_LIMIT_PERIOD_SECONDS,
+            burst_size=Config.GROQ_RATE_LIMIT_BURST,
+        )
 
     def classify_segments(
         self,
@@ -487,11 +500,35 @@ class GroqClassifier(BaseClassifier):
 
     @retry_with_backoff()
     def _make_api_call(self, prompt):
-        chat_completion = self.client.chat.completions.create(
-            messages=[{"role": "user", "content": prompt}],
-            model=self.model,
-        )
+        self.rate_limiter.acquire()
+        try:
+            chat_completion = self.client.chat.completions.create(
+                messages=[{"role": "user", "content": prompt}],
+                model=self.model,
+            )
+        except Exception as exc:
+            if self._is_rate_limit_error(exc):
+                self.logger.warning(
+                    "Groq rate limit exceeded (%s). Backing off for %.2fs.",
+                    exc,
+                    self.rate_limiter.period,
+                )
+                self.rate_limiter.penalize()
+            raise
         return chat_completion.choices[0].message.content
+
+    @staticmethod
+    def _is_rate_limit_error(exc: Exception) -> bool:
+        status_code = getattr(exc, "status_code", None) or getattr(exc, "status", None)
+        if not status_code:
+            response = getattr(exc, "response", None)
+            if response:
+                status_code = getattr(response, "status_code", None)
+
+        if status_code == 429:
+            return True
+        message = str(exc).lower()
+        return "rate_limit" in message or "429" in message
 
     def _build_prompt(
         self,

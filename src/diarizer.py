@@ -10,6 +10,7 @@ import threading
 import warnings
 import shutil
 from .config import Config
+from .constants import SpeakerLabel
 from .transcriber import TranscriptionSegment
 from .logger import get_logger
 from .preflight import PreflightIssue
@@ -142,7 +143,7 @@ class BaseDiarizer:
         """Assign speaker labels based on timing overlap."""
         enriched_segments = []
         for trans_seg in transcription_segments:
-            best_speaker, max_overlap = "UNKNOWN", 0.0
+            best_speaker, max_overlap = SpeakerLabel.UNKNOWN, 0.0
             for speaker_seg in speaker_segments:
                 overlap = max(0, min(trans_seg.end_time, speaker_seg.end_time) - max(trans_seg.start_time, speaker_seg.start_time))
                 if overlap > max_overlap:

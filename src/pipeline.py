@@ -5,6 +5,7 @@ from time import perf_counter
 from typing import Optional, List, Dict, Tuple, Any
 from datetime import datetime
 from .config import Config
+from .constants import PipelineStage, ProcessingStatus
 from .checkpoint import CheckpointManager
 from .audio_processor import AudioProcessor
 from .chunker import HybridChunker, AudioChunk
@@ -247,8 +248,8 @@ class DDSessionProcessor:
             wav_file: Optional[Path] = None
             duration: Optional[float] = None
 
-            if "audio_converted" in completed_stages:
-                audio_checkpoint = self.checkpoint_manager.load("audio_converted")
+            if PipelineStage.AUDIO_CONVERTED in completed_stages:
+                audio_checkpoint = self.checkpoint_manager.load(PipelineStage.AUDIO_CONVERTED)
                 wav_path_str = audio_checkpoint.data.get("wav_path") if audio_checkpoint else None
                 if wav_path_str:
                     wav_path = Path(wav_path_str)
@@ -261,7 +262,7 @@ class DDSessionProcessor:
                             "Checkpoint WAV missing at %s; re-running conversion",
                             wav_path,
                         )
-                        completed_stages.discard("audio_converted")
+                        completed_stages.discard(PipelineStage.AUDIO_CONVERTED)
 
             if use_checkpoint_audio:
                 self.logger.info("Stage 1/9: Using converted audio from checkpoint %s", wav_file)
@@ -279,9 +280,9 @@ class DDSessionProcessor:
                 StatusTracker.update_stage(
                     self.session_id, 1, "completed", f"Duration {duration:.1f}s"
                 )
-                completed_stages.add("audio_converted")
+                completed_stages.add(PipelineStage.AUDIO_CONVERTED)
                 self.checkpoint_manager.save(
-                    "audio_converted",
+                    PipelineStage.AUDIO_CONVERTED,
                     {
                         "wav_path": str(wav_file),
                         "duration": duration,
@@ -299,8 +300,8 @@ class DDSessionProcessor:
             )
 
             self.logger.info("Stage 2/9: Chunking audio with VAD...")
-            if "audio_chunked" in completed_stages:
-                chunk_checkpoint = self.checkpoint_manager.load("audio_chunked")
+            if PipelineStage.AUDIO_CHUNKED in completed_stages:
+                chunk_checkpoint = self.checkpoint_manager.load(PipelineStage.AUDIO_CHUNKED)
                 chunks = chunk_checkpoint.data.get("chunks") if chunk_checkpoint else []
                 if chunks:
                     self.logger.info("Stage 2/9: Using audio chunks from checkpoint (%d chunks)", len(chunks))
@@ -309,10 +310,10 @@ class DDSessionProcessor:
                     )
                 else:
                     self.logger.warning("Checkpoint for audio chunks found but data is empty; re-running chunking")
-                    completed_stages.discard("audio_chunked")
+                    completed_stages.discard(PipelineStage.AUDIO_CHUNKED)
                     # Fall through to re-run chunking
 
-            if "audio_chunked" not in completed_stages: # Only run if not loaded from checkpoint or checkpoint was empty
+            if PipelineStage.AUDIO_CHUNKED not in completed_stages: # Only run if not loaded from checkpoint or checkpoint was empty
                 chunk_progress = {"count": 0, "last_logged_percent": -5.0, "last_log_time": perf_counter()}
 
                 def _chunk_progress_callback(chunk, total_duration):
@@ -371,9 +372,9 @@ class DDSessionProcessor:
                     self.session_id, 2, "completed", f"Created {len(chunks)} chunks"
                 )
                 self.logger.info("Stage 2/9 complete: %d chunks created", len(chunks))
-                completed_stages.add("audio_chunked")
+                completed_stages.add(PipelineStage.AUDIO_CHUNKED)
                 self.checkpoint_manager.save(
-                    "audio_chunked",
+                    PipelineStage.AUDIO_CHUNKED,
                     {"chunks": [c.to_dict() for c in chunks]}, # Convert chunks to serializable dicts
                     completed_stages=sorted(completed_stages),
                     metadata=checkpoint_metadata,
@@ -382,7 +383,7 @@ class DDSessionProcessor:
             # If chunks were loaded from checkpoint, they are already in the correct format.
             # If chunking was re-run, `chunks` is already populated.
             # If loaded from checkpoint, convert dicts back to Chunk objects and load audio.
-            if "audio_chunked" in completed_stages and chunks and isinstance(chunks[0], dict):
+            if PipelineStage.AUDIO_CHUNKED in completed_stages and chunks and isinstance(chunks[0], dict):
                 reconstructed_chunks = []
                 for chunk_data in chunks:
                     start_time = chunk_data["start_time"]
@@ -398,12 +399,12 @@ class DDSessionProcessor:
                         )
                 chunks = reconstructed_chunks
 
-            self.logger.info("Stage 2/9 %s: %d chunks processed", "resumed" if "audio_chunked" in completed_stages else "complete", len(chunks))
+            self.logger.info("Stage 2/9 %s: %d chunks processed", "resumed" if PipelineStage.AUDIO_CHUNKED in completed_stages else "complete", len(chunks))
 
             chunk_transcriptions: List[ChunkTranscription] = []
 
-            if "audio_transcribed" in completed_stages:
-                transcription_checkpoint = self.checkpoint_manager.load("audio_transcribed")
+            if PipelineStage.AUDIO_TRANSCRIBED in completed_stages:
+                transcription_checkpoint = self.checkpoint_manager.load(PipelineStage.AUDIO_TRANSCRIBED)
                 transcriptions_data: List[Dict[str, Any]] = []
                 if transcription_checkpoint:
                     data_dict = transcription_checkpoint.data
@@ -413,7 +414,7 @@ class DDSessionProcessor:
                             transcriptions_data = self.checkpoint_manager.read_blob(blob_ref)
                         except FileNotFoundError:
                             self.logger.warning("Chunk transcription blob missing at %s; re-running transcription", blob_ref)
-                            completed_stages.discard("audio_transcribed")
+                            completed_stages.discard(PipelineStage.AUDIO_TRANSCRIBED)
                     else:
                         transcriptions_data = data_dict.get("chunk_transcriptions", [])
                 if transcriptions_data:
@@ -425,11 +426,11 @@ class DDSessionProcessor:
                     StatusTracker.update_stage(
                         self.session_id, 3, "completed", f"Loaded {len(chunk_transcriptions)} chunk transcriptions (checkpoint)"
                     )
-                elif "audio_transcribed" in completed_stages:
+                elif PipelineStage.AUDIO_TRANSCRIBED in completed_stages:
                     self.logger.warning("Checkpoint for chunk transcriptions found but data is empty; re-running transcription")
-                    completed_stages.discard("audio_transcribed")
+                    completed_stages.discard(PipelineStage.AUDIO_TRANSCRIBED)
 
-            if "audio_transcribed" not in completed_stages:
+            if PipelineStage.AUDIO_TRANSCRIBED not in completed_stages:
                 self.logger.info("Stage 3/9: Transcribing chunks (this may take a while)...")
                 StatusTracker.update_stage(
                     self.session_id, 3, "running", f"Transcribing {len(chunks)} chunks"
@@ -476,15 +477,15 @@ class DDSessionProcessor:
                     self.session_id, 3, "completed", f"Received {len(chunk_transcriptions)} chunk transcriptions"
                 )
                 self.logger.info("Stage 3/9 complete: transcription finished")
-                completed_stages.add("audio_transcribed")
+                completed_stages.add(PipelineStage.AUDIO_TRANSCRIBED)
                 blob_ref = self.checkpoint_manager.write_blob(
-                    "audio_transcribed",
+                    PipelineStage.AUDIO_TRANSCRIBED,
                     "chunk_transcriptions",
                     [ct.to_dict() for ct in chunk_transcriptions],
                 )
                 blob_ref = str(blob_ref)
                 self.checkpoint_manager.save(
-                    "audio_transcribed",
+                    PipelineStage.AUDIO_TRANSCRIBED,
                     {
                         "chunk_transcriptions_path": blob_ref,
                         "transcription_count": len(chunk_transcriptions),
@@ -493,12 +494,12 @@ class DDSessionProcessor:
                     metadata=checkpoint_metadata,
                 )
 
-            self.logger.info("Stage 3/9 %s: %d chunk transcriptions processed", "resumed" if "audio_transcribed" in completed_stages else "complete", len(chunk_transcriptions))
+            self.logger.info("Stage 3/9 %s: %d chunk transcriptions processed", "resumed" if PipelineStage.AUDIO_TRANSCRIBED in completed_stages else "complete", len(chunk_transcriptions))
 
             merged_segments: List[TranscriptionSegment] = []
 
-            if "transcription_merged" in completed_stages:
-                merge_checkpoint = self.checkpoint_manager.load("transcription_merged")
+            if PipelineStage.TRANSCRIPTION_MERGED in completed_stages:
+                merge_checkpoint = self.checkpoint_manager.load(PipelineStage.TRANSCRIPTION_MERGED)
                 merged_segments_data: List[Dict[str, Any]] = []
                 if merge_checkpoint:
                     data_dict = merge_checkpoint.data
@@ -508,7 +509,7 @@ class DDSessionProcessor:
                             merged_segments_data = self.checkpoint_manager.read_blob(blob_ref)
                         except FileNotFoundError:
                             self.logger.warning("Merged segments blob missing at %s; re-running merging", blob_ref)
-                            completed_stages.discard("transcription_merged")
+                            completed_stages.discard(PipelineStage.TRANSCRIPTION_MERGED)
                     else:
                         merged_segments_data = data_dict.get("merged_segments", [])
                 if merged_segments_data:
@@ -517,11 +518,11 @@ class DDSessionProcessor:
                     StatusTracker.update_stage(
                         self.session_id, 4, "completed", f"Loaded {len(merged_segments)} merged segments (checkpoint)"
                     )
-                elif "transcription_merged" in completed_stages:
+                elif PipelineStage.TRANSCRIPTION_MERGED in completed_stages:
                     self.logger.warning("Checkpoint for merged segments found but data is empty; re-running merging")
-                    completed_stages.discard("transcription_merged")
+                    completed_stages.discard(PipelineStage.TRANSCRIPTION_MERGED)
 
-            if "transcription_merged" not in completed_stages:
+            if PipelineStage.TRANSCRIPTION_MERGED not in completed_stages:
                 self.logger.info("Stage 4/9: Merging overlapping chunks...")
                 StatusTracker.update_stage(self.session_id, 4, "running", "Aligning overlapping transcripts")
                 merged_segments = self.merger.merge_transcriptions(chunk_transcriptions)
@@ -529,15 +530,15 @@ class DDSessionProcessor:
                     self.session_id, 4, "completed", f"Merged into {len(merged_segments)} segments"
                 )
                 self.logger.info("Stage 4/9 complete: %d merged segments", len(merged_segments))
-                completed_stages.add("transcription_merged")
+                completed_stages.add(PipelineStage.TRANSCRIPTION_MERGED)
                 blob_ref = self.checkpoint_manager.write_blob(
-                    "transcription_merged",
+                    PipelineStage.TRANSCRIPTION_MERGED,
                     "merged_segments",
                     [ms.to_dict() for ms in merged_segments],
                 )
                 blob_ref = str(blob_ref)
                 self.checkpoint_manager.save(
-                    "transcription_merged",
+                    PipelineStage.TRANSCRIPTION_MERGED,
                     {
                         "merged_segments_path": blob_ref,
                         "merged_segment_count": len(merged_segments),
@@ -546,12 +547,12 @@ class DDSessionProcessor:
                     metadata=checkpoint_metadata,
                 )
 
-            self.logger.info("Stage 4/9 %s: %d merged segments processed", "resumed" if "transcription_merged" in completed_stages else "complete", len(merged_segments))
+            self.logger.info("Stage 4/9 %s: %d merged segments processed", "resumed" if PipelineStage.TRANSCRIPTION_MERGED in completed_stages else "complete", len(merged_segments))
 
             speaker_segments_with_labels: List[Dict] = []
 
-            if "speaker_diarized" in completed_stages:
-                diarization_checkpoint = self.checkpoint_manager.load("speaker_diarized")
+            if PipelineStage.SPEAKER_DIARIZED in completed_stages:
+                diarization_checkpoint = self.checkpoint_manager.load(PipelineStage.SPEAKER_DIARIZED)
                 speaker_data: List[Dict[str, Any]] = []
                 if diarization_checkpoint:
                     data_dict = diarization_checkpoint.data
@@ -561,7 +562,7 @@ class DDSessionProcessor:
                             speaker_data = self.checkpoint_manager.read_blob(blob_ref)
                         except FileNotFoundError:
                             self.logger.warning("Speaker segment blob missing at %s; re-running diarization", blob_ref)
-                            completed_stages.discard("speaker_diarized")
+                            completed_stages.discard(PipelineStage.SPEAKER_DIARIZED)
                     else:
                         speaker_data = data_dict.get("speaker_segments_with_labels", [])
                 if speaker_data:
@@ -570,11 +571,11 @@ class DDSessionProcessor:
                     StatusTracker.update_stage(
                         self.session_id, 5, "completed", f"Loaded {len(speaker_segments_with_labels)} speaker segments (checkpoint)"
                     )
-                elif "speaker_diarized" in completed_stages:
+                elif PipelineStage.SPEAKER_DIARIZED in completed_stages:
                     self.logger.warning("Checkpoint for speaker segments found but data is empty; re-running diarization")
-                    completed_stages.discard("speaker_diarized")
+                    completed_stages.discard(PipelineStage.SPEAKER_DIARIZED)
 
-            if "speaker_diarized" not in completed_stages:
+            if PipelineStage.SPEAKER_DIARIZED not in completed_stages:
                 if not skip_diarization:
                     self.logger.info("Stage 5/9: Speaker diarization...")
                     StatusTracker.update_stage(self.session_id, 5, "running", "Performing speaker diarization")
@@ -626,15 +627,15 @@ class DDSessionProcessor:
                         }
                         for seg in merged_segments
                     ]
-                completed_stages.add("speaker_diarized")
+                completed_stages.add(PipelineStage.SPEAKER_DIARIZED)
                 blob_ref = self.checkpoint_manager.write_blob(
-                    "speaker_diarized",
+                    PipelineStage.SPEAKER_DIARIZED,
                     "speaker_segments",
                     speaker_segments_with_labels,
                 )
                 blob_ref = str(blob_ref)
                 self.checkpoint_manager.save(
-                    "speaker_diarized",
+                    PipelineStage.SPEAKER_DIARIZED,
                     {
                         "speaker_segments_path": blob_ref,
                         "speaker_segment_count": len(speaker_segments_with_labels),
@@ -643,12 +644,12 @@ class DDSessionProcessor:
                     metadata=checkpoint_metadata,
                 )
 
-            self.logger.info("Stage 5/9 %s: %d speaker segments processed", "resumed" if "speaker_diarized" in completed_stages else "complete", len(speaker_segments_with_labels))
+            self.logger.info("Stage 5/9 %s: %d speaker segments processed", "resumed" if PipelineStage.SPEAKER_DIARIZED in completed_stages else "complete", len(speaker_segments_with_labels))
 
             classifications: List[ClassificationResult] = []
 
-            if "segments_classified" in completed_stages:
-                classification_checkpoint = self.checkpoint_manager.load("segments_classified")
+            if PipelineStage.SEGMENTS_CLASSIFIED in completed_stages:
+                classification_checkpoint = self.checkpoint_manager.load(PipelineStage.SEGMENTS_CLASSIFIED)
                 classifications_data: List[Dict[str, Any]] = []
                 if classification_checkpoint:
                     data_dict = classification_checkpoint.data
@@ -658,7 +659,7 @@ class DDSessionProcessor:
                             classifications_data = self.checkpoint_manager.read_blob(blob_ref)
                         except FileNotFoundError:
                             self.logger.warning("Classification blob missing at %s; re-running classification", blob_ref)
-                            completed_stages.discard("segments_classified")
+                            completed_stages.discard(PipelineStage.SEGMENTS_CLASSIFIED)
                     else:
                         classifications_data = data_dict.get("classifications", [])
                 if classifications_data:
@@ -667,11 +668,11 @@ class DDSessionProcessor:
                     StatusTracker.update_stage(
                         self.session_id, 6, "completed", f"Loaded {len(classifications)} classifications (checkpoint)"
                     )
-                elif "segments_classified" in completed_stages:
+                elif PipelineStage.SEGMENTS_CLASSIFIED in completed_stages:
                     self.logger.warning("Checkpoint for classifications found but data is empty; re-running classification")
-                    completed_stages.discard("segments_classified")
+                    completed_stages.discard(PipelineStage.SEGMENTS_CLASSIFIED)
 
-            if "segments_classified" not in completed_stages:
+            if PipelineStage.SEGMENTS_CLASSIFIED not in completed_stages:
                 if not skip_classification:
                     self.logger.info("Stage 6/9: IC/OOC classification...")
                     StatusTracker.update_stage(self.session_id, 6, "running", "Classifying IC/OOC segments")
@@ -727,15 +728,15 @@ class DDSessionProcessor:
                         "Stage 6/9 skipped; defaulted all %d segments to IC",
                         len(speaker_segments_with_labels)
                     )
-                completed_stages.add("segments_classified")
+                completed_stages.add(PipelineStage.SEGMENTS_CLASSIFIED)
                 blob_ref = self.checkpoint_manager.write_blob(
-                    "segments_classified",
+                    PipelineStage.SEGMENTS_CLASSIFIED,
                     "classifications",
                     [c.to_dict() for c in classifications],
                 )
                 blob_ref = str(blob_ref)
                 self.checkpoint_manager.save(
-                    "segments_classified",
+                    PipelineStage.SEGMENTS_CLASSIFIED,
                     {
                         "classifications_path": blob_ref,
                         "classification_count": len(classifications),
@@ -744,14 +745,14 @@ class DDSessionProcessor:
                     metadata=checkpoint_metadata,
                 )
 
-            self.logger.info("Stage 6/9 %s: %d classifications processed", "resumed" if "segments_classified" in completed_stages else "complete", len(classifications))
+            self.logger.info("Stage 6/9 %s: %d classifications processed", "resumed" if PipelineStage.SEGMENTS_CLASSIFIED in completed_stages else "complete", len(classifications))
 
             speaker_profiles: Dict[str, str] = {}
             stats: Dict[str, Any] = {}
             output_files: Dict[str, Any] = {}
 
-            if "outputs_generated" in completed_stages:
-                outputs_checkpoint = self.checkpoint_manager.load("outputs_generated")
+            if PipelineStage.OUTPUTS_GENERATED in completed_stages:
+                outputs_checkpoint = self.checkpoint_manager.load(PipelineStage.OUTPUTS_GENERATED)
                 checkpoint_data = outputs_checkpoint.data if outputs_checkpoint else {}
                 if checkpoint_data:
                     output_files = checkpoint_data.get("output_files", {})
@@ -766,9 +767,9 @@ class DDSessionProcessor:
                     self.logger.info("Stage 7/9: Reusing transcript outputs from checkpoint; skipping regeneration")
                 else:
                     self.logger.warning("Checkpoint for outputs generated is empty; re-running output generation")
-                    completed_stages.discard("outputs_generated")
+                    completed_stages.discard(PipelineStage.OUTPUTS_GENERATED)
 
-            if "outputs_generated" not in completed_stages:
+            if PipelineStage.OUTPUTS_GENERATED not in completed_stages:
                 self.logger.info("Stage 7/9: Generating transcript outputs...")
                 StatusTracker.update_stage(self.session_id, 7, "running", "Rendering transcripts")
                 for speaker_id in {seg['speaker'] for seg in speaker_segments_with_labels}:
@@ -813,9 +814,9 @@ class DDSessionProcessor:
                 for format_name, file_path in output_files.items():
                     self.logger.info("Stage 7/9 output generated (%s): %s", format_name, file_path)
                 StatusTracker.update_stage(self.session_id, 7, "completed", "Transcript outputs saved")
-                completed_stages.add("outputs_generated")
+                completed_stages.add(PipelineStage.OUTPUTS_GENERATED)
                 self.checkpoint_manager.save(
-                    "outputs_generated",
+                    PipelineStage.OUTPUTS_GENERATED,
                     {
                         "output_files": output_files,
                         "statistics": stats,
@@ -827,8 +828,8 @@ class DDSessionProcessor:
 
             segment_export: Dict[str, Any] = {'segments_dir': None, 'manifest': None}
 
-            if "audio_segments_exported" in completed_stages:
-                segments_checkpoint = self.checkpoint_manager.load("audio_segments_exported")
+            if PipelineStage.AUDIO_SEGMENTS_EXPORTED in completed_stages:
+                segments_checkpoint = self.checkpoint_manager.load(PipelineStage.AUDIO_SEGMENTS_EXPORTED)
                 checkpoint_data = segments_checkpoint.data if segments_checkpoint else {}
                 export_data = checkpoint_data.get("segment_export") if checkpoint_data else None
                 if export_data:
@@ -842,10 +843,10 @@ class DDSessionProcessor:
                     self.logger.info("Stage 8/9: Reusing audio segment export from checkpoint; skipping regeneration")
                 else:
                     self.logger.warning("Checkpoint for audio segments is empty; re-running snippet export")
-                    completed_stages.discard("audio_segments_exported")
+                    completed_stages.discard(PipelineStage.AUDIO_SEGMENTS_EXPORTED)
 
             segments_output_base = output_dir / "segments"
-            if "audio_segments_exported" not in completed_stages:
+            if PipelineStage.AUDIO_SEGMENTS_EXPORTED not in completed_stages:
                 if skip_snippets:
                     self.logger.info("Stage 8/9: Audio segment export skipped")
                     StatusTracker.update_stage(self.session_id, 8, "skipped", "Snippet export skipped")
@@ -880,9 +881,9 @@ class DDSessionProcessor:
                             'segments_dir': None,
                             'manifest': None
                         }
-                    completed_stages.add("audio_segments_exported")
+                    completed_stages.add(PipelineStage.AUDIO_SEGMENTS_EXPORTED)
                     self.checkpoint_manager.save(
-                        "audio_segments_exported",
+                        PipelineStage.AUDIO_SEGMENTS_EXPORTED,
                         {"segment_export": segment_export},
                         completed_stages=sorted(completed_stages),
                         metadata=checkpoint_metadata,
@@ -890,8 +891,8 @@ class DDSessionProcessor:
 
             # Stage 9/9: Campaign Knowledge Extraction
             knowledge_data: Dict[str, Any] = {}
-            if "knowledge_extracted" in completed_stages:
-                knowledge_checkpoint = self.checkpoint_manager.load("knowledge_extracted")
+            if PipelineStage.KNOWLEDGE_EXTRACTED in completed_stages:
+                knowledge_checkpoint = self.checkpoint_manager.load(PipelineStage.KNOWLEDGE_EXTRACTED)
                 checkpoint_data = knowledge_checkpoint.data if knowledge_checkpoint else {}
                 if checkpoint_data:
                     knowledge_data = checkpoint_data.get("knowledge_data", {})
@@ -904,9 +905,9 @@ class DDSessionProcessor:
                     self.logger.info("Stage 9/9: Reusing knowledge extraction results from checkpoint")
                 else:
                     self.logger.warning("Checkpoint for knowledge extraction is empty; re-running extraction")
-                    completed_stages.discard("knowledge_extracted")
+                    completed_stages.discard(PipelineStage.KNOWLEDGE_EXTRACTED)
 
-            if "knowledge_extracted" not in completed_stages:
+            if PipelineStage.KNOWLEDGE_EXTRACTED not in completed_stages:
                 if skip_knowledge:
                     self.logger.info("Stage 9/9: Campaign knowledge extraction skipped")
                     StatusTracker.update_stage(self.session_id, 9, "skipped", "Knowledge extraction skipped")
@@ -986,9 +987,9 @@ class DDSessionProcessor:
                             f"Extraction failed: {knowledge_error}"
                         )
                         knowledge_data = {'error': str(knowledge_error)}
-                    completed_stages.add("knowledge_extracted")
+                    completed_stages.add(PipelineStage.KNOWLEDGE_EXTRACTED)
                     self.checkpoint_manager.save(
-                        "knowledge_extracted",
+                        PipelineStage.KNOWLEDGE_EXTRACTED,
                         {"knowledge_data": knowledge_data},
                         completed_stages=sorted(completed_stages),
                         metadata=checkpoint_metadata,

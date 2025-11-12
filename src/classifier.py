@@ -11,6 +11,7 @@ from .preflight import PreflightIssue
 from .retry import retry_with_backoff
 from .constants import Classification, ConfidenceDefaults
 from .rate_limiter import RateLimiter
+from .llm_factory import OllamaClientFactory, OllamaConfig, OllamaConnectionError
 
 try:  # Optional dependency for cloud inference
     from groq import Groq  # type: ignore
@@ -76,8 +77,6 @@ class OllamaClassifier(BaseClassifier):
         base_url: str = None,
         fallback_model: Optional[str] = None
     ):
-        import ollama
-
         self.model = model or Config.OLLAMA_MODEL
         self.base_url = base_url or Config.OLLAMA_BASE_URL
         self.fallback_model = fallback_model or getattr(
@@ -98,19 +97,28 @@ class OllamaClassifier(BaseClassifier):
         except FileNotFoundError:
             raise RuntimeError(f"Prompt file not found at: {prompt_path}")
 
-        # Initialize client
-        self.client = ollama.Client(host=self.base_url)
+        # Initialize Ollama client using factory
+        factory = OllamaClientFactory(logger=self.logger)
+        ollama_config = OllamaConfig(
+            host=self.base_url,
+            timeout=30
+        )
 
-        # Test connection
         try:
-            self.client.list()
-        except Exception as e:
+            self.client = factory.create_client(
+                config=ollama_config,
+                test_connection=True,
+                max_retries=3,
+                model_to_check=self.model  # Check model availability during connection test
+            )
+
+        except OllamaConnectionError as e:
             raise RuntimeError(
                 f"Could not connect to Ollama at {self.base_url}. "
                 f"Make sure Ollama is running.\n"
                 f"Install: https://ollama.ai\n"
                 f"Error: {e}"
-            )
+            ) from e
 
     def preflight_check(self):
         issues = []

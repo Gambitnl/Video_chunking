@@ -19,6 +19,7 @@ def patched_config():
         yield MockConfig
 
 from src.classifier import ClassifierFactory, OllamaClassifier, GroqClassifier, ClassificationResult
+from src.constants import Classification, ConfidenceDefaults
 
 @pytest.fixture
 def mock_ollama_client():
@@ -378,7 +379,7 @@ class TestGroqClassifier:
 class TestClassificationResult:
     def test_to_dict(self):
         result = ClassificationResult(
-            segment_index=0, classification="IC", confidence=0.9, reasoning="Test reason", character="Aragorn"
+            segment_index=0, classification=Classification.IN_CHARACTER, confidence=0.9, reasoning="Test reason", character="Aragorn"
         )
         expected_dict = {
             "segment_index": 0,
@@ -399,7 +400,7 @@ class TestClassificationResult:
         }
         result = ClassificationResult.from_dict(data)
         assert result.segment_index == 0
-        assert result.classification == "IC"
+        assert result.classification == Classification.IN_CHARACTER
         assert result.confidence == 0.9
         assert result.reasoning == "Test reason"
         assert result.character == "Aragorn"
@@ -413,7 +414,7 @@ class TestClassificationResult:
         }
         result = ClassificationResult.from_dict(data)
         assert result.segment_index == 1
-        assert result.classification == "OOC"
+        assert result.classification == Classification.OUT_OF_CHARACTER
         assert result.confidence == 0.7
         assert result.reasoning == "Test reason OOC"
         assert result.character is None

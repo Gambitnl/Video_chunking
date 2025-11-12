@@ -139,7 +139,7 @@ class TranscriptFormatter:
         """
         # Determine the header based on filter type
         headers = {
-            TranscriptFilter.ALL: "D&D SESSION TRANSCRIPT - FULL VERSION",
+            TranscriptFilter.ALL: "D&D SESSION TRANSCRIPT - FILTERED VERSION",
             TranscriptFilter.IN_CHARACTER_ONLY: "D&D SESSION TRANSCRIPT - IN-CHARACTER ONLY",
             TranscriptFilter.OUT_OF_CHARACTER_ONLY: "D&D SESSION TRANSCRIPT - OUT-OF-CHARACTER ONLY",
             TranscriptFilter.MIXED_ONLY: "D&D SESSION TRANSCRIPT - MIXED CONTENT ONLY"
@@ -156,13 +156,20 @@ class TranscriptFormatter:
 
         for seg, classif in zip(segments, classifications):
             # Apply filter based on filter_type
+            # IMPORTANT: IC_ONLY excludes only OOC (includes IC and MIXED for backward compatibility)
+            #            OOC_ONLY excludes only IC (includes OOC and MIXED for backward compatibility)
+            #            MIXED_ONLY includes only MIXED
+            #            ALL includes everything
             if filter_type == TranscriptFilter.IN_CHARACTER_ONLY:
-                if classif.classification != Classification.IN_CHARACTER:
+                # Original behavior: skip OOC, keep IC and MIXED
+                if classif.classification == Classification.OUT_OF_CHARACTER:
                     continue
             elif filter_type == TranscriptFilter.OUT_OF_CHARACTER_ONLY:
-                if classif.classification != Classification.OUT_OF_CHARACTER:
+                # Original behavior: skip IC, keep OOC and MIXED
+                if classif.classification == Classification.IN_CHARACTER:
                     continue
             elif filter_type == TranscriptFilter.MIXED_ONLY:
+                # Only include MIXED segments
                 if classif.classification != Classification.MIXED:
                     continue
             # TranscriptFilter.ALL includes everything, no filtering

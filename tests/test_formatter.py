@@ -67,9 +67,9 @@ class TestFormatFiltered:
             ),
             ClassificationResult(
                 segment_index=2,
-                classification="IC",
+                classification="MIXED",  # Changed to MIXED to test backward compat
                 confidence=0.92,
-                reasoning="Character action",
+                reasoning="Character action with meta-talk",
                 character="Thorin"
             ),
             ClassificationResult(
@@ -92,43 +92,53 @@ class TestFormatFiltered:
         assert "Wait, do I get advantage" in result
         assert "I look around" in result
         assert "Let's take a break" in result
-        assert "FULL VERSION" in result
+        assert "FILTERED VERSION" in result
 
     def test_filter_ic_only(self, formatter, sample_transcript, sample_classifications):
-        """Test that IC filter returns only in-character dialogue."""
+        """Test that IC filter excludes OOC but includes IC and MIXED (backward compat)."""
         result = formatter.format_filtered(
             sample_transcript,
             sample_classifications,
             TranscriptFilter.IN_CHARACTER_ONLY
         )
+        # Should include IC segments
         assert "You enter the tavern" in result
+        # Should include MIXED segments (backward compatibility!)
         assert "I look around" in result
+        # Should exclude OOC segments
         assert "Wait, do I get advantage" not in result
         assert "Let's take a break" not in result
         assert "IN-CHARACTER ONLY" in result
 
     def test_filter_ooc_only(self, formatter, sample_transcript, sample_classifications):
-        """Test that OOC filter returns only out-of-character dialogue."""
+        """Test that OOC filter excludes IC but includes OOC and MIXED (backward compat)."""
         result = formatter.format_filtered(
             sample_transcript,
             sample_classifications,
             TranscriptFilter.OUT_OF_CHARACTER_ONLY
         )
+        # Should include OOC segments
         assert "Wait, do I get advantage" in result
         assert "Let's take a break" in result
+        # Should include MIXED segments (backward compatibility!)
+        assert "I look around" in result
+        # Should exclude IC segments
         assert "You enter the tavern" not in result
-        assert "I look around" not in result
         assert "OUT-OF-CHARACTER ONLY" in result
 
-    def test_filter_mixed_only_empty(self, formatter, sample_transcript, sample_classifications):
-        """Test that MIXED filter returns empty when no mixed turns exist."""
+    def test_filter_mixed_only(self, formatter, sample_transcript, sample_classifications):
+        """Test that MIXED filter returns only mixed segments."""
         result = formatter.format_filtered(
             sample_transcript,
             sample_classifications,
             TranscriptFilter.MIXED_ONLY
         )
-        # Should not contain any content lines, just headers
+        # Should include MIXED segment
+        assert "I look around" in result
+        # Should exclude IC and OOC segments
         assert "You enter the tavern" not in result
+        assert "Wait, do I get advantage" not in result
+        assert "Let's take a break" not in result
         assert "MIXED CONTENT ONLY" in result
 
     def test_filter_mixed_only_with_mixed_content(self, formatter):

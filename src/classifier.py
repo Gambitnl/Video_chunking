@@ -67,6 +67,110 @@ class BaseClassifier(ABC):
         """Return an iterable of PreflightIssue objects."""
         return []
 
+    def _build_prompt(
+        self,
+        prev_text: str,
+        current_text: str,
+        next_text: str,
+        character_names: List[str],
+        player_names: List[str]
+    ) -> str:
+        """
+        Build classification prompt from the template.
+
+        This default implementation uses the prompt_template attribute
+        with placeholders for char_list, player_list, prev_text,
+        current_text, and next_text.
+
+        Subclasses can override this method to customize prompt building.
+
+        Args:
+            prev_text: Text from previous segment
+            current_text: Text from current segment to classify
+            next_text: Text from next segment
+            character_names: List of character names
+            player_names: List of player names
+
+        Returns:
+            Formatted prompt string ready for LLM
+        """
+        char_list = ", ".join(character_names) if character_names else "Unknown"
+        player_list = ", ".join(player_names) if player_names else "Unknown"
+
+        return self.prompt_template.format(
+            char_list=char_list,
+            player_list=player_list,
+            prev_text=prev_text,
+            current_text=current_text,
+            next_text=next_text
+        )
+
+    def _parse_response(
+        self,
+        response: str,
+        index: int
+    ) -> ClassificationResult:
+        """
+        Parse LLM response into ClassificationResult.
+
+        This default implementation parses responses in the format:
+        - Classificatie: IC|OOC|MIXED
+        - Reden: <reasoning text>
+        - Vertrouwen: <confidence value 0.0-1.0>
+        - Personage: <character name or N/A>
+
+        The field names are language-specific (Dutch by default).
+        Subclasses can override this method to support different formats
+        or languages.
+
+        Args:
+            response: Raw response text from LLM
+            index: Segment index for logging purposes
+
+        Returns:
+            ClassificationResult with parsed values
+        """
+        classification = Classification.IN_CHARACTER
+        confidence = ConfidenceDefaults.DEFAULT
+        reasoning = "Could not parse response"
+        character = None
+
+        lines = response.strip().split('\n')
+        for line in lines:
+            line = line.strip()
+            if line.startswith("Classificatie:"):
+                class_text = line.split(":", 1)[1].strip().upper()
+                try:
+                    classification = Classification(class_text)
+                except ValueError:
+                    self.logger.warning(
+                        "Invalid classification '%s' for segment %s, defaulting to IC",
+                        class_text,
+                        index
+                    )
+                    classification = Classification.IN_CHARACTER
+            elif line.startswith("Reden:"):
+                reasoning = line.split(":", 1)[1].strip()
+            elif line.startswith("Vertrouwen:"):
+                try:
+                    conf_text = line.split(":", 1)[1].strip()
+                    confidence = float(conf_text)
+                    confidence = ConfidenceDefaults.clamp(confidence)
+                except ValueError:
+                    pass
+            elif line.startswith("Personage:"):
+                char_text = line.split(":", 1)[1].strip()
+                if char_text.upper() != "N/A":
+                    character = char_text
+
+        return ClassificationResult(
+            segment_index=index,
+            classification=classification,
+            confidence=confidence,
+            reasoning=reasoning,
+            character=character
+        )
+
 
 class OllamaClassifier(BaseClassifier):
     """IC/OOC classifier using local Ollama LLM."""
@@ -191,26 +295,6 @@ class OllamaClassifier(BaseClassifier):
             )
 
         return self._parse_response(response_text, index)
-
-    def _build_prompt(
-        self,
-        prev_text: str,
-        current_text: str,
-        next_text: str,
-        character_names: List[str],
-        player_names: List[str]
-    ) -> str:
-        """Build classification prompt from the template."""
-        char_list = ", ".join(character_names) if character_names else "Unknown"
-        player_list = ", ".join(player_names) if player_names else "Unknown"
-
-        return self.prompt_template.format(
-            char_list=char_list,
-            player_list=player_list,
-            prev_text=prev_text,
-            current_text=current_text,
-            next_text=next_text
-        )
 
     def _generate_with_retry(self, prompt: str, index: int) -> Optional[str]:
         try:
@@ -409,53 +493,6 @@ class OllamaClassifier(BaseClassifier):
 
         return None
 
-    def _parse_response(
-        self,
-        response: str,
-        index: int
-    ) -> ClassificationResult:
-        """Parse LLM response into ClassificationResult."""
-        classification = Classification.IN_CHARACTER
-        confidence = ConfidenceDefaults.DEFAULT
-        reasoning = "Could not parse response"
-        character = None
-
-        lines = response.strip().split('\n')
-        for line in lines:
-            line = line.strip()
-            if line.startswith("Classificatie:"):
-                class_text = line.split(":", 1)[1].strip().upper()
-                try:
-                    classification = Classification(class_text)
-                except ValueError:
-                    self.logger.warning(
-                        "Invalid classification '%s' for segment %s, defaulting to IC",
-                        class_text,
-                        index
-                    )
-                    classification = Classification.IN_CHARACTER
-            elif line.startswith("Reden:"):
-                reasoning = line.split(":", 1)[1].strip()
-            elif line.startswith("Vertrouwen:"):
-                try:
-                    conf_text = line.split(":", 1)[1].strip()
-                    confidence = float(conf_text)
-                    confidence = ConfidenceDefaults.clamp(confidence)
-                except ValueError:
-                    pass
-            elif line.startswith("Personage:"):
-                char_text = line.split(":", 1)[1].strip()
-                if char_text.upper() != "N/A":
-                    character = char_text
-
-        return ClassificationResult(
-            segment_index=index,
-            classification=classification,
-            confidence=confidence,
-            reasoning=reasoning,
-            character=character
-        )
-
 
 class GroqClassifier(BaseClassifier):
     """IC/OOC classifier using the Groq API."""
@@ -485,6 +522,37 @@ class GroqClassifier(BaseClassifier):
             period=Config.GROQ_RATE_LIMIT_PERIOD_SECONDS,
             burst_size=Config.GROQ_RATE_LIMIT_BURST,
         )
+
+    def preflight_check(self):
+        """Check that Groq API is accessible and configured."""
+        issues = []
+
+        if not self.api_key:
+            issues.append(
+                PreflightIssue(
+                    component="classifier",
+                    message="Groq API key not configured. Set GROQ_API_KEY in .env",
+                    severity="error",
+                )
+            )
+            return issues
+
+        # Test API connectivity with a simple request
+        try:
+            test_response = self.client.chat.completions.create(
+                messages=[{"role": "user", "content": "test"}],
+                model=self.model,
+            )
+        except Exception as exc:
+            issues.append(
+                PreflightIssue(
+                    component="classifier",
+                    message=f"Groq API test failed: {exc}",
+                    severity="error",
+                )
+            )
+
+        return issues
 
     def classify_segments(
         self,
@@ -546,72 +614,6 @@ class GroqClassifier(BaseClassifier):
         message = str(exc).lower()
         return "rate_limit" in message or "429" in message
 
-    def _build_prompt(
-        self,
-        prev_text: str,
-        current_text: str,
-        next_text: str,
-        character_names: List[str],
-        player_names: List[str]
-    ) -> str:
-        """Build classification prompt from the template."""
-        char_list = ", ".join(character_names) if character_names else "Unknown"
-        player_list = ", ".join(player_names) if player_names else "Unknown"
-
-        return self.prompt_template.format(
-            char_list=char_list,
-            player_list=player_list,
-            prev_text=prev_text,
-            current_text=current_text,
-            next_text=next_text
-        )
-
-    def _parse_response(
-        self,
-        response: str,
-        index: int
-    ) -> ClassificationResult:
-        """Parse LLM response into ClassificationResult."""
-        classification = Classification.IN_CHARACTER
-        confidence = ConfidenceDefaults.DEFAULT
-        reasoning = "Could not parse response"
-        character = None
-
-        lines = response.strip().split('\n')
-        for line in lines:
-            line = line.strip()
-            if line.startswith("Classificatie:"):
-                class_text = line.split(":", 1)[1].strip().upper()
-                try:
-                    classification = Classification(class_text)
-                except ValueError:
-                    self.logger.warning(
-                        "Invalid classification '%s' for segment %s, defaulting to IC",
-                        class_text,
-                        index
-                    )
-                    classification = Classification.IN_CHARACTER
-            elif line.startswith("Reden:"):
-                reasoning = line.split(":", 1)[1].strip()
-            elif line.startswith("Vertrouwen:"):
-                try:
-                    conf_text = line.split(":", 1)[1].strip()
-                    confidence = float(conf_text)
-                    confidence = ConfidenceDefaults.clamp(confidence)
-                except ValueError:
-                    pass
-            elif line.startswith("Personage:"):
-                char_text = line.split(":", 1)[1].strip()
-                if char_text.upper() != "N/A":
-                    character = char_text
-
-        return ClassificationResult(
-            segment_index=index,
-            classification=classification,
-            confidence=confidence,
-            reasoning=reasoning,
-            character=character
-        )
 
 class ClassifierFactory:
     """Factory to create appropriate classifier."""

@@ -57,6 +57,23 @@ class TestSpeakerDiarizer:
         assert dummy_result.shape == (2,)
         assert np.allclose(dummy_result, [0.7, 0.8])
 
+    def test_run_embedding_inference_falls_back_to_cpu(self, diarizer):
+        mock_model = MagicMock()
+        mock_model.to.return_value = mock_model
+        mock_model.side_effect = [
+            RuntimeError("CUDA error: an illegal memory access was encountered"),
+            torch.tensor([[0.5, 0.1]], dtype=torch.float32)
+        ]
+        diarizer.embedding_model = mock_model
+        diarizer.embedding_device = "cuda"
+        waveform = torch.zeros((1, 10), dtype=torch.float32)
+
+        result = diarizer._run_embedding_inference(waveform, 16000)
+
+        assert torch.allclose(result, torch.tensor([[0.5, 0.1]], dtype=torch.float32))
+        assert diarizer.embedding_device == "cpu"
+        assert mock_model.call_count == 2
+
     @patch('pydub.AudioSegment')
     @patch.dict('sys.modules', {'torchaudio': None})
     def test_diarize_successful_pipeline(self, MockAudioSegment, diarizer, tmp_path):

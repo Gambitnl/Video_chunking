@@ -438,7 +438,7 @@ class OllamaClassifier(BaseClassifier):
 class GroqClassifier(BaseClassifier):
     """IC/OOC classifier using the Groq API."""
 
-    def __init__(self, api_key: str = None, model: str = "llama3-8b-8192"):
+    def __init__(self, api_key: str = None, model: str = "llama-3.3-70b-versatile"):
         from groq import Groq
         self.api_key = api_key or Config.GROQ_API_KEY
         if not self.api_key:

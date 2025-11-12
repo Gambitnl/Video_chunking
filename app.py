@@ -53,6 +53,7 @@ from src.google_drive_auth import (
     revoke_credentials,
     authenticate_automatically
 )
+from src.restart_manager import RestartManager
 
 
 def ui_load_api_keys() -> Tuple[str, str, str]:
@@ -78,6 +79,32 @@ def ui_save_api_keys(groq_api_key: str, hugging_face_api_key: str) -> str:
     except Exception as e:
         logger.exception("Failed to save API keys from UI")
         return StatusMessages.error("API Keys", f"Failed to save API keys: {e}")
+
+
+def ui_restart_application() -> str:
+    """UI handler for application restart."""
+    logger.info("Restart requested from UI")
+    log_audit_event(
+        "ui.app.restart",
+        actor="ui",
+        source="gradio",
+        metadata={"restart_method": "ui_button"},
+    )
+
+    success = RestartManager.restart_application(delay_seconds=2.0)
+
+    if success:
+        return StatusMessages.success(
+            "Restart Initiated",
+            "Application is restarting... The page will reload automatically.",
+            "Wait a few seconds, then refresh your browser if needed."
+        )
+    else:
+        return StatusMessages.error(
+            "Restart Failed",
+            "Could not initiate automatic restart.",
+            RestartManager.get_restart_instructions()
+        )
 
 
 PROJECT_ROOT = Path(__file__).resolve().parent
@@ -1179,6 +1206,11 @@ with gr.Blocks(
         fn=_apply_console_log_level,
         inputs=settings_tab_refs["log_level_dropdown"],
         outputs=settings_tab_refs["log_level_status"],
+    )
+
+    settings_tab_refs["restart_app_btn"].click(
+        fn=ui_restart_application,
+        outputs=settings_tab_refs["restart_status"],
     )
 
     load_campaign_btn.click(

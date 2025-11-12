@@ -1,0 +1,147 @@
+name: API Integration Tests
+
+on:
+  # Run on pushes to main and feature branches
+  push:
+    branches:
+      - main
+      - 'feature-*'
+    paths:
+      - 'src/classifier.py'
+      - 'src/transcriber.py'
+      - 'tests/integration/**'
+      - 'test_api_keys.py'
+      - '.github/workflows/api-integration-tests.yml'
+
+  # Run on pull requests
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'src/classifier.py'
+      - 'src/transcriber.py'
+      - 'tests/integration/**'
+      - 'test_api_keys.py'
+
+  # Allow manual trigger
+  workflow_dispatch:
+
+  # Run weekly to catch API deprecations
+  schedule:
+    - cron: '0 0 * * 0'  # Every Sunday at midnight UTC
+
+jobs:
+  api-validation:
+    name: Validate API Keys and Models
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+          pip install pytest pytest-cov
+
+      - name: Run API key validation script
+        env:
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          HUGGING_FACE_API_KEY: ${{ secrets.HUGGING_FACE_API_KEY }}
+        run: |
+          python test_api_keys.py
+        continue-on-error: false
+
+  integration-tests:
+    name: Run Integration Tests
+    runs-on: ubuntu-latest
+    needs: api-validation  # Only run if API validation passes
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+          pip install pytest pytest-cov
+
+      - name: Run integration tests
+        env:
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          HUGGING_FACE_API_KEY: ${{ secrets.HUGGING_FACE_API_KEY }}
+        run: |
+          pytest tests/integration/test_api_integration.py -m integration -v --tb=short
+        continue-on-error: false
+
+      - name: Report integration test results
+        if: always()
+        run: |
+          echo "Integration tests completed"
+          echo "Check logs above for details"
+
+  model-deprecation-check:
+    name: Check for Model Deprecations
+    runs-on: ubuntu-latest
+    needs: api-validation
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+          pip install pytest
+
+      - name: Check for decommissioned models
+        env:
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+        run: |
+          pytest tests/integration/test_api_integration.py::TestModelDeprecation -v --tb=short
+        continue-on-error: false
+
+      - name: Create issue if models deprecated
+        if: failure()
+        uses: actions/github-script@v6
+        with:
+          script: |
+            github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: '⚠️ Groq Model Deprecation Detected',
+              body: `## Model Deprecation Warning
+
+              The automated model deprecation check has detected that one or more Groq models used in the codebase have been deprecated.
+
+              **Action Required:**
+              1. Check the workflow logs for details
+              2. Update model names in:
+                 - \`src/classifier.py\` (GroqClassifier)
+                 - \`src/transcriber.py\` (GroqTranscriber)
+                 - \`test_api_keys.py\`
+              3. Update documentation in \`CLOUD_INFERENCE_OPTIONS.md\`
+              4. Run tests locally to verify
+
+              **Resources:**
+              - [Groq Model Documentation](https://console.groq.com/docs/models)
+              - [Groq Deprecation Policy](https://console.groq.com/docs/deprecations)
+
+              This issue was automatically created by the API Integration Tests workflow.`,
+              labels: ['bug', 'api', 'urgent']
+            })

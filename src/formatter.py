@@ -74,7 +74,7 @@ class TranscriptFormatter:
                 speaker_label = f"{speaker} as {classif.character}"
 
             # Add classification marker
-            marker = classif.classification.value
+            marker = classif.classification
 
             # Format line
             line = f"[{timestamp}] {speaker_label} ({marker}): {seg['text']}"
@@ -187,7 +187,7 @@ class TranscriptFormatter:
                 "text": seg['text'],
                 "speaker_id": speaker,
                 "speaker_name": person_name,
-                "classification": classif.classification.value,
+                "classification": classif.classification,
                 "classification_confidence": classif.confidence,
                 "classification_reasoning": classif.reasoning,
                 "character": classif.character,

@@ -5,7 +5,7 @@ from time import perf_counter
 from typing import Optional, List, Dict, Tuple, Any
 from datetime import datetime
 from .config import Config
-from .constants import PipelineStage, ProcessingStatus
+from .constants import PipelineStage, ProcessingStatus, Classification, ConfidenceDefaults
 from .checkpoint import CheckpointManager
 from .audio_processor import AudioProcessor
 from .chunker import HybridChunker, AudioChunk
@@ -274,11 +274,11 @@ class DDSessionProcessor:
                 )
             else:
                 self.logger.info("Stage 1/9: Converting audio to optimal format...")
-                StatusTracker.update_stage(self.session_id, 1, "running", "Converting source audio")
+                StatusTracker.update_stage(self.session_id, 1, ProcessingStatus.RUNNING, "Converting source audio")
                 wav_file = self.audio_processor.convert_to_wav(input_file)
                 duration = self.audio_processor.get_duration(wav_file)
                 StatusTracker.update_stage(
-                    self.session_id, 1, "completed", f"Duration {duration:.1f}s"
+                    self.session_id, 1, ProcessingStatus.COMPLETED, f"Duration {duration:.1f}s"
                 )
                 completed_stages.add(PipelineStage.AUDIO_CONVERTED)
                 self.checkpoint_manager.save(
@@ -306,7 +306,7 @@ class DDSessionProcessor:
                 if chunks:
                     self.logger.info("Stage 2/9: Using audio chunks from checkpoint (%d chunks)", len(chunks))
                     StatusTracker.update_stage(
-                        self.session_id, 2, "completed", f"Loaded {len(chunks)} chunks (checkpoint)"
+                        self.session_id, 2, ProcessingStatus.COMPLETED, f"Loaded {len(chunks)} chunks (checkpoint)"
                     )
                 else:
                     self.logger.warning("Checkpoint for audio chunks found but data is empty; re-running chunking")
@@ -358,7 +358,7 @@ class DDSessionProcessor:
                     except Exception as progress_error:
                         self.logger.debug("Chunk progress callback skipped: %s", progress_error)
 
-                StatusTracker.update_stage(self.session_id, 2, "running", "Detecting speech regions")
+                StatusTracker.update_stage(self.session_id, 2, ProcessingStatus.RUNNING, "Detecting speech regions")
                 chunks = self.chunker.chunk_audio(wav_file, progress_callback=_chunk_progress_callback)
                 if not chunks:
                     if not self.is_test_run:
@@ -369,7 +369,7 @@ class DDSessionProcessor:
                     # For test runs, we might want to continue with an empty list of chunks
                     self.logger.warning("Chunker returned no segments; continuing with downstream mocks for test run.")
                 StatusTracker.update_stage(
-                    self.session_id, 2, "completed", f"Created {len(chunks)} chunks"
+                    self.session_id, 2, ProcessingStatus.COMPLETED, f"Created {len(chunks)} chunks"
                 )
                 self.logger.info("Stage 2/9 complete: %d chunks created", len(chunks))
                 completed_stages.add(PipelineStage.AUDIO_CHUNKED)
@@ -424,7 +424,7 @@ class DDSessionProcessor:
                         len(chunk_transcriptions)
                     )
                     StatusTracker.update_stage(
-                        self.session_id, 3, "completed", f"Loaded {len(chunk_transcriptions)} chunk transcriptions (checkpoint)"
+                        self.session_id, 3, ProcessingStatus.COMPLETED, f"Loaded {len(chunk_transcriptions)} chunk transcriptions (checkpoint)"
                     )
                 elif PipelineStage.AUDIO_TRANSCRIBED in completed_stages:
                     self.logger.warning("Checkpoint for chunk transcriptions found but data is empty; re-running transcription")
@@ -433,7 +433,7 @@ class DDSessionProcessor:
             if PipelineStage.AUDIO_TRANSCRIBED not in completed_stages:
                 self.logger.info("Stage 3/9: Transcribing chunks (this may take a while)...")
                 StatusTracker.update_stage(
-                    self.session_id, 3, "running", f"Transcribing {len(chunks)} chunks"
+                    self.session_id, 3, ProcessingStatus.RUNNING, f"Transcribing {len(chunks)} chunks"
                 )
                 total_chunks = len(chunks)
                 log_every = max(1, total_chunks // 10)
@@ -474,7 +474,7 @@ class DDSessionProcessor:
                             round(percent, 1),
                         )
                 StatusTracker.update_stage(
-                    self.session_id, 3, "completed", f"Received {len(chunk_transcriptions)} chunk transcriptions"
+                    self.session_id, 3, ProcessingStatus.COMPLETED, f"Received {len(chunk_transcriptions)} chunk transcriptions"
                 )
                 self.logger.info("Stage 3/9 complete: transcription finished")
                 completed_stages.add(PipelineStage.AUDIO_TRANSCRIBED)
@@ -516,7 +516,7 @@ class DDSessionProcessor:
                     merged_segments = [TranscriptionSegment.from_dict(msd) for msd in merged_segments_data]
                     self.logger.info("Stage 4/9: Using merged segments from checkpoint (%d segments)", len(merged_segments))
                     StatusTracker.update_stage(
-                        self.session_id, 4, "completed", f"Loaded {len(merged_segments)} merged segments (checkpoint)"
+                        self.session_id, 4, ProcessingStatus.COMPLETED, f"Loaded {len(merged_segments)} merged segments (checkpoint)"
                     )
                 elif PipelineStage.TRANSCRIPTION_MERGED in completed_stages:
                     self.logger.warning("Checkpoint for merged segments found but data is empty; re-running merging")
@@ -524,10 +524,10 @@ class DDSessionProcessor:
 
             if PipelineStage.TRANSCRIPTION_MERGED not in completed_stages:
                 self.logger.info("Stage 4/9: Merging overlapping chunks...")
-                StatusTracker.update_stage(self.session_id, 4, "running", "Aligning overlapping transcripts")
+                StatusTracker.update_stage(self.session_id, 4, ProcessingStatus.RUNNING, "Aligning overlapping transcripts")
                 merged_segments = self.merger.merge_transcriptions(chunk_transcriptions)
                 StatusTracker.update_stage(
-                    self.session_id, 4, "completed", f"Merged into {len(merged_segments)} segments"
+                    self.session_id, 4, ProcessingStatus.COMPLETED, f"Merged into {len(merged_segments)} segments"
                 )
                 self.logger.info("Stage 4/9 complete: %d merged segments", len(merged_segments))
                 completed_stages.add(PipelineStage.TRANSCRIPTION_MERGED)
@@ -569,7 +569,7 @@ class DDSessionProcessor:
                     speaker_segments_with_labels = speaker_data
                     self.logger.info("Stage 5/9: Using speaker segments from checkpoint (%d segments)", len(speaker_segments_with_labels))
                     StatusTracker.update_stage(
-                        self.session_id, 5, "completed", f"Loaded {len(speaker_segments_with_labels)} speaker segments (checkpoint)"
+                        self.session_id, 5, ProcessingStatus.COMPLETED, f"Loaded {len(speaker_segments_with_labels)} speaker segments (checkpoint)"
                     )
                 elif PipelineStage.SPEAKER_DIARIZED in completed_stages:
                     self.logger.warning("Checkpoint for speaker segments found but data is empty; re-running diarization")
@@ -578,7 +578,7 @@ class DDSessionProcessor:
             if PipelineStage.SPEAKER_DIARIZED not in completed_stages:
                 if not skip_diarization:
                     self.logger.info("Stage 5/9: Speaker diarization...")
-                    StatusTracker.update_stage(self.session_id, 5, "running", "Performing speaker diarization")
+                    StatusTracker.update_stage(self.session_id, 5, ProcessingStatus.RUNNING, "Performing speaker diarization")
                     try:
                         speaker_segments, speaker_embeddings = self.diarizer.diarize(wav_file)
                         speaker_segments_with_labels = self.diarizer.assign_speakers_to_transcription(
@@ -615,7 +615,7 @@ class DDSessionProcessor:
                             for seg in merged_segments
                         ]
                 else:
-                    StatusTracker.update_stage(self.session_id, 5, "skipped", "Speaker diarization skipped")
+                    StatusTracker.update_stage(self.session_id, 5, ProcessingStatus.SKIPPED, "Speaker diarization skipped")
                     speaker_segments_with_labels = [
                         {
                             'text': seg.text,
@@ -666,7 +666,7 @@ class DDSessionProcessor:
                     classifications = [ClassificationResult.from_dict(cd) for cd in classifications_data]
                     self.logger.info("Stage 6/9: Using classifications from checkpoint (%d classifications)", len(classifications))
                     StatusTracker.update_stage(
-                        self.session_id, 6, "completed", f"Loaded {len(classifications)} classifications (checkpoint)"
+                        self.session_id, 6, ProcessingStatus.COMPLETED, f"Loaded {len(classifications)} classifications (checkpoint)"
                     )
                 elif PipelineStage.SEGMENTS_CLASSIFIED in completed_stages:
                     self.logger.warning("Checkpoint for classifications found but data is empty; re-running classification")
@@ -675,7 +675,7 @@ class DDSessionProcessor:
             if PipelineStage.SEGMENTS_CLASSIFIED not in completed_stages:
                 if not skip_classification:
                     self.logger.info("Stage 6/9: IC/OOC classification...")
-                    StatusTracker.update_stage(self.session_id, 6, "running", "Classifying IC/OOC segments")
+                    StatusTracker.update_stage(self.session_id, 6, ProcessingStatus.RUNNING, "Classifying IC/OOC segments")
                     try:
                         classifications = self.classifier.classify_segments(
                             speaker_segments_with_labels,
@@ -707,19 +707,19 @@ class DDSessionProcessor:
                         classifications = [
                             ClassificationResult(
                                 segment_index=i,
-                                classification="IC",
-                                confidence=0.5,
+                                classification=Classification.IN_CHARACTER,
+                                confidence=ConfidenceDefaults.DEFAULT,
                                 reasoning="Classification skipped due to error"
                             )
                             for i in range(len(speaker_segments_with_labels))
                         ]
                 else:
-                    StatusTracker.update_stage(self.session_id, 6, "skipped", "IC/OOC classification skipped")
+                    StatusTracker.update_stage(self.session_id, 6, ProcessingStatus.SKIPPED, "IC/OOC classification skipped")
                     classifications = [
                         ClassificationResult(
                             segment_index=i,
-                            classification="IC",
-                            confidence=0.5,
+                            classification=Classification.IN_CHARACTER,
+                            confidence=ConfidenceDefaults.DEFAULT,
                             reasoning="Classification skipped"
                         )
                         for i in range(len(speaker_segments_with_labels))
@@ -771,7 +771,7 @@ class DDSessionProcessor:
 
             if PipelineStage.OUTPUTS_GENERATED not in completed_stages:
                 self.logger.info("Stage 7/9: Generating transcript outputs...")
-                StatusTracker.update_stage(self.session_id, 7, "running", "Rendering transcripts")
+                StatusTracker.update_stage(self.session_id, 7, ProcessingStatus.RUNNING, "Rendering transcripts")
                 for speaker_id in {seg['speaker'] for seg in speaker_segments_with_labels}:
                     person_name = self.speaker_profile_manager.get_person_name(self.session_id, speaker_id)
                     if person_name:
@@ -813,7 +813,7 @@ class DDSessionProcessor:
 
                 for format_name, file_path in output_files.items():
                     self.logger.info("Stage 7/9 output generated (%s): %s", format_name, file_path)
-                StatusTracker.update_stage(self.session_id, 7, "completed", "Transcript outputs saved")
+                StatusTracker.update_stage(self.session_id, 7, ProcessingStatus.COMPLETED, "Transcript outputs saved")
                 completed_stages.add(PipelineStage.OUTPUTS_GENERATED)
                 self.checkpoint_manager.save(
                     PipelineStage.OUTPUTS_GENERATED,
@@ -849,10 +849,10 @@ class DDSessionProcessor:
             if PipelineStage.AUDIO_SEGMENTS_EXPORTED not in completed_stages:
                 if skip_snippets:
                     self.logger.info("Stage 8/9: Audio segment export skipped")
-                    StatusTracker.update_stage(self.session_id, 8, "skipped", "Snippet export skipped")
+                    StatusTracker.update_stage(self.session_id, 8, ProcessingStatus.SKIPPED, "Snippet export skipped")
                 else:
                     self.logger.info("Stage 8/9: Exporting audio segments...")
-                    StatusTracker.update_stage(self.session_id, 8, "running", "Writing per-segment audio clips")
+                    StatusTracker.update_stage(self.session_id, 8, ProcessingStatus.RUNNING, "Writing per-segment audio clips")
                     try:
                         manifest_path = self.snipper.initialize_manifest(segments_output_base / self.safe_session_id)
                         for i, segment in enumerate(speaker_segments_with_labels):
@@ -867,7 +867,7 @@ class DDSessionProcessor:
                         segments_dir = segments_output_base / self.safe_session_id
                         self.logger.info("Stage 8/9 complete: segments stored in %s", segments_dir)
                         StatusTracker.update_stage(
-                            self.session_id, 8, "completed", f"Exported {len(speaker_segments_with_labels)} clips"
+                            self.session_id, 8, ProcessingStatus.COMPLETED, f"Exported {len(speaker_segments_with_labels)} clips"
                         )
                         segment_export = {
                             'segments_dir': str(segments_dir),
@@ -876,7 +876,7 @@ class DDSessionProcessor:
 
                     except Exception as export_error:
                         self.logger.warning("Audio segment export failed: %s", export_error)
-                        StatusTracker.update_stage(self.session_id, 8, "failed", f"Export failed: {export_error}")
+                        StatusTracker.update_stage(self.session_id, 8, ProcessingStatus.FAILED, f"Export failed: {export_error}")
                         segment_export = {
                             'segments_dir': None,
                             'manifest': None
@@ -910,10 +910,10 @@ class DDSessionProcessor:
             if PipelineStage.KNOWLEDGE_EXTRACTED not in completed_stages:
                 if skip_knowledge:
                     self.logger.info("Stage 9/9: Campaign knowledge extraction skipped")
-                    StatusTracker.update_stage(self.session_id, 9, "skipped", "Knowledge extraction skipped")
+                    StatusTracker.update_stage(self.session_id, 9, ProcessingStatus.SKIPPED, "Knowledge extraction skipped")
                 else:
                     self.logger.info("Stage 9/9: Extracting campaign knowledge from IC transcript...")
-                    StatusTracker.update_stage(self.session_id, 9, "running", "Analyzing IC transcript for entities")
+                    StatusTracker.update_stage(self.session_id, 9, ProcessingStatus.RUNNING, "Analyzing IC transcript for entities")
                     try:
                         # Initialize knowledge extraction components
                         extractor = KnowledgeExtractor()

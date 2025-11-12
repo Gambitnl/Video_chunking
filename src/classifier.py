@@ -132,32 +132,39 @@ class BaseClassifier(ABC):
 
         lines = response.strip().split('\n')
         for line in lines:
-            line = line.strip()
-            if line.startswith("Classificatie:"):
-                class_text = line.split(":", 1)[1].strip().upper()
+            parts = line.strip().split(":", 1)
+            if len(parts) != 2:
+                continue
+
+            key, value = parts[0].strip(), parts[1].strip()
+
+            if key == "Classificatie":
                 try:
-                    classification = Classification(class_text)
+                    classification = Classification(value.upper())
                 except ValueError:
                     if hasattr(self, 'logger'):
                         self.logger.warning(
                             "Invalid classification '%s' for segment %s, defaulting to IC",
-                            class_text,
+                            value,
                             index
                         )
                     classification = Classification.IN_CHARACTER
-            elif line.startswith("Reden:"):
-                reasoning = line.split(":", 1)[1].strip()
-            elif line.startswith("Vertrouwen:"):
+            elif key == "Reden":
+                reasoning = value
+            elif key == "Vertrouwen":
                 try:
-                    conf_text = line.split(":", 1)[1].strip()
-                    confidence = float(conf_text)
+                    confidence = float(value)
                     confidence = ConfidenceDefaults.clamp(confidence)
                 except ValueError:
-                    pass
-            elif line.startswith("Personage:"):
-                char_text = line.split(":", 1)[1].strip()
-                if char_text.upper() != "N/A":
-                    character = char_text
+                    if hasattr(self, 'logger'):
+                        self.logger.warning(
+                            "Invalid confidence value '%s' for segment %s, using default",
+                            value,
+                            index
+                        )
+            elif key == "Personage":
+                if value.upper() != "N/A":
+                    character = value
 
         return ClassificationResult(
             segment_index=index,

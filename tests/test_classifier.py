@@ -23,11 +23,14 @@ from src.constants import Classification, ConfidenceDefaults
 
 @pytest.fixture
 def mock_ollama_client():
-    """Fixture to mock the ollama.Client and its methods."""
-    with patch('ollama.Client') as MockClient:
-        mock_instance = MockClient.return_value
-        mock_instance.list.return_value = True  # Simulate successful connection
-        yield mock_instance
+    """Fixture to mock the OllamaClientFactory and its methods."""
+    with patch('src.classifier.OllamaClientFactory') as MockFactory:
+        mock_factory_instance = MockFactory.return_value
+        mock_client = MagicMock()
+        mock_client.list.return_value = {'models': []}  # Simulate successful connection
+        mock_factory_instance.create_client.return_value = mock_client
+        mock_factory_instance.test_model_available.return_value = True
+        yield mock_client
 
 @pytest.fixture
 def mock_prompt_file():
@@ -59,8 +62,10 @@ class TestClassifierFactory:
 class TestOllamaClassifier:
 
     def test_init_raises_error_on_connection_failure(self, mock_prompt_file):
-        with patch('ollama.Client') as MockClient:
-            MockClient.return_value.list.side_effect = Exception("Connection failed")
+        with patch('src.classifier.OllamaClientFactory') as MockFactory:
+            from src.llm_factory import OllamaConnectionError
+            mock_factory_instance = MockFactory.return_value
+            mock_factory_instance.create_client.side_effect = OllamaConnectionError("Connection failed")
             with pytest.raises(RuntimeError, match="Could not connect to Ollama"):
                 OllamaClassifier()
 

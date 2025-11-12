@@ -11,40 +11,12 @@ from src.party_config import PartyConfigManager
 from src.file_tracker import FileProcessingTracker
 from src.ui.constants import StatusIndicators as SI
 from src.ui.helpers import InfoText, Placeholders, StatusMessages, UIComponents
+from src.ui.process_session_components import ProcessSessionTabBuilder
 from src.status_tracker import StatusTracker
 
 
 ALLOWED_AUDIO_EXTENSIONS: Tuple[str, ...] = (".m4a", ".mp3", ".wav", ".flac")
 SESSION_ID_PATTERN = re.compile(r"^[A-Za-z0-9_-]+$")
-
-
-def create_workflow_header() -> gr.HTML:
-    """Create a visual workflow stepper."""
-    return gr.HTML(
-        """
-        <div class="stepper">
-            <div class="step active">
-                <div class="step-number">1</div>
-                <div class="step-label">Upload</div>
-                <div class="step-connector"></div>
-            </div>
-            <div class="step">
-                <div class="step-number">2</div>
-                <div class="step-label">Configure</div>
-                <div class="step-connector"></div>
-            </div>
-            <div class="step">
-                <div class="step-number">3</div>
-                <div class="step-label">Process</div>
-                <div class="step-connector"></div>
-            </div>
-            <div class="step">
-                <div class="step-number">4</div>
-                <div class="step-label">Review</div>
-            </div>
-        </div>
-        """
-    )
 
 
 def create_process_session_tab_modern(
@@ -99,191 +71,49 @@ def create_process_session_tab_modern(
                 )
 
     with gr.Tab("Process Session"):
-        create_workflow_header()
-
-        gr.Markdown(
-            """
-            # Process Session Recording
-
-            Upload an audio file, apply campaign defaults, and run the pipeline.
-            """
+        # Use ProcessSessionTabBuilder to create all UI components
+        tab_builder = ProcessSessionTabBuilder(
+            available_parties=available_parties,
+            initial_defaults=initial_defaults,
+            campaign_badge_text=campaign_badge_text,
         )
 
-    badge_value = campaign_badge_text or StatusMessages.info(
-        "Campaign",
-        "No campaign selected. Use the Campaign Launcher above to choose one."
-    )
-    campaign_badge = gr.Markdown(value=badge_value)
+        # Build all components using the builder
+        component_refs = tab_builder.build_ui_components()
 
-    with gr.Group():
-        gr.Markdown("### Step 1: Upload Audio")
-        audio_input = gr.File(
-            label="Session Audio File",
-            file_types=[".m4a", ".mp3", ".wav", ".flac"],
-        )
-
-        file_warning_display = gr.Markdown(
-            value="",
-            visible=False,
-        )
-
-    with gr.Group():
-        gr.Markdown("### Step 2: Configure Session")
-
-        session_id_input = gr.Textbox(
-            label="Session ID",
-            placeholder=Placeholders.SESSION_ID,
-            info=InfoText.SESSION_ID,
-        )
-
-        with gr.Row():
-            party_selection_input = gr.Dropdown(
-                label="Party Configuration",
-                choices=available_parties,
-                value=initial_defaults.get("party_selection") or "Manual Entry",
-                info="Select an existing party profile or choose Manual Entry.",
-            )
-
-        party_characters_display = gr.Markdown(
-            value="",
-            visible=False,
-        )
-
-        with gr.Row():
-            num_speakers_input = gr.Slider(
-                minimum=2,
-                maximum=10,
-                value=initial_defaults.get("num_speakers", 4),
-                step=1,
-                label="Expected Speakers",
-                info="Helps diarization accuracy. Typical table is 3 players + 1 DM.",
-            )
-
-            language_input = gr.Dropdown(
-                label="Language",
-                choices=["en", "nl"],
-                value="nl",
-                info="Select the language spoken in the session.",
-            )
-
-            character_names_input = gr.Textbox(
-                label="Character Names (comma-separated)",
-                placeholder=Placeholders.CHARACTER_NAME,
-                info="Used when Manual Entry is selected.",
-            )
-
-            player_names_input = gr.Textbox(
-                label="Player Names (comma-separated)",
-                placeholder=Placeholders.PLAYER_NAME,
-                info="Optional player name mapping for manual entry.",
-            )
-
-        with gr.Accordion("Advanced Backend Settings", open=False):
-            transcription_backend_input = gr.Dropdown(
-                label="Transcription Backend",
-                choices=["whisper", "groq"],
-                value="whisper",
-                info="Use local Whisper or cloud Groq API.",
-            )
-            diarization_backend_input = gr.Dropdown(
-                label="Diarization Backend",
-                choices=["pyannote", "hf_api"],
-                value="pyannote",
-                info="Use local PyAnnote or cloud Hugging Face API.",
-            )
-            classification_backend_input = gr.Dropdown(
-                label="Classification Backend",
-                choices=["ollama", "groq"],
-                value="ollama",
-                info="Use local Ollama or cloud Groq API.",
-            )
-
-        with gr.Row():
-                skip_diarization_input = gr.Checkbox(
-                    label="Skip Speaker Identification",
-                    value=initial_defaults.get("skip_diarization", False),
-                    info="Saves time but all segments will be UNKNOWN.",
-                )
-                skip_classification_input = gr.Checkbox(
-                    label="Skip IC/OOC Classification",
-                    value=initial_defaults.get("skip_classification", False),
-                    info="Disables in-character versus out-of-character separation.",
-                )
-                skip_snippets_input = gr.Checkbox(
-                    label="Skip Snippet Export",
-                    value=initial_defaults.get("skip_snippets", True),
-                    info="Skip exporting WAV snippets to save disk space.",
-                )
-                skip_knowledge_input = gr.Checkbox(
-                    label="Skip Knowledge Extraction",
-                    value=initial_defaults.get("skip_knowledge", False),
-                    info="Disable automatic quest/NPC extraction.",
-                )
-
-        with gr.Group():
-            gr.Markdown("### Step 3: Process")
-
-            preflight_btn = UIComponents.create_action_button(
-                "Run Preflight Checks",
-                variant="secondary",
-                size="md",
-                full_width=True,
-            )
-
-            process_btn = UIComponents.create_action_button(
-                "Start Processing",
-                variant="primary",
-                size="lg",
-                full_width=True,
-            )
-
-            status_output = gr.Markdown(
-                value=StatusMessages.info(
-                    "Ready",
-                    "Provide a session ID and audio file, then click Start Processing."
-                )
-            )
-
-            transcription_progress = gr.Markdown(
-                value="",
-                visible=False,
-            )
-
-            # Enhanced Runtime Updates Section
-            with gr.Accordion("Runtime Updates & Event Log", open=False) as runtime_accordion:
-                gr.Markdown("**Live processing status, stage progress, and detailed event log**")
-
-                # Stage Progress Overview
-                stage_progress_display = gr.Markdown(
-                    value="",
-                    visible=False,
-                )
-
-                # Persistent Event Log
-                event_log_display = gr.Textbox(
-                    label="Event Log",
-                    lines=15,
-                    max_lines=30,
-                    value="",
-                    interactive=False,
-                    show_copy_button=True,
-                    elem_classes=["event-log-textbox"],
-                )
-
-            transcription_timer = gr.Timer(value=2.0, active=True)
-
-        with gr.Group(visible=False, elem_id="process-results-section") as results_section:
-            gr.Markdown("### Step 4: Review Results")
-            full_output = gr.Textbox(label="Full Transcript", lines=10)
-            ic_output = gr.Textbox(label="In-Character Transcript", lines=10)
-            ooc_output = gr.Textbox(label="Out-of-Character Transcript", lines=10)
-            stats_output = gr.Markdown()
-            snippet_output = gr.Markdown()
-
-        # Auto-scroll JavaScript component (hidden, triggers when results appear)
-        scroll_trigger = gr.HTML(visible=False)
-
-        should_process_state = gr.State(value=False)
+        # Extract component references for easier access in event handlers
+        campaign_badge = component_refs["campaign_badge"]
+        audio_input = component_refs["audio_input"]
+        file_warning_display = component_refs["file_warning_display"]
+        session_id_input = component_refs["session_id_input"]
+        party_selection_input = component_refs["party_selection_input"]
+        party_characters_display = component_refs["party_characters_display"]
+        num_speakers_input = component_refs["num_speakers_input"]
+        language_input = component_refs["language_input"]
+        character_names_input = component_refs["character_names_input"]
+        player_names_input = component_refs["player_names_input"]
+        transcription_backend_input = component_refs["transcription_backend_input"]
+        diarization_backend_input = component_refs["diarization_backend_input"]
+        classification_backend_input = component_refs["classification_backend_input"]
+        skip_diarization_input = component_refs["skip_diarization_input"]
+        skip_classification_input = component_refs["skip_classification_input"]
+        skip_snippets_input = component_refs["skip_snippets_input"]
+        skip_knowledge_input = component_refs["skip_knowledge_input"]
+        preflight_btn = component_refs["preflight_btn"]
+        process_btn = component_refs["process_btn"]
+        status_output = component_refs["status_output"]
+        transcription_progress = component_refs["transcription_progress"]
+        stage_progress_display = component_refs["stage_progress_display"]
+        event_log_display = component_refs["event_log_display"]
+        transcription_timer = component_refs["transcription_timer"]
+        results_section = component_refs["results_section"]
+        full_output = component_refs["full_output"]
+        ic_output = component_refs["ic_output"]
+        ooc_output = component_refs["ooc_output"]
+        stats_output = component_refs["stats_output"]
+        snippet_output = component_refs["snippet_output"]
+        scroll_trigger = component_refs["scroll_trigger"]
+        should_process_state = component_refs["should_process_state"]
 
         def _prepare_processing_outputs(
             audio_file,
@@ -927,7 +757,8 @@ def create_process_session_tab_modern(
             queue=False,
         )
 
-    component_refs = {
+    # Return the same structure as before for compatibility with app.py
+    return_refs = {
         "campaign_badge": campaign_badge,
         "preflight_btn": preflight_btn,
         "audio_input": audio_input,
@@ -957,4 +788,4 @@ def create_process_session_tab_modern(
         "classification_backend_input": classification_backend_input,
     }
 
-    return available_parties, component_refs
+    return available_parties, return_refs

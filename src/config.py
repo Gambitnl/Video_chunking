@@ -32,6 +32,23 @@ class Config:
             return default
 
     @staticmethod
+    def get_env_as_float(key: str, default: float) -> float:
+        """Safely get an environment variable as a float."""
+        value = os.getenv(key)
+        if value is None or value.strip() == "":
+            return default
+        try:
+            return float(value)
+        except (ValueError, TypeError):
+            _logger.warning(
+                "Invalid float for %s: %r. Using default %s",
+                key,
+                value,
+                default,
+            )
+            return default
+
+    @staticmethod
     def get_env_as_bool(key: str, default: bool) -> bool:
         """Safely get an environment variable as a boolean."""
         value = os.getenv(key)
@@ -75,6 +92,9 @@ class Config:
     OLLAMA_BASE_URL: str = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
     _fallback_model = os.getenv("OLLAMA_FALLBACK_MODEL", "")
     OLLAMA_FALLBACK_MODEL: Optional[str] = _fallback_model.strip() or None
+    GROQ_MAX_CALLS_PER_SECOND: int = get_env_as_int("GROQ_MAX_CALLS_PER_SECOND", 2)
+    GROQ_RATE_LIMIT_PERIOD_SECONDS: float = get_env_as_float("GROQ_RATE_LIMIT_PERIOD_SECONDS", 1.0)
+    GROQ_RATE_LIMIT_BURST: int = get_env_as_int("GROQ_RATE_LIMIT_BURST", 2)
 
     # Paths
     PROJECT_ROOT: Path = Path(__file__).parent.parent

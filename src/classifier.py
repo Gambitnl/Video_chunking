@@ -9,13 +9,20 @@ from .config import Config
 from .logger import get_logger
 from .preflight import PreflightIssue
 from .retry import retry_with_backoff
+from .constants import Classification, ConfidenceDefaults
+from .rate_limiter import RateLimiter
+
+try:  # Optional dependency for cloud inference
+    from groq import Groq  # type: ignore
+except Exception:  # pragma: no cover - optional import
+    Groq = None
 
 
 @dataclass
 class ClassificationResult:
     """Result of IC/OOC classification for a segment"""
     segment_index: int
-    classification: str  # "IC", "OOC", or "MIXED"
+    classification: Classification  # Classification enum (IC, OOC, or MIXED)
     confidence: float  # 0.0 to 1.0
     reasoning: str
     character: Optional[str] = None  # Character name if IC
@@ -24,7 +31,7 @@ class ClassificationResult:
         """Converts the ClassificationResult to a dictionary for serialization."""
         return {
             "segment_index": self.segment_index,
-            "classification": self.classification,
+            "classification": self.classification.value,  # Serialize as string
             "confidence": self.confidence,
             "reasoning": self.reasoning,
             "character": self.character,
@@ -35,7 +42,7 @@ class ClassificationResult:
         """Creates a ClassificationResult from a dictionary."""
         return cls(
             segment_index=data["segment_index"],
-            classification=data["classification"],
+            classification=Classification(data["classification"]),  # Parse from string
             confidence=data["confidence"],
             reasoning=data["reasoning"],
             character=data.get("character"),
@@ -170,8 +177,8 @@ class OllamaClassifier(BaseClassifier):
         if response_text is None:
             return ClassificationResult(
                 segment_index=index,
-                classification="IC",
-                confidence=0.5,
+                classification=Classification.IN_CHARACTER,
+                confidence=ConfidenceDefaults.DEFAULT,
                 reasoning="Classification failed, defaulted to IC"
             )
 
@@ -400,8 +407,8 @@ class OllamaClassifier(BaseClassifier):
         index: int
     ) -> ClassificationResult:
         """Parse LLM response into ClassificationResult."""
-        classification = "IC"
-        confidence = 0.5
+        classification = Classification.IN_CHARACTER
+        confidence = ConfidenceDefaults.DEFAULT
         reasoning = "Could not parse response"
         character = None
 
@@ -410,15 +417,22 @@ class OllamaClassifier(BaseClassifier):
             line = line.strip()
             if line.startswith("Classificatie:"):
                 class_text = line.split(":", 1)[1].strip().upper()
-                if class_text in ["IC", "OOC", "MIXED"]:
-                    classification = class_text
+                try:
+                    classification = Classification(class_text)
+                except ValueError:
+                    self.logger.warning(
+                        "Invalid classification '%s' for segment %s, defaulting to IC",
+                        class_text,
+                        index
+                    )
+                    classification = Classification.IN_CHARACTER
             elif line.startswith("Reden:"):
                 reasoning = line.split(":", 1)[1].strip()
             elif line.startswith("Vertrouwen:"):
                 try:
                     conf_text = line.split(":", 1)[1].strip()
                     confidence = float(conf_text)
-                    confidence = max(0.0, min(1.0, confidence))
+                    confidence = ConfidenceDefaults.clamp(confidence)
                 except ValueError:
                     pass
             elif line.startswith("Personage:"):
@@ -439,7 +453,8 @@ class GroqClassifier(BaseClassifier):
     """IC/OOC classifier using the Groq API."""
 
     def __init__(self, api_key: str = None, model: str = "llama-3.3-70b-versatile"):
-        from groq import Groq
+        if Groq is None:
+            raise ImportError("groq package is required for GroqClassifier.")
         self.api_key = api_key or Config.GROQ_API_KEY
         if not self.api_key:
             raise ValueError("Groq API key required. Set GROQ_API_KEY in .env")
@@ -456,6 +471,12 @@ class GroqClassifier(BaseClassifier):
                 self.prompt_template = f.read()
         except FileNotFoundError:
             raise RuntimeError(f"Prompt file not found at: {prompt_path}")
+
+        self.rate_limiter = RateLimiter(
+            max_calls=Config.GROQ_MAX_CALLS_PER_SECOND,
+            period=Config.GROQ_RATE_LIMIT_PERIOD_SECONDS,
+            burst_size=Config.GROQ_RATE_LIMIT_BURST,
+        )
 
     def classify_segments(
         self,
@@ -479,19 +500,43 @@ class GroqClassifier(BaseClassifier):
                 self.logger.error(f"Error classifying segment {i} with Groq: {e}")
                 results.append(ClassificationResult(
                     segment_index=i,
-                    classification="IC",
-                    confidence=0.5,
+                    classification=Classification.IN_CHARACTER,
+                    confidence=ConfidenceDefaults.DEFAULT,
                     reasoning="Classification failed, defaulted to IC"
                 ))
         return results
 
     @retry_with_backoff()
     def _make_api_call(self, prompt):
-        chat_completion = self.client.chat.completions.create(
-            messages=[{"role": "user", "content": prompt}],
-            model=self.model,
-        )
+        self.rate_limiter.acquire()
+        try:
+            chat_completion = self.client.chat.completions.create(
+                messages=[{"role": "user", "content": prompt}],
+                model=self.model,
+            )
+        except Exception as exc:
+            if self._is_rate_limit_error(exc):
+                self.logger.warning(
+                    "Groq rate limit exceeded (%s). Backing off for %.2fs.",
+                    exc,
+                    self.rate_limiter.period,
+                )
+                self.rate_limiter.penalize()
+            raise
         return chat_completion.choices[0].message.content
+
+    @staticmethod
+    def _is_rate_limit_error(exc: Exception) -> bool:
+        status_code = getattr(exc, "status_code", None) or getattr(exc, "status", None)
+        if not status_code:
+            response = getattr(exc, "response", None)
+            if response:
+                status_code = getattr(response, "status_code", None)
+
+        if status_code == 429:
+            return True
+        message = str(exc).lower()
+        return "rate_limit" in message or "429" in message
 
     def _build_prompt(
         self,
@@ -519,8 +564,8 @@ class GroqClassifier(BaseClassifier):
         index: int
     ) -> ClassificationResult:
         """Parse LLM response into ClassificationResult."""
-        classification = "IC"
-        confidence = 0.5
+        classification = Classification.IN_CHARACTER
+        confidence = ConfidenceDefaults.DEFAULT
         reasoning = "Could not parse response"
         character = None
 
@@ -529,15 +574,22 @@ class GroqClassifier(BaseClassifier):
             line = line.strip()
             if line.startswith("Classificatie:"):
                 class_text = line.split(":", 1)[1].strip().upper()
-                if class_text in ["IC", "OOC", "MIXED"]:
-                    classification = class_text
+                try:
+                    classification = Classification(class_text)
+                except ValueError:
+                    self.logger.warning(
+                        "Invalid classification '%s' for segment %s, defaulting to IC",
+                        class_text,
+                        index
+                    )
+                    classification = Classification.IN_CHARACTER
             elif line.startswith("Reden:"):
                 reasoning = line.split(":", 1)[1].strip()
             elif line.startswith("Vertrouwen:"):
                 try:
                     conf_text = line.split(":", 1)[1].strip()
                     confidence = float(conf_text)
-                    confidence = max(0.0, min(1.0, confidence))
+                    confidence = ConfidenceDefaults.clamp(confidence)
                 except ValueError:
                     pass
             elif line.startswith("Personage:"):

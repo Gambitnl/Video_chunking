@@ -10,12 +10,16 @@ def patched_config():
         MockConfig.OLLAMA_MODEL = 'test-model'
         MockConfig.OLLAMA_FALLBACK_MODEL = None
         MockConfig.OLLAMA_BASE_URL = 'http://localhost:11434'
+        MockConfig.GROQ_MAX_CALLS_PER_SECOND = 2
+        MockConfig.GROQ_RATE_LIMIT_PERIOD_SECONDS = 1.0
+        MockConfig.GROQ_RATE_LIMIT_BURST = 2
         # Create a dummy prompt file path
         MockConfig.PROJECT_ROOT.return_value = MagicMock()
         type(MockConfig).PROJECT_ROOT = MagicMock()
         yield MockConfig
 
 from src.classifier import ClassifierFactory, OllamaClassifier, GroqClassifier, ClassificationResult
+from src.constants import Classification, ConfidenceDefaults
 
 @pytest.fixture
 def mock_ollama_client():
@@ -349,11 +353,33 @@ class TestGroqClassifier:
         assert issues[0].severity == "error"
         assert "API test failed" in issues[0].message
 
+    def test_make_api_call_penalizes_on_rate_limit(self, mock_groq_client, mock_groq_prompt_file):
+        classifier = GroqClassifier(api_key='test-key')
+        mock_error = Exception("rate_limit_exceeded")
+        mock_groq_client.chat.completions.create.side_effect = mock_error
+        limiter = MagicMock()
+        limiter.period = 1.0
+        classifier.rate_limiter = limiter
+
+        with pytest.raises(Exception):
+            GroqClassifier._make_api_call.__wrapped__(classifier, "prompt")
+
+        limiter.acquire.assert_called_once()
+        limiter.penalize.assert_called_once()
+
+    def test_is_rate_limit_error_detects_status_code(self):
+        class DummyError(Exception):
+            def __init__(self):
+                self.status_code = 429
+
+        assert GroqClassifier._is_rate_limit_error(DummyError())
+        assert GroqClassifier._is_rate_limit_error(Exception("rate_limit_exceeded"))
+
 
 class TestClassificationResult:
     def test_to_dict(self):
         result = ClassificationResult(
-            segment_index=0, classification="IC", confidence=0.9, reasoning="Test reason", character="Aragorn"
+            segment_index=0, classification=Classification.IN_CHARACTER, confidence=0.9, reasoning="Test reason", character="Aragorn"
         )
         expected_dict = {
             "segment_index": 0,
@@ -374,7 +400,7 @@ class TestClassificationResult:
         }
         result = ClassificationResult.from_dict(data)
         assert result.segment_index == 0
-        assert result.classification == "IC"
+        assert result.classification == Classification.IN_CHARACTER
         assert result.confidence == 0.9
         assert result.reasoning == "Test reason"
         assert result.character == "Aragorn"
@@ -388,7 +414,7 @@ class TestClassificationResult:
         }
         result = ClassificationResult.from_dict(data)
         assert result.segment_index == 1
-        assert result.classification == "OOC"
+        assert result.classification == Classification.OUT_OF_CHARACTER
         assert result.confidence == 0.7
         assert result.reasoning == "Test reason OOC"
         assert result.character is None

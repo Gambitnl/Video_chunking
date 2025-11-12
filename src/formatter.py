@@ -30,7 +30,7 @@ from typing import List, Dict, Optional
 from datetime import timedelta
 from .classifier import ClassificationResult
 from .logger import get_logger
-from .constants import Classification, TranscriptFilter
+from .constants import Classification, TranscriptFilter, OutputFormat
 
 
 logger = get_logger(__name__)
@@ -94,7 +94,7 @@ class TranscriptFormatter:
             # Build speaker label
             speaker_label = speaker
 
-            if classif.character and classif.classification == "IC":
+            if classif.character and classif.classification == Classification.IN_CHARACTER:
                 speaker_label = f"{speaker} as {classif.character}"
 
             # Add classification marker
@@ -358,13 +358,13 @@ class TranscriptFormatter:
             logger.warning(f"SRT export failed: {e}")
 
         return {
-            'full': output_dir / f"{session_name}_full.txt",
-            'ic_only': output_dir / f"{session_name}_ic_only.txt",
-            'ooc_only': output_dir / f"{session_name}_ooc_only.txt",
-            'json': json_path,
-            'srt_full': output_dir / f"{session_name}_full.srt",
-            'srt_ic': output_dir / f"{session_name}_ic_only.srt",
-            'srt_ooc': output_dir / f"{session_name}_ooc_only.srt"
+            OutputFormat.FULL: output_dir / f"{session_name}_full.txt",
+            OutputFormat.IC_ONLY: output_dir / f"{session_name}_ic_only.txt",
+            OutputFormat.OOC_ONLY: output_dir / f"{session_name}_ooc_only.txt",
+            OutputFormat.JSON: json_path,
+            OutputFormat.SRT_FULL: output_dir / f"{session_name}_full.srt",
+            OutputFormat.SRT_IC: output_dir / f"{session_name}_ic_only.srt",
+            OutputFormat.SRT_OOC: output_dir / f"{session_name}_ooc_only.srt"
         }
 
 
@@ -383,16 +383,16 @@ class StatisticsGenerator:
             Dictionary of statistics
         """
         total_segments = len(segments)
-        ic_segments = sum(1 for c in classifications if c.classification == "IC")
-        ooc_segments = sum(1 for c in classifications if c.classification == "OOC")
-        mixed_segments = sum(1 for c in classifications if c.classification == "MIXED")
+        ic_segments = sum(1 for c in classifications if c.classification == Classification.IN_CHARACTER)
+        ooc_segments = sum(1 for c in classifications if c.classification == Classification.OUT_OF_CHARACTER)
+        mixed_segments = sum(1 for c in classifications if c.classification == Classification.MIXED)
 
         # Duration
         total_duration = segments[-1]['end_time'] if segments else 0
         ic_duration = sum(
             seg['end_time'] - seg['start_time']
             for seg, c in zip(segments, classifications)
-            if c.classification == "IC"
+            if c.classification == Classification.IN_CHARACTER
         )
 
         # Speaker distribution

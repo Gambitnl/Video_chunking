@@ -1,6 +1,6 @@
 """Speaker diarization using PyAnnote.audio"""
 from pathlib import Path
-from typing import List, Dict, Optional, Tuple, Any, Callable
+from typing import List, Dict, Optional, Tuple, Any, Callable, Union
 from dataclasses import dataclass
 import os
 import sys
@@ -364,7 +364,7 @@ class SpeakerDiarizer(BaseDiarizer):
                 self.logger.info("4. Set HF_TOKEN in your .env file")
                 self.pipeline = None # Ensure it's None on failure
 
-    def _load_audio_for_diarization(self, audio_path: Path):
+    def _load_audio_for_diarization(self, audio_path: Path) -> Union[Dict, str]:
         """
         Load audio file for diarization, preferring in-memory loading.
 
@@ -395,7 +395,7 @@ class SpeakerDiarizer(BaseDiarizer):
 
         return diarization_input
 
-    def _perform_diarization(self, diarization_input) -> Tuple[Any, List[SpeakerSegment]]:
+    def _perform_diarization(self, diarization_input: Union[Dict, str]) -> Tuple[Any, List[SpeakerSegment]]:
         """
         Execute diarization pipeline and convert results to segments.
 
@@ -430,7 +430,7 @@ class SpeakerDiarizer(BaseDiarizer):
     def _extract_speaker_embeddings(
         self,
         audio_path: Path,
-        diarization
+        diarization: Any
     ) -> Dict[str, np.ndarray]:
         """
         Extract speaker embeddings for each diarized speaker.
@@ -455,7 +455,7 @@ class SpeakerDiarizer(BaseDiarizer):
         # Import pydub for audio segment extraction
         try:
             from pydub import AudioSegment
-        except Exception as exc:
+        except ImportError as exc:
             self.logger.warning(
                 "Unable to import pydub for embedding extraction: %s",
                 exc

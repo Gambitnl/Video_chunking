@@ -342,6 +342,42 @@ class TestExtractedMethods:
         """Provides a SpeakerDiarizer instance."""
         return SpeakerDiarizer()
 
+    @pytest.fixture
+    def mock_audio_segment_setup(self):
+        """Provides common mock setup for pydub.AudioSegment."""
+        # Mock audio chunk
+        mock_audio_chunk = MagicMock()
+        mock_audio_chunk.frame_rate = 16000
+        mock_audio_chunk.__len__.return_value = 16000
+        mock_audio_chunk.get_array_of_samples.return_value = np.zeros(16000, dtype=np.int16)
+
+        # Mock full audio
+        mock_full_audio = MagicMock()
+        mock_full_audio.frame_rate = 16000
+        mock_full_audio.__getitem__ = lambda self, key: mock_audio_chunk
+
+        # Mock empty audio accumulation
+        accumulated_audio = MagicMock()
+        accumulated_audio.frame_rate = 16000
+        accumulated_audio.__len__.return_value = 16000
+        accumulated_audio.get_array_of_samples.return_value = np.zeros(16000, dtype=np.int16)
+        accumulated_audio.__add__ = lambda self, other: accumulated_audio
+        accumulated_audio.__iadd__ = lambda self, other: accumulated_audio
+
+        # Mock empty audio
+        mock_empty = MagicMock()
+        mock_empty.frame_rate = 16000
+        mock_empty.__len__.return_value = 0
+        mock_empty.__add__ = lambda self, other: accumulated_audio
+        mock_empty.__iadd__ = lambda self, other: accumulated_audio
+
+        return {
+            'audio_chunk': mock_audio_chunk,
+            'full_audio': mock_full_audio,
+            'accumulated_audio': accumulated_audio,
+            'empty': mock_empty
+        }
+
     def test_load_audio_for_diarization_with_torchaudio(self, diarizer, tmp_path, monkeypatch):
         """Test audio loading with torchaudio succeeds."""
         # Create a dummy audio file
@@ -433,39 +469,17 @@ class TestExtractedMethods:
         assert result == {}
 
     @patch('pydub.AudioSegment')
-    def test_extract_speaker_embeddings_successful(self, MockAudioSegment, diarizer, tmp_path):
+    def test_extract_speaker_embeddings_successful(self, MockAudioSegment, diarizer, tmp_path, mock_audio_segment_setup):
         """Test successful embedding extraction for multiple speakers."""
         # Setup
         mock_embedding_model = MagicMock()
         mock_embedding_model.return_value = torch.tensor([[0.1, 0.2, 0.3]])
         diarizer.embedding_model = mock_embedding_model
 
-        # Mock audio segment
-        mock_audio_chunk = MagicMock()
-        mock_audio_chunk.frame_rate = 16000
-        mock_audio_chunk.__len__.return_value = 16000
-        mock_audio_chunk.get_array_of_samples.return_value = np.zeros(16000, dtype=np.int16)
-
-        mock_full_audio = MagicMock()
-        mock_full_audio.frame_rate = 16000
-        mock_full_audio.__getitem__ = lambda self, key: mock_audio_chunk
-
-        # Mock empty audio accumulation
-        accumulated_audio = MagicMock()
-        accumulated_audio.frame_rate = 16000
-        accumulated_audio.__len__.return_value = 16000
-        accumulated_audio.get_array_of_samples.return_value = np.zeros(16000, dtype=np.int16)
-        accumulated_audio.__add__ = lambda self, other: accumulated_audio
-        accumulated_audio.__iadd__ = lambda self, other: accumulated_audio
-
-        mock_empty = MagicMock()
-        mock_empty.frame_rate = 16000
-        mock_empty.__len__.return_value = 0
-        mock_empty.__add__ = lambda self, other: accumulated_audio
-        mock_empty.__iadd__ = lambda self, other: accumulated_audio
-
-        MockAudioSegment.from_wav.return_value = mock_full_audio
-        MockAudioSegment.empty.return_value = mock_empty
+        # Use fixture for audio segment mocking
+        mocks = mock_audio_segment_setup
+        MockAudioSegment.from_wav.return_value = mocks['full_audio']
+        MockAudioSegment.empty.return_value = mocks['empty']
 
         # Mock diarization result
         mock_diarization = MagicMock()
@@ -547,7 +561,7 @@ class TestExtractedMethods:
         assert embeddings == {}
 
     @patch('pydub.AudioSegment')
-    def test_extract_speaker_embeddings_handles_inference_error(self, MockAudioSegment, diarizer, tmp_path, caplog):
+    def test_extract_speaker_embeddings_handles_inference_error(self, MockAudioSegment, diarizer, tmp_path, caplog, mock_audio_segment_setup):
         """Test that embedding extraction continues when inference fails for one speaker."""
         # Setup: first speaker succeeds, second fails
         mock_embedding_model = MagicMock()
@@ -557,30 +571,10 @@ class TestExtractedMethods:
         ]
         diarizer.embedding_model = mock_embedding_model
 
-        # Mock audio
-        mock_audio_chunk = MagicMock()
-        mock_audio_chunk.frame_rate = 16000
-        mock_audio_chunk.__len__.return_value = 16000
-        mock_audio_chunk.get_array_of_samples.return_value = np.zeros(16000, dtype=np.int16)
-
-        mock_full_audio = MagicMock()
-        mock_full_audio.frame_rate = 16000
-        mock_full_audio.__getitem__ = lambda self, key: mock_audio_chunk
-
-        accumulated_audio = MagicMock()
-        accumulated_audio.frame_rate = 16000
-        accumulated_audio.__len__.return_value = 16000
-        accumulated_audio.get_array_of_samples.return_value = np.zeros(16000, dtype=np.int16)
-        accumulated_audio.__add__ = lambda self, other: accumulated_audio
-        accumulated_audio.__iadd__ = lambda self, other: accumulated_audio
-
-        mock_empty = MagicMock()
-        mock_empty.__len__.return_value = 0
-        mock_empty.__add__ = lambda self, other: accumulated_audio
-        mock_empty.__iadd__ = lambda self, other: accumulated_audio
-
-        MockAudioSegment.from_wav.return_value = mock_full_audio
-        MockAudioSegment.empty.return_value = mock_empty
+        # Use fixture for audio segment mocking
+        mocks = mock_audio_segment_setup
+        MockAudioSegment.from_wav.return_value = mocks['full_audio']
+        MockAudioSegment.empty.return_value = mocks['empty']
 
         mock_diarization = MagicMock()
         mock_diarization.labels.return_value = ["SPEAKER_00", "SPEAKER_01"]

@@ -334,6 +334,269 @@ class TestDiarizerFactory:
         with pytest.raises(ValueError):
             DiarizerFactory.create()
 
+class TestExtractedMethods:
+    """Test suite for extracted diarization methods."""
+
+    @pytest.fixture
+    def diarizer(self):
+        """Provides a SpeakerDiarizer instance."""
+        return SpeakerDiarizer()
+
+    def test_load_audio_for_diarization_with_torchaudio(self, diarizer, tmp_path, monkeypatch):
+        """Test audio loading with torchaudio succeeds."""
+        # Create a dummy audio file
+        from scipy.io.wavfile import write
+        dummy_audio_path = tmp_path / "test.wav"
+        write(dummy_audio_path, 16000, np.zeros(16000, dtype=np.int16))
+
+        # Mock torchaudio to ensure it's used
+        mock_torchaudio = MagicMock()
+        mock_waveform = torch.zeros((1, 16000))
+        mock_torchaudio.load.return_value = (mock_waveform, 16000)
+
+        with patch.dict('sys.modules', {'torchaudio': mock_torchaudio}):
+            result = diarizer._load_audio_for_diarization(dummy_audio_path)
+
+        # Should return dict with waveform and sample_rate
+        assert isinstance(result, dict)
+        assert "waveform" in result
+        assert "sample_rate" in result
+        assert result["sample_rate"] == 16000
+
+    def test_load_audio_for_diarization_fallback(self, diarizer, tmp_path):
+        """Test audio loading falls back to file path when torchaudio fails."""
+        dummy_audio_path = tmp_path / "test.wav"
+        dummy_audio_path.touch()
+
+        # Mock torchaudio to raise an exception
+        with patch.dict('sys.modules', {'torchaudio': None}):
+            result = diarizer._load_audio_for_diarization(dummy_audio_path)
+
+        # Should return string path as fallback
+        assert isinstance(result, str)
+        assert result == str(dummy_audio_path)
+
+    def test_perform_diarization_returns_segments(self, diarizer):
+        """Test that _perform_diarization converts pipeline results to segments."""
+        # Mock pipeline result
+        mock_diarization = MagicMock()
+        mock_diarization.itertracks.return_value = [
+            (MagicMock(start=0.0, end=2.5), None, "SPEAKER_00"),
+            (MagicMock(start=2.5, end=5.0), None, "SPEAKER_01"),
+            (MagicMock(start=5.0, end=7.0), None, "SPEAKER_00"),
+        ]
+
+        # Mock the pipeline
+        diarizer.pipeline = MagicMock(return_value=mock_diarization)
+
+        # Execute
+        diarization_result, segments = diarizer._perform_diarization("dummy_input.wav")
+
+        # Verify results
+        assert diarization_result == mock_diarization
+        assert len(segments) == 3
+        assert segments[0].speaker_id == "SPEAKER_00"
+        assert segments[0].start_time == 0.0
+        assert segments[0].end_time == 2.5
+        assert segments[1].speaker_id == "SPEAKER_01"
+        assert segments[2].speaker_id == "SPEAKER_00"
+
+    def test_perform_diarization_with_dict_input(self, diarizer):
+        """Test that _perform_diarization works with dict input."""
+        mock_diarization = MagicMock()
+        mock_diarization.itertracks.return_value = [
+            (MagicMock(start=1.0, end=3.0), None, "SPEAKER_00"),
+        ]
+
+        diarizer.pipeline = MagicMock(return_value=mock_diarization)
+
+        dict_input = {
+            "waveform": torch.zeros((1, 16000)),
+            "sample_rate": 16000
+        }
+
+        diarization_result, segments = diarizer._perform_diarization(dict_input)
+
+        assert len(segments) == 1
+        diarizer.pipeline.assert_called_once_with(dict_input)
+
+    def test_extract_speaker_embeddings_no_model(self, diarizer, tmp_path):
+        """Test that embedding extraction returns empty dict when model is None."""
+        diarizer.embedding_model = None
+        mock_diarization = MagicMock()
+
+        dummy_audio_path = tmp_path / "test.wav"
+        dummy_audio_path.touch()
+
+        result = diarizer._extract_speaker_embeddings(dummy_audio_path, mock_diarization)
+
+        assert result == {}
+
+    @patch('pydub.AudioSegment')
+    def test_extract_speaker_embeddings_successful(self, MockAudioSegment, diarizer, tmp_path):
+        """Test successful embedding extraction for multiple speakers."""
+        # Setup
+        mock_embedding_model = MagicMock()
+        mock_embedding_model.return_value = torch.tensor([[0.1, 0.2, 0.3]])
+        diarizer.embedding_model = mock_embedding_model
+
+        # Mock audio segment
+        mock_audio_chunk = MagicMock()
+        mock_audio_chunk.frame_rate = 16000
+        mock_audio_chunk.__len__.return_value = 16000
+        mock_audio_chunk.get_array_of_samples.return_value = np.zeros(16000, dtype=np.int16)
+
+        mock_full_audio = MagicMock()
+        mock_full_audio.frame_rate = 16000
+        mock_full_audio.__getitem__ = lambda self, key: mock_audio_chunk
+
+        # Mock empty audio accumulation
+        accumulated_audio = MagicMock()
+        accumulated_audio.frame_rate = 16000
+        accumulated_audio.__len__.return_value = 16000
+        accumulated_audio.get_array_of_samples.return_value = np.zeros(16000, dtype=np.int16)
+        accumulated_audio.__add__ = lambda self, other: accumulated_audio
+        accumulated_audio.__iadd__ = lambda self, other: accumulated_audio
+
+        mock_empty = MagicMock()
+        mock_empty.frame_rate = 16000
+        mock_empty.__len__.return_value = 0
+        mock_empty.__add__ = lambda self, other: accumulated_audio
+        mock_empty.__iadd__ = lambda self, other: accumulated_audio
+
+        MockAudioSegment.from_wav.return_value = mock_full_audio
+        MockAudioSegment.empty.return_value = mock_empty
+
+        # Mock diarization result
+        mock_diarization = MagicMock()
+        mock_diarization.labels.return_value = ["SPEAKER_00", "SPEAKER_01"]
+
+        def mock_label_timeline(speaker_id):
+            return [MagicMock(start=0.0, end=2.0)]
+
+        mock_diarization.label_timeline = mock_label_timeline
+
+        dummy_audio_path = tmp_path / "test.wav"
+        dummy_audio_path.touch()
+
+        # Execute
+        embeddings = diarizer._extract_speaker_embeddings(dummy_audio_path, mock_diarization)
+
+        # Verify
+        assert "SPEAKER_00" in embeddings
+        assert "SPEAKER_01" in embeddings
+        assert isinstance(embeddings["SPEAKER_00"], np.ndarray)
+        assert isinstance(embeddings["SPEAKER_01"], np.ndarray)
+
+    @patch('pydub.AudioSegment')
+    def test_extract_speaker_embeddings_skips_empty_segments(self, MockAudioSegment, diarizer, tmp_path):
+        """Test that embedding extraction skips speakers with no audio."""
+        mock_embedding_model = MagicMock()
+        diarizer.embedding_model = mock_embedding_model
+
+        # Mock empty audio segment
+        mock_empty = MagicMock()
+        mock_empty.frame_rate = 16000
+        mock_empty.__len__.return_value = 0
+
+        mock_full_audio = MagicMock()
+        mock_full_audio.frame_rate = 16000
+
+        MockAudioSegment.from_wav.return_value = mock_full_audio
+        MockAudioSegment.empty.return_value = mock_empty
+
+        mock_diarization = MagicMock()
+        mock_diarization.labels.return_value = ["SPEAKER_00"]
+        mock_diarization.label_timeline.return_value = [MagicMock(start=0.0, end=0.0)]
+
+        dummy_audio_path = tmp_path / "test.wav"
+        dummy_audio_path.touch()
+
+        embeddings = diarizer._extract_speaker_embeddings(dummy_audio_path, mock_diarization)
+
+        # Should be empty since audio segment was empty
+        assert embeddings == {}
+        # Embedding model should not be called
+        mock_embedding_model.assert_not_called()
+
+    def test_extract_speaker_embeddings_handles_pydub_import_error(self, diarizer, tmp_path):
+        """Test that embedding extraction handles pydub import failure gracefully."""
+        diarizer.embedding_model = MagicMock()
+
+        with patch.dict('sys.modules', {'pydub': None}):
+            with patch('builtins.__import__', side_effect=ImportError("pydub not found")):
+                mock_diarization = MagicMock()
+                dummy_audio_path = tmp_path / "test.wav"
+
+                embeddings = diarizer._extract_speaker_embeddings(dummy_audio_path, mock_diarization)
+
+                assert embeddings == {}
+
+    @patch('pydub.AudioSegment')
+    def test_extract_speaker_embeddings_handles_audio_load_error(self, MockAudioSegment, diarizer, tmp_path):
+        """Test that embedding extraction handles audio loading errors."""
+        diarizer.embedding_model = MagicMock()
+        MockAudioSegment.from_wav.side_effect = Exception("Audio file corrupt")
+
+        mock_diarization = MagicMock()
+        dummy_audio_path = tmp_path / "test.wav"
+        dummy_audio_path.touch()
+
+        embeddings = diarizer._extract_speaker_embeddings(dummy_audio_path, mock_diarization)
+
+        assert embeddings == {}
+
+    @patch('pydub.AudioSegment')
+    def test_extract_speaker_embeddings_handles_inference_error(self, MockAudioSegment, diarizer, tmp_path, caplog):
+        """Test that embedding extraction continues when inference fails for one speaker."""
+        # Setup: first speaker succeeds, second fails
+        mock_embedding_model = MagicMock()
+        mock_embedding_model.side_effect = [
+            torch.tensor([[0.1, 0.2]]),  # Success for SPEAKER_00
+            RuntimeError("Inference failed"),  # Failure for SPEAKER_01
+        ]
+        diarizer.embedding_model = mock_embedding_model
+
+        # Mock audio
+        mock_audio_chunk = MagicMock()
+        mock_audio_chunk.frame_rate = 16000
+        mock_audio_chunk.__len__.return_value = 16000
+        mock_audio_chunk.get_array_of_samples.return_value = np.zeros(16000, dtype=np.int16)
+
+        mock_full_audio = MagicMock()
+        mock_full_audio.frame_rate = 16000
+        mock_full_audio.__getitem__ = lambda self, key: mock_audio_chunk
+
+        accumulated_audio = MagicMock()
+        accumulated_audio.frame_rate = 16000
+        accumulated_audio.__len__.return_value = 16000
+        accumulated_audio.get_array_of_samples.return_value = np.zeros(16000, dtype=np.int16)
+        accumulated_audio.__add__ = lambda self, other: accumulated_audio
+        accumulated_audio.__iadd__ = lambda self, other: accumulated_audio
+
+        mock_empty = MagicMock()
+        mock_empty.__len__.return_value = 0
+        mock_empty.__add__ = lambda self, other: accumulated_audio
+        mock_empty.__iadd__ = lambda self, other: accumulated_audio
+
+        MockAudioSegment.from_wav.return_value = mock_full_audio
+        MockAudioSegment.empty.return_value = mock_empty
+
+        mock_diarization = MagicMock()
+        mock_diarization.labels.return_value = ["SPEAKER_00", "SPEAKER_01"]
+        mock_diarization.label_timeline.return_value = [MagicMock(start=0.0, end=1.0)]
+
+        dummy_audio_path = tmp_path / "test.wav"
+        dummy_audio_path.touch()
+
+        with caplog.at_level("WARNING"):
+            embeddings = diarizer._extract_speaker_embeddings(dummy_audio_path, mock_diarization)
+
+        # Should have SPEAKER_00 but not SPEAKER_01
+        assert "SPEAKER_00" in embeddings
+        assert "SPEAKER_01" not in embeddings
+        assert "Failed to extract embedding for SPEAKER_01" in caplog.text
+
 class TestHuggingFaceApiDiarizer:
     """Test the HuggingFaceApiDiarizer."""
 

@@ -135,33 +135,53 @@ class BaseClassifier(ABC):
         reasoning = "Could not parse response"
         character = None
 
-        lines = response.strip().split('\n')
-        for line in lines:
-            line = line.strip()
-            if line.startswith("Classificatie:"):
-                class_text = line.split(":", 1)[1].strip().upper()
-                try:
-                    classification = Classification(class_text)
-                except ValueError:
-                    self.logger.warning(
-                        "Invalid classification '%s' for segment %s, defaulting to IC",
-                        class_text,
-                        index
-                    )
-                    classification = Classification.IN_CHARACTER
-            elif line.startswith("Reden:"):
-                reasoning = line.split(":", 1)[1].strip()
-            elif line.startswith("Vertrouwen:"):
-                try:
-                    conf_text = line.split(":", 1)[1].strip()
-                    confidence = float(conf_text)
-                    confidence = ConfidenceDefaults.clamp(confidence)
-                except ValueError:
-                    pass
-            elif line.startswith("Personage:"):
-                char_text = line.split(":", 1)[1].strip()
-                if char_text.upper() != "N/A":
-                    character = char_text
+        # Use regex to extract fields more robustly
+        # This handles multi-line values and out-of-order fields
+        import re
+
+        # Extract classification
+        class_match = re.search(r'Classificatie:\s*(\w+)', response, re.IGNORECASE)
+        if class_match:
+            class_text = class_match.group(1).strip().upper()
+            try:
+                classification = Classification(class_text)
+            except ValueError:
+                self.logger.warning(
+                    "Invalid classification '%s' for segment %s, defaulting to IC",
+                    class_text,
+                    index
+                )
+                classification = Classification.IN_CHARACTER
+
+        # Extract reasoning - capture everything after "Reden:" until next field or end
+        reden_match = re.search(
+            r'Reden:\s*(.+?)(?=(?:Vertrouwen:|Personage:|$))',
+            response,
+            re.DOTALL | re.IGNORECASE
+        )
+        if reden_match:
+            reasoning = reden_match.group(1).strip()
+
+        # Extract confidence
+        conf_match = re.search(r'Vertrouwen:\s*([\d.]+)', response, re.IGNORECASE)
+        if conf_match:
+            try:
+                conf_text = conf_match.group(1).strip()
+                confidence = float(conf_text)
+                confidence = ConfidenceDefaults.clamp(confidence)
+            except ValueError:
+                self.logger.warning(
+                    "Invalid confidence value '%s' for segment %s, using default.",
+                    conf_text,
+                    index
+                )
+
+        # Extract character name
+        char_match = re.search(r'Personage:\s*(.+?)(?:\n|$)', response, re.IGNORECASE)
+        if char_match:
+            char_text = char_match.group(1).strip()
+            if char_text.upper() != "N/A":
+                character = char_text
 
         return ClassificationResult(
             segment_index=index,

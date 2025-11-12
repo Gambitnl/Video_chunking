@@ -108,15 +108,9 @@ class OllamaClassifier(BaseClassifier):
             self.client = factory.create_client(
                 config=ollama_config,
                 test_connection=True,
-                max_retries=3
+                max_retries=3,
+                model_to_check=self.model  # Check model availability during connection test
             )
-
-            # Test that the model is available
-            if not factory.test_model_available(self.client, self.model):
-                self.logger.warning(
-                    f"Model '{self.model}' may not be available. "
-                    "Classification may fail."
-                )
 
         except OllamaConnectionError as e:
             raise RuntimeError(

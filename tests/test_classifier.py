@@ -29,7 +29,6 @@ def mock_ollama_client():
         mock_client = MagicMock()
         mock_client.list.return_value = {'models': []}  # Simulate successful connection
         mock_factory_instance.create_client.return_value = mock_client
-        mock_factory_instance.test_model_available.return_value = True
         yield mock_client
 
 @pytest.fixture

@@ -8,6 +8,7 @@ and result caching.
 
 import json
 import logging
+import threading
 import time
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
@@ -72,6 +73,7 @@ class CampaignArtifactCounter:
         self.cache_ttl = timedelta(seconds=cache_ttl_seconds)
         self.logger = logger or logging.getLogger(__name__)
         self._cache: Dict[str, Tuple[ArtifactCounts, datetime]] = {}
+        self._lock = threading.Lock()
 
     def count_artifacts(
         self,
@@ -92,7 +94,7 @@ class CampaignArtifactCounter:
             self.logger.warning("count_artifacts called with empty campaign_id")
             return ArtifactCounts(last_updated=datetime.now())
 
-        # Check cache
+        # Check cache (first check, no lock for fast path)
         if not force_refresh and campaign_id in self._cache:
             counts, cached_at = self._cache[campaign_id]
             age = datetime.now() - cached_at
@@ -103,31 +105,44 @@ class CampaignArtifactCounter:
                 )
                 return counts
 
-        # Perform count
-        self.logger.info(f"Counting artifacts for campaign: {campaign_id}")
-        start_time = time.time()
+        # Use double-checked locking to prevent cache stampede
+        with self._lock:
+            # Double-check cache inside lock
+            if not force_refresh and campaign_id in self._cache:
+                counts, cached_at = self._cache[campaign_id]
+                age = datetime.now() - cached_at
+                if age < self.cache_ttl:
+                    self.logger.debug(
+                        f"Using cached counts for campaign '{campaign_id}' "
+                        f"(age: {age.total_seconds():.1f}s) [lock-recheck]"
+                    )
+                    return counts
 
-        counts = self._count_all_artifacts(campaign_id)
-        counts.last_updated = datetime.now()
+            # Perform count
+            self.logger.info(f"Counting artifacts for campaign: {campaign_id}")
+            start_time = time.time()
 
-        elapsed = time.time() - start_time
-        self.logger.info(
-            f"Counted {counts.sessions} sessions, {counts.narratives} narratives "
-            f"for campaign '{campaign_id}' in {elapsed:.2f}s"
-        )
+            counts = self._count_all_artifacts(campaign_id)
+            counts.last_updated = datetime.now()
 
-        if counts.errors:
-            self.logger.warning(
-                f"Encountered {len(counts.errors)} errors during counting "
-                f"for campaign '{campaign_id}'"
+            elapsed = time.time() - start_time
+            self.logger.info(
+                f"Counted {counts.sessions} sessions, {counts.narratives} narratives "
+                f"for campaign '{campaign_id}' in {elapsed:.2f}s"
             )
-            for error in counts.errors:
-                self.logger.debug(f"  - {error}")
 
-        # Update cache
-        self._cache[campaign_id] = (counts, counts.last_updated)
+            if counts.errors:
+                self.logger.warning(
+                    f"Encountered {len(counts.errors)} errors during counting "
+                    f"for campaign '{campaign_id}'"
+                )
+                for error in counts.errors:
+                    self.logger.debug(f"  - {error}")
 
-        return counts
+            # Update cache
+            self._cache[campaign_id] = (counts, counts.last_updated)
+
+            return counts
 
     def _count_all_artifacts(self, campaign_id: str) -> ArtifactCounts:
         """Internal method to count all artifact types for a campaign."""
@@ -231,18 +246,20 @@ class CampaignArtifactCounter:
         Args:
             campaign_id: If specified, clear only this campaign. Otherwise, clear all.
         """
-        if campaign_id:
-            if campaign_id in self._cache:
-                del self._cache[campaign_id]
-                self.logger.debug(f"Cleared cache for campaign: {campaign_id}")
-        else:
-            self._cache.clear()
-            self.logger.debug("Cleared all cache")
+        with self._lock:
+            if campaign_id:
+                if campaign_id in self._cache:
+                    del self._cache[campaign_id]
+                    self.logger.debug(f"Cleared cache for campaign: {campaign_id}")
+            else:
+                self._cache.clear()
+                self.logger.debug("Cleared all cache")
 
     def get_cache_stats(self) -> Dict:
         """Get cache statistics."""
-        return {
-            "cached_campaigns": len(self._cache),
-            "ttl_seconds": self.cache_ttl.total_seconds(),
-            "campaigns": list(self._cache.keys())
-        }
+        with self._lock:
+            return {
+                "cached_campaigns": len(self._cache),
+                "ttl_seconds": self.cache_ttl.total_seconds(),
+                "campaigns": list(self._cache.keys())
+            }

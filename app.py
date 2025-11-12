@@ -759,6 +759,11 @@ def process_session(
             },
         )
 
+        # Clear artifact cache for this campaign to ensure fresh counts on next UI refresh
+        if campaign_id:
+            _artifact_counter.clear_cache(campaign_id)
+            logger.debug(f"Cleared artifact cache for campaign '{campaign_id}' after processing session '{resolved_session_id}'")
+
         return {
             "status": "success",
             "message": "Session processed successfully.",

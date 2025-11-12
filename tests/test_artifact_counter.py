@@ -6,6 +6,12 @@ import time
 from pathlib import Path
 from datetime import datetime
 
+try:
+    from freezegun import freeze_time
+    FREEZEGUN_AVAILABLE = True
+except ImportError:
+    FREEZEGUN_AVAILABLE = False
+
 from src.artifact_counter import CampaignArtifactCounter, ArtifactCounts
 
 
@@ -187,8 +193,39 @@ class TestCampaignArtifactCounter:
         counts3 = counter.count_artifacts("campaign_123", force_refresh=True)
         assert counts3.sessions == 3
 
-    def test_cache_expiration(self, temp_output_dir):
-        """Test that cache expires after TTL."""
+    @pytest.mark.skipif(not FREEZEGUN_AVAILABLE, reason="freezegun not installed")
+    def test_cache_expiration_with_freezegun(self, temp_output_dir):
+        """Test that cache expires after TTL using freezegun for deterministic timing."""
+        counter = CampaignArtifactCounter(temp_output_dir, cache_ttl_seconds=60)
+
+        with freeze_time("2023-01-01 12:00:00") as freezer:
+            # First count
+            counts1 = counter.count_artifacts("campaign_123")
+            assert counts1.sessions == 2
+
+            # Add new session
+            new_session = temp_output_dir / "session_999"
+            new_session.mkdir()
+            data_new = new_session / "session_999_data.json"
+            data_new.write_text(json.dumps({
+                "metadata": {
+                    "campaign_id": "campaign_123",
+                    "session_id": "session_999"
+                }
+            }))
+
+            # Second call within TTL should be cached
+            freezer.tick(30)  # 30 seconds elapsed
+            counts2 = counter.count_artifacts("campaign_123")
+            assert counts2.sessions == 2, "Should use cache within TTL"
+
+            # Third call after TTL should recount
+            freezer.tick(35)  # Total 65 seconds elapsed, > 60s TTL
+            counts3 = counter.count_artifacts("campaign_123")
+            assert counts3.sessions == 3, "Should recount after TTL expired"
+
+    def test_cache_expiration_with_sleep(self, temp_output_dir):
+        """Test that cache expires after TTL (fallback test using sleep)."""
         counter = CampaignArtifactCounter(temp_output_dir, cache_ttl_seconds=1)
 
         # First count
@@ -340,8 +377,8 @@ class TestCampaignArtifactCounter:
         assert session_count == 2
         assert narrative_count == 3
 
-    def test_concurrent_cache_access(self, counter):
-        """Test that cache handles multiple campaigns correctly."""
+    def test_cache_handles_multiple_campaigns(self, counter):
+        """Test that cache correctly handles multiple different campaigns."""
         counts1 = counter.count_artifacts("campaign_123")
         counts2 = counter.count_artifacts("campaign_456")
         counts3 = counter.count_artifacts("campaign_123")  # Should be cached
@@ -351,3 +388,43 @@ class TestCampaignArtifactCounter:
         assert counts3.sessions == 2  # From cache
         # Note: Cache returns same object for performance, which is acceptable
         # since ArtifactCounts is immutable after creation
+
+    def test_thread_safety(self, counter):
+        """Test that counter is thread-safe with concurrent access."""
+        import threading
+        results = []
+        errors = []
+
+        def count_artifacts(campaign_id):
+            try:
+                counts = counter.count_artifacts(campaign_id)
+                results.append((campaign_id, counts.sessions, counts.narratives))
+            except Exception as e:
+                errors.append(e)
+
+        # Create multiple threads that access the counter concurrently
+        threads = []
+        for _ in range(5):
+            threads.append(threading.Thread(target=count_artifacts, args=("campaign_123",)))
+            threads.append(threading.Thread(target=count_artifacts, args=("campaign_456",)))
+
+        # Start all threads
+        for thread in threads:
+            thread.start()
+
+        # Wait for all threads to complete
+        for thread in threads:
+            thread.join()
+
+        # Verify no errors occurred
+        assert len(errors) == 0, f"Errors occurred: {errors}"
+
+        # Verify all results are consistent
+        campaign_123_results = [r for r in results if r[0] == "campaign_123"]
+        campaign_456_results = [r for r in results if r[0] == "campaign_456"]
+
+        # All results for campaign_123 should be identical
+        assert all(r == (2, 3) for _, s, n in campaign_123_results for r in [(s, n)])
+
+        # All results for campaign_456 should be identical
+        assert all(r == (1, 0) for _, s, n in campaign_456_results for r in [(s, n)])

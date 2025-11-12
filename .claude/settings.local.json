@@ -28,7 +28,10 @@
       "Bash(git remote get-url:*)",
       "Bash(cat:*)",
       "Bash(.gitignore)",
-      "Bash(git rm:*)"
+      "Bash(git rm:*)",
+      "Bash(git merge:*)",
+      "mcp__github__get_pull_request",
+      "mcp__github__get_pull_request_files"
     ],
     "deny": [],
     "ask": []

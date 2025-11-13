@@ -129,8 +129,8 @@ class TestValidateSessionInputs:
 
         assert any("session id" in err.lower() for err in errors)
 
-    def test_invalid_speaker_count(self):
-        """Test validation fails with invalid speaker count."""
+    def test_invalid_speaker_count_too_low(self):
+        """Test validation fails with speaker count below minimum."""
         audio_file = Mock()
         audio_file.name = "/path/to/test.wav"
 
@@ -144,7 +144,24 @@ class TestValidateSessionInputs:
                 num_speakers=1,  # Too low
             )
 
-        assert any("speakers" in err.lower() for err in errors)
+        assert any("2 and 10" in err for err in errors)
+
+    def test_invalid_speaker_count_too_high(self):
+        """Test validation fails with speaker count above maximum."""
+        audio_file = Mock()
+        audio_file.name = "/path/to/test.wav"
+
+        with patch('pathlib.Path.exists', return_value=True):
+            errors = validate_session_inputs(
+                audio_file=audio_file,
+                session_id="session_001",
+                party_selection="Manual Entry",
+                character_names="Gandalf",
+                player_names="",
+                num_speakers=15,  # Too high
+            )
+
+        assert any("2 and 10" in err for err in errors)
 
     def test_duplicate_character_names(self):
         """Test validation catches duplicate character names (case insensitive)."""

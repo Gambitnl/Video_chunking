@@ -6,6 +6,7 @@ extracted from the main UI creation function for better testability
 and reusability.
 """
 
+from datetime import datetime
 from pathlib import Path
 import re
 from typing import Any, Callable, Dict, List, Optional, Tuple
@@ -81,12 +82,10 @@ def validate_session_inputs(
     # Speaker count validation
     try:
         speaker_count = int(num_speakers)
+        if not 2 <= speaker_count <= 10:
+            errors.append("Expected speakers must be a whole number between 2 and 10.")
     except (TypeError, ValueError):
-        speaker_count = 0
-        errors.append("Expected speakers must be a whole number between 2 and 10.")
-    else:
-        if speaker_count < 2:
-            errors.append("Expected speakers must be at least 2.")
+        errors.append("Expected speakers must be a valid whole number.")
 
     # Party/character validation
     if party_selection == "Manual Entry":
@@ -550,8 +549,6 @@ def check_file_processing_history(file) -> Tuple[str, bool]:
         return "", False
 
     # File was processed before - show warning
-    from datetime import datetime
-
     last_processed_date = datetime.fromisoformat(existing_record.last_processed)
     date_str = last_processed_date.strftime("%Y-%m-%d %H:%M")
 
@@ -584,20 +581,8 @@ def update_party_display(party_id: str) -> gr.update:
     Returns:
         Gradio update for party display component
     """
-    if not party_id or party_id == "Manual Entry":
-        return gr.update(value="", visible=False)
-
-    party_manager = PartyConfigManager()
-    party = party_manager.get_party(party_id)
-
-    if not party:
-        return gr.update(value="", visible=False)
-
-    char_lines = [f"**Characters**: {party.party_name}"]
-    for char in party.characters:
-        char_lines.append(f"- {char.name} ({char.class_name})")
-
+    markdown, visible = format_party_display(party_id)
     return gr.update(
-        value="\n".join(char_lines),
-        visible=True
+        value=markdown,
+        visible=visible
     )

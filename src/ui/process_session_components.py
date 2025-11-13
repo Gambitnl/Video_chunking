@@ -307,7 +307,7 @@ class ProcessingControlsBuilder:
                 )
 
             components["runtime_accordion"] = runtime_accordion
-            components["transcription_timer"] = gr.Timer(value=2.0, active=True)
+            components["transcription_timer"] = gr.Timer(every=2.0, active=True)
 
         # State for processing flow control
         components["should_process_state"] = gr.State(value=False)

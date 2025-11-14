@@ -154,9 +154,9 @@ class TestFormatFiltered:
         assert "MIXED CONTENT ONLY" in result
 
     def test_invalid_filter_type(self, formatter, sample_transcript, sample_classifications):
-        """Test that invalid filter type raises AttributeError (not an enum)."""
-        # Passing a string instead of enum will fail when calling enum methods
-        with pytest.raises(AttributeError):
+        """Test that invalid filter type raises ValueError."""
+        # Passing a non-enum value should raise ValueError during validation
+        with pytest.raises(ValueError, match="filter_type must be a TranscriptFilter enum member"):
             formatter.format_filtered(
                 sample_transcript,
                 sample_classifications,

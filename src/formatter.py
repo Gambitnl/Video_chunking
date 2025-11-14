@@ -128,12 +128,21 @@ class TranscriptFormatter:
         Returns:
             Formatted transcript string
 
+        Raises:
+            ValueError: If filter_type is not a valid TranscriptFilter enum member
+
         Example:
             >>> formatter = TranscriptFormatter()
             >>> ic_only = formatter.format_filtered(
             ...     segments, classifications, TranscriptFilter.IN_CHARACTER_ONLY
             ... )
         """
+        # Validate filter_type is a TranscriptFilter enum member
+        if not isinstance(filter_type, TranscriptFilter):
+            raise ValueError(
+                f"filter_type must be a TranscriptFilter enum member, got {type(filter_type).__name__}: {filter_type}"
+            )
+
         # Build header using the enum's get_title() method
         lines = []
         lines.append("=" * 80)

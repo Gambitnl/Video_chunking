@@ -24,12 +24,32 @@ class ArtifactCounts:
     narratives: int = 0
     errors: List[str] = field(default_factory=list)
     last_updated: Optional[datetime] = None
+    session_ids: List[str] = field(default_factory=list)
+    narrative_paths: List[Path] = field(default_factory=list)
+
+    @property
+    def session_count(self) -> int:
+        """Alias for sessions (backward compatibility)."""
+        return self.sessions
+
+    @property
+    def narrative_count(self) -> int:
+        """Alias for narratives (backward compatibility)."""
+        return self.narratives
+
+    @property
+    def total_artifacts(self) -> int:
+        """Total number of artifacts (sessions + narratives)."""
+        return self.sessions + self.narratives
 
     def to_dict(self) -> Dict:
         """Convert to dictionary for serialization."""
         return {
             "sessions": self.sessions,
             "narratives": self.narratives,
+            "session_ids": self.session_ids,
+            "narrative_paths": [str(p) for p in self.narrative_paths],
+            "total_artifacts": self.total_artifacts,
             "error_count": len(self.errors),
             "last_updated": self.last_updated.isoformat() if self.last_updated else None
         }
@@ -219,6 +239,10 @@ class CampaignArtifactCounter:
             # Count this session
             counts.sessions += 1
 
+            # Track session ID
+            session_id = metadata.get("session_id", "unknown")
+            counts.session_ids.append(session_id)
+
             # Count narratives in the session's narratives directory
             narratives_dir = data_path.parent / "narratives"
             if narratives_dir.exists() and narratives_dir.is_dir():
@@ -228,6 +252,7 @@ class CampaignArtifactCounter:
                         if p.is_file()
                     ]
                     counts.narratives += len(narrative_files)
+                    counts.narrative_paths.extend(narrative_files)
                 except Exception as e:
                     error_msg = f"Error counting narratives in {narratives_dir.name}: {e}"
                     counts.errors.append(error_msg)
@@ -263,3 +288,88 @@ class CampaignArtifactCounter:
                 "ttl_seconds": self.cache_ttl.total_seconds(),
                 "campaigns": list(self._cache.keys())
             }
+
+    def count_sessions(self, campaign_id: str, force_refresh: bool = False) -> int:
+        """
+        Get just the session count for a campaign (convenience method).
+
+        Args:
+            campaign_id: Campaign identifier
+            force_refresh: If True, bypass cache and recount
+
+        Returns:
+            Number of sessions for the campaign
+        """
+        counts = self.count_artifacts(campaign_id, force_refresh=force_refresh)
+        return counts.sessions
+
+    def count_narratives(self, campaign_id: str, force_refresh: bool = False) -> int:
+        """
+        Get just the narrative count for a campaign (convenience method).
+
+        Args:
+            campaign_id: Campaign identifier
+            force_refresh: If True, bypass cache and recount
+
+        Returns:
+            Number of narratives for the campaign
+        """
+        counts = self.count_artifacts(campaign_id, force_refresh=force_refresh)
+        return counts.narratives
+
+    def get_all_campaigns(self) -> List[str]:
+        """
+        Get list of all campaigns that have artifacts.
+
+        Returns:
+            Sorted list of campaign IDs found in the output directory
+        """
+        campaigns = set()
+
+        if not self.output_dir.exists():
+            self.logger.warning(f"Output directory not found: {self.output_dir}")
+            return []
+
+        try:
+            data_files = list(self.output_dir.glob("**/*_data.json"))
+        except Exception as e:
+            self.logger.error(f"Failed to glob data files: {e}")
+            return []
+
+        for data_path in data_files:
+            try:
+                payload = json.loads(data_path.read_text(encoding="utf-8"))
+                metadata = payload.get("metadata") or {}
+                campaign_id = metadata.get("campaign_id")
+                if campaign_id:
+                    campaigns.add(campaign_id)
+            except Exception as e:
+                self.logger.debug(f"Skipping {data_path.name}: {e}")
+                continue
+
+        return sorted(campaigns)
+
+    def get_campaign_summary(self, campaign_id: str, force_refresh: bool = False) -> Dict:
+        """
+        Get detailed summary of campaign artifacts.
+
+        Args:
+            campaign_id: Campaign identifier
+            force_refresh: If True, bypass cache and recount
+
+        Returns:
+            Dictionary with detailed counts, session IDs, and narrative paths
+        """
+        counts = self.count_artifacts(campaign_id, force_refresh=force_refresh)
+
+        return {
+            "campaign_id": campaign_id,
+            "session_count": counts.sessions,
+            "narrative_count": counts.narratives,
+            "total_artifacts": counts.total_artifacts,
+            "session_ids": counts.session_ids,
+            "narrative_paths": [str(p) for p in counts.narrative_paths],
+            "error_count": len(counts.errors),
+            "errors": counts.errors,
+            "last_updated": counts.last_updated.isoformat() if counts.last_updated else None
+        }

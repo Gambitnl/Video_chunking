@@ -60,7 +60,7 @@
 -   [ ] **BUG-20251103-009**: Process Session - Audio path resolution inconsistent
 -   [ ] **BUG-20251103-011**: Campaign Tab - Static content, no interactive features
 -   [ ] **BUG-20251103-013**: Campaign Dashboard - No error recovery for corrupted files
--   [ ] **BUG-20251103-021**: Social Insights - No loading indicator during analysis
+-   [x] **BUG-20251103-021**: Social Insights - No loading indicator during analysis
 -   [ ] **BUG-20251103-025**: Settings & Tools - Static markdown only, no interactive controls
 -   [ ] **BUG-20251103-026**: Global - Campaign context update triggers excessive re-renders
 -   [ ] **BUG-20251103-028**: Global - Error messages expose internal file paths/stack traces

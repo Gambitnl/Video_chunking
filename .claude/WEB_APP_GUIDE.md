@@ -122,6 +122,7 @@ This will just transcribe the audio without extra processing.
 - Analyze OOC banter keywords
 - Generate "Topic Nebula" word cloud
 - Discover conversation themes
+- Real-time progress feedback during analysis
 
 ### Diagnostics Tab
 - Discover and run pytest tests

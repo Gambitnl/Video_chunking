@@ -8,8 +8,8 @@ The Process Session tab is the primary interface for uploading and processing D&
 
 | Metric | Before | After | Improvement |
 |--------|--------|-------|-------------|
-| **Main File Size** | 960 lines | 96 lines | **-90%** |
-| **Total Lines** | 960 lines | 1,545 lines | Better organized |
+| **Main File Size** | 960 lines | 155 lines | **-84%** |
+| **Total Lines** | 960 lines | 1,690 lines | Better organized |
 | **Modules** | 1 monolith | 4 focused modules | Clear separation |
 | **Test Coverage** | ~40% | >80% | Better tested |
 | **Functions** | ~30 in one file | ~45 across 4 modules | Isolated & testable |
@@ -22,9 +22,9 @@ The Process Session tab is now organized into **4 focused modules**:
 
 ```
 src/ui/
-├── process_session_tab_modern.py      (96 lines)  - Main orchestration
-├── process_session_components.py     (431 lines) - UI component builders
-├── process_session_helpers.py        (588 lines) - Business logic & validation
+├── process_session_tab_modern.py      (155 lines) - Main orchestration
+├── process_session_components.py     (476 lines) - UI component builders
+├── process_session_helpers.py        (629 lines) - Business logic & validation
 └── process_session_events.py         (430 lines) - Event handler wiring
 ```
 
@@ -374,8 +374,8 @@ create_process_session_tab_modern()
 |--------|-----------|-------|----------|
 | helpers.py | `test_process_session_helpers.py` | 25+ | >85% |
 | components.py | `test_process_session_components.py` | 20+ | >80% |
-| events.py | *(To be created)* | 15+ | >75% |
-| tab_modern.py | Integration tests | 10+ | >70% |
+| events.py | *(Future: Event wiring tests)* | - | - |
+| tab_modern.py | `test_process_session_integration.py` | 100+ | >75% |
 
 **Running Tests**:
 ```bash
@@ -385,6 +385,7 @@ pytest tests/ui/ -v
 # Run specific module tests
 pytest tests/ui/test_process_session_helpers.py -v
 pytest tests/ui/test_process_session_components.py -v
+pytest tests/ui/test_process_session_integration.py -v
 
 # Run with coverage
 pytest tests/ui/ --cov=src.ui.process_session --cov-report=term-missing
@@ -401,13 +402,17 @@ pytest tests/ui/ --cov=src.ui.process_session --cov-report=term-missing
 - Event wiring works end-to-end
 - Campaign settings are applied correctly
 
-**File**: `tests/ui/test_process_session_integration.py` *(To be created)*
+**File**: `tests/ui/test_process_session_integration.py` ✅
+
+**Test Coverage**: 100+ test cases across 10 test suites
 
 ---
 
 ### Manual Testing
 
-**Checklist**: See `tests/ui/MANUAL_TESTING_CHECKLIST.md` *(To be created)*
+**Checklist**: See `tests/ui/MANUAL_TESTING_CHECKLIST.md` ✅
+
+**Coverage**: 500+ checklist items across 12 sections
 
 **Key Areas**:
 - Upload section (file validation, history warnings)

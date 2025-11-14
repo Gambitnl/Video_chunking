@@ -559,6 +559,112 @@ def poll_runtime_updates(session_id_value: str, current_log: str) -> Tuple:
     )
 
 
+def poll_overall_progress(session_id_value: str) -> gr.update:
+    """
+    Poll for overall session progress with percentage completion.
+
+    Args:
+        session_id_value: Target session ID
+
+    Returns:
+        Gradio update for overall progress display
+    """
+    snapshot = StatusTracker.get_snapshot()
+
+    # If no processing active, hide progress indicator
+    if not snapshot or not snapshot.get("processing"):
+        return gr.update(value="", visible=False)
+
+    # Check if session matches
+    active_session = snapshot.get("session_id")
+    target_session = (session_id_value or "").strip()
+    if target_session and active_session != target_session:
+        return gr.update(value="", visible=False)
+
+    # Calculate overall progress
+    stages = snapshot.get("stages") or []
+
+    # Count stages (excluding skipped ones from total)
+    total_stages = len([s for s in stages if s.get("state") != "skipped"])
+    completed_stages = len([s for s in stages if s.get("state") == "completed"])
+    failed_stages = len([s for s in stages if s.get("state") == "failed"])
+
+    # Calculate percentage
+    if total_stages > 0:
+        overall_percent = int((completed_stages / total_stages) * 100)
+    else:
+        overall_percent = 0
+
+    # Get current stage info
+    current_stage_id = snapshot.get("current_stage")
+    current_stage_name = "Initializing"
+    current_stage_details = {}
+
+    if current_stage_id:
+        current_stage = next((s for s in stages if s.get("id") == current_stage_id), None)
+        if current_stage:
+            current_stage_name = current_stage.get("name", "Processing")
+            current_stage_details = current_stage.get("details") or {}
+
+    # Build progress bar visualization (using ASCII characters)
+    bar_width = 30
+    filled_width = int((overall_percent / 100) * bar_width)
+    empty_width = bar_width - filled_width
+    progress_bar = "#" * filled_width + "-" * empty_width
+
+    # Build display
+    lines = ["### Overall Progress"]
+    lines.append("")
+    lines.append(f"`{progress_bar}` **{overall_percent}%**")
+    lines.append("")
+
+    # Current stage info
+    if failed_stages > 0:
+        lines.append(f"{SI.ERROR} **Status:** Failed at {current_stage_name}")
+    elif current_stage_id:
+        lines.append(f"{SI.PROCESSING} **Current Stage:** {current_stage_name}")
+
+        # Add stage-specific progress if available
+        if "progress_percent" in current_stage_details:
+            stage_percent = current_stage_details["progress_percent"]
+            lines.append(f"  ↳ Stage Progress: {stage_percent}%")
+
+        if "chunks_transcribed" in current_stage_details and "total_chunks" in current_stage_details:
+            chunks_done = current_stage_details["chunks_transcribed"]
+            chunks_total = current_stage_details["total_chunks"]
+            lines.append(f"  ↳ Chunks: {chunks_done}/{chunks_total}")
+    else:
+        lines.append(f"{SI.COMPLETE} **Status:** Between stages")
+
+    # Summary stats
+    lines.append("")
+    lines.append(f"**Progress:** {completed_stages}/{total_stages} stages completed")
+
+    # Estimated time remaining (if we have timing data)
+    started_at = snapshot.get("started_at")
+    if started_at and completed_stages > 0 and overall_percent < 100:
+        try:
+            start_time = datetime.fromisoformat(started_at.replace('Z', ''))
+            elapsed = (datetime.utcnow() - start_time).total_seconds()
+
+            # Estimate based on completed percentage
+            if overall_percent > 0:
+                estimated_total = elapsed / (overall_percent / 100)
+                remaining = estimated_total - elapsed
+
+                if remaining > 0:
+                    minutes = int(remaining // 60)
+                    seconds = int(remaining % 60)
+                    if minutes > 0:
+                        lines.append(f"**Estimated Time Remaining:** ~{minutes}m {seconds}s")
+                    else:
+                        lines.append(f"**Estimated Time Remaining:** ~{seconds}s")
+        except (ValueError, ZeroDivisionError):
+            pass  # Skip time estimation if parsing fails
+
+    return gr.update(value="\n".join(lines), visible=True)
+
+
 # ============================================================================
 # File History Functions
 # ============================================================================

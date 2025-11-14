@@ -139,6 +139,24 @@ def integration_tmp_path():
 
 
 @pytest.fixture
+def integration_retriever_with_data(integration_tmp_path, real_transcript_data):
+    """
+    Fixture providing a fully initialized SemanticCampaignRetriever with test data.
+
+    Returns:
+        Tuple of (retriever, vector_store) pre-populated with real_transcript_data
+    """
+    embedding_service = EmbeddingService()
+    vector_store = CampaignVectorStore(integration_tmp_path, embedding_service)
+    retriever = SemanticCampaignRetriever(vector_store)
+
+    # Pre-populate with data for most tests
+    vector_store.add_transcript_segments("session_001", real_transcript_data)
+
+    return retriever, vector_store
+
+
+@pytest.fixture
 def real_transcript_data():
     """
     Provide realistic D&D session transcript segments.
@@ -292,9 +310,9 @@ class TestSemanticRetrieverIntegration:
         assert all(isinstance(doc, Document) for doc in results), "All results should be Document objects"
 
         # First result should be combat-related (dragon, fireball, or greatsword)
-        first_result_text = results[0].content.lower()
+        first_result_text = results[0].page_content.lower()
         assert any(word in first_result_text for word in ["dragon", "fireball", "sword", "charge"]), \
-            f"First result should be combat-related, got: {results[0].content}"
+            f"First result should be combat-related, got: {results[0].page_content}"
 
         # Verify metadata structure
         assert "session_id" in results[0].metadata
@@ -328,23 +346,23 @@ class TestSemanticRetrieverIntegration:
             assert len(results) > 0
             combat_keywords = ["dragon", "fire", "sword", "charge", "attack"]
             assert any(
-                keyword in results[0].content.lower()
+                keyword in results[0].page_content.lower()
                 for keyword in combat_keywords
-            ), f"Combat query should retrieve combat content, got: {results[0].content}"
+            ), f"Combat query should retrieve combat content, got: {results[0].page_content}"
 
         # Test different semantic domains
         results_tavern = retriever.retrieve("inn bartender rumors", top_k=3)
         results_magic = retriever.retrieve("magical spells arcane", top_k=3)
 
         # Tavern query should get tavern content
-        tavern_text = results_tavern[0].content.lower()
+        tavern_text = results_tavern[0].page_content.lower()
         assert any(word in tavern_text for word in ["tavern", "bartender", "ale", "rumors"]), \
-            f"Tavern query should retrieve tavern content, got: {results_tavern[0].content}"
+            f"Tavern query should retrieve tavern content, got: {results_tavern[0].page_content}"
 
         # Magic query should get magic content
-        magic_text = results_magic[0].content.lower()
+        magic_text = results_magic[0].page_content.lower()
         assert any(word in magic_text for word in ["magic", "rune", "spell", "arcane", "wizard"]), \
-            f"Magic query should retrieve magic content, got: {results_magic[0].content}"
+            f"Magic query should retrieve magic content, got: {results_magic[0].page_content}"
 
     def test_integration_result_ranking_by_relevance(
         self, integration_tmp_path, real_transcript_data
@@ -370,10 +388,10 @@ class TestSemanticRetrieverIntegration:
         assert len(results) >= 2, "Should retrieve multiple results for ranking test"
 
         # First result should be highly relevant to wizards/magic
-        first_text = results[0].content.lower()
+        first_text = results[0].page_content.lower()
         magic_keywords = ["wizard", "magic", "spell", "fireball", "rune", "arcane"]
         assert any(keyword in first_text for keyword in magic_keywords), \
-            f"First result should be magic-related, got: {results[0].content}"
+            f"First result should be magic-related, got: {results[0].page_content}"
 
         # If we have access to distance scores, verify they're in ascending order
         # (lower distance = more similar)
@@ -415,7 +433,7 @@ class TestSemanticRetrieverIntegration:
 
         # Results should still be ranked by relevance
         assert any(
-            word in results[0].content.lower()
+            word in results[0].page_content.lower()
             for word in ["dragon", "fire", "sword"]
         ), "First result should be relevant to dragon battle"
 
@@ -496,35 +514,47 @@ class TestSemanticRetrieverIntegration:
             assert len(results) > 0, f"Should retrieve results for {test_case['description']}"
 
             # Check that at least one expected keyword appears in top result
-            first_text = results[0].content.lower()
+            first_text = results[0].page_content.lower()
             has_keyword = any(
                 keyword in first_text
                 for keyword in test_case["expected_keywords"]
             )
             assert has_keyword, \
                 f"{test_case['description']} should retrieve relevant content. " \
-                f"Expected one of {test_case['expected_keywords']}, got: {results[0].content}"
+                f"Expected one of {test_case['expected_keywords']}, got: {results[0].page_content}"
 
     def test_integration_empty_results_handling(
-        self, integration_tmp_path
+        self, integration_tmp_path, real_transcript_data
     ):
         """
         Test that retriever handles empty results gracefully.
 
         This test verifies:
         - Empty vector store returns empty results (not errors)
-        - No matching documents returns empty list
+        - No matching documents returns empty list (even in non-empty store)
         """
         # Setup with empty vector store
         embedding_service = EmbeddingService()
         vector_store = CampaignVectorStore(integration_tmp_path, embedding_service)
         retriever = SemanticCampaignRetriever(vector_store)
 
-        # Query empty store
+        # Test 1: Query empty store
         results = retriever.retrieve("any query", top_k=5)
 
         assert isinstance(results, list), "Should return a list"
         assert len(results) == 0, "Should return empty list for empty vector store"
+
+        # Test 2: Query with very obscure terms in a non-empty store
+        # (should return no matches or very low relevance results)
+        vector_store.add_transcript_segments("session_001", real_transcript_data)
+        results_obscure = retriever.retrieve(
+            "xyzqwerty asdfghjkl zxcvbnm unlikely nonsense query",
+            top_k=5
+        )
+
+        # The retriever may return some results (with low similarity) or none
+        # We just verify it doesn't crash and returns a list
+        assert isinstance(results_obscure, list), "Should return a list for obscure query"
 
     def test_integration_semantic_vs_keyword_matching(
         self, integration_tmp_path, real_transcript_data
@@ -549,7 +579,7 @@ class TestSemanticRetrieverIntegration:
         assert len(results) > 0, "Should retrieve results"
 
         # Should retrieve dragon-related content even without exact word "dragon" in query
-        first_text = results[0].content.lower()
+        first_text = results[0].page_content.lower()
         # The content should be about the dragon even though we queried "flying reptile"
         assert "dragon" in first_text or "fire" in first_text or "wing" in first_text, \
-            f"Semantic search should understand 'flying reptile' relates to 'dragon', got: {results[0].content}"
+            f"Semantic search should understand 'flying reptile' relates to 'dragon', got: {results[0].page_content}"

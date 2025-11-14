@@ -102,14 +102,17 @@ Create enums for all magic strings: `Classification`, `ProcessingStatus`, `Pipel
 
 ---
 
-#### 8. [Extract Campaign Artifact Counting](./08-campaign-artifact-counting.md)
+#### 8. [Extract Campaign Artifact Counting](./08-campaign-artifact-counting.md) ✅ **COMPLETED**
 **Issue**: Complex nested logic with silent exception swallowing
 
 **Impact**: Low-Medium - Code quality
-**Effort**: 9-13 hours
+**Effort**: 9-13 hours (Actual: ~2 hours for enhancements)
 **Complexity**: Medium
+**Status**: Completed 2025-11-14
 
 Create `CampaignArtifactCounter` class with caching and proper error handling.
+
+**Completion Notes**: Core extraction was pre-existing. Enhanced with convenience methods (`count_sessions`, `count_narratives`), query methods (`get_all_campaigns`, `get_campaign_summary`), and detailed tracking (session IDs, narrative paths). 39+ test cases covering all functionality.
 
 ---
 
@@ -284,5 +287,5 @@ When implementing a refactoring:
 ---
 
 **Last Updated**: 2025-11-14
-**Status**: 1 of 10 refactorings completed (#6: Diarizer Complex Method)
+**Status**: 2 of 10 refactorings completed (#6: Diarizer Complex Method, #8: Campaign Artifact Counting)
 **Next Priority**: Foundation phase - #2, #3, #9, #5

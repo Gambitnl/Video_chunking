@@ -1,6 +1,6 @@
 """Speaker diarization using PyAnnote.audio"""
 from pathlib import Path
-from typing import List, Dict, Optional, Tuple, Any, Callable, Union
+from typing import List, Dict, Optional, Tuple, Any, Callable, Union, TYPE_CHECKING
 from dataclasses import dataclass
 import os
 import sys
@@ -15,6 +15,10 @@ from .transcriber import TranscriptionSegment
 from .logger import get_logger
 from .preflight import PreflightIssue
 from .retry import retry_with_backoff
+
+if TYPE_CHECKING:
+    from pydub import AudioSegment
+    from pyannote.core import Annotation
 
 warnings.filterwarnings(
     "ignore",
@@ -395,7 +399,7 @@ class SpeakerDiarizer(BaseDiarizer):
 
         return diarization_input
 
-    def _perform_diarization(self, diarization_input: Union[Dict, str]) -> Tuple[Any, List[SpeakerSegment]]:
+    def _perform_diarization(self, diarization_input: Union[Dict, str]) -> Tuple['Annotation', List[SpeakerSegment]]:
         """
         Execute diarization pipeline and convert results to segments.
 
@@ -427,7 +431,7 @@ class SpeakerDiarizer(BaseDiarizer):
 
         return diarization, segments
 
-    def _load_audio_for_embeddings(self, audio_path: Path) -> Optional[Any]:
+    def _load_audio_for_embeddings(self, audio_path: Path) -> Optional['AudioSegment']:
         """
         Load audio file for embedding extraction.
 
@@ -466,8 +470,8 @@ class SpeakerDiarizer(BaseDiarizer):
     def _extract_single_speaker_embedding(
         self,
         speaker_id: str,
-        diarization: Any,
-        audio: Any
+        diarization: 'Annotation',
+        audio: 'AudioSegment'
     ) -> Optional[np.ndarray]:
         """
         Extract voice embedding for a single speaker.
@@ -483,15 +487,13 @@ class SpeakerDiarizer(BaseDiarizer):
             Numpy array with embedding or None if extraction fails
 
         Raises:
-            Exception: If embedding extraction fails
+            RuntimeError: If embedding model inference fails
         """
-        from pydub import AudioSegment
-
         # Get all segments for this speaker
         speaker_segments = diarization.label_timeline(speaker_id)
 
         # Combine audio from all segments
-        speaker_audio = AudioSegment.empty()
+        speaker_audio = type(audio).empty()
         for segment in speaker_segments:
             start_ms = int(segment.start * 1000)
             end_ms = int(segment.end * 1000)
@@ -520,7 +522,7 @@ class SpeakerDiarizer(BaseDiarizer):
     def _extract_speaker_embeddings(
         self,
         audio_path: Path,
-        diarization: Any
+        diarization: 'Annotation'
     ) -> Dict[str, np.ndarray]:
         """
         Extract speaker embeddings for each diarized speaker.

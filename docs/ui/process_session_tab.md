@@ -91,7 +91,7 @@ def create_process_session_tab_modern(
 | `AudioUploadSectionBuilder` | File upload | Audio input, file warning |
 | `PartySelectionSectionBuilder` | Party config | Dropdown, character display |
 | `ConfigurationSectionBuilder` | Session config | Speakers, language, backends, toggles |
-| `ProcessingControlsBuilder` | Actions & status | Buttons, progress, event log |
+| `ProcessingControlsBuilder` | Actions & status | Buttons, overall progress, stage progress, event log |
 | `ResultsSectionBuilder` | Transcript display | Full/IC/OOC outputs, stats, snippets |
 | `ProcessSessionTabBuilder` | Main orchestrator | Combines all sections |
 
@@ -133,6 +133,7 @@ component_refs = tab_builder.build_ui_components()
 - `update_party_display()` - Wrapper for party display update
 
 #### Polling Functions
+- `poll_overall_progress()` - Poll overall session progress with percentage completion
 - `poll_transcription_progress()` - Poll transcription progress
 - `poll_runtime_updates()` - Poll stage progress + event log
 - `_parse_stage_progress()` - Parse stage status from StatusTracker
@@ -167,7 +168,7 @@ component_refs = tab_builder.build_ui_components()
 | **Party Selection** | Dropdown change | `party_selection_input` → `party_characters_display` |
 | **Processing** | Button click (2-stage) | All inputs → all outputs |
 | **Preflight** | Button click | Config inputs → status output |
-| **Polling** | Timer ticks (2×) | Session ID → progress/event log |
+| **Polling** | Timer ticks (3×) | Session ID → overall progress, transcription progress, event log |
 
 **Processing Workflow** (Two-Stage):
 ```python
@@ -229,8 +230,9 @@ event_wiring.wire_all_events()
    ├─> Validates all inputs
    ├─> Runs session processing pipeline
    ├─> Shows live progress updates:
-   │   ├─> Transcription progress bar
-   │   ├─> Stage progress (8 stages)
+   │   ├─> Overall progress indicator (percentage, current stage, ETA)
+   │   ├─> Transcription progress bar (chunk previews)
+   │   ├─> Stage progress (8 stages with status)
    │   └─> Event log (timestamped entries)
    └─> Displays results on completion
 
@@ -449,13 +451,15 @@ print(f"Tab creation: {elapsed:.2f}s")
 **Polling Frequency**: Every 2 seconds (via `gr.Timer`)
 
 **Polling Functions**:
-- `poll_transcription_progress()` - Reads JSON file, updates progress bar
+- `poll_overall_progress()` - Reads JSON file, calculates overall percentage, updates progress bar with ETA
+- `poll_transcription_progress()` - Reads JSON file, updates transcription chunk previews
 - `poll_runtime_updates()` - Reads JSON file, updates stage progress + event log
 
 **Optimization**:
 - Non-blocking (uses `queue=False`)
 - Only reads status file (no heavy computation)
 - Deduplicates event log entries by timestamp
+- Progress calculations cached in status snapshot
 
 ---
 
@@ -600,6 +604,71 @@ def poll_transcription_progress(session_id: str) -> gr.update:
 
 ---
 
+### Overall Progress Indicator Pattern
+
+**New in BUG-20251103-008**: Prominent real-time progress display
+
+**Setup**:
+```python
+overall_progress_display = gr.Markdown(value="", visible=False)
+```
+
+**Wiring**:
+```python
+transcription_timer.tick(
+    fn=poll_overall_progress,
+    inputs=[session_id_input],
+    outputs=[overall_progress_display],
+    queue=False,  # Non-blocking
+)
+```
+
+**Polling Function**:
+```python
+def poll_overall_progress(session_id: str) -> gr.update:
+    snapshot = StatusTracker.get_snapshot()
+
+    # Calculate overall percentage
+    stages = snapshot.get("stages") or []
+    total_stages = len([s for s in stages if s.get("state") != "skipped"])
+    completed_stages = len([s for s in stages if s.get("state") == "completed"])
+    overall_percent = int((completed_stages / total_stages) * 100)
+
+    # Build visual progress bar
+    bar_width = 30
+    filled_width = int((overall_percent / 100) * bar_width)
+    progress_bar = "█" * filled_width + "░" * (bar_width - filled_width)
+
+    # Format display with percentage, current stage, and ETA
+    return gr.update(value=formatted_markdown, visible=True)
+```
+
+**Example Output**:
+```markdown
+### 📊 Overall Progress
+
+`██████████████████████░░░░░░░░░░` **60%**
+
+⚙️ Current Stage: IC/OOC Classification
+  ↳ Stage Progress: 45%
+  ↳ Chunks: 18/40
+
+Progress: 5/8 stages completed
+Estimated Time Remaining: ~3m 25s
+```
+
+**Features**:
+- Visual progress bar with Unicode block characters
+- Overall percentage completion (completed/total non-skipped stages)
+- Current stage name and status icon
+- Stage-specific sub-progress when available
+- Estimated time remaining based on elapsed time
+- Automatically hides when no processing is active
+
+**File Path**: `src/ui/process_session_helpers.py:562`
+
+---
+
 ## Troubleshooting
 
 ### Component Not Found Error
@@ -726,5 +795,34 @@ def poll_transcription_progress(session_id: str) -> gr.update:
 
 ---
 
-*Last Updated: 2025-11-13*
-*Agent K - Refactor #10-Part-3 Complete*
+### BUG-20251103-008 - Real-time Progress Indicator (2025-11-14)
+
+**Added**:
+- Prominent overall progress indicator with percentage completion
+- Visual progress bar using Unicode block characters (30-char width)
+- Real-time status updates showing current stage name
+- Estimated time remaining based on elapsed time and completion
+- Stage-specific progress details (percentage, chunks for transcription)
+- Summary stats showing completed/total stages
+
+**Implementation**:
+- Added `overall_progress_display` component to ProcessingControlsBuilder
+- Created `poll_overall_progress()` function in process_session_helpers.py
+- Wired progress polling to 2-second timer for real-time updates
+- Progress automatically shows during processing and hides when idle
+
+**Files Modified**:
+- `src/ui/process_session_components.py` (+7 lines)
+- `src/ui/process_session_helpers.py` (+107 lines)
+- `src/ui/process_session_events.py` (+13 lines)
+
+**Documentation Updated**:
+- Updated polling functions section
+- Updated user workflow to mention overall progress indicator
+- Updated event categories table (2× → 3× polling)
+- Updated polling overhead section
+
+---
+
+*Last Updated: 2025-11-14*
+*Real-time Progress Indicator - BUG-20251103-008*

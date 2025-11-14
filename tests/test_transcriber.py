@@ -10,12 +10,14 @@ def mock_config():
         MockConfig.WHISPER_BACKEND = 'local'
         MockConfig.WHISPER_MODEL = 'tiny'
         MockConfig.GROQ_API_KEY = 'test-groq-api-key'
+        MockConfig.OPENAI_API_KEY = 'test-openai-api-key'
         yield MockConfig
 
 from src.transcriber import (
     TranscriberFactory,
     FasterWhisperTranscriber,
     GroqTranscriber,
+    OpenAITranscriber,
     BaseTranscriber,
     ChunkTranscription,
     TranscriptionSegment
@@ -48,8 +50,14 @@ class TestTranscriberFactory:
         with pytest.raises(ValueError, match="Unknown transcriber backend: unknown"):
             TranscriberFactory.create(backend='unknown')
 
-    def test_create_openai_backend_raises_not_implemented(self):
-        with pytest.raises(NotImplementedError):
+    def test_create_openai_backend(self, mock_config):
+        mock_config.OPENAI_API_KEY = 'test-openai-api-key'
+        transcriber = TranscriberFactory.create(backend='openai')
+        assert isinstance(transcriber, OpenAITranscriber)
+
+    def test_create_openai_with_no_api_key_raises_error(self, mock_config):
+        mock_config.OPENAI_API_KEY = None
+        with pytest.raises(ValueError, match="OpenAI API key required"):
             TranscriberFactory.create(backend='openai')
 
     def test_create_groq_with_no_api_key_raises_error(self, mock_config):
@@ -240,6 +248,79 @@ def test_groq_transcriber_handles_empty_segments(mock_path_exists, mock_unlink, 
     mock_groq_client.audio.transcriptions.create.return_value = mock_response
 
     transcriber = GroqTranscriber(api_key='fake-key')
+    result = transcriber.transcribe_chunk(dummy_audio_chunk, language='nl')
+
+    assert isinstance(result, ChunkTranscription)
+    assert result.language == 'nl'
+    assert result.segments == []
+
+
+@patch('openai.OpenAI')
+@patch('soundfile.write')
+@patch('builtins.open', new_callable=mock_open)
+@patch('pathlib.Path.unlink')
+@patch('pathlib.Path.exists', return_value=True)
+def test_openai_transcriber(mock_path_exists, mock_unlink, mock_file_open, mock_sf_write, MockOpenAI, dummy_audio_chunk):
+    """Tests the OpenAITranscriber logic with extensive mocking."""
+    # Arrange: Mock the OpenAI client and its API response
+    mock_openai_client = MockOpenAI.return_value
+    mock_response = MagicMock()
+    mock_response.language = 'nl'
+    mock_response.segments = [
+        {'start': 1.0, 'end': 3.0, 'text': ' OpenAI transcription '}
+    ]
+    mock_response.words = [
+        {'word': 'OpenAI', 'start': 1.0, 'end': 1.5},
+        {'word': 'transcription', 'start': 1.6, 'end': 2.8}
+    ]
+    mock_openai_client.audio.transcriptions.create.return_value = mock_response
+
+    transcriber = OpenAITranscriber(api_key='fake-key')
+
+    # Act
+    result = transcriber.transcribe_chunk(dummy_audio_chunk, language='nl')
+
+    # Assert
+    # Verify a temporary file was written and then opened
+    mock_sf_write.assert_called_once()
+    mock_file_open.assert_called_with(mock_sf_write.call_args[0][0], 'rb')
+
+    # Verify the API was called
+    mock_openai_client.audio.transcriptions.create.assert_called_once()
+
+    # Verify the temporary file was cleaned up
+    mock_unlink.assert_called_once()
+
+    # Verify the returned data structure
+    assert isinstance(result, ChunkTranscription)
+    assert result.language == 'nl'
+    assert len(result.segments) == 1
+
+    segment = result.segments[0]
+    assert segment.text == "OpenAI transcription"
+    assert segment.start_time == pytest.approx(10.0 + 1.0)
+    assert segment.end_time == pytest.approx(10.0 + 3.0)
+
+    assert len(segment.words) == 2
+    assert segment.words[0]['word'] == 'OpenAI'
+    assert segment.words[0]['start'] == pytest.approx(10.0 + 1.0)
+    assert segment.words[1]['word'] == 'transcription'
+
+
+@patch('openai.OpenAI')
+@patch('soundfile.write')
+@patch('builtins.open', new_callable=mock_open)
+@patch('pathlib.Path.unlink')
+@patch('pathlib.Path.exists', return_value=True)
+def test_openai_transcriber_handles_empty_segments(mock_path_exists, mock_unlink, mock_file_open, mock_sf_write, MockOpenAI, dummy_audio_chunk):
+    mock_openai_client = MockOpenAI.return_value
+    mock_response = MagicMock()
+    mock_response.language = 'nl'
+    mock_response.segments = []
+    mock_response.words = []
+    mock_openai_client.audio.transcriptions.create.return_value = mock_response
+
+    transcriber = OpenAITranscriber(api_key='fake-key')
     result = transcriber.transcribe_chunk(dummy_audio_chunk, language='nl')
 
     assert isinstance(result, ChunkTranscription)

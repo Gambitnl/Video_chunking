@@ -93,6 +93,7 @@ class CampaignArtifactCounter:
         self.cache_ttl = timedelta(seconds=cache_ttl_seconds)
         self.logger = logger or logging.getLogger(__name__)
         self._cache: Dict[str, Tuple[ArtifactCounts, datetime]] = {}
+        self._campaigns_cache: Optional[Tuple[List[str], datetime]] = None
         self._lock = threading.Lock()
 
     def count_artifacts(
@@ -269,22 +270,28 @@ class CampaignArtifactCounter:
         Clear the cache.
 
         Args:
-            campaign_id: If specified, clear only this campaign. Otherwise, clear all.
+            campaign_id: If specified, clear only this campaign's counts cache.
+                        Otherwise, clear all caches (counts and campaigns list).
         """
         with self._lock:
             if campaign_id:
                 if campaign_id in self._cache:
                     del self._cache[campaign_id]
                     self.logger.debug(f"Cleared cache for campaign: {campaign_id}")
+                # Also clear campaigns list cache since it may have changed
+                self._campaigns_cache = None
+                self.logger.debug("Cleared campaigns list cache")
             else:
                 self._cache.clear()
-                self.logger.debug("Cleared all cache")
+                self._campaigns_cache = None
+                self.logger.debug("Cleared all caches")
 
     def get_cache_stats(self) -> Dict:
         """Get cache statistics."""
         with self._lock:
             return {
                 "cached_campaigns": len(self._cache),
+                "campaigns_list_cached": self._campaigns_cache is not None,
                 "ttl_seconds": self.cache_ttl.total_seconds(),
                 "campaigns": list(self._cache.keys())
             }
@@ -317,37 +324,69 @@ class CampaignArtifactCounter:
         counts = self.count_artifacts(campaign_id, force_refresh=force_refresh)
         return counts.narratives
 
-    def get_all_campaigns(self) -> List[str]:
+    def get_all_campaigns(self, use_cache: bool = True) -> List[str]:
         """
         Get list of all campaigns that have artifacts.
+
+        Args:
+            use_cache: Whether to use cached results (default: True)
 
         Returns:
             Sorted list of campaign IDs found in the output directory
         """
-        campaigns = set()
+        # Check cache first (outside lock for fast path)
+        if use_cache and self._campaigns_cache is not None:
+            campaigns_list, cached_at = self._campaigns_cache
+            age = datetime.now() - cached_at
+            if age < self.cache_ttl:
+                self.logger.debug(
+                    f"Using cached campaign list (age: {age.total_seconds():.1f}s)"
+                )
+                return campaigns_list
 
-        if not self.output_dir.exists():
-            self.logger.warning(f"Output directory not found: {self.output_dir}")
-            return []
+        # Use lock to prevent cache stampede
+        with self._lock:
+            # Double-check cache inside lock
+            if use_cache and self._campaigns_cache is not None:
+                campaigns_list, cached_at = self._campaigns_cache
+                age = datetime.now() - cached_at
+                if age < self.cache_ttl:
+                    self.logger.debug(
+                        f"Using cached campaign list (age: {age.total_seconds():.1f}s) [lock-recheck]"
+                    )
+                    return campaigns_list
 
-        try:
-            data_files = list(self.output_dir.glob("**/*_data.json"))
-        except Exception as e:
-            self.logger.error(f"Failed to glob data files: {e}")
-            return []
+            # Perform discovery
+            campaigns = set()
 
-        for data_path in data_files:
+            if not self.output_dir.exists():
+                self.logger.warning(f"Output directory not found: {self.output_dir}")
+                return []
+
             try:
-                payload = json.loads(data_path.read_text(encoding="utf-8"))
-                metadata = payload.get("metadata") or {}
-                campaign_id = metadata.get("campaign_id")
-                if campaign_id:
-                    campaigns.add(campaign_id)
+                data_files = list(self.output_dir.glob("**/*_data.json"))
             except Exception as e:
-                self.logger.debug(f"Skipping {data_path.name}: {e}")
-                continue
+                self.logger.error(f"Failed to glob data files: {e}")
+                return []
 
-        return sorted(campaigns)
+            for data_path in data_files:
+                try:
+                    payload = json.loads(data_path.read_text(encoding="utf-8"))
+                    metadata = payload.get("metadata") or {}
+                    campaign_id = metadata.get("campaign_id")
+                    if campaign_id:
+                        campaigns.add(campaign_id)
+                except Exception as e:
+                    self.logger.debug(f"Skipping {data_path.name}: {e}")
+                    continue
+
+            campaigns_list = sorted(campaigns)
+
+            # Cache the result
+            self._campaigns_cache = (campaigns_list, datetime.now())
+            self.logger.debug(f"Cached campaign list with {len(campaigns_list)} campaigns")
+
+            return campaigns_list
 
     def get_campaign_summary(self, campaign_id: str, force_refresh: bool = False) -> Dict:
         """
@@ -362,14 +401,15 @@ class CampaignArtifactCounter:
         """
         counts = self.count_artifacts(campaign_id, force_refresh=force_refresh)
 
-        return {
-            "campaign_id": campaign_id,
-            "session_count": counts.sessions,
-            "narrative_count": counts.narratives,
-            "total_artifacts": counts.total_artifacts,
-            "session_ids": counts.session_ids,
-            "narrative_paths": [str(p) for p in counts.narrative_paths],
-            "error_count": len(counts.errors),
-            "errors": counts.errors,
-            "last_updated": counts.last_updated.isoformat() if counts.last_updated else None
-        }
+        # Start with the base dictionary from to_dict()
+        summary = counts.to_dict()
+
+        # Add campaign_id and errors (not in base to_dict)
+        summary["campaign_id"] = campaign_id
+        summary["errors"] = counts.errors
+
+        # Rename keys for consistency with existing API
+        summary["session_count"] = summary.pop("sessions")
+        summary["narrative_count"] = summary.pop("narratives")
+
+        return summary

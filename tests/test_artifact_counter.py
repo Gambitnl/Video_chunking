@@ -519,7 +519,69 @@ class TestCampaignArtifactCounter:
 
         assert len(counts.narrative_paths) == 3
         # Check that all paths are Path objects
-        from pathlib import Path
         assert all(isinstance(p, Path) for p in counts.narrative_paths)
         # Check that all are .md files
         assert all(p.suffix == ".md" for p in counts.narrative_paths)
+
+    def test_get_all_campaigns_caching(self, counter, temp_output_dir):
+        """Test that get_all_campaigns caches results."""
+        # First call - should scan filesystem
+        campaigns1 = counter.get_all_campaigns()
+        assert len(campaigns1) == 2
+
+        # Add a new campaign
+        new_session = temp_output_dir / "session_new"
+        new_session.mkdir()
+        data_new = new_session / "session_new_data.json"
+        data_new.write_text(json.dumps({
+            "metadata": {
+                "campaign_id": "campaign_789",
+                "session_id": "session_new"
+            }
+        }))
+
+        # Second call - should use cache, won't see new campaign
+        campaigns2 = counter.get_all_campaigns(use_cache=True)
+        assert len(campaigns2) == 2
+
+        # Third call with cache bypass - should see new campaign
+        campaigns3 = counter.get_all_campaigns(use_cache=False)
+        assert len(campaigns3) == 3
+        assert "campaign_789" in campaigns3
+
+    def test_clear_cache_clears_campaigns_list(self, counter):
+        """Test that clearing cache also clears campaigns list cache."""
+        # Populate both caches
+        counter.count_artifacts("campaign_123")
+        counter.get_all_campaigns()
+
+        stats = counter.get_cache_stats()
+        assert stats["cached_campaigns"] == 1
+        assert stats["campaigns_list_cached"] is True
+
+        # Clear all caches
+        counter.clear_cache()
+
+        stats = counter.get_cache_stats()
+        assert stats["cached_campaigns"] == 0
+        assert stats["campaigns_list_cached"] is False
+
+    def test_get_campaign_summary_uses_to_dict(self, counter):
+        """Test that get_campaign_summary properly uses to_dict()."""
+        summary = counter.get_campaign_summary("campaign_123")
+
+        # Verify all expected keys are present
+        assert "campaign_id" in summary
+        assert "session_count" in summary
+        assert "narrative_count" in summary
+        assert "total_artifacts" in summary
+        assert "session_ids" in summary
+        assert "narrative_paths" in summary
+        assert "error_count" in summary
+        assert "errors" in summary
+        assert "last_updated" in summary
+
+        # Verify values are correct
+        assert summary["session_count"] == 2
+        assert summary["narrative_count"] == 3
+        assert summary["total_artifacts"] == 5

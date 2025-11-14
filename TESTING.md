@@ -86,6 +86,7 @@ pytest tests/integration/
 ```
 tests/
 ├── conftest.py                      # Shared fixtures
+├── test_chunker.py                  # ✅ HybridChunker unit tests (16 tests)
 ├── test_classifier.py               # OllamaClassifier + GroqClassifier unit tests
 ├── test_transcriber.py              # Transcriber unit tests
 ├── integration/
@@ -125,10 +126,15 @@ def test_groq_real_api():
 
 ### Current Coverage
 
+- **HybridChunker**: ✅ Full coverage (16 tests) - VAD-based audio chunking
 - **OllamaClassifier**: ✅ Full coverage (68 tests)
-- **GroqClassifier**: ✅ Full coverage (13 new tests)
+- **GroqClassifier**: ✅ Full coverage (13 tests)
 - **GroqTranscriber**: ✅ Partial coverage (unit tests)
 - **Integration**: ✅ API validation and deprecation checks
+
+### Priority 0 (Critical Components)
+- ✅ **chunker.py** (P0-2): 16 tests - Initialization, chunking logic, VAD detection, edge cases
+- ⏳ **pipeline.py** (P0-1): Not implemented - Main orchestration pipeline
 
 ### Generating Coverage Report
 

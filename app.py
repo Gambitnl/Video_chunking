@@ -70,36 +70,56 @@ def ui_load_api_keys() -> Tuple[str, str, str, str]:
         status = StatusMessages.info("API Keys", "Enter your API keys to enable cloud services.")
     return groq_key, openai_key, hf_key, status
 
+def _save_config_helper(group_name: str, allow_empty: bool = False, **kwargs) -> str:
+    """
+    Helper function to validate and save configuration settings.
+
+    Args:
+        group_name: Display name for the configuration group (e.g., "API Keys")
+        allow_empty: If True, return info message when no changes to save
+        **kwargs: Configuration parameters to validate and save
+
+    Returns:
+        Status message for UI display
+    """
+    try:
+        from src.ui.config_manager import ConfigManager
+
+        validated, errors = ConfigManager.validate_config(**kwargs)
+
+        if errors:
+            return StatusMessages.error(group_name, f"Validation failed: {'; '.join(errors)}")
+
+        if not validated:
+            if allow_empty:
+                return StatusMessages.info(group_name, "No changes to save.")
+            # Even if empty, we might want to show success for consistency
+            return StatusMessages.info(group_name, "No changes to save.")
+
+        ConfigManager.save_config(validated)
+        return StatusMessages.success(
+            group_name,
+            f"{group_name} saved successfully. Restart the application to apply changes."
+        )
+
+    except Exception as e:
+        logger.exception("Failed to save %s from UI", group_name)
+        return StatusMessages.error(group_name, f"Failed to save: {e}")
+
+
 def ui_save_api_keys(
     groq_api_key: str,
     openai_api_key: str,
     hugging_face_api_key: str
 ) -> str:
     """UI wrapper to save API keys from Gradio inputs."""
-    try:
-        from src.ui.config_manager import ConfigManager
-
-        validated, errors = ConfigManager.validate_config(
-            groq_api_key=groq_api_key if groq_api_key else None,
-            openai_api_key=openai_api_key if openai_api_key else None,
-            hugging_face_api_key=hugging_face_api_key if hugging_face_api_key else None,
-        )
-
-        if errors:
-            return StatusMessages.error("API Keys", f"Validation failed: {'; '.join(errors)}")
-
-        if validated:
-            ConfigManager.save_config(validated)
-            return StatusMessages.success(
-                "API Keys",
-                "API keys saved successfully to `.env`. Restart the application to apply changes."
-            )
-        else:
-            return StatusMessages.info("API Keys", "No changes to save.")
-
-    except Exception as e:
-        logger.exception("Failed to save API keys from UI")
-        return StatusMessages.error("API Keys", f"Failed to save API keys: {e}")
+    return _save_config_helper(
+        "API Keys",
+        allow_empty=True,
+        groq_api_key=groq_api_key if groq_api_key else None,
+        openai_api_key=openai_api_key if openai_api_key else None,
+        hugging_face_api_key=hugging_face_api_key if hugging_face_api_key else None,
+    )
 
 
 def ui_save_model_config(
@@ -110,29 +130,14 @@ def ui_save_model_config(
     llm_backend: str,
 ) -> str:
     """UI wrapper to save model configuration."""
-    try:
-        from src.ui.config_manager import ConfigManager
-
-        validated, errors = ConfigManager.validate_config(
-            whisper_backend=whisper_backend,
-            whisper_model=whisper_model,
-            whisper_language=whisper_language,
-            diarization_backend=diarization_backend,
-            llm_backend=llm_backend,
-        )
-
-        if errors:
-            return StatusMessages.error("Model Configuration", f"Validation failed: {'; '.join(errors)}")
-
-        ConfigManager.save_config(validated)
-        return StatusMessages.success(
-            "Model Configuration",
-            "Model configuration saved successfully. Restart the application to apply changes."
-        )
-
-    except Exception as e:
-        logger.exception("Failed to save model configuration from UI")
-        return StatusMessages.error("Model Configuration", f"Failed to save: {e}")
+    return _save_config_helper(
+        "Model Configuration",
+        whisper_backend=whisper_backend,
+        whisper_model=whisper_model,
+        whisper_language=whisper_language,
+        diarization_backend=diarization_backend,
+        llm_backend=llm_backend,
+    )
 
 
 def ui_save_processing_config(
@@ -142,28 +147,13 @@ def ui_save_processing_config(
     clean_stale: bool,
 ) -> str:
     """UI wrapper to save processing settings."""
-    try:
-        from src.ui.config_manager import ConfigManager
-
-        validated, errors = ConfigManager.validate_config(
-            chunk_length_seconds=chunk_length,
-            chunk_overlap_seconds=chunk_overlap,
-            audio_sample_rate=sample_rate,
-            clean_stale_clips=clean_stale,
-        )
-
-        if errors:
-            return StatusMessages.error("Processing Settings", f"Validation failed: {'; '.join(errors)}")
-
-        ConfigManager.save_config(validated)
-        return StatusMessages.success(
-            "Processing Settings",
-            "Processing settings saved successfully. Restart the application to apply changes."
-        )
-
-    except Exception as e:
-        logger.exception("Failed to save processing settings from UI")
-        return StatusMessages.error("Processing Settings", f"Failed to save: {e}")
+    return _save_config_helper(
+        "Processing Settings",
+        chunk_length_seconds=chunk_length,
+        chunk_overlap_seconds=chunk_overlap,
+        audio_sample_rate=sample_rate,
+        clean_stale_clips=clean_stale,
+    )
 
 
 def ui_save_ollama_config(
@@ -172,30 +162,13 @@ def ui_save_ollama_config(
     ollama_url: str,
 ) -> str:
     """UI wrapper to save Ollama settings."""
-    try:
-        from src.ui.config_manager import ConfigManager
-
-        validated, errors = ConfigManager.validate_config(
-            ollama_model=ollama_model if ollama_model else None,
-            ollama_fallback_model=ollama_fallback if ollama_fallback else None,
-            ollama_base_url=ollama_url if ollama_url else None,
-        )
-
-        if errors:
-            return StatusMessages.error("Ollama Settings", f"Validation failed: {'; '.join(errors)}")
-
-        if validated:
-            ConfigManager.save_config(validated)
-            return StatusMessages.success(
-                "Ollama Settings",
-                "Ollama settings saved successfully. Restart the application to apply changes."
-            )
-        else:
-            return StatusMessages.info("Ollama Settings", "No changes to save.")
-
-    except Exception as e:
-        logger.exception("Failed to save Ollama settings from UI")
-        return StatusMessages.error("Ollama Settings", f"Failed to save: {e}")
+    return _save_config_helper(
+        "Ollama Settings",
+        allow_empty=True,
+        ollama_model=ollama_model if ollama_model else None,
+        ollama_fallback_model=ollama_fallback if ollama_fallback else None,
+        ollama_base_url=ollama_url if ollama_url else None,
+    )
 
 
 def ui_save_advanced_config(
@@ -206,29 +179,14 @@ def ui_save_advanced_config(
     colab_timeout: int,
 ) -> str:
     """UI wrapper to save advanced settings."""
-    try:
-        from src.ui.config_manager import ConfigManager
-
-        validated, errors = ConfigManager.validate_config(
-            groq_max_calls_per_second=groq_max_calls,
-            groq_rate_limit_period_seconds=groq_rate_period,
-            groq_rate_limit_burst=groq_rate_burst,
-            colab_poll_interval=colab_poll,
-            colab_timeout=colab_timeout,
-        )
-
-        if errors:
-            return StatusMessages.error("Advanced Settings", f"Validation failed: {'; '.join(errors)}")
-
-        ConfigManager.save_config(validated)
-        return StatusMessages.success(
-            "Advanced Settings",
-            "Advanced settings saved successfully. Restart the application to apply changes."
-        )
-
-    except Exception as e:
-        logger.exception("Failed to save advanced settings from UI")
-        return StatusMessages.error("Advanced Settings", f"Failed to save: {e}")
+    return _save_config_helper(
+        "Advanced Settings",
+        groq_max_calls_per_second=groq_max_calls,
+        groq_rate_limit_period_seconds=groq_rate_period,
+        groq_rate_limit_burst=groq_rate_burst,
+        colab_poll_interval=colab_poll,
+        colab_timeout=colab_timeout,
+    )
 
 
 def ui_restart_application() -> str:

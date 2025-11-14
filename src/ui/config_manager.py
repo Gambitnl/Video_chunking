@@ -44,6 +44,35 @@ class ConfigManager:
         return config
 
     @staticmethod
+    def safe_int(value: Any, default: int) -> int:
+        """Safely convert a value to int, returning default on error."""
+        try:
+            return int(value)
+        except (ValueError, TypeError):
+            logger.warning("Could not convert %r to int, using default %s", value, default)
+            return default
+
+    @staticmethod
+    def safe_float(value: Any, default: float) -> float:
+        """Safely convert a value to float, returning default on error."""
+        try:
+            return float(value)
+        except (ValueError, TypeError):
+            logger.warning("Could not convert %r to float, using default %s", value, default)
+            return default
+
+    @staticmethod
+    def safe_bool(value: Any, default: bool) -> bool:
+        """Safely convert a value to bool, returning default on error."""
+        if isinstance(value, bool):
+            return value
+        if isinstance(value, str):
+            if not value.strip():  # Empty string returns default
+                return default
+            return value.lower() in ["true", "1", "yes", "on"]
+        return default
+
+    @staticmethod
     def _validate_positive_int(value: Any, name: str) -> int:
         """Validate that a value is a positive integer."""
         try:
@@ -134,104 +163,142 @@ class ConfigManager:
         validated = {}
         errors = []
 
-        try:
-            # Validate Model Settings
-            if whisper_backend is not None:
+        # Validate Model Settings
+        if whisper_backend is not None:
+            try:
                 validated["WHISPER_BACKEND"] = cls._validate_choice(
                     whisper_backend, cls.VALID_WHISPER_BACKENDS, "Whisper Backend"
                 )
+            except ConfigValidationError as e:
+                errors.append(str(e))
 
-            if diarization_backend is not None:
+        if diarization_backend is not None:
+            try:
                 validated["DIARIZATION_BACKEND"] = cls._validate_choice(
                     diarization_backend, cls.VALID_DIARIZATION_BACKENDS, "Diarization Backend"
                 )
+            except ConfigValidationError as e:
+                errors.append(str(e))
 
-            if llm_backend is not None:
+        if llm_backend is not None:
+            try:
                 validated["LLM_BACKEND"] = cls._validate_choice(
                     llm_backend, cls.VALID_LLM_BACKENDS, "LLM Backend"
                 )
+            except ConfigValidationError as e:
+                errors.append(str(e))
 
-            if whisper_language is not None:
+        if whisper_language is not None:
+            try:
                 validated["WHISPER_LANGUAGE"] = cls._validate_choice(
                     whisper_language, cls.VALID_WHISPER_LANGUAGES, "Whisper Language"
                 )
+            except ConfigValidationError as e:
+                errors.append(str(e))
 
-            if whisper_model is not None:
+        if whisper_model is not None:
+            try:
                 validated["WHISPER_MODEL"] = cls._validate_choice(
                     whisper_model, cls.VALID_WHISPER_MODELS, "Whisper Model"
                 )
+            except ConfigValidationError as e:
+                errors.append(str(e))
 
-            # Validate Processing Settings
-            if chunk_length_seconds is not None:
+        # Validate Processing Settings
+        if chunk_length_seconds is not None:
+            try:
                 validated["CHUNK_LENGTH_SECONDS"] = str(
                     cls._validate_positive_int(chunk_length_seconds, "Chunk Length")
                 )
+            except ConfigValidationError as e:
+                errors.append(str(e))
 
-            if chunk_overlap_seconds is not None:
+        if chunk_overlap_seconds is not None:
+            try:
                 validated["CHUNK_OVERLAP_SECONDS"] = str(
                     cls._validate_non_negative_int(chunk_overlap_seconds, "Chunk Overlap")
                 )
+            except ConfigValidationError as e:
+                errors.append(str(e))
 
-            if audio_sample_rate is not None:
+        if audio_sample_rate is not None:
+            try:
                 validated["AUDIO_SAMPLE_RATE"] = str(
                     cls._validate_positive_int(audio_sample_rate, "Audio Sample Rate")
                 )
+            except ConfigValidationError as e:
+                errors.append(str(e))
 
-            if clean_stale_clips is not None:
-                validated["CLEAN_STALE_CLIPS"] = "true" if clean_stale_clips else "false"
+        if clean_stale_clips is not None:
+            validated["CLEAN_STALE_CLIPS"] = "true" if clean_stale_clips else "false"
 
-            # Validate Ollama Settings
-            if ollama_model is not None and ollama_model.strip():
-                validated["OLLAMA_MODEL"] = ollama_model.strip()
+        # Validate Ollama Settings
+        if ollama_model is not None and ollama_model.strip():
+            validated["OLLAMA_MODEL"] = ollama_model.strip()
 
-            if ollama_base_url is not None and ollama_base_url.strip():
+        if ollama_base_url is not None and ollama_base_url.strip():
+            try:
                 validated["OLLAMA_BASE_URL"] = cls._validate_url(
                     ollama_base_url, "Ollama Base URL"
                 )
+            except ConfigValidationError as e:
+                errors.append(str(e))
 
-            if ollama_fallback_model is not None:
-                # Empty string is valid (means no fallback)
-                validated["OLLAMA_FALLBACK_MODEL"] = ollama_fallback_model.strip()
+        if ollama_fallback_model is not None:
+            # Empty string is valid (means no fallback)
+            validated["OLLAMA_FALLBACK_MODEL"] = ollama_fallback_model.strip()
 
-            # Validate Rate Limiting Settings
-            if groq_max_calls_per_second is not None:
+        # Validate Rate Limiting Settings
+        if groq_max_calls_per_second is not None:
+            try:
                 validated["GROQ_MAX_CALLS_PER_SECOND"] = str(
                     cls._validate_positive_int(groq_max_calls_per_second, "Groq Max Calls Per Second")
                 )
+            except ConfigValidationError as e:
+                errors.append(str(e))
 
-            if groq_rate_limit_period_seconds is not None:
+        if groq_rate_limit_period_seconds is not None:
+            try:
                 validated["GROQ_RATE_LIMIT_PERIOD_SECONDS"] = str(
                     cls._validate_positive_float(groq_rate_limit_period_seconds, "Groq Rate Limit Period")
                 )
+            except ConfigValidationError as e:
+                errors.append(str(e))
 
-            if groq_rate_limit_burst is not None:
+        if groq_rate_limit_burst is not None:
+            try:
                 validated["GROQ_RATE_LIMIT_BURST"] = str(
                     cls._validate_positive_int(groq_rate_limit_burst, "Groq Rate Limit Burst")
                 )
+            except ConfigValidationError as e:
+                errors.append(str(e))
 
-            # Validate Colab Settings
-            if colab_poll_interval is not None:
+        # Validate Colab Settings
+        if colab_poll_interval is not None:
+            try:
                 validated["COLAB_POLL_INTERVAL"] = str(
                     cls._validate_positive_int(colab_poll_interval, "Colab Poll Interval")
                 )
+            except ConfigValidationError as e:
+                errors.append(str(e))
 
-            if colab_timeout is not None:
+        if colab_timeout is not None:
+            try:
                 validated["COLAB_TIMEOUT"] = str(
                     cls._validate_positive_int(colab_timeout, "Colab Timeout")
                 )
+            except ConfigValidationError as e:
+                errors.append(str(e))
 
-            # API Keys (no validation, just store if provided)
-            if groq_api_key is not None and groq_api_key.strip():
-                validated["GROQ_API_KEY"] = groq_api_key.strip()
+        # API Keys (no validation, just store if provided)
+        if groq_api_key is not None and groq_api_key.strip():
+            validated["GROQ_API_KEY"] = groq_api_key.strip()
 
-            if openai_api_key is not None and openai_api_key.strip():
-                validated["OPENAI_API_KEY"] = openai_api_key.strip()
+        if openai_api_key is not None and openai_api_key.strip():
+            validated["OPENAI_API_KEY"] = openai_api_key.strip()
 
-            if hugging_face_api_key is not None and hugging_face_api_key.strip():
-                validated["HUGGING_FACE_API_KEY"] = hugging_face_api_key.strip()
-
-        except ConfigValidationError as e:
-            errors.append(str(e))
+        if hugging_face_api_key is not None and hugging_face_api_key.strip():
+            validated["HUGGING_FACE_API_KEY"] = hugging_face_api_key.strip()
 
         return validated, errors
 

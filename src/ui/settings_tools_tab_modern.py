@@ -164,7 +164,10 @@ def create_settings_tools_tab_modern(
             with gr.Row():
                 chunk_length_input = gr.Number(
                     label="Chunk Length (seconds)",
-                    value=int(current_config.get("CHUNK_LENGTH_SECONDS", Config.CHUNK_LENGTH_SECONDS)),
+                    value=ConfigManager.safe_int(
+                        current_config.get("CHUNK_LENGTH_SECONDS", Config.CHUNK_LENGTH_SECONDS),
+                        Config.CHUNK_LENGTH_SECONDS
+                    ),
                     minimum=60,
                     maximum=3600,
                     step=60,
@@ -173,7 +176,10 @@ def create_settings_tools_tab_modern(
                 )
                 chunk_overlap_input = gr.Number(
                     label="Chunk Overlap (seconds)",
-                    value=int(current_config.get("CHUNK_OVERLAP_SECONDS", Config.CHUNK_OVERLAP_SECONDS)),
+                    value=ConfigManager.safe_int(
+                        current_config.get("CHUNK_OVERLAP_SECONDS", Config.CHUNK_OVERLAP_SECONDS),
+                        Config.CHUNK_OVERLAP_SECONDS
+                    ),
                     minimum=0,
                     maximum=60,
                     step=1,
@@ -182,7 +188,10 @@ def create_settings_tools_tab_modern(
                 )
                 audio_sample_rate_input = gr.Number(
                     label="Audio Sample Rate (Hz)",
-                    value=int(current_config.get("AUDIO_SAMPLE_RATE", Config.AUDIO_SAMPLE_RATE)),
+                    value=ConfigManager.safe_int(
+                        current_config.get("AUDIO_SAMPLE_RATE", Config.AUDIO_SAMPLE_RATE),
+                        Config.AUDIO_SAMPLE_RATE
+                    ),
                     minimum=8000,
                     maximum=48000,
                     step=1000,
@@ -192,7 +201,10 @@ def create_settings_tools_tab_modern(
 
             clean_stale_clips_checkbox = gr.Checkbox(
                 label="Clean Stale Audio Clips",
-                value=current_config.get("CLEAN_STALE_CLIPS", str(Config.CLEAN_STALE_CLIPS)).lower() in ["true", "1"],
+                value=ConfigManager.safe_bool(
+                    current_config.get("CLEAN_STALE_CLIPS", str(Config.CLEAN_STALE_CLIPS)),
+                    Config.CLEAN_STALE_CLIPS
+                ),
                 interactive=True,
                 info="Automatically remove old temporary audio files"
             )
@@ -260,7 +272,10 @@ def create_settings_tools_tab_modern(
             with gr.Row():
                 groq_max_calls_input = gr.Number(
                     label="Max Calls Per Second",
-                    value=int(current_config.get("GROQ_MAX_CALLS_PER_SECOND", Config.GROQ_MAX_CALLS_PER_SECOND)),
+                    value=ConfigManager.safe_int(
+                        current_config.get("GROQ_MAX_CALLS_PER_SECOND", Config.GROQ_MAX_CALLS_PER_SECOND),
+                        Config.GROQ_MAX_CALLS_PER_SECOND
+                    ),
                     minimum=1,
                     maximum=100,
                     step=1,
@@ -268,7 +283,10 @@ def create_settings_tools_tab_modern(
                 )
                 groq_rate_period_input = gr.Number(
                     label="Rate Limit Period (seconds)",
-                    value=float(current_config.get("GROQ_RATE_LIMIT_PERIOD_SECONDS", Config.GROQ_RATE_LIMIT_PERIOD_SECONDS)),
+                    value=ConfigManager.safe_float(
+                        current_config.get("GROQ_RATE_LIMIT_PERIOD_SECONDS", Config.GROQ_RATE_LIMIT_PERIOD_SECONDS),
+                        Config.GROQ_RATE_LIMIT_PERIOD_SECONDS
+                    ),
                     minimum=0.1,
                     maximum=10.0,
                     step=0.1,
@@ -276,7 +294,10 @@ def create_settings_tools_tab_modern(
                 )
                 groq_rate_burst_input = gr.Number(
                     label="Rate Limit Burst",
-                    value=int(current_config.get("GROQ_RATE_LIMIT_BURST", Config.GROQ_RATE_LIMIT_BURST)),
+                    value=ConfigManager.safe_int(
+                        current_config.get("GROQ_RATE_LIMIT_BURST", Config.GROQ_RATE_LIMIT_BURST),
+                        Config.GROQ_RATE_LIMIT_BURST
+                    ),
                     minimum=1,
                     maximum=100,
                     step=1,
@@ -287,7 +308,10 @@ def create_settings_tools_tab_modern(
             with gr.Row():
                 colab_poll_interval_input = gr.Number(
                     label="Poll Interval (seconds)",
-                    value=int(current_config.get("COLAB_POLL_INTERVAL", Config.COLAB_POLL_INTERVAL)),
+                    value=ConfigManager.safe_int(
+                        current_config.get("COLAB_POLL_INTERVAL", Config.COLAB_POLL_INTERVAL),
+                        Config.COLAB_POLL_INTERVAL
+                    ),
                     minimum=5,
                     maximum=300,
                     step=5,
@@ -296,7 +320,10 @@ def create_settings_tools_tab_modern(
                 )
                 colab_timeout_input = gr.Number(
                     label="Timeout (seconds)",
-                    value=int(current_config.get("COLAB_TIMEOUT", Config.COLAB_TIMEOUT)),
+                    value=ConfigManager.safe_int(
+                        current_config.get("COLAB_TIMEOUT", Config.COLAB_TIMEOUT),
+                        Config.COLAB_TIMEOUT
+                    ),
                     minimum=300,
                     maximum=7200,
                     step=300,

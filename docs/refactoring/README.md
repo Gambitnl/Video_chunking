@@ -86,6 +86,12 @@ Create single `format_filtered()` method with filter strategy pattern. Enhanced 
 
 Extract audio loading, diarization, and embedding extraction into separate methods. Reduced main method by 30%, added 6 comprehensive unit tests.
 
+**Completion Summary**:
+- Extracted `_load_audio_for_embeddings()` and `_extract_single_speaker_embedding()` methods
+- Reduced `_extract_speaker_embeddings()` from 81 to 57 lines (-30%)
+- Added 6 comprehensive unit tests
+- See [completion summary](./06-diarizer-complex-method.md#implementation-summary) for details
+
 ---
 
 #### 7. [Replace Magic Strings with Enums](./07-magic-strings-and-numbers.md)
@@ -109,6 +115,8 @@ Create enums for all magic strings: `Classification`, `ProcessingStatus`, `Pipel
 **Branch**: `claude/extract-campaign-artifact-counter-01SowpfACvL8iZudn6FP6Ews`
 
 Create `CampaignArtifactCounter` class with caching and proper error handling. Added 42+ test cases, convenience methods, and performance optimizations.
+
+**Completion Notes**: Core extraction was pre-existing. Enhanced with convenience methods (`count_sessions`, `count_narratives`), query methods (`get_all_campaigns`, `get_campaign_summary`), and detailed tracking (session IDs, narrative paths). 39+ test cases covering all functionality.
 
 ---
 

@@ -1,5 +1,6 @@
 """Tests for OllamaClientFactory."""
 
+import builtins
 import pytest
 from unittest.mock import Mock, patch, MagicMock
 from src.llm_factory import (
@@ -53,40 +54,40 @@ class TestOllamaClientFactory:
 
     def test_create_client_default_config(self, factory):
         """Test creating client with default configuration."""
-        with patch('src.llm_factory.ollama') as mock_ollama:
+        with patch('ollama.Client') as mock_client_class:
             mock_client = Mock()
             mock_client.list.return_value = {'models': []}
-            mock_ollama.Client.return_value = mock_client
+            mock_client_class.return_value = mock_client
 
             client = factory.create_client(test_connection=False)
 
             assert client == mock_client
-            mock_ollama.Client.assert_called_once_with(
+            mock_client_class.assert_called_once_with(
                 host="http://localhost:11434",
                 timeout=30
             )
 
     def test_create_client_custom_config(self, factory):
         """Test creating client with custom configuration."""
-        with patch('src.llm_factory.ollama') as mock_ollama:
+        with patch('ollama.Client') as mock_client_class:
             mock_client = Mock()
             mock_client.list.return_value = {'models': []}
-            mock_ollama.Client.return_value = mock_client
+            mock_client_class.return_value = mock_client
 
             config = OllamaConfig(host="http://custom:11434", timeout=60)
             client = factory.create_client(config, test_connection=False)
 
-            mock_ollama.Client.assert_called_once_with(
+            mock_client_class.assert_called_once_with(
                 host="http://custom:11434",
                 timeout=60
             )
 
     def test_create_client_with_connection_test(self, factory):
         """Test that connection is tested when requested."""
-        with patch('src.llm_factory.ollama') as mock_ollama:
+        with patch('ollama.Client') as mock_client_class:
             mock_client = Mock()
             mock_client.list.return_value = {'models': [{'name': 'llama2'}]}
-            mock_ollama.Client.return_value = mock_client
+            mock_client_class.return_value = mock_client
 
             client = factory.create_client(test_connection=True)
 
@@ -95,10 +96,10 @@ class TestOllamaClientFactory:
 
     def test_create_client_connection_failure(self, factory):
         """Test that connection failure raises error."""
-        with patch('src.llm_factory.ollama') as mock_ollama:
+        with patch('ollama.Client') as mock_client_class:
             mock_client = Mock()
             mock_client.list.side_effect = ConnectionError("Cannot connect")
-            mock_ollama.Client.return_value = mock_client
+            mock_client_class.return_value = mock_client
 
             with pytest.raises(OllamaConnectionError, match="Failed to connect"):
                 factory.create_client(test_connection=True, max_retries=1)
@@ -106,7 +107,7 @@ class TestOllamaClientFactory:
     @patch('time.sleep')
     def test_connection_retry_logic(self, mock_sleep, factory):
         """Test that connection is retried with backoff."""
-        with patch('src.llm_factory.ollama') as mock_ollama:
+        with patch('ollama.Client') as mock_client_class:
             mock_client = Mock()
             # Fail twice, succeed on third attempt
             mock_client.list.side_effect = [
@@ -114,7 +115,7 @@ class TestOllamaClientFactory:
                 ConnectionError("Fail 2"),
                 {'models': []}
             ]
-            mock_ollama.Client.return_value = mock_client
+            mock_client_class.return_value = mock_client
 
             client = factory.create_client(test_connection=True, max_retries=3)
 
@@ -126,7 +127,7 @@ class TestOllamaClientFactory:
     @patch('time.sleep')
     def test_exponential_backoff_timing(self, mock_sleep, factory):
         """Test that exponential backoff uses correct timing."""
-        with patch('src.llm_factory.ollama') as mock_ollama:
+        with patch('ollama.Client') as mock_client_class:
             mock_client = Mock()
             mock_client.list.side_effect = [
                 ConnectionError("Fail 1"),
@@ -134,7 +135,7 @@ class TestOllamaClientFactory:
                 ConnectionError("Fail 3"),
                 {'models': []}
             ]
-            mock_ollama.Client.return_value = mock_client
+            mock_client_class.return_value = mock_client
 
             client = factory.create_client(test_connection=True, max_retries=4)
 
@@ -147,10 +148,10 @@ class TestOllamaClientFactory:
 
     def test_client_caching(self, factory):
         """Test that clients are cached when requested."""
-        with patch('src.llm_factory.ollama') as mock_ollama:
+        with patch('ollama.Client') as mock_client_class:
             mock_client = Mock()
             mock_client.list.return_value = {'models': []}
-            mock_ollama.Client.return_value = mock_client
+            mock_client_class.return_value = mock_client
 
             # Create client with caching
             client1 = factory.create_client(test_connection=False, use_cache=True)
@@ -159,12 +160,12 @@ class TestOllamaClientFactory:
             # Should return same instance
             assert client1 is client2
             # Should only create client once
-            assert mock_ollama.Client.call_count == 1
+            assert mock_client_class.call_count == 1
 
     def test_cache_different_hosts(self, factory):
         """Test that different hosts get different cached clients."""
-        with patch('src.llm_factory.ollama') as mock_ollama:
-            mock_ollama.Client.return_value = Mock()
+        with patch('ollama.Client') as mock_client_class:
+            mock_client_class.return_value = Mock()
 
             config1 = OllamaConfig(host="http://host1:11434")
             config2 = OllamaConfig(host="http://host2:11434")
@@ -173,12 +174,12 @@ class TestOllamaClientFactory:
             client2 = factory.create_client(config2, test_connection=False, use_cache=True)
 
             # Should create two different clients
-            assert mock_ollama.Client.call_count == 2
+            assert mock_client_class.call_count == 2
 
     def test_cache_different_timeouts(self, factory):
         """Test that different timeouts create different cache entries."""
-        with patch('src.llm_factory.ollama') as mock_ollama:
-            mock_ollama.Client.return_value = Mock()
+        with patch('ollama.Client') as mock_client_class:
+            mock_client_class.return_value = Mock()
 
             config1 = OllamaConfig(host="http://localhost:11434", timeout=30)
             config2 = OllamaConfig(host="http://localhost:11434", timeout=60)
@@ -187,7 +188,7 @@ class TestOllamaClientFactory:
             client2 = factory.create_client(config2, test_connection=False, use_cache=True)
 
             # Should create two different clients (different timeouts)
-            assert mock_ollama.Client.call_count == 2
+            assert mock_client_class.call_count == 2
 
     def test_clear_cache(self, factory):
         """Test cache clearing."""
@@ -240,7 +241,7 @@ class TestOllamaClientFactory:
 
     def test_model_count_logging(self, factory):
         """Test that successful connection logs model count."""
-        with patch('src.llm_factory.ollama') as mock_ollama:
+        with patch('ollama.Client') as mock_client_class:
             mock_client = Mock()
             mock_client.list.return_value = {
                 'models': [
@@ -249,7 +250,7 @@ class TestOllamaClientFactory:
                     {'name': 'codellama'}
                 ]
             }
-            mock_ollama.Client.return_value = mock_client
+            mock_client_class.return_value = mock_client
 
             # This should log that 3 models are available
             client = factory.create_client(test_connection=True)
@@ -257,17 +258,17 @@ class TestOllamaClientFactory:
 
     def test_create_client_failure(self, factory):
         """Test that client creation failure is handled."""
-        with patch('src.llm_factory.ollama') as mock_ollama:
-            mock_ollama.Client.side_effect = Exception("Connection refused")
+        with patch('ollama.Client') as mock_client_class:
+            mock_client_class.side_effect = Exception("Connection refused")
 
             with pytest.raises(OllamaConnectionError, match="Failed to create client"):
                 factory.create_client(test_connection=False)
 
     def test_no_retry_when_test_disabled(self, factory):
         """Test that no retries happen when connection testing is disabled."""
-        with patch('src.llm_factory.ollama') as mock_ollama:
+        with patch('ollama.Client') as mock_client_class:
             mock_client = Mock()
-            mock_ollama.Client.return_value = mock_client
+            mock_client_class.return_value = mock_client
 
             client = factory.create_client(test_connection=False)
 
@@ -284,10 +285,10 @@ class TestOllamaClientFactory:
 
     def test_connection_test_all_retries_fail(self, factory):
         """Test that error is raised when all retries fail."""
-        with patch('src.llm_factory.ollama') as mock_ollama:
+        with patch('ollama.Client') as mock_client_class:
             mock_client = Mock()
             mock_client.list.side_effect = ConnectionError("Cannot connect")
-            mock_ollama.Client.return_value = mock_client
+            mock_client_class.return_value = mock_client
 
             with pytest.raises(OllamaConnectionError) as exc_info:
                 factory.create_client(test_connection=True, max_retries=2)
@@ -297,11 +298,11 @@ class TestOllamaClientFactory:
 
     def test_model_list_non_dict_response(self, factory):
         """Test handling of non-dict response from list()."""
-        with patch('src.llm_factory.ollama') as mock_ollama:
+        with patch('ollama.Client') as mock_client_class:
             mock_client = Mock()
             # Some edge case where list() doesn't return a dict
             mock_client.list.return_value = []
-            mock_ollama.Client.return_value = mock_client
+            mock_client_class.return_value = mock_client
 
             # Should handle gracefully
             client = factory.create_client(test_connection=True)
@@ -309,12 +310,12 @@ class TestOllamaClientFactory:
 
     def test_model_to_check_parameter(self, factory):
         """Test model_to_check parameter avoids redundant API calls."""
-        with patch('src.llm_factory.ollama') as mock_ollama:
+        with patch('ollama.Client') as mock_client_class:
             mock_client = Mock()
             mock_client.list.return_value = {
                 'models': [{'name': 'llama2'}, {'name': 'mistral'}]
             }
-            mock_ollama.Client.return_value = mock_client
+            mock_client_class.return_value = mock_client
 
             # Create client with model check
             client = factory.create_client(
@@ -327,12 +328,12 @@ class TestOllamaClientFactory:
 
     def test_model_to_check_not_available(self, factory):
         """Test warning when requested model is not available."""
-        with patch('src.llm_factory.ollama') as mock_ollama:
+        with patch('ollama.Client') as mock_client_class:
             mock_client = Mock()
             mock_client.list.return_value = {
                 'models': [{'name': 'llama2'}]
             }
-            mock_ollama.Client.return_value = mock_client
+            mock_client_class.return_value = mock_client
 
             # Create client checking for unavailable model
             client = factory.create_client(
@@ -345,6 +346,14 @@ class TestOllamaClientFactory:
 
     def test_ollama_not_installed(self, factory):
         """Test that ImportError is raised when ollama is not installed."""
-        with patch('src.llm_factory.ollama', side_effect=ImportError("No module named 'ollama'")):
+        # Mock the import of ollama to raise ImportError
+        real_import = builtins.__import__
+
+        def mock_import(name, *args, **kwargs):
+            if name == 'ollama':
+                raise ImportError("No module named 'ollama'")
+            return real_import(name, *args, **kwargs)
+
+        with patch('builtins.__import__', side_effect=mock_import):
             with pytest.raises(ImportError, match="ollama package is required"):
                 factory.create_client()

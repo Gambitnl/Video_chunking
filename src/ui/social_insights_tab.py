@@ -14,7 +14,18 @@ def create_social_insights_tab(
     initial_campaign_id: Optional[str] = None,
 ) -> Dict[str, gr.components.Component]:
     def analyze_ooc_ui(session_id):
+        """
+        Analyze OOC transcript with progress feedback.
+        Yields intermediate status updates during processing.
+        """
         try:
+            # Clear previous results and show starting status
+            yield (
+                None,
+                None,
+                StatusMessages.loading("Starting analysis")
+            )
+
             from src.analyzer import OOCAnalyzer
             from src.config import Config
 
@@ -27,32 +38,60 @@ def create_social_insights_tab(
                     "The 'wordcloud' package is required for social insights analysis.",
                     "Install it with: pip install wordcloud"
                 )
-                return error_msg, None
+                yield (error_msg, None, error_msg)
+                return
 
             if not session_id:
-                return StatusMessages.warning("Input Required", "Please select a session ID."), None
+                warning_msg = StatusMessages.warning("Input Required", "Please select a session ID.")
+                yield (warning_msg, None, warning_msg)
+                return
 
             from src.formatter import sanitize_filename
 
             sanitized_session_id = sanitize_filename(session_id)
             ooc_file = Config.OUTPUT_DIR / f"{sanitized_session_id}_ooc_only.txt"
+
+            # Progress: Checking for transcript
+            yield (
+                gr.update(),
+                gr.update(),
+                StatusMessages.loading("Locating OOC transcript")
+            )
+
             if not ooc_file.exists():
                 error_msg = StatusMessages.error(
                     "File Not Found",
                     f"OOC transcript not found for session: {session_id}",
                     "Run the main pipeline first to generate OOC transcripts."
                 )
-                return error_msg, None
+                yield (error_msg, None, error_msg)
+                return
+
+            # Progress: Loading transcript
+            yield (
+                gr.update(),
+                gr.update(),
+                StatusMessages.loading("Loading OOC transcript and extracting keywords")
+            )
 
             analyzer = OOCAnalyzer(ooc_file)
             keywords = analyzer.get_keywords(top_n=30)
 
             if not keywords:
-                return StatusMessages.info(
+                info_msg = StatusMessages.info(
                     "No Keywords",
                     "No significant keywords found in the OOC transcript.",
                     "This session may have limited out-of-character content."
-                ), None
+                )
+                yield (info_msg, None, info_msg)
+                return
+
+            # Progress: Generating word cloud
+            yield (
+                gr.update(),
+                gr.update(),
+                StatusMessages.loading("Generating Topic Nebula word cloud")
+            )
 
             wc = WordCloud(
                 width=800,
@@ -68,11 +107,17 @@ def create_social_insights_tab(
             temp_path = Config.TEMP_DIR / f"{sanitized_session_id}_nebula.png"
             wc.to_file(str(temp_path))
 
-            keyword_md = "### Top Keywords\n\n| Rank | Keyword | Frequency |\n|---|---|---|"
-            for idx, (word, count) in enumerate(keywords, 1):
-                keyword_md += f"| {idx} | {word} | {count} |\n"
+            # Build keyword table
+            keyword_md_header = "### Top Keywords\n\n| Rank | Keyword | Frequency |\n|---|---|---|"
+            keyword_rows = [f"| {idx} | {word} | {count} |" for idx, (word, count) in enumerate(keywords, 1)]
+            keyword_md = "\n".join([keyword_md_header] + keyword_rows)
 
-            return keyword_md, temp_path
+            # Success
+            success_msg = StatusMessages.success(
+                "Analysis Complete",
+                f"Successfully analyzed {len(keywords)} keywords and generated Topic Nebula."
+            )
+            yield (keyword_md, temp_path, success_msg)
 
         except Exception as exc:
             error_msg = StatusMessages.error(
@@ -80,7 +125,7 @@ def create_social_insights_tab(
                 "Unable to complete social insights analysis.",
                 f"Error: {type(exc).__name__}: {str(exc)}"
             )
-            return error_msg, None
+            yield (error_msg, None, error_msg)
 
     campaign_names = refresh_campaign_names()
     campaign_choices = ["All Campaigns"] + list(campaign_names.values())
@@ -135,6 +180,14 @@ def create_social_insights_tab(
                     interactive=True,
                 )
                 insight_btn = gr.Button(f"{SI.ACTION_PROCESS} Analyze Banter", variant="primary")
+                # Status output for progress feedback
+                status_output = gr.Markdown(
+                    label="Status",
+                    value=StatusMessages.info(
+                        "Ready",
+                        "Select a session and click Analyze Banter to begin."
+                    ),
+                )
             with gr.Column():
                 keyword_output = gr.Markdown(
                     label="Top Keywords",
@@ -155,7 +208,7 @@ def create_social_insights_tab(
         insight_btn.click(
             fn=analyze_ooc_ui,
             inputs=[insight_session_id],
-            outputs=[keyword_output, nebula_output],
+            outputs=[keyword_output, nebula_output, status_output],
         )
 
     return {
@@ -163,4 +216,5 @@ def create_social_insights_tab(
         "session_dropdown": insight_session_id,
         "keyword_output": keyword_output,
         "nebula_output": nebula_output,
+        "status_output": status_output,
     }

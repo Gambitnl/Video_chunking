@@ -61,6 +61,8 @@
 -   [ ] **BUG-20251103-007**: Process Session - Results section doesn't auto-scroll
 -   [ ] **BUG-20251103-009**: Process Session - Audio path resolution inconsistent
 -   [ ] **BUG-20251103-013**: Campaign Dashboard - No error recovery for corrupted files
+-   [x] **BUG-20251103-021**: Social Insights - No loading indicator during analysis
+-   [ ] **BUG-20251103-025**: Settings & Tools - Static markdown only, no interactive controls
 -   [ ] **BUG-20251103-026**: Global - Campaign context update triggers excessive re-renders
 -   [ ] **BUG-20251103-028**: Global - Error messages expose internal file paths/stack traces
 -   [ ] **BUG-20251103-029**: Data - Session library doesn't verify campaign_id before display

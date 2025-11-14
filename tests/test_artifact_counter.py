@@ -116,6 +116,36 @@ class TestArtifactCounts:
         assert tup == (7, 14)
         assert isinstance(tup, tuple)
 
+    def test_session_count_property(self):
+        """Test session_count property alias."""
+        counts = ArtifactCounts(sessions=5)
+        assert counts.session_count == 5
+        assert counts.session_count == counts.sessions
+
+    def test_narrative_count_property(self):
+        """Test narrative_count property alias."""
+        counts = ArtifactCounts(narratives=10)
+        assert counts.narrative_count == 10
+        assert counts.narrative_count == counts.narratives
+
+    def test_total_artifacts_property(self):
+        """Test total_artifacts computed property."""
+        counts = ArtifactCounts(sessions=5, narratives=10)
+        assert counts.total_artifacts == 15
+
+    def test_session_ids_and_paths(self):
+        """Test session IDs and narrative paths tracking."""
+        from pathlib import Path
+        counts = ArtifactCounts(
+            sessions=2,
+            narratives=3,
+            session_ids=["session_001", "session_002"],
+            narrative_paths=[Path("n1.md"), Path("n2.md"), Path("n3.md")]
+        )
+        assert len(counts.session_ids) == 2
+        assert len(counts.narrative_paths) == 3
+        assert counts.session_ids[0] == "session_001"
+
 
 class TestCampaignArtifactCounter:
     """Test the CampaignArtifactCounter class."""
@@ -428,3 +458,130 @@ class TestCampaignArtifactCounter:
 
         # All results for campaign_456 should be identical
         assert all(r == (1, 0) for _, s, n in campaign_456_results for r in [(s, n)])
+
+    def test_count_sessions_convenience_method(self, counter):
+        """Test count_sessions convenience method."""
+        session_count = counter.count_sessions("campaign_123")
+        assert session_count == 2
+        assert isinstance(session_count, int)
+
+    def test_count_narratives_convenience_method(self, counter):
+        """Test count_narratives convenience method."""
+        narrative_count = counter.count_narratives("campaign_123")
+        assert narrative_count == 3
+        assert isinstance(narrative_count, int)
+
+    def test_get_all_campaigns(self, counter):
+        """Test get_all_campaigns method."""
+        campaigns = counter.get_all_campaigns()
+
+        assert isinstance(campaigns, list)
+        assert "campaign_123" in campaigns
+        assert "campaign_456" in campaigns
+        assert campaigns == sorted(campaigns)  # Should be sorted
+
+    def test_get_all_campaigns_empty_dir(self, tmp_path):
+        """Test get_all_campaigns with empty directory."""
+        empty_dir = tmp_path / "empty"
+        empty_dir.mkdir()
+        counter = CampaignArtifactCounter(empty_dir)
+
+        campaigns = counter.get_all_campaigns()
+        assert campaigns == []
+
+    def test_get_campaign_summary(self, counter):
+        """Test get_campaign_summary method."""
+        summary = counter.get_campaign_summary("campaign_123")
+
+        assert summary["campaign_id"] == "campaign_123"
+        assert summary["session_count"] == 2
+        assert summary["narrative_count"] == 3
+        assert summary["total_artifacts"] == 5
+        assert len(summary["session_ids"]) == 2
+        assert "session_001" in summary["session_ids"]
+        assert "session_002" in summary["session_ids"]
+        assert len(summary["narrative_paths"]) == 3
+        assert summary["error_count"] == 0
+        assert isinstance(summary["errors"], list)
+        assert "last_updated" in summary
+
+    def test_session_ids_tracked(self, counter):
+        """Test that session IDs are tracked correctly."""
+        counts = counter.count_artifacts("campaign_123")
+
+        assert len(counts.session_ids) == 2
+        assert "session_001" in counts.session_ids
+        assert "session_002" in counts.session_ids
+
+    def test_narrative_paths_tracked(self, counter):
+        """Test that narrative paths are tracked correctly."""
+        counts = counter.count_artifacts("campaign_123")
+
+        assert len(counts.narrative_paths) == 3
+        # Check that all paths are Path objects
+        assert all(isinstance(p, Path) for p in counts.narrative_paths)
+        # Check that all are .md files
+        assert all(p.suffix == ".md" for p in counts.narrative_paths)
+
+    def test_get_all_campaigns_caching(self, counter, temp_output_dir):
+        """Test that get_all_campaigns caches results."""
+        # First call - should scan filesystem
+        campaigns1 = counter.get_all_campaigns()
+        assert len(campaigns1) == 2
+
+        # Add a new campaign
+        new_session = temp_output_dir / "session_new"
+        new_session.mkdir()
+        data_new = new_session / "session_new_data.json"
+        data_new.write_text(json.dumps({
+            "metadata": {
+                "campaign_id": "campaign_789",
+                "session_id": "session_new"
+            }
+        }))
+
+        # Second call - should use cache, won't see new campaign
+        campaigns2 = counter.get_all_campaigns(use_cache=True)
+        assert len(campaigns2) == 2
+
+        # Third call with cache bypass - should see new campaign
+        campaigns3 = counter.get_all_campaigns(use_cache=False)
+        assert len(campaigns3) == 3
+        assert "campaign_789" in campaigns3
+
+    def test_clear_cache_clears_campaigns_list(self, counter):
+        """Test that clearing cache also clears campaigns list cache."""
+        # Populate both caches
+        counter.count_artifacts("campaign_123")
+        counter.get_all_campaigns()
+
+        stats = counter.get_cache_stats()
+        assert stats["cached_campaigns"] == 1
+        assert stats["campaigns_list_cached"] is True
+
+        # Clear all caches
+        counter.clear_cache()
+
+        stats = counter.get_cache_stats()
+        assert stats["cached_campaigns"] == 0
+        assert stats["campaigns_list_cached"] is False
+
+    def test_get_campaign_summary_uses_to_dict(self, counter):
+        """Test that get_campaign_summary properly uses to_dict()."""
+        summary = counter.get_campaign_summary("campaign_123")
+
+        # Verify all expected keys are present
+        assert "campaign_id" in summary
+        assert "session_count" in summary
+        assert "narrative_count" in summary
+        assert "total_artifacts" in summary
+        assert "session_ids" in summary
+        assert "narrative_paths" in summary
+        assert "error_count" in summary
+        assert "errors" in summary
+        assert "last_updated" in summary
+
+        # Verify values are correct
+        assert summary["session_count"] == 2
+        assert summary["narrative_count"] == 3
+        assert summary["total_artifacts"] == 5

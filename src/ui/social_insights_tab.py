@@ -19,9 +19,9 @@ def create_social_insights_tab(
         Yields intermediate status updates during processing.
         """
         try:
-            # Initial validation
+            # Clear previous results and show starting status
             yield (
-                StatusMessages.info("Ready", "Select a session and click Analyze Banter."),
+                None,
                 None,
                 StatusMessages.loading("Starting analysis")
             )
@@ -53,8 +53,8 @@ def create_social_insights_tab(
 
             # Progress: Checking for transcript
             yield (
-                StatusMessages.info("Ready", "Select a session and click Analyze Banter."),
-                None,
+                gr.update(),
+                gr.update(),
                 StatusMessages.loading("Locating OOC transcript")
             )
 
@@ -69,8 +69,8 @@ def create_social_insights_tab(
 
             # Progress: Loading transcript
             yield (
-                StatusMessages.info("Ready", "Select a session and click Analyze Banter."),
-                None,
+                gr.update(),
+                gr.update(),
                 StatusMessages.loading("Loading OOC transcript and extracting keywords")
             )
 
@@ -88,8 +88,8 @@ def create_social_insights_tab(
 
             # Progress: Generating word cloud
             yield (
-                StatusMessages.info("Ready", "Select a session and click Analyze Banter."),
-                None,
+                gr.update(),
+                gr.update(),
                 StatusMessages.loading("Generating Topic Nebula word cloud")
             )
 
@@ -108,9 +108,9 @@ def create_social_insights_tab(
             wc.to_file(str(temp_path))
 
             # Build keyword table
-            keyword_md = "### Top Keywords\n\n| Rank | Keyword | Frequency |\n|---|---|---|"
-            for idx, (word, count) in enumerate(keywords, 1):
-                keyword_md += f"\n| {idx} | {word} | {count} |"
+            keyword_md_header = "### Top Keywords\n\n| Rank | Keyword | Frequency |\n|---|---|---|"
+            keyword_rows = [f"| {idx} | {word} | {count} |" for idx, (word, count) in enumerate(keywords, 1)]
+            keyword_md = "\n".join([keyword_md_header] + keyword_rows)
 
             # Success
             success_msg = StatusMessages.success(

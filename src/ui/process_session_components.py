@@ -1,8 +1,53 @@
 """
 UI Component builders for the Process Session tab.
 
-This module provides builder classes for creating Gradio UI components
-in a modular, testable way.
+This module provides builder classes for creating Gradio UI components in a modular,
+testable way. Each builder class is responsible for creating a specific section of
+the Process Session tab UI.
+
+Builder Classes:
+    - **WorkflowHeaderBuilder**: Visual workflow stepper (Upload → Configure → Process → Review)
+    - **CampaignBadgeBuilder**: Campaign selection badge display
+    - **AudioUploadSectionBuilder**: File upload with history warnings
+    - **PartySelectionSectionBuilder**: Party config dropdown with character display
+    - **ConfigurationSectionBuilder**: Session config (speakers, language, backends, toggles)
+    - **ProcessingControlsBuilder**: Action buttons and status displays
+    - **ResultsSectionBuilder**: Transcript displays (full, IC, OOC, stats, snippets)
+    - **ProcessSessionTabBuilder**: Main orchestrator that combines all sections
+
+Design Pattern:
+    - **Builder Pattern**: Each section is built by a dedicated builder class
+    - **Static Methods**: Builders use @staticmethod for stateless construction
+    - **Component References**: Returns dictionary of component refs for event wiring
+    - **Separation of Concerns**: UI structure separated from behavior (events)
+
+Architecture Flow:
+    1. ProcessSessionTabBuilder receives configuration (parties, defaults, badge text)
+    2. Each section builder creates its Gradio components
+    3. Components are collected into a reference dictionary
+    4. Main module wires events using ProcessSessionEventWiring
+    5. Tab is ready for user interaction
+
+Example:
+    >>> tab_builder = ProcessSessionTabBuilder(
+    ...     available_parties=["Manual Entry", "Party A", "Party B"],
+    ...     initial_defaults={"num_speakers": 4, "party_selection": "Party A"},
+    ...     campaign_badge_text="My Campaign Active"
+    ... )
+    >>> component_refs = tab_builder.build_ui_components()
+    >>> # component_refs contains all UI elements keyed by name
+
+Benefits:
+    - Testable: Each builder can be tested in isolation
+    - Maintainable: Easy to modify individual sections
+    - Reusable: Builders can be composed in different ways
+    - Readable: Clear separation of UI sections
+
+See Also:
+    - `src.ui.process_session_tab_modern`: Main orchestration
+    - `src.ui.process_session_helpers`: Business logic and validation
+    - `src.ui.process_session_events`: Event handler wiring
+    - `src.ui.helpers`: Shared UI utilities and constants
 """
 
 from typing import Any, Dict, List

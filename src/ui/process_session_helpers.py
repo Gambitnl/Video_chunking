@@ -1,9 +1,50 @@
 """
 Helper functions for the Process Session UI tab.
 
-This module contains validation, formatting, and event handler logic
-extracted from the main UI creation function for better testability
-and reusability.
+This module contains validation, formatting, and polling logic extracted from
+the main UI creation function for better testability, reusability, and maintainability.
+
+Function Categories:
+    - **Validation**: Input validation for session processing
+    - **Formatting**: Markdown formatting for statistics, snippets, party displays
+    - **Polling**: Live progress updates from StatusTracker
+    - **Response Handling**: Processing response formatting and rendering
+
+Functions:
+    Validation:
+        - validate_session_inputs: Validate all inputs before processing
+        - _validate_session_id: Validate session ID format
+        - _validate_audio_file: Validate audio file presence and format
+        - _validate_party_config: Validate party configuration
+
+    Formatting:
+        - format_statistics_markdown: Format processing statistics
+        - format_snippet_export_markdown: Format snippet export info
+        - format_party_display: Format party character list
+        - update_party_display: Update party display (wrapper)
+
+    Polling:
+        - poll_transcription_progress: Poll transcription progress from status file
+        - poll_runtime_updates: Poll stage progress and event log
+        - _parse_stage_progress: Parse stage status from StatusTracker
+        - _parse_event_log: Parse event log entries
+
+    Response Handling:
+        - render_processing_response: Render complete processing response
+        - prepare_processing_status: Prepare initial processing status
+        - check_file_processing_history: Check if file was processed before
+
+Design Philosophy:
+    - Pure functions where possible (no side effects)
+    - Comprehensive input validation with clear error messages
+    - Gradio-aware (returns gr.update() for UI updates)
+    - Status file polling for live updates (non-blocking)
+
+See Also:
+    - `src.ui.process_session_tab_modern`: Main orchestration
+    - `src.ui.process_session_components`: UI component builders
+    - `src.ui.process_session_events`: Event handler wiring
+    - `src.status_tracker`: Status tracking infrastructure
 """
 
 from datetime import datetime

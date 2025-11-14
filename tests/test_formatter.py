@@ -155,7 +155,8 @@ class TestFormatFiltered:
 
     def test_invalid_filter_type(self, formatter, sample_transcript, sample_classifications):
         """Test that invalid filter type raises ValueError."""
-        with pytest.raises(ValueError, match="Unknown filter type"):
+        # Passing a non-enum value should raise ValueError during validation
+        with pytest.raises(ValueError, match="filter_type must be a TranscriptFilter enum member"):
             formatter.format_filtered(
                 sample_transcript,
                 sample_classifications,

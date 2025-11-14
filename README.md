@@ -131,7 +131,7 @@ IC/OOC Classification (Ollama + Llama 3.1)
 |-----------|-----------|-----|
 | Audio Conversion | FFmpeg | Universal format support |
 | Voice Detection | Silero VAD | Best free VAD |
-| Transcription | faster-whisper | 4x faster, excellent Dutch |
+| Transcription | faster-whisper / Groq / OpenAI | Local or cloud options |
 | Diarization | PyAnnote.audio 3.1 | State-of-the-art |
 | Classification | Ollama (Llama 3.1) | Free, local, Dutch support |
 | UI | Gradio + Click + Rich | User-friendly interfaces |
@@ -224,16 +224,17 @@ Speaker-labeled Chunks → Whisper API/Local → Dutch Transcription
    - Fully free, runs on your hardware
    - Supports `verbose_json` for detailed timestamps
 
-2. **Groq API** (Alternative - fast & generous free tier):
+2. **Groq API** (Fast & free cloud option):
    - Uses Whisper models with hardware acceleration
    - Much faster than local processing
    - Free tier: significant daily allowance
    - Good for testing/prototyping
 
-3. **OpenAI Whisper API** (Fallback):
-   - 25MB file size limit per request
-   - Pay-per-use, but relatively cheap
-   - Most reliable Dutch support
+3. **OpenAI Whisper API** (Official cloud option):
+   - Official OpenAI implementation (whisper-1 model)
+   - High quality, reliable results
+   - Pay-per-use pricing
+   - Excellent Dutch support
 
 **Process**:
 1. Transcribe each chunk with `language="nl"` parameter for faster/better results

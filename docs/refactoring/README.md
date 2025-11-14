@@ -73,14 +73,17 @@ Create single `format_filtered()` method with filter strategy pattern.
 
 ---
 
-#### 6. [Extract Complex Diarization Logic](./06-diarizer-complex-method.md)
+#### 6. [Extract Complex Diarization Logic](./06-diarizer-complex-method.md) ✅ **COMPLETED**
 **Issue**: 101-line `diarize()` method with multiple responsibilities
 
 **Impact**: Medium - Code complexity
-**Effort**: 10-12 hours
+**Effort**: 10-12 hours (Actual: ~2 hours)
 **Complexity**: Medium
+**Status**: Completed 2025-11-14
 
 Extract audio loading, diarization, and embedding extraction into separate methods.
+
+**Completion Notes**: Extracted `_load_audio_for_embeddings()` and `_extract_single_speaker_embedding()` methods. Reduced `_extract_speaker_embeddings()` from 81 to 57 lines (-30%). Added 6 comprehensive unit tests covering all extraction scenarios.
 
 ---
 
@@ -138,13 +141,14 @@ Break into reusable component classes with Builder pattern.
 | Metric | Value |
 |--------|-------|
 | **Total Candidates** | 10 |
-| **Completed** | 1 |
+| **Completed** | 2 ✅ |
 | **In Progress** | 0 |
-| **Not Started** | 9 |
+| **Remaining** | 8 |
 | **Total Estimated Effort** | 143-186 hours |
+| **Actual Effort (Completed)** | ~4 hours |
 | **Average Effort per Candidate** | 14.3-18.6 hours |
 | **High Priority Items** | 4 |
-| **Medium Priority Items** | 4 (1 completed) |
+| **Medium Priority Items** | 4 (2 completed ✅) |
 | **Lower Priority Items** | 2 |
 
 ## Implementation Strategy
@@ -279,4 +283,5 @@ When implementing a refactoring:
 ---
 
 **Last Updated**: 2025-11-14
-**Status**: 1 of 10 refactorings completed. All plans documented, ready for implementation.
+**Status**: 2 of 10 refactorings completed (#6: Diarizer Complex Method, #8: Campaign Artifact Counting)
+**Next Priority**: Foundation phase - #2, #3, #9, #5

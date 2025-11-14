@@ -427,6 +427,96 @@ class SpeakerDiarizer(BaseDiarizer):
 
         return diarization, segments
 
+    def _load_audio_for_embeddings(self, audio_path: Path) -> Optional[Any]:
+        """
+        Load audio file for embedding extraction.
+
+        Uses pydub to load audio for manipulation and segment extraction.
+
+        Args:
+            audio_path: Path to audio file
+
+        Returns:
+            pydub AudioSegment object or None if loading fails
+        """
+        try:
+            from pydub import AudioSegment
+        except ImportError as exc:
+            self.logger.warning(
+                "Unable to import pydub for embedding extraction: %s",
+                exc
+            )
+            return None
+
+        try:
+            audio = AudioSegment.from_wav(str(audio_path))
+            self.logger.debug(
+                "Loaded audio for embeddings: %.1fs duration",
+                len(audio) / 1000.0
+            )
+            return audio
+        except Exception as exc:
+            self.logger.warning(
+                "Unable to load %s for speaker embeddings: %s",
+                audio_path,
+                exc
+            )
+            return None
+
+    def _extract_single_speaker_embedding(
+        self,
+        speaker_id: str,
+        diarization: Any,
+        audio: Any
+    ) -> Optional[np.ndarray]:
+        """
+        Extract voice embedding for a single speaker.
+
+        Combines all audio segments for the speaker and extracts a single embedding.
+
+        Args:
+            speaker_id: ID of speaker to extract embedding for
+            diarization: PyAnnote Annotation object
+            audio: pydub AudioSegment
+
+        Returns:
+            Numpy array with embedding or None if extraction fails
+
+        Raises:
+            Exception: If embedding extraction fails
+        """
+        from pydub import AudioSegment
+
+        # Get all segments for this speaker
+        speaker_segments = diarization.label_timeline(speaker_id)
+
+        # Combine audio from all segments
+        speaker_audio = AudioSegment.empty()
+        for segment in speaker_segments:
+            start_ms = int(segment.start * 1000)
+            end_ms = int(segment.end * 1000)
+            speaker_audio += audio[start_ms:end_ms]
+
+        # Check if we have enough audio
+        if len(speaker_audio) <= 0:
+            self.logger.debug(
+                "Speaker %s has no audio segments, skipping embedding",
+                speaker_id
+            )
+            return None
+
+        # Convert to numpy array and normalize
+        samples = np.array(
+            speaker_audio.get_array_of_samples(),
+            dtype=np.float32
+        ) / 32768.0
+
+        # Prepare tensor and run inference
+        samples_tensor = self._prepare_waveform_tensor(samples)
+        embedding = self._run_embedding_inference(samples_tensor, audio.frame_rate)
+
+        return self._embedding_to_numpy(embedding)
+
     def _extract_speaker_embeddings(
         self,
         audio_path: Path,
@@ -448,58 +538,28 @@ class SpeakerDiarizer(BaseDiarizer):
         """
         speaker_embeddings: Dict[str, np.ndarray] = {}
 
+        # Check if embedding model is available
         if self.embedding_model is None:
             self.logger.debug("No embedding model available, skipping embedding extraction")
             return speaker_embeddings
 
-        # Import pydub for audio segment extraction
-        try:
-            from pydub import AudioSegment
-        except ImportError as exc:
+        # Load audio for embedding extraction
+        audio = self._load_audio_for_embeddings(audio_path)
+        if audio is None:
             self.logger.warning(
-                "Unable to import pydub for embedding extraction: %s",
-                exc
+                "Could not load audio for embedding extraction"
             )
             return speaker_embeddings
 
-        # Load audio file
-        try:
-            audio = AudioSegment.from_wav(str(audio_path))
-        except Exception as exc:
-            self.logger.warning(
-                "Unable to load %s for speaker embeddings: %s",
-                audio_path,
-                exc
-            )
-            return speaker_embeddings
-
-        # Extract embeddings for each speaker
+        # Extract embedding for each speaker
         for speaker_id in diarization.labels():
             try:
-                speaker_segments = diarization.label_timeline(speaker_id)
-                speaker_audio = AudioSegment.empty()
-
-                # Concatenate all segments for this speaker
-                for segment in speaker_segments:
-                    speaker_audio += audio[segment.start * 1000:segment.end * 1000]
-
-                if len(speaker_audio) <= 0:
-                    self.logger.debug("Skipping %s: no audio data", speaker_id)
-                    continue
-
-                # Convert to numpy array and normalize
-                samples = np.array(
-                    speaker_audio.get_array_of_samples(),
-                    dtype=np.float32
-                ) / 32768.0
-
-                # Prepare tensor and run inference
-                samples_tensor = self._prepare_waveform_tensor(samples)
-                embedding = self._run_embedding_inference(samples_tensor, audio.frame_rate)
-                speaker_embeddings[speaker_id] = self._embedding_to_numpy(embedding)
-
-                self.logger.debug("Extracted embedding for %s", speaker_id)
-
+                embedding = self._extract_single_speaker_embedding(
+                    speaker_id, diarization, audio
+                )
+                if embedding is not None:
+                    speaker_embeddings[speaker_id] = embedding
+                    self.logger.debug("Extracted embedding for %s", speaker_id)
             except Exception as exc:
                 self.logger.warning(
                     "Failed to extract embedding for %s: %s",
@@ -507,7 +567,12 @@ class SpeakerDiarizer(BaseDiarizer):
                     exc
                 )
 
-        self.logger.info("Extracted embeddings for %d speakers", len(speaker_embeddings))
+        self.logger.info(
+            "Extracted embeddings for %d/%d speakers",
+            len(speaker_embeddings),
+            len(diarization.labels())
+        )
+
         return speaker_embeddings
 
     def diarize(self, audio_path: Path) -> Tuple[List[SpeakerSegment], Dict[str, np.ndarray]]:

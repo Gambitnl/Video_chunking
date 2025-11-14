@@ -260,11 +260,469 @@ def test_search_error_in_both_returns_empty(hybrid_searcher):
 
     mock_vector_store.search.side_effect = Exception("Semantic search failed")
     mock_keyword_retriever.retrieve.side_effect = Exception("Keyword search failed")
-    
+
     # If both fail, the fallback to vector_store.search will also fail, leading to an empty list
     hybrid_searcher.vector_store.search.side_effect = [Exception("Semantic search failed"), []]
 
     query = "error query"
     results = hybrid_searcher.search(query)
-    
+
     assert len(results) == 0
+
+
+# ============================================================================
+# INTEGRATION TESTS - Using real vector store and retriever instances
+# ============================================================================
+
+import tempfile
+import shutil
+import json
+from pathlib import Path
+
+@pytest.fixture
+def temp_dirs():
+    """Create temporary directories for testing."""
+    temp_root = tempfile.mkdtemp()
+    vector_store_dir = Path(temp_root) / "vector_store"
+    kb_dir = Path(temp_root) / "knowledge_base"
+    transcript_dir = Path(temp_root) / "transcripts"
+
+    vector_store_dir.mkdir(parents=True, exist_ok=True)
+    kb_dir.mkdir(parents=True, exist_ok=True)
+    transcript_dir.mkdir(parents=True, exist_ok=True)
+
+    yield {
+        "root": Path(temp_root),
+        "vector_store": vector_store_dir,
+        "kb": kb_dir,
+        "transcript": transcript_dir
+    }
+
+    # Cleanup after test
+    shutil.rmtree(temp_root, ignore_errors=True)
+
+
+@pytest.fixture
+def sample_knowledge_base(temp_dirs):
+    """Create a sample knowledge base JSON file."""
+    kb_data = {
+        "npcs": [
+            {
+                "name": "Gandalf the Grey",
+                "description": "A powerful wizard who guides the Fellowship",
+                "first_appearance": "session_001"
+            },
+            {
+                "name": "Aragorn",
+                "description": "The rightful heir to the throne of Gondor, a skilled ranger",
+                "first_appearance": "session_001"
+            },
+            {
+                "name": "Saruman",
+                "description": "A corrupted wizard who betrayed the White Council",
+                "first_appearance": "session_002"
+            }
+        ],
+        "quests": [
+            {
+                "name": "Destroy the One Ring",
+                "description": "Travel to Mount Doom to destroy the One Ring in the fires where it was forged",
+                "status": "active"
+            },
+            {
+                "name": "Find the Palantir",
+                "description": "Locate and secure the seeing stones to prevent Sauron from using them",
+                "status": "completed"
+            }
+        ],
+        "locations": [
+            {
+                "name": "Rivendell",
+                "description": "The elven stronghold where the Fellowship was formed, a place of wisdom and healing"
+            },
+            {
+                "name": "Mordor",
+                "description": "The dark land where Sauron rules, filled with orcs and darkness"
+            },
+            {
+                "name": "Isengard",
+                "description": "Saruman's tower fortress where he breeds his Uruk-hai army"
+            }
+        ]
+    }
+
+    kb_file = temp_dirs["kb"] / "campaign_001_knowledge.json"
+    with open(kb_file, "w", encoding="utf-8") as f:
+        json.dump(kb_data, f, indent=2)
+
+    return kb_file
+
+
+@pytest.fixture
+def sample_transcripts(temp_dirs):
+    """Create sample transcript files."""
+    # Session 1 transcript
+    session_001_dir = temp_dirs["transcript"] / "session_001"
+    session_001_dir.mkdir(parents=True, exist_ok=True)
+
+    transcript_001 = {
+        "segments": [
+            {
+                "text": "Gandalf warns the party about the dangers of using the One Ring",
+                "speaker": "DM",
+                "start": 120.5,
+                "end": 125.3
+            },
+            {
+                "text": "We should head to Rivendell to consult with Elrond about our quest",
+                "speaker": "Aragorn_Player",
+                "start": 126.0,
+                "end": 130.5
+            },
+            {
+                "text": "The wizard Saruman has betrayed us, we must be cautious",
+                "speaker": "Gandalf_Player",
+                "start": 135.2,
+                "end": 139.8
+            }
+        ]
+    }
+
+    with open(session_001_dir / "diarized_transcript.json", "w", encoding="utf-8") as f:
+        json.dump(transcript_001, f, indent=2)
+
+    # Session 2 transcript
+    session_002_dir = temp_dirs["transcript"] / "session_002"
+    session_002_dir.mkdir(parents=True, exist_ok=True)
+
+    transcript_002 = {
+        "segments": [
+            {
+                "text": "The tower of Isengard looms before us, dark and foreboding",
+                "speaker": "DM",
+                "start": 45.0,
+                "end": 49.5
+            },
+            {
+                "text": "I sense dark magic at work here, Saruman's influence is strong",
+                "speaker": "Gandalf_Player",
+                "start": 50.0,
+                "end": 54.2
+            }
+        ]
+    }
+
+    with open(session_002_dir / "diarized_transcript.json", "w", encoding="utf-8") as f:
+        json.dump(transcript_002, f, indent=2)
+
+    return [session_001_dir, session_002_dir]
+
+
+@pytest.fixture
+def real_embedding_service():
+    """Create a real embedding service for testing."""
+    try:
+        from src.langchain.embeddings import EmbeddingService
+        return EmbeddingService(model_name="all-MiniLM-L6-v2")
+    except (ImportError, RuntimeError) as e:
+        pytest.skip(f"EmbeddingService not available: {e}")
+
+
+@pytest.fixture
+def real_vector_store(temp_dirs, real_embedding_service, sample_transcripts):
+    """Create a real vector store with test data."""
+    try:
+        from src.langchain.vector_store import CampaignVectorStore
+
+        vector_store = CampaignVectorStore(
+            persist_dir=temp_dirs["vector_store"],
+            embedding_service=real_embedding_service
+        )
+
+        # Add some transcript segments
+        segments_001 = [
+            {
+                "text": "Gandalf warns the party about the dangers of using the One Ring",
+                "speaker": "DM",
+                "start": 120.5,
+                "end": 125.3
+            },
+            {
+                "text": "We should head to Rivendell to consult with Elrond about our quest",
+                "speaker": "Aragorn_Player",
+                "start": 126.0,
+                "end": 130.5
+            },
+            {
+                "text": "The wizard Saruman has betrayed us, we must be cautious",
+                "speaker": "Gandalf_Player",
+                "start": 135.2,
+                "end": 139.8
+            }
+        ]
+        vector_store.add_transcript_segments("session_001", segments_001)
+
+        # Add knowledge documents
+        knowledge_docs = [
+            {
+                "text": "Gandalf the Grey is a powerful wizard who guides the Fellowship on their quest to destroy the One Ring",
+                "metadata": {"type": "npc", "name": "Gandalf"}
+            },
+            {
+                "text": "Rivendell is the elven stronghold where the Fellowship was formed, a place of wisdom and healing",
+                "metadata": {"type": "location", "name": "Rivendell"}
+            },
+            {
+                "text": "The quest to destroy the One Ring requires traveling to Mount Doom in the heart of Mordor",
+                "metadata": {"type": "quest", "name": "Destroy the One Ring"}
+            },
+            {
+                "text": "Saruman is a corrupted wizard who betrayed the White Council and now serves the enemy",
+                "metadata": {"type": "npc", "name": "Saruman"}
+            },
+            {
+                "text": "Isengard is Saruman's tower fortress where he breeds his Uruk-hai army",
+                "metadata": {"type": "location", "name": "Isengard"}
+            }
+        ]
+        vector_store.add_knowledge_documents(knowledge_docs)
+
+        return vector_store
+
+    except (ImportError, RuntimeError) as e:
+        pytest.skip(f"CampaignVectorStore not available: {e}")
+
+
+@pytest.fixture
+def real_retriever(temp_dirs, sample_knowledge_base, sample_transcripts):
+    """Create a real retriever with test data."""
+    try:
+        from src.langchain.retriever import CampaignRetriever
+
+        retriever = CampaignRetriever(
+            knowledge_base_dir=temp_dirs["kb"],
+            transcript_dir=temp_dirs["transcript"]
+        )
+
+        return retriever
+
+    except ImportError as e:
+        pytest.skip(f"CampaignRetriever not available: {e}")
+
+
+@pytest.fixture
+def real_hybrid_searcher(real_vector_store, real_retriever):
+    """Create a real HybridSearcher with real components."""
+    return HybridSearcher(real_vector_store, real_retriever)
+
+
+# Integration Tests
+
+def test_integration_basic_hybrid_search(real_hybrid_searcher):
+    """Test basic hybrid search with real vector store and retriever."""
+    query = "Tell me about Gandalf"
+    results = real_hybrid_searcher.search(query, top_k=5)
+
+    assert len(results) > 0
+    assert len(results) <= 5
+
+    # Check that results have expected structure
+    for result in results:
+        assert "text" in result
+        assert "metadata" in result
+        assert isinstance(result["text"], str)
+        assert isinstance(result["metadata"], dict)
+
+
+def test_integration_semantic_keyword_combination(real_hybrid_searcher):
+    """Test that hybrid search combines semantic and keyword results."""
+    # Query that should match both semantic and keyword results
+    query = "wizard Saruman"
+    results = real_hybrid_searcher.search(query, top_k=5)
+
+    assert len(results) > 0
+
+    # Check that we get results mentioning Saruman
+    saruman_results = [r for r in results if "saruman" in r["text"].lower()]
+    assert len(saruman_results) > 0, "Should find results about Saruman"
+
+
+def test_integration_semantic_understanding(real_hybrid_searcher):
+    """Test semantic search capabilities (related concepts)."""
+    # Query using synonyms/related terms
+    query = "magical advisor"  # Should match Gandalf via semantic similarity
+    results = real_hybrid_searcher.search(query, top_k=5)
+
+    assert len(results) > 0
+
+    # Check that we get relevant results (wizard/Gandalf related)
+    relevant_results = [
+        r for r in results
+        if any(term in r["text"].lower() for term in ["gandalf", "wizard", "magic"])
+    ]
+    assert len(relevant_results) > 0, "Semantic search should find related concepts"
+
+
+def test_integration_keyword_exact_match(real_hybrid_searcher):
+    """Test that keyword search finds exact matches."""
+    query = "Rivendell"  # Exact location name
+    results = real_hybrid_searcher.search(query, top_k=5)
+
+    assert len(results) > 0
+
+    # Should definitely find Rivendell in results
+    rivendell_results = [r for r in results if "rivendell" in r["text"].lower()]
+    assert len(rivendell_results) > 0, "Should find exact keyword match for Rivendell"
+
+
+def test_integration_different_weights(real_hybrid_searcher):
+    """Test hybrid search with different semantic weights."""
+    query = "One Ring quest"
+
+    # High semantic weight (favor semantic results)
+    semantic_heavy_results = real_hybrid_searcher.search(
+        query, top_k=5, semantic_weight=0.9
+    )
+
+    # High keyword weight (favor keyword results)
+    keyword_heavy_results = real_hybrid_searcher.search(
+        query, top_k=5, semantic_weight=0.1
+    )
+
+    # Both should return results
+    assert len(semantic_heavy_results) > 0
+    assert len(keyword_heavy_results) > 0
+
+    # Results might differ due to different weighting
+    # (but not guaranteed to be different with small dataset)
+    assert isinstance(semantic_heavy_results, list)
+    assert isinstance(keyword_heavy_results, list)
+
+
+def test_integration_top_k_limiting(real_hybrid_searcher):
+    """Test that top_k properly limits results."""
+    query = "wizard"
+
+    # Test different top_k values
+    results_1 = real_hybrid_searcher.search(query, top_k=1)
+    results_3 = real_hybrid_searcher.search(query, top_k=3)
+    results_5 = real_hybrid_searcher.search(query, top_k=5)
+
+    assert len(results_1) <= 1
+    assert len(results_3) <= 3
+    assert len(results_5) <= 5
+
+    # Verify ordering is consistent (top result should be the same)
+    if len(results_1) > 0 and len(results_3) > 0:
+        # The top result should be similar across different top_k values
+        assert results_1[0]["text"] == results_3[0]["text"]
+
+
+def test_integration_rrf_deduplication(real_hybrid_searcher):
+    """Test that RRF properly deduplicates overlapping results."""
+    # Query that likely appears in both semantic and keyword results
+    query = "Gandalf wizard"
+    results = real_hybrid_searcher.search(query, top_k=10)
+
+    # Check for duplicate content using doc_id logic
+    seen_ids = set()
+    duplicates = []
+
+    for result in results:
+        doc_id = real_hybrid_searcher._get_doc_id(result)
+        if doc_id in seen_ids:
+            duplicates.append(doc_id)
+        seen_ids.add(doc_id)
+
+    # Should not have duplicates
+    assert len(duplicates) == 0, f"Found duplicate documents: {duplicates}"
+    assert len(results) == len(seen_ids), "Each result should be unique"
+
+
+def test_integration_empty_query_handling(real_hybrid_searcher):
+    """Test handling of edge case queries."""
+    # Empty query
+    results = real_hybrid_searcher.search("", top_k=5)
+    # Should not crash, may return empty or some results
+    assert isinstance(results, list)
+
+    # Very short query
+    results = real_hybrid_searcher.search("a", top_k=5)
+    assert isinstance(results, list)
+
+
+def test_integration_no_results_query(real_hybrid_searcher):
+    """Test query that shouldn't match anything."""
+    # Query with terms not in our dataset
+    query = "xyzabc123 notfound"
+    results = real_hybrid_searcher.search(query, top_k=5)
+
+    # Should return a list (possibly empty, or semantic results with low relevance)
+    assert isinstance(results, list)
+
+
+def test_integration_metadata_preservation(real_hybrid_searcher):
+    """Test that metadata is properly preserved in results."""
+    query = "Gandalf"
+    results = real_hybrid_searcher.search(query, top_k=5)
+
+    assert len(results) > 0
+
+    # Check that metadata contains expected fields
+    for result in results:
+        assert "metadata" in result
+        metadata = result["metadata"]
+
+        # Should have type information
+        if "type" in metadata:
+            assert metadata["type"] in ["transcript", "npc", "location", "quest"]
+
+
+def test_integration_vector_store_stats(real_vector_store):
+    """Test that vector store contains our test data."""
+    stats = real_vector_store.get_stats()
+
+    assert stats["transcript_segments"] > 0, "Should have transcript segments"
+    assert stats["knowledge_documents"] > 0, "Should have knowledge documents"
+    assert stats["total_documents"] > 0, "Should have total documents"
+
+
+def test_integration_retriever_knowledge_base(real_retriever):
+    """Test that retriever can access knowledge base."""
+    # Test keyword retrieval
+    results = real_retriever.retrieve("Gandalf", top_k=3)
+
+    assert len(results) > 0
+    assert all(hasattr(doc, "page_content") for doc in results)
+    assert all(hasattr(doc, "metadata") for doc in results)
+
+
+def test_integration_full_pipeline_with_complex_query(real_hybrid_searcher):
+    """Test full hybrid search pipeline with a complex multi-term query."""
+    query = "What did Gandalf say about Saruman and the dangers we face?"
+    results = real_hybrid_searcher.search(query, top_k=5, semantic_weight=0.7)
+
+    assert len(results) > 0
+    assert len(results) <= 5
+
+    # Should get relevant results about Gandalf and Saruman
+    relevant_terms = ["gandalf", "saruman", "wizard", "betray", "danger", "cautious"]
+    results_text = " ".join([r["text"].lower() for r in results])
+
+    # At least some of these terms should appear
+    matches = sum(1 for term in relevant_terms if term in results_text)
+    assert matches >= 2, f"Should find at least 2 relevant terms in results, found {matches}"
+
+
+def test_integration_balanced_weights(real_hybrid_searcher):
+    """Test hybrid search with balanced semantic and keyword weights."""
+    query = "fortress tower Isengard"
+
+    # Balanced weights should give equal consideration to both
+    results = real_hybrid_searcher.search(query, top_k=5, semantic_weight=0.5)
+
+    assert len(results) > 0
+
+    # Should find results about Isengard
+    isengard_results = [r for r in results if "isengard" in r["text"].lower()]
+    assert len(isengard_results) > 0, "Should find results about Isengard with balanced weights"

@@ -519,7 +519,7 @@ def _session_library_markdown(campaign_id: Optional[str]) -> str:
             narratives_dir = output_dir / "narratives"
             narrative_count = len(list(narratives_dir.glob("*.md"))) if narratives_dir.exists() else 0
 
-            lines.append(f"#### {StatusIndicators.SESSION} {session_id}")
+            lines.append(f"#### {StatusIndicators.COMPLETE} {session_id}")
             lines.append(f"- **Duration**: {duration}")
             lines.append(f"- **Segments**: {segments}")
             lines.append(f"- **Narratives**: {narrative_count}")
@@ -1021,10 +1021,7 @@ with gr.Blocks(
             value=campaign_names_map.get(campaign_id) if campaign_id else None,
         )
 
-        campaign_selector_update = gr.update(
-            choices=list(campaign_names_map.values()),
-            value=campaign_names_map.get(campaign_id) if campaign_id else None,
-        )
+        campaign_selector_update = dropdown_update
 
         overview_update = gr.update(value=_campaign_overview_markdown(campaign_id))
         knowledge_update = gr.update(value=_knowledge_summary_markdown(campaign_id))
@@ -1135,10 +1132,7 @@ with gr.Blocks(
             value=campaign_names_map.get(new_campaign_id),
         )
 
-        campaign_selector_update = gr.update(
-            choices=list(campaign_names_map.values()),
-            value=campaign_names_map.get(new_campaign_id),
-        )
+        campaign_selector_update = dropdown_update
 
         overview_update = gr.update(value=_campaign_overview_markdown(new_campaign_id))
         knowledge_update = gr.update(value=_knowledge_summary_markdown(new_campaign_id))
@@ -1324,27 +1318,18 @@ with gr.Blocks(
     )
 
     # Campaign Tab interactive controls
-    campaign_tab_refs["campaign_selector"].change(
-        fn=_refresh_campaign_tab,
-        inputs=[campaign_tab_refs["campaign_selector"], active_campaign_state],
-        outputs=[
+    campaign_tab_refresh_args = {
+        "fn": _refresh_campaign_tab,
+        "inputs": [campaign_tab_refs["campaign_selector"], active_campaign_state],
+        "outputs": [
             campaign_tab_refs["campaign_selector"],
             campaign_tab_refs["overview"],
             campaign_tab_refs["knowledge"],
             campaign_tab_refs["session_library"],
         ],
-    )
-
-    campaign_tab_refs["refresh_btn"].click(
-        fn=_refresh_campaign_tab,
-        inputs=[campaign_tab_refs["campaign_selector"], active_campaign_state],
-        outputs=[
-            campaign_tab_refs["campaign_selector"],
-            campaign_tab_refs["overview"],
-            campaign_tab_refs["knowledge"],
-            campaign_tab_refs["session_library"],
-        ],
-    )
+    }
+    campaign_tab_refs["campaign_selector"].change(**campaign_tab_refresh_args)
+    campaign_tab_refs["refresh_btn"].click(**campaign_tab_refresh_args)
 
 
 

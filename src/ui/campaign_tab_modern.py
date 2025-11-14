@@ -29,7 +29,7 @@ def create_campaign_tab_modern(blocks: gr.Blocks) -> Dict[str, gr.components.Com
                 scale=3
             )
             refresh_btn = gr.Button(
-                f"{SI.ACTION_REFRESH} Refresh",
+                SI.ACTION_REFRESH,
                 variant="secondary",
                 size="sm",
                 scale=0

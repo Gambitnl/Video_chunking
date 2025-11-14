@@ -128,51 +128,23 @@ class TranscriptFormatter:
         Returns:
             Formatted transcript string
 
-        Raises:
-            ValueError: If filter_type is invalid
-
         Example:
             >>> formatter = TranscriptFormatter()
             >>> ic_only = formatter.format_filtered(
             ...     segments, classifications, TranscriptFilter.IN_CHARACTER_ONLY
             ... )
         """
-        # Determine the header based on filter type
-        headers = {
-            TranscriptFilter.ALL: "D&D SESSION TRANSCRIPT - FILTERED VERSION",
-            TranscriptFilter.IN_CHARACTER_ONLY: "D&D SESSION TRANSCRIPT - IN-CHARACTER ONLY",
-            TranscriptFilter.OUT_OF_CHARACTER_ONLY: "D&D SESSION TRANSCRIPT - OUT-OF-CHARACTER ONLY",
-            TranscriptFilter.MIXED_ONLY: "D&D SESSION TRANSCRIPT - MIXED CONTENT ONLY"
-        }
-
-        if filter_type not in headers:
-            raise ValueError(f"Unknown filter type: {filter_type}")
-
+        # Build header using the enum's get_title() method
         lines = []
         lines.append("=" * 80)
-        lines.append(headers[filter_type])
+        lines.append(filter_type.get_title())
         lines.append("=" * 80)
         lines.append("")
 
         for seg, classif in zip(segments, classifications):
-            # Apply filter based on filter_type
-            # IMPORTANT: IC_ONLY excludes only OOC (includes IC and MIXED for backward compatibility)
-            #            OOC_ONLY excludes only IC (includes OOC and MIXED for backward compatibility)
-            #            MIXED_ONLY includes only MIXED
-            #            ALL includes everything
-            if filter_type == TranscriptFilter.IN_CHARACTER_ONLY:
-                # Original behavior: skip OOC, keep IC and MIXED
-                if classif.classification == Classification.OUT_OF_CHARACTER:
-                    continue
-            elif filter_type == TranscriptFilter.OUT_OF_CHARACTER_ONLY:
-                # Original behavior: skip IC, keep OOC and MIXED
-                if classif.classification == Classification.IN_CHARACTER:
-                    continue
-            elif filter_type == TranscriptFilter.MIXED_ONLY:
-                # Only include MIXED segments
-                if classif.classification != Classification.MIXED:
-                    continue
-            # TranscriptFilter.ALL includes everything, no filtering
+            # Apply filter using the enum's should_include() method
+            if not filter_type.should_include(classif.classification):
+                continue
 
             timestamp = self.format_timestamp(seg['start_time'])
             speaker = seg.get('speaker', 'UNKNOWN')

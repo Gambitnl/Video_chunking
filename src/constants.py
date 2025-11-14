@@ -39,6 +39,62 @@ class TranscriptFilter(str, Enum):
         """Return the string value for backward compatibility."""
         return self.value
 
+    def get_title(self) -> str:
+        """
+        Get human-readable title for this filter type.
+
+        Returns:
+            Formatted header text for transcripts
+
+        Example:
+            >>> TranscriptFilter.IN_CHARACTER_ONLY.get_title()
+            'D&D SESSION TRANSCRIPT - IN-CHARACTER ONLY'
+        """
+        titles = {
+            TranscriptFilter.ALL: "D&D SESSION TRANSCRIPT - FILTERED VERSION",
+            TranscriptFilter.IN_CHARACTER_ONLY: "D&D SESSION TRANSCRIPT - IN-CHARACTER ONLY",
+            TranscriptFilter.OUT_OF_CHARACTER_ONLY: "D&D SESSION TRANSCRIPT - OUT-OF-CHARACTER ONLY",
+            TranscriptFilter.MIXED_ONLY: "D&D SESSION TRANSCRIPT - MIXED CONTENT ONLY",
+        }
+        return titles[self]
+
+    def should_include(self, classification: Classification) -> bool:
+        """
+        Determine if a segment should be included based on its classification.
+
+        Args:
+            classification: The segment's classification (IC/OOC/MIXED)
+
+        Returns:
+            True if the segment should be included in this filter type
+
+        Note:
+            For backward compatibility:
+            - IN_CHARACTER_ONLY excludes only OOC (includes IC and MIXED)
+            - OUT_OF_CHARACTER_ONLY excludes only IC (includes OOC and MIXED)
+            - MIXED_ONLY includes only MIXED segments
+            - ALL includes everything
+
+        Example:
+            >>> filter_type = TranscriptFilter.IN_CHARACTER_ONLY
+            >>> filter_type.should_include(Classification.IN_CHARACTER)
+            True
+            >>> filter_type.should_include(Classification.OUT_OF_CHARACTER)
+            False
+        """
+        if self == TranscriptFilter.ALL:
+            return True
+        elif self == TranscriptFilter.IN_CHARACTER_ONLY:
+            # Exclude only OOC, include IC and MIXED (backward compatibility)
+            return classification != Classification.OUT_OF_CHARACTER
+        elif self == TranscriptFilter.OUT_OF_CHARACTER_ONLY:
+            # Exclude only IC, include OOC and MIXED (backward compatibility)
+            return classification != Classification.IN_CHARACTER
+        elif self == TranscriptFilter.MIXED_ONLY:
+            # Only include MIXED segments
+            return classification == Classification.MIXED
+        return False
+
 
 class ProcessingStatus(str, Enum):
     """Status of a processing stage or session"""

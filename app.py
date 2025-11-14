@@ -57,29 +57,178 @@ from src.google_drive_auth import (
 from src.restart_manager import RestartManager
 
 
-def ui_load_api_keys() -> Tuple[str, str, str]:
+def ui_load_api_keys() -> Tuple[str, str, str, str]:
     """Load API keys on UI startup and format for Gradio."""
     keys = load_api_keys()
     groq_key = keys.get("GROQ_API_KEY", "")
+    openai_key = keys.get("OPENAI_API_KEY", "")
     hf_key = keys.get("HUGGING_FACE_API_KEY", "")
 
-    if groq_key or hf_key:
+    if groq_key or openai_key or hf_key:
         status = StatusMessages.success("API Keys", "Existing API keys loaded from `.env`.")
     else:
         status = StatusMessages.info("API Keys", "Enter your API keys to enable cloud services.")
-    return groq_key, hf_key, status
+    return groq_key, openai_key, hf_key, status
 
-def ui_save_api_keys(groq_api_key: str, hugging_face_api_key: str) -> str:
+def ui_save_api_keys(
+    groq_api_key: str,
+    openai_api_key: str,
+    hugging_face_api_key: str
+) -> str:
     """UI wrapper to save API keys from Gradio inputs."""
     try:
-        save_api_keys(
-            groq_api_key=groq_api_key,
-            hugging_face_api_key=hugging_face_api_key
+        from src.ui.config_manager import ConfigManager
+
+        validated, errors = ConfigManager.validate_config(
+            groq_api_key=groq_api_key if groq_api_key else None,
+            openai_api_key=openai_api_key if openai_api_key else None,
+            hugging_face_api_key=hugging_face_api_key if hugging_face_api_key else None,
         )
-        return StatusMessages.success("API Keys", "API keys saved successfully to `.env`.")
+
+        if errors:
+            return StatusMessages.error("API Keys", f"Validation failed: {'; '.join(errors)}")
+
+        if validated:
+            ConfigManager.save_config(validated)
+            return StatusMessages.success(
+                "API Keys",
+                "API keys saved successfully to `.env`. Restart the application to apply changes."
+            )
+        else:
+            return StatusMessages.info("API Keys", "No changes to save.")
+
     except Exception as e:
         logger.exception("Failed to save API keys from UI")
         return StatusMessages.error("API Keys", f"Failed to save API keys: {e}")
+
+
+def ui_save_model_config(
+    whisper_backend: str,
+    whisper_model: str,
+    whisper_language: str,
+    diarization_backend: str,
+    llm_backend: str,
+) -> str:
+    """UI wrapper to save model configuration."""
+    try:
+        from src.ui.config_manager import ConfigManager
+
+        validated, errors = ConfigManager.validate_config(
+            whisper_backend=whisper_backend,
+            whisper_model=whisper_model,
+            whisper_language=whisper_language,
+            diarization_backend=diarization_backend,
+            llm_backend=llm_backend,
+        )
+
+        if errors:
+            return StatusMessages.error("Model Configuration", f"Validation failed: {'; '.join(errors)}")
+
+        ConfigManager.save_config(validated)
+        return StatusMessages.success(
+            "Model Configuration",
+            "Model configuration saved successfully. Restart the application to apply changes."
+        )
+
+    except Exception as e:
+        logger.exception("Failed to save model configuration from UI")
+        return StatusMessages.error("Model Configuration", f"Failed to save: {e}")
+
+
+def ui_save_processing_config(
+    chunk_length: int,
+    chunk_overlap: int,
+    sample_rate: int,
+    clean_stale: bool,
+) -> str:
+    """UI wrapper to save processing settings."""
+    try:
+        from src.ui.config_manager import ConfigManager
+
+        validated, errors = ConfigManager.validate_config(
+            chunk_length_seconds=chunk_length,
+            chunk_overlap_seconds=chunk_overlap,
+            audio_sample_rate=sample_rate,
+            clean_stale_clips=clean_stale,
+        )
+
+        if errors:
+            return StatusMessages.error("Processing Settings", f"Validation failed: {'; '.join(errors)}")
+
+        ConfigManager.save_config(validated)
+        return StatusMessages.success(
+            "Processing Settings",
+            "Processing settings saved successfully. Restart the application to apply changes."
+        )
+
+    except Exception as e:
+        logger.exception("Failed to save processing settings from UI")
+        return StatusMessages.error("Processing Settings", f"Failed to save: {e}")
+
+
+def ui_save_ollama_config(
+    ollama_model: str,
+    ollama_fallback: str,
+    ollama_url: str,
+) -> str:
+    """UI wrapper to save Ollama settings."""
+    try:
+        from src.ui.config_manager import ConfigManager
+
+        validated, errors = ConfigManager.validate_config(
+            ollama_model=ollama_model if ollama_model else None,
+            ollama_fallback_model=ollama_fallback if ollama_fallback else None,
+            ollama_base_url=ollama_url if ollama_url else None,
+        )
+
+        if errors:
+            return StatusMessages.error("Ollama Settings", f"Validation failed: {'; '.join(errors)}")
+
+        if validated:
+            ConfigManager.save_config(validated)
+            return StatusMessages.success(
+                "Ollama Settings",
+                "Ollama settings saved successfully. Restart the application to apply changes."
+            )
+        else:
+            return StatusMessages.info("Ollama Settings", "No changes to save.")
+
+    except Exception as e:
+        logger.exception("Failed to save Ollama settings from UI")
+        return StatusMessages.error("Ollama Settings", f"Failed to save: {e}")
+
+
+def ui_save_advanced_config(
+    groq_max_calls: int,
+    groq_rate_period: float,
+    groq_rate_burst: int,
+    colab_poll: int,
+    colab_timeout: int,
+) -> str:
+    """UI wrapper to save advanced settings."""
+    try:
+        from src.ui.config_manager import ConfigManager
+
+        validated, errors = ConfigManager.validate_config(
+            groq_max_calls_per_second=groq_max_calls,
+            groq_rate_limit_period_seconds=groq_rate_period,
+            groq_rate_limit_burst=groq_rate_burst,
+            colab_poll_interval=colab_poll,
+            colab_timeout=colab_timeout,
+        )
+
+        if errors:
+            return StatusMessages.error("Advanced Settings", f"Validation failed: {'; '.join(errors)}")
+
+        ConfigManager.save_config(validated)
+        return StatusMessages.success(
+            "Advanced Settings",
+            "Advanced settings saved successfully. Restart the application to apply changes."
+        )
+
+    except Exception as e:
+        logger.exception("Failed to save advanced settings from UI")
+        return StatusMessages.error("Advanced Settings", f"Failed to save: {e}")
 
 
 def ui_restart_application() -> str:
@@ -1196,15 +1345,62 @@ with gr.Blocks(
         fn=ui_save_api_keys,
         inputs=[
             settings_tab_refs["groq_api_key_input"],
+            settings_tab_refs["openai_api_key_input"],
             settings_tab_refs["hugging_face_api_key_input"],
         ],
         outputs=settings_tab_refs["api_keys_status"],
+    )
+
+    settings_tab_refs["save_model_config_btn"].click(
+        fn=ui_save_model_config,
+        inputs=[
+            settings_tab_refs["whisper_backend_dropdown"],
+            settings_tab_refs["whisper_model_dropdown"],
+            settings_tab_refs["whisper_language_dropdown"],
+            settings_tab_refs["diarization_backend_dropdown"],
+            settings_tab_refs["llm_backend_dropdown"],
+        ],
+        outputs=settings_tab_refs["model_config_status"],
+    )
+
+    settings_tab_refs["save_processing_config_btn"].click(
+        fn=ui_save_processing_config,
+        inputs=[
+            settings_tab_refs["chunk_length_input"],
+            settings_tab_refs["chunk_overlap_input"],
+            settings_tab_refs["audio_sample_rate_input"],
+            settings_tab_refs["clean_stale_clips_checkbox"],
+        ],
+        outputs=settings_tab_refs["processing_config_status"],
+    )
+
+    settings_tab_refs["save_ollama_config_btn"].click(
+        fn=ui_save_ollama_config,
+        inputs=[
+            settings_tab_refs["ollama_model_input"],
+            settings_tab_refs["ollama_fallback_model_input"],
+            settings_tab_refs["ollama_base_url_input"],
+        ],
+        outputs=settings_tab_refs["ollama_config_status"],
+    )
+
+    settings_tab_refs["save_advanced_config_btn"].click(
+        fn=ui_save_advanced_config,
+        inputs=[
+            settings_tab_refs["groq_max_calls_input"],
+            settings_tab_refs["groq_rate_period_input"],
+            settings_tab_refs["groq_rate_burst_input"],
+            settings_tab_refs["colab_poll_interval_input"],
+            settings_tab_refs["colab_timeout_input"],
+        ],
+        outputs=settings_tab_refs["advanced_config_status"],
     )
 
     demo.load(
         fn=ui_load_api_keys,
         outputs=[
             settings_tab_refs["groq_api_key_input"],
+            settings_tab_refs["openai_api_key_input"],
             settings_tab_refs["hugging_face_api_key_input"],
             settings_tab_refs["api_keys_status"],
         ],

@@ -606,14 +606,14 @@ def poll_overall_progress(session_id_value: str) -> gr.update:
             current_stage_name = current_stage.get("name", "Processing")
             current_stage_details = current_stage.get("details") or {}
 
-    # Build progress bar visualization (using Unicode block characters)
+    # Build progress bar visualization (using ASCII characters)
     bar_width = 30
     filled_width = int((overall_percent / 100) * bar_width)
     empty_width = bar_width - filled_width
-    progress_bar = "█" * filled_width + "░" * empty_width
+    progress_bar = "#" * filled_width + "-" * empty_width
 
     # Build display
-    lines = ["### 📊 Overall Progress"]
+    lines = ["### Overall Progress"]
     lines.append("")
     lines.append(f"`{progress_bar}` **{overall_percent}%**")
     lines.append("")
@@ -643,7 +643,6 @@ def poll_overall_progress(session_id_value: str) -> gr.update:
     # Estimated time remaining (if we have timing data)
     started_at = snapshot.get("started_at")
     if started_at and completed_stages > 0 and overall_percent < 100:
-        from datetime import datetime
         try:
             start_time = datetime.fromisoformat(started_at.replace('Z', ''))
             elapsed = (datetime.utcnow() - start_time).total_seconds()

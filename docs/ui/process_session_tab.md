@@ -628,28 +628,35 @@ transcription_timer.tick(
 def poll_overall_progress(session_id: str) -> gr.update:
     snapshot = StatusTracker.get_snapshot()
 
-    # Calculate overall percentage
+    # Calculate overall percentage (with zero-division protection)
     stages = snapshot.get("stages") or []
     total_stages = len([s for s in stages if s.get("state") != "skipped"])
     completed_stages = len([s for s in stages if s.get("state") == "completed"])
-    overall_percent = int((completed_stages / total_stages) * 100)
 
-    # Build visual progress bar
+    if total_stages > 0:
+        overall_percent = int((completed_stages / total_stages) * 100)
+    else:
+        overall_percent = 0
+
+    # Build visual progress bar (ASCII characters for Windows compatibility)
     bar_width = 30
     filled_width = int((overall_percent / 100) * bar_width)
-    progress_bar = "█" * filled_width + "░" * (bar_width - filled_width)
+    progress_bar = "#" * filled_width + "-" * (bar_width - filled_width)
 
     # Format display with percentage, current stage, and ETA
+    lines = [f"`{progress_bar}` **{overall_percent}%**"]
+    # ... additional status lines appended here ...
+    formatted_markdown = "\n".join(lines)
     return gr.update(value=formatted_markdown, visible=True)
 ```
 
 **Example Output**:
 ```markdown
-### 📊 Overall Progress
+### Overall Progress
 
-`██████████████████████░░░░░░░░░░` **60%**
+`##################------------` **60%**
 
-⚙️ Current Stage: IC/OOC Classification
+[...] Current Stage: IC/OOC Classification
   ↳ Stage Progress: 45%
   ↳ Chunks: 18/40
 
@@ -658,12 +665,13 @@ Estimated Time Remaining: ~3m 25s
 ```
 
 **Features**:
-- Visual progress bar with Unicode block characters
+- Visual progress bar with ASCII characters (# for filled, - for empty)
 - Overall percentage completion (completed/total non-skipped stages)
 - Current stage name and status icon
 - Stage-specific sub-progress when available
 - Estimated time remaining based on elapsed time
 - Automatically hides when no processing is active
+- Windows/cp1252 compatible (ASCII-only, no Unicode)
 
 **File Path**: `src/ui/process_session_helpers.py:562`
 
@@ -799,11 +807,12 @@ Estimated Time Remaining: ~3m 25s
 
 **Added**:
 - Prominent overall progress indicator with percentage completion
-- Visual progress bar using Unicode block characters (30-char width)
+- Visual progress bar using ASCII characters (# and -, 30-char width)
 - Real-time status updates showing current stage name
 - Estimated time remaining based on elapsed time and completion
 - Stage-specific progress details (percentage, chunks for transcription)
 - Summary stats showing completed/total stages
+- Windows/cp1252 compatible (ASCII-only, no Unicode)
 
 **Implementation**:
 - Added `overall_progress_display` component to ProcessingControlsBuilder

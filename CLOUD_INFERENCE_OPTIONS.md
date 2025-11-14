@@ -52,6 +52,50 @@ python test_api_keys.py
 
 ---
 
+## 🟢 OpenAI Whisper API (PAY-PER-USE)
+
+**Best for:** High-quality transcription with official OpenAI support
+**Cost:** Pay-per-use ($0.006 per minute of audio)
+**Speed:** Fast cloud processing
+
+### Setup
+1. Visit [https://platform.openai.com/api-keys](https://platform.openai.com/api-keys)
+2. Create a new API key (requires payment method on file)
+3. Add to your `.env` file:
+   ```
+   OPENAI_API_KEY=your_openai_api_key_here
+   ```
+
+### Supported Models
+- **Whisper-1** - Official OpenAI Whisper model with excellent multilingual support
+
+### Configuration in UI
+1. Navigate to **Step 2: Configure Session**
+2. Expand **Advanced Backend Settings** accordion
+3. Select backends:
+   - **Transcription:** `openai`
+
+### Pricing
+- **$0.006 per minute** of audio
+- Example: 4-hour D&D session = 240 minutes × $0.006 = **$1.44**
+- Much cheaper than real-time transcription services
+- No monthly minimums or subscription required
+
+### Features
+- Verbose JSON response with segment and word-level timestamps
+- Automatic language detection
+- Excellent Dutch language support
+- Built-in retry logic with exponential backoff
+- Temporary file cleanup after processing
+
+### Testing
+Run the API validation script:
+```bash
+python test_api_keys.py
+```
+
+---
+
 ## 🤗 HuggingFace Inference API (FREE TIER)
 
 **Best for:** Diarization (speaker identification)
@@ -155,7 +199,7 @@ python test_api_keys.py
 
 | Task | Local Backend | Cloud Backend | Free Cloud Option |
 |------|--------------|---------------|-------------------|
-| **Transcription** | Whisper (GPU/CPU) | Groq Whisper | ✅ Groq (unlimited) |
+| **Transcription** | Whisper (GPU/CPU) | Groq / OpenAI | ✅ Groq (unlimited) / 💰 OpenAI ($0.006/min) |
 | **Diarization** | PyAnnote (GPU) | HF Inference | ✅ HuggingFace (~1000/day) |
 | **Classification** | Ollama (CPU/GPU) | Groq LLaMA | ✅ Groq (unlimited) |
 
@@ -213,8 +257,16 @@ Diarization:    pyannote   (local - uses 8GB VRAM)
 Classification: groq       (cloud - free, fast)
 ```
 
+**Alternative with OpenAI (for highest quality):**
+
+```
+Transcription:  openai     (cloud - paid, high quality)
+Diarization:    pyannote   (local - uses 8GB VRAM)
+Classification: groq       (cloud - free, fast)
+```
+
 **Why this works:**
-- Groq handles transcription (no local VRAM usage)
+- Cloud transcription handles audio processing (no local VRAM usage)
 - PyAnnote runs on GPU with 8GB VRAM (plenty of headroom)
 - Groq handles classification (no local VRAM usage)
 - No VRAM contention = no Ollama errors

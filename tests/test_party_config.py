@@ -205,13 +205,13 @@ class TestPartyConfigManagerInit:
         config_file = tmp_path / "parties.json"
 
         # Write invalid JSON
-        with open(config_file, 'w') as f:
+        with open(config_file, 'w', encoding='utf-8') as f:
             f.write("{invalid json content")
 
         # Should not crash, should create default party
         manager = PartyConfigManager(config_file=config_file)
         assert "default" in manager.parties
-        assert len(manager.parties) >= 1
+        assert len(manager.parties) == 1
 
 
 # ============================================================================
@@ -302,7 +302,7 @@ class TestPartyConfigManagerCRUD:
         assert "default" in party_list
         assert "party1" in party_list
         assert "party2" in party_list
-        assert len(party_list) >= 3
+        assert len(party_list) == 3
 
     def test_delete_party_success(self, tmp_path):
         """Test deleting a non-default party"""
@@ -490,8 +490,8 @@ class TestCharacterPlayerMappings:
         manager.add_party("test", party)
 
         player_names = manager.get_player_names("test")
-        # Should be sorted
-        assert player_names == sorted(player_names)
+        # Should be sorted (Alice, Bob, Charlie, Zoe)
+        assert player_names == ["Alice", "Bob", "Charlie", "Zoe"]
 
     def test_get_player_names_excludes_npc_beast(self, tmp_path):
         """Test player names exclude NPC and Beast"""
@@ -708,8 +708,7 @@ class TestLLMContextGeneration:
 
         context = manager.get_party_context_for_llm("test")
         assert "Aragorn" in context
-        assert "aka" in context.lower() or "also known as" in context.lower()
-        assert "Strider" in context
+        assert "(aka Strider)" in context
 
     def test_get_party_context_handles_companion(self, tmp_path):
         """Test LLM context handles Companion characters"""
@@ -943,7 +942,7 @@ class TestPartyImportExport:
         manager = PartyConfigManager(config_file=config_file)
 
         import_path = tmp_path / "invalid.json"
-        with open(import_path, 'w') as f:
+        with open(import_path, 'w', encoding='utf-8') as f:
             f.write("[]")  # Array instead of object
 
         with pytest.raises(ValueError, match="Invalid party file format"):
@@ -972,7 +971,7 @@ class TestPartyConfigErrorRecovery:
         config_file = tmp_path / "corrupted.json"
 
         # Write invalid JSON
-        with open(config_file, 'w') as f:
+        with open(config_file, 'w', encoding='utf-8') as f:
             f.write("{invalid: json, content")
 
         # Should not crash
@@ -997,6 +996,8 @@ class TestPartyConfigErrorRecovery:
         # Should recover and create default party
         manager = PartyConfigManager(config_file=config_file)
         assert "default" in manager.parties
+        assert "bad_party" not in manager.parties
+        assert len(manager.parties) == 1
 
     def test_save_creates_parent_directories(self, tmp_path):
         """Test saving creates parent directories if needed"""
@@ -1255,7 +1256,7 @@ class TestCampaignManager:
         id2, _ = manager.create_blank_campaign()
         id3, _ = manager.create_blank_campaign()
 
-        assert id1 != id2 != id3
+        assert len({id1, id2, id3}) == 3
         assert all(cid.startswith("campaign_") for cid in [id1, id2, id3])
 
     def test_create_blank_campaign_unique_names(self, tmp_path):
@@ -1293,7 +1294,7 @@ class TestCampaignManager:
         config_file = tmp_path / "campaigns.json"
 
         # Write invalid JSON
-        with open(config_file, 'w') as f:
+        with open(config_file, 'w', encoding='utf-8') as f:
             f.write("{invalid json")
 
         # Should not crash

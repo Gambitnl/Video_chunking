@@ -283,23 +283,24 @@ from pathlib import Path
 def temp_dirs():
     """Create temporary directories for testing."""
     temp_root = tempfile.mkdtemp()
-    vector_store_dir = Path(temp_root) / "vector_store"
-    kb_dir = Path(temp_root) / "knowledge_base"
-    transcript_dir = Path(temp_root) / "transcripts"
+    try:
+        vector_store_dir = Path(temp_root) / "vector_store"
+        kb_dir = Path(temp_root) / "knowledge_base"
+        transcript_dir = Path(temp_root) / "transcripts"
 
-    vector_store_dir.mkdir(parents=True, exist_ok=True)
-    kb_dir.mkdir(parents=True, exist_ok=True)
-    transcript_dir.mkdir(parents=True, exist_ok=True)
+        vector_store_dir.mkdir(parents=True, exist_ok=True)
+        kb_dir.mkdir(parents=True, exist_ok=True)
+        transcript_dir.mkdir(parents=True, exist_ok=True)
 
-    yield {
-        "root": Path(temp_root),
-        "vector_store": vector_store_dir,
-        "kb": kb_dir,
-        "transcript": transcript_dir
-    }
-
-    # Cleanup after test
-    shutil.rmtree(temp_root, ignore_errors=True)
+        yield {
+            "root": Path(temp_root),
+            "vector_store": vector_store_dir,
+            "kb": kb_dir,
+            "transcript": transcript_dir
+        }
+    finally:
+        # Cleanup after test - guaranteed even if setup fails
+        shutil.rmtree(temp_root, ignore_errors=True)
 
 
 @pytest.fixture
@@ -361,61 +362,56 @@ def sample_knowledge_base(temp_dirs):
 @pytest.fixture
 def sample_transcripts(temp_dirs):
     """Create sample transcript files."""
-    # Session 1 transcript
-    session_001_dir = temp_dirs["transcript"] / "session_001"
-    session_001_dir.mkdir(parents=True, exist_ok=True)
-
-    transcript_001 = {
-        "segments": [
-            {
-                "text": "Gandalf warns the party about the dangers of using the One Ring",
-                "speaker": "DM",
-                "start": 120.5,
-                "end": 125.3
-            },
-            {
-                "text": "We should head to Rivendell to consult with Elrond about our quest",
-                "speaker": "Aragorn_Player",
-                "start": 126.0,
-                "end": 130.5
-            },
-            {
-                "text": "The wizard Saruman has betrayed us, we must be cautious",
-                "speaker": "Gandalf_Player",
-                "start": 135.2,
-                "end": 139.8
-            }
-        ]
+    transcripts_data = {
+        "session_001": {
+            "segments": [
+                {
+                    "text": "Gandalf warns the party about the dangers of using the One Ring",
+                    "speaker": "DM",
+                    "start": 120.5,
+                    "end": 125.3
+                },
+                {
+                    "text": "We should head to Rivendell to consult with Elrond about our quest",
+                    "speaker": "Aragorn_Player",
+                    "start": 126.0,
+                    "end": 130.5
+                },
+                {
+                    "text": "The wizard Saruman has betrayed us, we must be cautious",
+                    "speaker": "Gandalf_Player",
+                    "start": 135.2,
+                    "end": 139.8
+                }
+            ]
+        },
+        "session_002": {
+            "segments": [
+                {
+                    "text": "The tower of Isengard looms before us, dark and foreboding",
+                    "speaker": "DM",
+                    "start": 45.0,
+                    "end": 49.5
+                },
+                {
+                    "text": "I sense dark magic at work here, Saruman's influence is strong",
+                    "speaker": "Gandalf_Player",
+                    "start": 50.0,
+                    "end": 54.2
+                }
+            ]
+        }
     }
 
-    with open(session_001_dir / "diarized_transcript.json", "w", encoding="utf-8") as f:
-        json.dump(transcript_001, f, indent=2)
+    session_dirs = []
+    for session_id, data in transcripts_data.items():
+        session_dir = temp_dirs["transcript"] / session_id
+        session_dir.mkdir(parents=True, exist_ok=True)
+        with open(session_dir / "diarized_transcript.json", "w", encoding="utf-8") as f:
+            json.dump(data, f, indent=2)
+        session_dirs.append(session_dir)
 
-    # Session 2 transcript
-    session_002_dir = temp_dirs["transcript"] / "session_002"
-    session_002_dir.mkdir(parents=True, exist_ok=True)
-
-    transcript_002 = {
-        "segments": [
-            {
-                "text": "The tower of Isengard looms before us, dark and foreboding",
-                "speaker": "DM",
-                "start": 45.0,
-                "end": 49.5
-            },
-            {
-                "text": "I sense dark magic at work here, Saruman's influence is strong",
-                "speaker": "Gandalf_Player",
-                "start": 50.0,
-                "end": 54.2
-            }
-        ]
-    }
-
-    with open(session_002_dir / "diarized_transcript.json", "w", encoding="utf-8") as f:
-        json.dump(transcript_002, f, indent=2)
-
-    return [session_001_dir, session_002_dir]
+    return session_dirs
 
 
 @pytest.fixture
@@ -424,7 +420,7 @@ def real_embedding_service():
     try:
         from src.langchain.embeddings import EmbeddingService
         return EmbeddingService(model_name="all-MiniLM-L6-v2")
-    except (ImportError, RuntimeError) as e:
+    except (ImportError, RuntimeError, OSError, Exception) as e:
         pytest.skip(f"EmbeddingService not available: {e}")
 
 
@@ -439,28 +435,11 @@ def real_vector_store(temp_dirs, real_embedding_service, sample_transcripts):
             embedding_service=real_embedding_service
         )
 
-        # Add some transcript segments
-        segments_001 = [
-            {
-                "text": "Gandalf warns the party about the dangers of using the One Ring",
-                "speaker": "DM",
-                "start": 120.5,
-                "end": 125.3
-            },
-            {
-                "text": "We should head to Rivendell to consult with Elrond about our quest",
-                "speaker": "Aragorn_Player",
-                "start": 126.0,
-                "end": 130.5
-            },
-            {
-                "text": "The wizard Saruman has betrayed us, we must be cautious",
-                "speaker": "Gandalf_Player",
-                "start": 135.2,
-                "end": 139.8
-            }
-        ]
-        vector_store.add_transcript_segments("session_001", segments_001)
+        # Load transcript segments from the sample file (avoids data duplication)
+        session_001_transcript_path = temp_dirs["transcript"] / "session_001" / "diarized_transcript.json"
+        with open(session_001_transcript_path, "r", encoding="utf-8") as f:
+            transcript_data = json.load(f)
+        vector_store.add_transcript_segments("session_001", transcript_data["segments"])
 
         # Add knowledge documents
         knowledge_docs = [

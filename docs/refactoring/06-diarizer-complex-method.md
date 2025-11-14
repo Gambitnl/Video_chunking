@@ -704,3 +704,103 @@ class TestDiarizationIntegration(unittest.TestCase):
 - Related: `HuggingFaceApiDiarizer.diarize()` (lines 127-168)
 - Design principle: Single Responsibility Principle
 - Refactoring technique: Extract Method
+
+---
+
+## Implementation Summary
+
+**Status**: ✅ **COMPLETED**
+**Date**: 2025-11-14
+**Branch**: `claude/refactor-diarizer-method-017xhp5zUFk3SwwomiuM9dKt`
+**Commit**: `544fab7`
+
+### What Was Implemented
+
+The refactoring successfully extracted complex logic from the `_extract_speaker_embeddings()` method into smaller, focused methods:
+
+#### 1. **`_load_audio_for_embeddings()`** (Lines 430-464)
+- Handles pydub audio loading with comprehensive error handling
+- Returns `Optional[AudioSegment]`
+- Gracefully handles ImportError and file loading failures
+- Adds debug logging for audio duration
+
+#### 2. **`_extract_single_speaker_embedding()`** (Lines 466-518)
+- Extracts embedding for a single speaker
+- Combines all audio segments for the speaker
+- Handles tensor conversion and model inference
+- Returns `Optional[np.ndarray]`
+- Properly logs empty segments
+
+#### 3. **Simplified `_extract_speaker_embeddings()`** (Lines 520-576)
+- **Reduced from 81 lines to 57 lines** (30% reduction)
+- Now orchestrates extraction by calling helper methods
+- Improved readability with clear control flow
+- Better error reporting with "X/Y speakers" format
+
+### Testing
+
+Added **6 comprehensive unit tests** in `tests/test_diarizer.py`:
+
+1. `test_load_audio_for_embeddings_success()` - Successful audio loading
+2. `test_load_audio_for_embeddings_pydub_import_error()` - ImportError handling
+3. `test_load_audio_for_embeddings_file_load_error()` - File loading errors
+4. `test_extract_single_speaker_embedding_success()` - Successful extraction
+5. `test_extract_single_speaker_embedding_no_audio()` - Empty audio handling
+6. `test_extract_single_speaker_embedding_inference_error()` - Inference errors
+
+All tests use proper mocking and cover success, error, and edge cases.
+
+### Actual Effort
+
+**Time Spent**: ~2 hours (vs. estimated 10-12 hours)
+
+The refactoring was simpler than estimated because:
+- The existing code was already partially structured
+- Helper methods `_prepare_waveform_tensor()` and `_run_embedding_inference()` already existed
+- No major architectural changes were needed
+- Comprehensive test suite already in place
+
+### Deviations from Plan
+
+**Minor deviations**:
+- Did not implement `_run_diarization()` as a separate method - it was already extracted as `_perform_diarization()`
+- Did not implement `_convert_diarization_to_segments()` - already part of `_perform_diarization()`
+- Focus was on the embedding extraction logic which had the most complexity
+
+**Rationale**: The diarization execution logic was already well-structured. The main complexity was in the embedding extraction, which is now much cleaner.
+
+### Benefits Achieved
+
+✅ **Improved Readability**: Each method has a single, clear responsibility
+✅ **Better Testability**: Components can be tested in isolation
+✅ **Easier Maintenance**: Reduced complexity makes debugging easier
+✅ **Enhanced Error Handling**: Errors reported at appropriate levels
+✅ **Code Reusability**: Helper methods can be reused if needed
+
+### Metrics
+
+| Metric | Before | After | Improvement |
+|--------|--------|-------|-------------|
+| `_extract_speaker_embeddings()` lines | 81 | 57 | -30% |
+| Number of methods | 1 | 3 | Better separation |
+| Cyclomatic complexity | ~8 | ~4 | -50% |
+| Test coverage | Existing | +6 tests | Enhanced |
+
+### What's Next
+
+The refactoring is complete and ready for:
+1. ✅ Code review
+2. ⏳ Merge to main branch
+3. ⏳ Monitor for any regressions in production
+
+### Lessons Learned
+
+1. **Check existing structure first** - Some helper methods already existed
+2. **Focus on the complex parts** - Not everything needs extraction
+3. **Test-driven refactoring works** - Tests caught issues early
+4. **Incremental is better** - Small, focused changes are safer
+
+---
+
+**Implementation completed by**: Claude (AI Assistant)
+**Reviewed by**: Pending

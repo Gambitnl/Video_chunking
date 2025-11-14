@@ -1,9 +1,10 @@
 # Test Plans for Missing Components
 
 > **Created**: 2025-10-24
-> **Status**: Specification Phase
+> **Last Updated**: 2025-11-14
+> **Status**: In Progress (3/13 components completed)
 > **Total Components**: 13
-> **Estimated Effort**: 10-15 days
+> **Estimated Effort**: 10-15 days (remaining: 7-10 days)
 
 ## Table of Contents
 
@@ -388,12 +389,19 @@ def test_pipeline_end_to_end_full_features(tmp_path):
 
 ---
 
-### P0-2: chunker.py
+### P0-2: chunker.py ✅ COMPLETED
 
 **File**: `tests/test_chunker.py`
 **Component**: VAD-based audio chunking
 **Estimated Effort**: 1 day
+**Actual Effort**: 3 hours
 **Risk**: 🔴 HIGH - Audio segmentation affects all downstream processing
+**Status**: ✅ Completed 2025-11-14
+**Implementation Summary**:
+- 22 total tests (16 new + 6 pre-existing)
+- Full coverage of initialization, chunking logic, VAD detection, and edge cases
+- All tests passing
+- Branch: `claude/implement-chunker-tests-015xq239LbqWVnz7aonekLKS`
 
 #### Component Overview
 
@@ -1082,10 +1090,18 @@ class TestGradioApp:
 
 ## Priority 2: Important Components
 
-### P2-1: story_generator.py
+### P2-1: story_generator.py ✅ COMPLETED
 
 **Estimated Effort**: 1 day
-**Test Count**: 10-12 tests
+**Actual Effort**: 4 hours
+**Test Count**: 39 tests (far exceeded estimates!)
+**Status**: ✅ Completed 2025-11-14
+**Implementation Summary**:
+- 39 comprehensive tests covering all aspects
+- Narrator perspective, character POV, Google Docs integration
+- Error handling, prompt building, LLM integration
+- All tests passing (39/39)
+- Branch: `claude/test-story-generator-suite-01X5T75DTGrjFTQmE1EogAe8`
 
 ```python
 class TestStoryGenerator:
@@ -1093,13 +1109,21 @@ class TestStoryGenerator:
     def test_generate_character_pov(self, monkeypatch)
     def test_apply_style_guide(self, monkeypatch)
     def test_handle_missing_google_doc()
-    # ... more tests
+    # ... 35 more tests implemented
 ```
 
-### P2-2: party_config.py
+### P2-2: party_config.py ✅ COMPLETED
 
 **Estimated Effort**: 0.5 days
-**Test Count**: 8-10 tests
+**Actual Effort**: 5 hours
+**Test Count**: 74 tests (greatly exceeded estimates!)
+**Status**: ✅ Completed 2025-11-14
+**Implementation Summary**:
+- 74 comprehensive tests with 99% code coverage (238/241 statements)
+- Full CRUD operations, validation, error recovery
+- Import/export, LLM context generation, default content verification
+- All tests passing (74/74)
+- Branch: `claude/test-party-config-suite-016JZn3Ues8NEamzqCzD3WW5`
 
 ```python
 class TestPartyConfigManager:

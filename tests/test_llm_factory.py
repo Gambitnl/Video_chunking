@@ -1,5 +1,6 @@
 """Tests for OllamaClientFactory."""
 
+import builtins
 import pytest
 from unittest.mock import Mock, patch, MagicMock
 from src.llm_factory import (
@@ -346,7 +347,6 @@ class TestOllamaClientFactory:
     def test_ollama_not_installed(self, factory):
         """Test that ImportError is raised when ollama is not installed."""
         # Mock the import of ollama to raise ImportError
-        import builtins
         real_import = builtins.__import__
 
         def mock_import(name, *args, **kwargs):

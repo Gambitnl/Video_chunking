@@ -31,6 +31,7 @@ from src.ui.process_session_helpers import (
     prepare_processing_status,
     poll_transcription_progress,
     poll_runtime_updates,
+    poll_overall_progress,
     check_file_processing_history,
     update_party_display as update_party_display_helper,
 )
@@ -401,12 +402,21 @@ class ProcessSessionEventWiring:
         """
         Wire polling events for live progress updates.
 
-        Sets up two polling mechanisms that run every 2 seconds via timer:
-            1. Transcription progress bar updates
-            2. Runtime updates (stage progress + event log)
+        Sets up three polling mechanisms that run every 2 seconds via timer:
+            1. Overall progress indicator (percentage, current stage, ETA)
+            2. Transcription progress bar updates
+            3. Runtime updates (stage progress + event log)
 
         These provide real-time feedback during long-running processing jobs.
         """
+        # Overall progress polling (NEW: prominent progress indicator)
+        self.components["transcription_timer"].tick(
+            fn=poll_overall_progress,
+            inputs=[self.components["session_id_input"]],
+            outputs=[self.components["overall_progress_display"]],
+            queue=False,
+        )
+
         # Transcription progress polling
         self.components["transcription_timer"].tick(
             fn=poll_transcription_progress,

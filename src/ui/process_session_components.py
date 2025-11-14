@@ -291,6 +291,7 @@ class ProcessingControlsBuilder:
             Dictionary with component references:
             - preflight_btn
             - process_btn
+            - overall_progress_display
             - status_output
             - transcription_progress
             - runtime_accordion
@@ -316,6 +317,12 @@ class ProcessingControlsBuilder:
                 variant="primary",
                 size="lg",
                 full_width=True,
+            )
+
+            # Overall Progress Indicator (prominent, visible during processing)
+            components["overall_progress_display"] = gr.Markdown(
+                value="",
+                visible=False,
             )
 
             components["status_output"] = gr.Markdown(

@@ -506,16 +506,29 @@ def _session_library_markdown(campaign_id: Optional[str]) -> str:
             "Process a session for this campaign to populate the library."
         )
 
-    lines = ["### Processed Sessions"]
+    lines = ["### Processed Sessions", ""]
     for session_id in session_ids:
         try:
             session = story_manager.load_session(session_id)
             stats = session.metadata.get("statistics", {})
             duration = stats.get("total_duration_formatted") or f"{stats.get('total_duration_seconds', 0)}s"
             segments = stats.get("total_segments", 0)
-            lines.append(f"- `{session_id}` — {duration}, segments: {segments}")
-        except Exception:
-            lines.append(f"- `{session_id}` — metadata unavailable")
+
+            # Get output directory path for this session
+            output_dir = Config.OUTPUT_DIR / session_id
+            narratives_dir = output_dir / "narratives"
+            narrative_count = len(list(narratives_dir.glob("*.md"))) if narratives_dir.exists() else 0
+
+            lines.append(f"#### {StatusIndicators.COMPLETE} {session_id}")
+            lines.append(f"- **Duration**: {duration}")
+            lines.append(f"- **Segments**: {segments}")
+            lines.append(f"- **Narratives**: {narrative_count}")
+            lines.append(f"- **Output**: `{output_dir.relative_to(Config.PROJECT_ROOT)}`")
+            lines.append("")
+        except Exception as e:
+            lines.append(f"#### {StatusIndicators.ERROR} {session_id}")
+            lines.append(f"- **Status**: Error loading metadata: {str(e)}")
+            lines.append("")
     return "\n".join(lines)
 
 
@@ -1008,6 +1021,8 @@ with gr.Blocks(
             value=campaign_names_map.get(campaign_id) if campaign_id else None,
         )
 
+        campaign_selector_update = dropdown_update
+
         overview_update = gr.update(value=_campaign_overview_markdown(campaign_id))
         knowledge_update = gr.update(value=_knowledge_summary_markdown(campaign_id))
         session_library_update = gr.update(value=_session_library_markdown(campaign_id))
@@ -1059,6 +1074,7 @@ with gr.Blocks(
             overview_update,
             knowledge_update,
             session_library_update,
+            campaign_selector_update,
             character_profiles_update,
             character_table_update,
             character_select_update,
@@ -1073,6 +1089,27 @@ with gr.Blocks(
             social_session_update,
             social_keyword_update,
             social_nebula_update,
+        )
+
+    def _refresh_campaign_tab(campaign_display_name: Optional[str], current_campaign_id: Optional[str]):
+        """Refresh the Campaign tab with current data for the selected campaign."""
+        # Determine campaign_id from the dropdown selection or fallback to current
+        campaign_id = _campaign_id_from_name(campaign_display_name) or current_campaign_id
+
+        # Refresh campaign names and update dropdown
+        campaign_names_map = _refresh_campaign_names()
+        campaign_choices = list(campaign_names_map.values())
+        selected_campaign_name = campaign_names_map.get(campaign_id) if campaign_id else None
+
+        # Clear artifact counter cache for real-time counts
+        if campaign_id:
+            _artifact_counter.clear_cache(campaign_id)
+
+        return (
+            gr.update(choices=campaign_choices, value=selected_campaign_name),
+            _campaign_overview_markdown(campaign_id),
+            _knowledge_summary_markdown(campaign_id),
+            _session_library_markdown(campaign_id),
         )
 
     def _create_new_campaign(name: str):
@@ -1094,6 +1131,8 @@ with gr.Blocks(
             choices=list(campaign_names_map.values()),
             value=campaign_names_map.get(new_campaign_id),
         )
+
+        campaign_selector_update = dropdown_update
 
         overview_update = gr.update(value=_campaign_overview_markdown(new_campaign_id))
         knowledge_update = gr.update(value=_knowledge_summary_markdown(new_campaign_id))
@@ -1135,6 +1174,7 @@ with gr.Blocks(
             overview_update,
             knowledge_update,
             session_library_update,
+            campaign_selector_update,
             character_profiles_update,
             character_table_update,
             character_select_update,
@@ -1176,6 +1216,7 @@ with gr.Blocks(
         campaign_tab_refs["overview"],
         campaign_tab_refs["knowledge"],
         campaign_tab_refs["session_library"],
+        campaign_tab_refs["campaign_selector"],
         characters_tab_refs["profiles"],
         characters_tab_refs["table"],
         characters_tab_refs["character_dropdown"],
@@ -1253,6 +1294,7 @@ with gr.Blocks(
         campaign_tab_refs["overview"],
         campaign_tab_refs["knowledge"],
         campaign_tab_refs["session_library"],
+        campaign_tab_refs["campaign_selector"],
         characters_tab_refs["profiles"],
         characters_tab_refs["table"],
         characters_tab_refs["character_dropdown"],
@@ -1274,6 +1316,20 @@ with gr.Blocks(
         inputs=[new_campaign_name],
         outputs=create_campaign_outputs,
     )
+
+    # Campaign Tab interactive controls
+    campaign_tab_refresh_args = {
+        "fn": _refresh_campaign_tab,
+        "inputs": [campaign_tab_refs["campaign_selector"], active_campaign_state],
+        "outputs": [
+            campaign_tab_refs["campaign_selector"],
+            campaign_tab_refs["overview"],
+            campaign_tab_refs["knowledge"],
+            campaign_tab_refs["session_library"],
+        ],
+    }
+    campaign_tab_refs["campaign_selector"].change(**campaign_tab_refresh_args)
+    campaign_tab_refs["refresh_btn"].click(**campaign_tab_refresh_args)
 
 
 

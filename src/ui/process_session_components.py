@@ -200,9 +200,9 @@ class ConfigurationSectionBuilder:
                 )
                 components["classification_backend_input"] = gr.Dropdown(
                     label="Classification Backend",
-                    choices=["ollama", "groq"],
-                    value="ollama",
-                    info="Use local Ollama or cloud Groq API.",
+                    choices=["ollama", "groq", "colab"],
+                    value="colab",
+                    info="Use local Ollama, cloud Groq API, or Google Colab GPU.",
                 )
 
             # Skip Options

@@ -66,7 +66,7 @@ class Config:
     WHISPER_MODEL: str = os.getenv("WHISPER_MODEL", "large-v3")
     WHISPER_BACKEND: str = os.getenv("WHISPER_BACKEND", "local")  # local, groq, openai
     DIARIZATION_BACKEND: str = os.getenv("DIARIZATION_BACKEND", "local") # local, huggingface
-    LLM_BACKEND: str = os.getenv("LLM_BACKEND", "ollama")  # ollama, openai, groq
+    LLM_BACKEND: str = os.getenv("LLM_BACKEND", "colab")  # ollama, openai, groq, colab
     WHISPER_LANGUAGE: str = os.getenv("WHISPER_LANGUAGE", "nl")  # Supported: en, nl
     PYANNOTE_DIARIZATION_MODEL: str = os.getenv(
         "PYANNOTE_DIARIZATION_MODEL",
@@ -88,7 +88,7 @@ class Config:
     )
 
     # Ollama Settings
-    OLLAMA_MODEL: str = os.getenv("OLLAMA_MODEL", "gpt-oss:20b")
+    OLLAMA_MODEL: str = os.getenv("OLLAMA_MODEL", "qwen2.5:7b")
     OLLAMA_BASE_URL: str = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
     _fallback_model = os.getenv("OLLAMA_FALLBACK_MODEL", "")
     OLLAMA_FALLBACK_MODEL: Optional[str] = _fallback_model.strip() or None
@@ -101,6 +101,18 @@ class Config:
     OUTPUT_DIR: Path = PROJECT_ROOT / "output"
     TEMP_DIR: Path = PROJECT_ROOT / "temp"
     MODELS_DIR: Path = PROJECT_ROOT / "models"
+
+    # Google Drive Integration (for Colab classifier)
+    GDRIVE_CLASSIFICATION_PENDING: str = os.getenv(
+        "GDRIVE_CLASSIFICATION_PENDING",
+        "VideoChunking/classification_pending"
+    )
+    GDRIVE_CLASSIFICATION_COMPLETE: str = os.getenv(
+        "GDRIVE_CLASSIFICATION_COMPLETE",
+        "VideoChunking/classification_complete"
+    )
+    COLAB_POLL_INTERVAL: int = int(os.getenv("COLAB_POLL_INTERVAL", "10"))  # seconds
+    COLAB_TIMEOUT: int = int(os.getenv("COLAB_TIMEOUT", "1800"))  # 30 minutes
 
     # Logging
     LOG_LEVEL_CONSOLE: str = os.getenv("LOG_LEVEL_CONSOLE", "INFO")

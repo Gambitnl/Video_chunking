@@ -1,6 +1,7 @@
 """In-Character / Out-of-Character classification using LLM"""
 import os
 import re
+import json
 from typing import List, Dict, Optional, Any
 from dataclasses import dataclass
 from abc import ABC, abstractmethod
@@ -635,17 +636,243 @@ class GroqClassifier(BaseClassifier):
         return "rate_limit" in message or "429" in message
 
 
+class ColabClassifier(BaseClassifier):
+    """IC/OOC classifier using Google Colab via Google Drive file exchange."""
+
+    def __init__(self, gdrive_mount_root: str = "/content/drive"):
+        """
+        Initialize Colab classifier with Google Drive integration.
+
+        Args:
+            gdrive_mount_root: Root path where Google Drive is mounted (for local testing,
+                              use actual path like "G:/My Drive" on Windows)
+        """
+        self.logger = get_logger(__name__)
+        self.gdrive_mount_root = Path(gdrive_mount_root)
+        self.mydrive_dir = self._resolve_mydrive_dir()
+
+        # Build full paths for pending and complete folders
+        self.pending_dir = self.mydrive_dir / Config.GDRIVE_CLASSIFICATION_PENDING
+        self.complete_dir = self.mydrive_dir / Config.GDRIVE_CLASSIFICATION_COMPLETE
+
+        self.poll_interval = Config.COLAB_POLL_INTERVAL
+        self.timeout = Config.COLAB_TIMEOUT
+
+        # Use the default prompt template from Dutch classification
+        self.prompt_template = """Context: D&D sessie in het Nederlands
+Characters: {char_list}
+Spelers: {player_list}
+
+Analyseer dit segment en classificeer als IC (in-character), OOC (out-of-character), of MIXED:
+
+Vorig segment: "{prev_text}"
+Huidig segment: "{current_text}"
+Volgend segment: "{next_text}"
+
+Geef je antwoord in dit formaat:
+Classificatie: IC|OOC|MIXED
+Reden: <korte uitleg>
+Vertrouwen: <0.0-1.0>
+Personage: <naam of N/A>"""
+
+    def _resolve_mydrive_dir(self) -> Path:
+        """
+        Resolve the Google Drive "My Drive" directory, handling OS differences.
+
+        Returns:
+            Path to the root of the user's "My Drive" directory
+        """
+        candidate_names = ("MyDrive", "My Drive")
+        candidates = []
+        if self.gdrive_mount_root.name in candidate_names:
+            candidates.append(self.gdrive_mount_root)
+        else:
+            candidates.extend(self.gdrive_mount_root / name for name in candidate_names)
+        candidates.append(self.gdrive_mount_root)
+
+        for candidate in candidates:
+            if candidate.exists():
+                return candidate
+
+        return candidates[0]
+
+    def preflight_check(self):
+        """Check if Google Drive is accessible."""
+        issues = []
+
+        try:
+            if not self.pending_dir.exists():
+                issues.append(
+                    PreflightIssue(
+                        component="classifier",
+                        message=f"Google Drive pending directory not found: {self.pending_dir}. "
+                                "Please ensure Google Drive is mounted and folders exist.",
+                        severity="error",
+                    )
+                )
+
+            if not self.complete_dir.exists():
+                issues.append(
+                    PreflightIssue(
+                        component="classifier",
+                        message=f"Google Drive complete directory not found: {self.complete_dir}. "
+                                "Please ensure Google Drive is mounted and folders exist.",
+                        severity="error",
+                    )
+                )
+
+        except Exception as exc:
+            issues.append(
+                PreflightIssue(
+                    component="classifier",
+                    message=f"Cannot access Google Drive: {exc}",
+                    severity="error",
+                )
+            )
+
+        return issues
+
+    def classify_segments(
+        self,
+        segments: List[Dict],
+        character_names: List[str],
+        player_names: List[str]
+    ) -> List[ClassificationResult]:
+        """
+        Classify segments by uploading to Google Drive and waiting for Colab to process.
+
+        Args:
+            segments: List of segment dictionaries with 'text' key
+            character_names: List of character names
+            player_names: List of player names
+
+        Returns:
+            List of ClassificationResult objects
+        """
+        import time
+        import uuid
+
+        # Generate unique job ID
+        job_id = f"job_{int(time.time())}_{uuid.uuid4().hex[:8]}"
+
+        # Prepare job data
+        job_data = {
+            "job_id": job_id,
+            "segments": segments,
+            "character_names": character_names,
+            "player_names": player_names,
+            "prompt_template": self.prompt_template,
+        }
+
+        # Write job file to pending directory
+        job_file = self.pending_dir / f"{job_id}.json"
+        result_file = self.complete_dir / f"{job_id}_result.json"
+
+        self.logger.info(f"Uploading classification job {job_id} to Google Drive...")
+
+        try:
+            with open(job_file, 'w', encoding='utf-8') as f:
+                json.dump(job_data, f, indent=2, ensure_ascii=False)
+        except Exception as e:
+            self.logger.error(f"Failed to write job file to Google Drive: {e}")
+            raise RuntimeError(f"Could not write to Google Drive: {e}")
+
+        # Poll for results
+        self.logger.info(f"Waiting for Colab to process job {job_id}...")
+        self.logger.info(f"Polling every {self.poll_interval}s for up to {self.timeout}s...")
+
+        start_time = time.time()
+        while True:
+            elapsed = time.time() - start_time
+
+            if elapsed > self.timeout:
+                self.logger.error(f"Timeout waiting for Colab results after {elapsed:.1f}s")
+                raise TimeoutError(
+                    f"Colab classification timed out after {self.timeout}s. "
+                    "Please ensure Colab notebook is running and processing jobs."
+                )
+
+            # Check if result file exists
+            if result_file.exists():
+                self.logger.info(f"Results ready after {elapsed:.1f}s")
+                try:
+                    with open(result_file, 'r', encoding='utf-8') as f:
+                        result_data = json.load(f)
+
+                    # Parse results
+                    classifications = [
+                        ClassificationResult.from_dict(c)
+                        for c in result_data["classifications"]
+                    ]
+
+                    # Clean up files
+                    try:
+                        job_file.unlink()
+                        result_file.unlink()
+                    except Exception as cleanup_err:
+                        self.logger.warning(f"Could not clean up job files: {cleanup_err}")
+
+                    return classifications
+
+                except Exception as e:
+                    self.logger.error(f"Failed to parse result file: {e}")
+                    raise RuntimeError(f"Could not parse Colab results: {e}")
+
+            # Wait before next poll
+            time.sleep(self.poll_interval)
+            if int(elapsed) % 30 == 0:  # Log every 30s
+                self.logger.info(f"Still waiting... ({elapsed:.0f}s elapsed)")
+
+
 class ClassifierFactory:
     """Factory to create appropriate classifier."""
 
     @staticmethod
-    def create(backend: str = None) -> BaseClassifier:
-        """Create classifier instance."""
+    def create(backend: str = None, gdrive_mount_root: str = None) -> BaseClassifier:
+        """
+        Create classifier instance.
+
+        Args:
+            backend: Backend type ('ollama', 'groq', 'colab', 'openai')
+            gdrive_mount_root: For 'colab' backend, the Google Drive mount path
+                              (defaults to "/content/drive" for Colab, or OS-specific for local)
+
+        Returns:
+            BaseClassifier instance
+        """
         backend = backend or Config.LLM_BACKEND
+
         if backend == "ollama":
             return OllamaClassifier()
         elif backend == "groq":
             return GroqClassifier()
+        elif backend == "colab":
+            # Auto-detect Google Drive mount point if not specified
+            if gdrive_mount_root is None:
+                import platform
+                if platform.system() == "Windows":
+                    # Common Windows Google Drive paths
+                    possible_paths = [
+                        Path("G:/My Drive"),
+                        Path(os.path.expanduser("~/Google Drive")),
+                        Path("/content/drive"),  # For Colab itself
+                    ]
+                else:
+                    # Unix/Linux/Mac
+                    possible_paths = [
+                        Path(os.path.expanduser("~/Google Drive")),
+                        Path("/content/drive"),
+                    ]
+
+                # Find first existing path
+                for path in possible_paths:
+                    if path.exists():
+                        gdrive_mount_root = str(path.parent if path.name == "My Drive" else path)
+                        break
+                else:
+                    gdrive_mount_root = "/content/drive"  # Default to Colab path
+
+            return ColabClassifier(gdrive_mount_root=gdrive_mount_root)
         elif backend == "openai":
             raise NotImplementedError("OpenAI classifier not yet implemented")
         else:

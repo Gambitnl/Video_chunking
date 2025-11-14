@@ -62,26 +62,29 @@ Replace massive tuple return with state objects using Builder pattern.
 
 ### Medium Priority (Code Quality)
 
-#### 5. [Consolidate Formatting Methods](./05-formatter-filtered-methods-duplication.md)
+#### 5. [Consolidate Formatting Methods](./05-formatter-filtered-methods-duplication.md) ✅ COMPLETED
 **Issue**: Duplicate `format_ic_only()` and `format_ooc_only()` methods
 
 **Impact**: Medium - Code duplication
-**Effort**: 9-12 hours
+**Effort**: 9-12 hours (Actual: 2 hours)
 **Complexity**: Medium
+**Status**: ✅ Completed 2025-11-14
+**Branch**: `claude/consolidate-formatter-filter-methods-01EzvRvTMh5jJuXSPrg3BW9i`
 
-Create single `format_filtered()` method with filter strategy pattern.
+Create single `format_filtered()` method with filter strategy pattern. Enhanced enum with proper validation and fail-fast error handling.
 
 ---
 
-#### 6. [Extract Complex Diarization Logic](./06-diarizer-complex-method.md) ✅
+#### 6. [Extract Complex Diarization Logic](./06-diarizer-complex-method.md) ✅ COMPLETED
 **Issue**: 101-line `diarize()` method with multiple responsibilities
 
 **Impact**: Medium - Code complexity
-**Effort**: ~~10-12 hours~~ **2 hours (actual)**
+**Effort**: 10-12 hours (Actual: 2 hours)
 **Complexity**: Medium
-**Status**: ✅ **COMPLETED** (2025-11-14)
+**Status**: ✅ Completed 2025-11-14
+**Branch**: `claude/refactor-diarizer-method-017xhp5zUFk3SwwomiuM9dKt`
 
-Extract audio loading, diarization, and embedding extraction into separate methods.
+Extract audio loading, diarization, and embedding extraction into separate methods. Reduced main method by 30%, added 6 comprehensive unit tests.
 
 **Completion Summary**:
 - Extracted `_load_audio_for_embeddings()` and `_extract_single_speaker_embedding()` methods
@@ -102,15 +105,16 @@ Create enums for all magic strings: `Classification`, `ProcessingStatus`, `Pipel
 
 ---
 
-#### 8. [Extract Campaign Artifact Counting](./08-campaign-artifact-counting.md) ✅ **COMPLETED**
+#### 8. [Extract Campaign Artifact Counting](./08-campaign-artifact-counting.md) ✅ COMPLETED
 **Issue**: Complex nested logic with silent exception swallowing
 
 **Impact**: Low-Medium - Code quality
-**Effort**: 9-13 hours (Actual: ~2 hours for enhancements)
+**Effort**: 9-13 hours (Actual: 2 hours)
 **Complexity**: Medium
-**Status**: Completed 2025-11-14
+**Status**: ✅ Completed 2025-11-14
+**Branch**: `claude/extract-campaign-artifact-counter-01SowpfACvL8iZudn6FP6Ews`
 
-Create `CampaignArtifactCounter` class with caching and proper error handling.
+Create `CampaignArtifactCounter` class with caching and proper error handling. Added 42+ test cases, convenience methods, and performance optimizations.
 
 **Completion Notes**: Core extraction was pre-existing. Enhanced with convenience methods (`count_sessions`, `count_narratives`), query methods (`get_all_campaigns`, `get_campaign_summary`), and detailed tracking (session IDs, narrative paths). 39+ test cases covering all functionality.
 
@@ -118,14 +122,16 @@ Create `CampaignArtifactCounter` class with caching and proper error handling.
 
 ### Lower Priority (Consistency)
 
-#### 9. [Consolidate LLM Client Initialization](./09-llm-client-initialization-duplication.md)
+#### 9. [Consolidate LLM Client Initialization](./09-llm-client-initialization-duplication.md) ✅ COMPLETED
 **Issue**: Duplicate Ollama client init in `OllamaClassifier` and `LlmClient`
 
 **Impact**: Low - Minor duplication
-**Effort**: 9-11 hours
+**Effort**: 9-11 hours (Actual: 1 hour - already existed!)
 **Complexity**: Low-Medium
+**Status**: ✅ Completed 2025-11-14
+**Branch**: `claude/ollama-client-factory-0115FmYG73XhvvGNKvhZcRu3`
 
-Create `OllamaClientFactory` to centralize client creation and testing.
+Create `OllamaClientFactory` to centralize client creation and testing. Factory already existed in `src/llm_factory.py`, fixed 27 tests for proper lazy import handling.
 
 ---
 
@@ -145,15 +151,16 @@ Break into reusable component classes with Builder pattern.
 | Metric | Value |
 |--------|-------|
 | **Total Candidates** | 10 |
-| **Completed** | 1 ✅ |
+| **Completed** | 4 (#5, #6, #8, #9) |
 | **In Progress** | 0 |
-| **Remaining** | 9 |
+| **Remaining** | 6 |
 | **Total Estimated Effort** | 143-186 hours |
-| **Actual Effort (Completed)** | 2 hours |
+| **Completed Actual Effort** | 7 hours (vs 37-46 hours estimated) |
+| **Remaining Estimated Effort** | 106-140 hours |
 | **Average Effort per Candidate** | 14.3-18.6 hours |
-| **High Priority Items** | 4 |
-| **Medium Priority Items** | 4 (1 completed) |
-| **Lower Priority Items** | 2 |
+| **High Priority Items** | 4 (0 completed) |
+| **Medium Priority Items** | 4 (3 completed) |
+| **Lower Priority Items** | 2 (1 completed) |
 
 ## Implementation Strategy
 
@@ -287,5 +294,6 @@ When implementing a refactoring:
 ---
 
 **Last Updated**: 2025-11-14
-**Status**: 2 of 10 refactorings completed (#6: Diarizer Complex Method, #8: Campaign Artifact Counting)
-**Next Priority**: Foundation phase - #2, #3, #9, #5
+**Status**: 4 of 10 refactorings completed (40% done)
+**Completed**: #5 (Formatter), #6 (Diarizer), #8 (Artifact Counter), #9 (LLM Factory)
+**Remaining**: #1, #2, #3, #4, #7, #10

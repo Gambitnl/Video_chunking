@@ -93,7 +93,7 @@ class TranscriptFilter(str, Enum):
         elif self == TranscriptFilter.MIXED_ONLY:
             # Only include MIXED segments
             return classification == Classification.MIXED
-        return False
+        raise NotImplementedError(f"Filtering logic for {self} is not implemented.")
 
 
 class ProcessingStatus(str, Enum):

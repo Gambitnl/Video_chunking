@@ -137,15 +137,26 @@ class TestStoryGeneratorInit:
 class TestLogSuppression:
     """Test log suppression context manager."""
 
-    def test_suppress_llm_logs_context_manager(self):
-        """Test that suppress_llm_logs suppresses stdout/stderr."""
+    def test_suppress_llm_logs_context_manager(self, capsys, caplog):
+        """Test that suppress_llm_logs suppresses stdout/stderr and lower-level logs."""
         generator = StoryGenerator()
 
-        with generator.suppress_llm_logs():
-            # These should be suppressed
-            print("This should not appear")
-            sys.stderr.write("This error should not appear")
-            logging.getLogger("ollama").critical("This should not appear")
+        with caplog.at_level(logging.DEBUG, logger="ollama"):
+            with generator.suppress_llm_logs():
+                # stdout and stderr should be suppressed
+                print("This should not appear in stdout")
+                sys.stderr.write("This should not appear in stderr")
+                # Lower-level logs should be suppressed
+                logging.getLogger("ollama").info("This info should not appear")
+                logging.getLogger("ollama").warning("This warning should not appear")
+                # Note: CRITICAL logs are NOT suppressed by the current implementation
+                # (setLevel(CRITICAL) allows CRITICAL messages through)
+
+        captured = capsys.readouterr()
+        assert captured.out == "", "stdout should be empty after suppression"
+        assert captured.err == "", "stderr should be empty after suppression"
+        assert "This info should not appear" not in caplog.text, "Info logs should be suppressed"
+        assert "This warning should not appear" not in caplog.text, "Warning logs should be suppressed"
 
     def test_suppress_llm_logs_restores_streams(self):
         """Test that suppress_llm_logs restores stdout/stderr after context."""
@@ -370,9 +381,9 @@ class TestPromptBuilding:
             notebook_context=long_context
         )
 
-        # Count A's in prompt (should be max 3000, plus small margin for formatting)
-        a_count = prompt.count("A")
-        assert a_count <= 3005  # Allow small margin for formatting overhead
+        # Check that the long context was truncated to exactly 3000 characters.
+        assert ("A" * 3000) in prompt
+        assert ("A" * 3001) not in prompt
 
 
 # ============================================================================

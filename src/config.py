@@ -82,6 +82,7 @@ class Config:
     CHUNK_OVERLAP_SECONDS: int = get_env_as_int("CHUNK_OVERLAP_SECONDS", 10)
     AUDIO_SAMPLE_RATE: int = get_env_as_int("AUDIO_SAMPLE_RATE", 16000)
     CLEAN_STALE_CLIPS: bool = get_env_as_bool("CLEAN_STALE_CLIPS", True)
+    SAVE_INTERMEDIATE_OUTPUTS: bool = get_env_as_bool("SAVE_INTERMEDIATE_OUTPUTS", True)
     SNIPPET_PLACEHOLDER_MESSAGE: str = os.getenv(
         "SNIPPET_PLACEHOLDER_MESSAGE",
         "No audio snippets were generated for this session."

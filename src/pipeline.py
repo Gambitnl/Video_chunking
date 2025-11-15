@@ -20,6 +20,7 @@ from .logger import get_logger, get_log_file_path, log_session_start, log_sessio
 from .status_tracker import StatusTracker
 from .knowledge_base import KnowledgeExtractor, CampaignKnowledgeBase
 from .preflight import PreflightChecker, PreflightIssue
+from .intermediate_output import IntermediateOutputManager
 
 try:  # pragma: no cover - convenience for test environment
     from unittest.mock import Mock as _Mock  # type: ignore
@@ -1577,6 +1578,9 @@ class DDSessionProcessor:
         else:
             output_dir = create_session_output_dir(base_output_dir, self.safe_session_id)
 
+        # Initialize intermediate output manager
+        intermediate_output_manager = IntermediateOutputManager(output_dir)
+
         checkpoint_metadata = {
             "input_file": str(input_file),
             "session_output_dir": str(output_dir),
@@ -1817,6 +1821,16 @@ class DDSessionProcessor:
                     checkpoint_metadata
                 )
 
+                # Save intermediate output if enabled
+                if Config.SAVE_INTERMEDIATE_OUTPUTS:
+                    try:
+                        intermediate_output_manager.save_merged_transcript(
+                            merged_segments,
+                            input_file=str(input_file)
+                        )
+                    except Exception as e:
+                        self.logger.warning("Failed to save intermediate output for stage 4: %s", e)
+
             # ============================================================
             # Stage 5: Speaker Diarization
             # ============================================================
@@ -1871,6 +1885,16 @@ class DDSessionProcessor:
                         completed_stages,
                         checkpoint_metadata
                     )
+
+                    # Save intermediate output if enabled
+                    if Config.SAVE_INTERMEDIATE_OUTPUTS:
+                        try:
+                            intermediate_output_manager.save_diarization(
+                                speaker_segments_with_labels,
+                                input_file=str(input_file)
+                            )
+                        except Exception as e:
+                            self.logger.warning("Failed to save intermediate output for stage 5: %s", e)
                 else:
                     raise RuntimeError(f"Speaker diarization failed: {', '.join(result.errors)}")
 
@@ -1928,6 +1952,17 @@ class DDSessionProcessor:
                         completed_stages,
                         checkpoint_metadata
                     )
+
+                    # Save intermediate output if enabled
+                    if Config.SAVE_INTERMEDIATE_OUTPUTS:
+                        try:
+                            intermediate_output_manager.save_classification(
+                                speaker_segments_with_labels,
+                                [c.to_dict() for c in classifications],
+                                input_file=str(input_file)
+                            )
+                        except Exception as e:
+                            self.logger.warning("Failed to save intermediate output for stage 6: %s", e)
                 else:
                     raise RuntimeError(f"Segment classification failed: {', '.join(result.errors)}")
 
@@ -2088,6 +2123,178 @@ class DDSessionProcessor:
             log_session_end(self.session_id, duration_seconds, success=False)
             self.logger.error("Processing failed for session '%s'", self.session_id, exc_info=True)
             raise
+
+    def process_from_intermediate(
+        self,
+        session_dir: Path,
+        from_stage: int,
+        output_dir: Path = None,
+        skip_diarization: bool = False,
+        skip_classification: bool = False,
+        skip_snippets: bool = False,
+        skip_knowledge: bool = False,
+    ):
+        """
+        Process a session starting from an intermediate stage.
+
+        This method loads intermediate outputs from a previous run and continues
+        processing from the specified stage.
+
+        Args:
+            session_dir: Path to the session output directory containing intermediate outputs
+            from_stage: Stage number to resume from (4, 5, or 6)
+            output_dir: Optional custom output directory (defaults to session_dir)
+            skip_diarization: Skip speaker identification (default: False)
+            skip_classification: Skip IC/OOC classification (default: False)
+            skip_snippets: Skip audio segment export (default: False)
+            skip_knowledge: Skip knowledge extraction (default: False)
+
+        Returns:
+            Dictionary containing:
+                - output_files: Dict of format -> file path
+                - statistics: Session statistics
+                - audio_segments: Segment export info
+                - knowledge_extraction: Extracted entities
+                - success: Boolean success flag
+
+        Raises:
+            ValueError: If from_stage is invalid or intermediate output doesn't exist
+            RuntimeError: If processing fails
+        """
+        from .intermediate_output import IntermediateOutputManager
+
+        session_dir = Path(session_dir)
+        output_dir = Path(output_dir) if output_dir else session_dir
+
+        # Initialize intermediate output manager
+        manager = IntermediateOutputManager(session_dir)
+
+        # Validate stage number
+        if from_stage not in [4, 5, 6]:
+            raise ValueError(f"Invalid from_stage: {from_stage}. Must be 4, 5, or 6.")
+
+        # Check if intermediate output exists
+        if not manager.stage_output_exists(from_stage):
+            raise ValueError(
+                f"Intermediate output for stage {from_stage} not found in {manager.intermediates_dir}"
+            )
+
+        self.logger.info("=" * 80)
+        self.logger.info(
+            "Processing from intermediate stage %d for session '%s'",
+            from_stage,
+            self.session_id
+        )
+        self.logger.info("Session directory: %s", session_dir)
+        self.logger.info("=" * 80)
+
+        # Load intermediate data based on stage
+        if from_stage == 4:
+            # Load merged transcript and continue from diarization
+            merged_segments = manager.load_merged_transcript()
+            self.logger.info("Loaded %d merged segments from stage 4", len(merged_segments))
+
+            # We need the WAV file path for diarization
+            # Try to find it in the session directory
+            wav_files = list(session_dir.glob("*.wav"))
+            if not wav_files:
+                raise RuntimeError(
+                    f"No WAV file found in {session_dir}. "
+                    "WAV file is required for diarization."
+                )
+            wav_file = wav_files[0]
+            self.logger.info("Using WAV file: %s", wav_file)
+
+            # Run diarization
+            result = self._stage_speaker_diarization(wav_file, merged_segments, skip_diarization)
+            if not (result.success or result.status == ProcessingStatus.SKIPPED):
+                raise RuntimeError(f"Speaker diarization failed: {', '.join(result.errors)}")
+            speaker_segments_with_labels = result.data["speaker_segments_with_labels"]
+
+            # Run classification
+            result = self._stage_segments_classification(speaker_segments_with_labels, skip_classification)
+            if not (result.success or result.status == ProcessingStatus.SKIPPED):
+                raise RuntimeError(f"Segment classification failed: {', '.join(result.errors)}")
+            classifications = result.data["classifications"]
+
+        elif from_stage == 5:
+            # Load diarization and continue from classification
+            speaker_segments_with_labels = manager.load_diarization()
+            self.logger.info("Loaded %d diarized segments from stage 5", len(speaker_segments_with_labels))
+
+            # Run classification
+            result = self._stage_segments_classification(speaker_segments_with_labels, skip_classification)
+            if not (result.success or result.status == ProcessingStatus.SKIPPED):
+                raise RuntimeError(f"Segment classification failed: {', '.join(result.errors)}")
+            classifications = result.data["classifications"]
+
+        elif from_stage == 6:
+            # Load classification and regenerate outputs
+            segments, classifications_dicts = manager.load_classification()
+            speaker_segments_with_labels = segments
+            classifications = [ClassificationResult.from_dict(cd) for cd in classifications_dicts]
+            self.logger.info("Loaded %d classified segments from stage 6", len(classifications))
+
+        # Get input file from metadata if available
+        metadata_file = session_dir / f"{self.session_id}_data.json"
+        input_file = None
+        if metadata_file.exists():
+            import json
+            with open(metadata_file, 'r') as f:
+                metadata = json.load(f)
+                input_file = metadata.get("metadata", {}).get("input_file")
+
+        # Run output generation
+        result = self._stage_outputs_generation(
+            speaker_segments_with_labels,
+            classifications,
+            output_dir,
+            input_file
+        )
+        if not result.success:
+            raise RuntimeError(f"Output generation failed: {', '.join(result.errors)}")
+
+        output_files = result.data["output_files"]
+        stats = result.data["statistics"]
+        speaker_profiles = result.data.get("speaker_profiles", {})
+
+        # Run optional stages if not skipped
+        segment_export = {}
+        if not skip_snippets:
+            # Try to find WAV file
+            wav_files = list(session_dir.glob("*.wav"))
+            if wav_files:
+                wav_file = wav_files[0]
+                result = self._stage_segment_export(
+                    wav_file,
+                    speaker_segments_with_labels,
+                    classifications,
+                    output_dir
+                )
+                if result.success:
+                    segment_export = result.data.get("segment_export", {})
+
+        knowledge_data = {}
+        if not skip_knowledge:
+            ic_only_text = self.formatter.format_ic_only(
+                speaker_segments_with_labels,
+                classifications
+            )
+            result = self._stage_knowledge_extraction(ic_only_text)
+            if result.success:
+                knowledge_data = result.data.get("knowledge_data", {})
+
+        self.logger.info("=" * 80)
+        self.logger.info("Processing from intermediate stage completed successfully")
+        self.logger.info("=" * 80)
+
+        return {
+            'output_files': output_files,
+            'statistics': stats,
+            'audio_segments': segment_export,
+            'knowledge_extraction': knowledge_data,
+            'success': True
+        }
 
     def run_preflight_checks_only(
         self,

@@ -209,6 +209,16 @@ def create_settings_tools_tab_modern(
                 info="Automatically remove old temporary audio files"
             )
 
+            save_intermediate_outputs_checkbox = gr.Checkbox(
+                label="Save Intermediate Stage Outputs",
+                value=ConfigManager.safe_bool(
+                    current_config.get("SAVE_INTERMEDIATE_OUTPUTS", str(Config.SAVE_INTERMEDIATE_OUTPUTS)),
+                    Config.SAVE_INTERMEDIATE_OUTPUTS
+                ),
+                interactive=True,
+                info="Save intermediate outputs (transcript, diarization, classification) to JSON files"
+            )
+
             save_processing_config_btn = UIComponents.create_action_button(
                 "Save Processing Settings",
                 variant="primary",
@@ -412,6 +422,7 @@ def create_settings_tools_tab_modern(
         "chunk_overlap_input": chunk_overlap_input,
         "audio_sample_rate_input": audio_sample_rate_input,
         "clean_stale_clips_checkbox": clean_stale_clips_checkbox,
+        "save_intermediate_outputs_checkbox": save_intermediate_outputs_checkbox,
         "save_processing_config_btn": save_processing_config_btn,
         "processing_config_status": processing_config_status,
         # Ollama Settings

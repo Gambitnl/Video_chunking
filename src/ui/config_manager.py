@@ -146,6 +146,7 @@ class ConfigManager:
         chunk_overlap_seconds: Optional[Any] = None,
         audio_sample_rate: Optional[Any] = None,
         clean_stale_clips: Optional[bool] = None,
+        save_intermediate_outputs: Optional[bool] = None,
         # Rate Limiting
         groq_max_calls_per_second: Optional[Any] = None,
         groq_rate_limit_period_seconds: Optional[Any] = None,
@@ -231,6 +232,9 @@ class ConfigManager:
 
         if clean_stale_clips is not None:
             validated["CLEAN_STALE_CLIPS"] = "true" if clean_stale_clips else "false"
+
+        if save_intermediate_outputs is not None:
+            validated["SAVE_INTERMEDIATE_OUTPUTS"] = "true" if save_intermediate_outputs else "false"
 
         # Validate Ollama Settings
         if ollama_model is not None and ollama_model.strip():

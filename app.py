@@ -145,6 +145,7 @@ def ui_save_processing_config(
     chunk_overlap: int,
     sample_rate: int,
     clean_stale: bool,
+    save_intermediate: bool,
 ) -> str:
     """UI wrapper to save processing settings."""
     return _save_config_helper(
@@ -153,6 +154,7 @@ def ui_save_processing_config(
         chunk_overlap_seconds=chunk_overlap,
         audio_sample_rate=sample_rate,
         clean_stale_clips=clean_stale,
+        save_intermediate_outputs=save_intermediate,
     )
 
 
@@ -995,6 +997,143 @@ def run_preflight_checks(
             "An unexpected error occurred while running the checks.",
             str(exc),
         )
+
+
+# ============================================================================
+# Pipeline Stage Control Functions
+# ============================================================================
+
+def update_skip_flags_from_stage(run_until_stage):
+    """
+    Automatically set skip flags based on 'Run Until Stage' selection.
+
+    Args:
+        run_until_stage: Selected stage to run until
+
+    Returns:
+        Tuple of (skip_diarization, skip_classification, skip_snippets, skip_knowledge)
+    """
+    stage_configs = {
+        "full": (False, False, False, False),  # Run all stages
+        "stage_4": (True, True, True, True),   # Stop after transcription
+        "stage_5": (False, True, True, True),  # Stop after diarization
+        "stage_6": (False, False, True, True), # Stop after classification
+        "stage_7": (False, False, True, True), # Stop after outputs (skip snippets & knowledge)
+    }
+
+    skip_diarization, skip_classification, skip_snippets, skip_knowledge = stage_configs.get(
+        run_until_stage, (False, False, False, False)
+    )
+
+    return (
+        gr.update(value=skip_diarization),
+        gr.update(value=skip_classification),
+        gr.update(value=skip_snippets),
+        gr.update(value=skip_knowledge),
+    )
+
+
+# ============================================================================
+# Resume from Intermediate Outputs Functions
+# ============================================================================
+
+def refresh_resume_sessions():
+    """Refresh the list of sessions with intermediate outputs."""
+    from src.ui.intermediate_resume_helper import discover_sessions_with_intermediates
+
+    sessions = discover_sessions_with_intermediates()
+    if not sessions:
+        return gr.update(choices=[], value=None)
+
+    # Format as (label, value) tuples
+    choices = [(name, path) for name, path in sessions]
+    return gr.update(choices=choices, value=choices[0][1] if choices else None)
+
+
+def update_resume_session_info(session_dir):
+    """Update session info display when a session is selected."""
+    if not session_dir:
+        return StatusMessages.info(
+            "Session Info",
+            "Select a session to see details."
+        )
+
+    from src.ui.intermediate_resume_helper import get_session_info
+    info = get_session_info(session_dir)
+
+    if not info or not info.get("has_intermediates"):
+        return StatusMessages.warning(
+            "No Intermediate Outputs",
+            f"Session {info.get('session_name', 'unknown')} does not have intermediate outputs saved."
+        )
+
+    return StatusMessages.success(
+        info["session_name"],
+        f"**Available stages:** {info['available_stages']}\n\n"
+        f"**Path:** `{info['session_path']}`"
+    )
+
+
+def process_from_intermediate_ui(session_dir, from_stage, progress=gr.Progress()):
+    """Process from intermediate outputs via UI."""
+    if not session_dir:
+        return StatusMessages.error(
+            "No Session Selected",
+            "Please select a session to resume."
+        )
+
+    from pathlib import Path
+    from src.pipeline import DDSessionProcessor
+
+    try:
+        # Extract session ID from directory name
+        session_path = Path(session_dir)
+        session_id = session_path.name.split("_", 2)[-1]
+
+        progress(0.1, desc="Initializing...")
+
+        # Create processor
+        processor = DDSessionProcessor(
+            session_id=session_id,
+            resume=False,
+        )
+
+        progress(0.2, desc=f"Loading stage {from_stage} outputs...")
+
+        # Process from intermediate
+        result = processor.process_from_intermediate(
+            session_dir=session_path,
+            from_stage=from_stage,
+            skip_snippets=False,
+            skip_knowledge=False,
+        )
+
+        progress(1.0, desc="Complete!")
+
+        if result['success']:
+            stats = result.get('statistics', {})
+            return StatusMessages.success(
+                "Processing Complete",
+                f"✅ Successfully resumed from stage {from_stage}\n\n"
+                f"**Statistics:**\n"
+                f"- Total duration: {stats.get('total_duration_formatted', 'N/A')}\n"
+                f"- IC percentage: {stats.get('ic_percentage', 0):.1f}%\n"
+                f"- Total segments: {stats.get('total_segments', 0)}\n\n"
+                f"**Outputs saved to:** `{session_dir}`"
+            )
+        else:
+            return StatusMessages.error(
+                "Processing Failed",
+                "Processing from intermediate failed. Check logs for details."
+            )
+
+    except Exception as e:
+        return StatusMessages.error(
+            "Error",
+            f"Failed to process from intermediate: {str(e)}"
+        )
+
+
 # Get available parties
 party_manager = PartyConfigManager()
 available_parties = party_manager.list_parties()
@@ -1369,6 +1508,7 @@ with gr.Blocks(
             settings_tab_refs["chunk_overlap_input"],
             settings_tab_refs["audio_sample_rate_input"],
             settings_tab_refs["clean_stale_clips_checkbox"],
+            settings_tab_refs["save_intermediate_outputs_checkbox"],
         ],
         outputs=settings_tab_refs["processing_config_status"],
     )
@@ -1469,6 +1609,39 @@ with gr.Blocks(
         fn=_create_new_campaign,
         inputs=[new_campaign_name],
         outputs=create_campaign_outputs,
+    )
+
+    # Pipeline Stage Control
+    process_tab_refs["run_until_stage_input"].change(
+        fn=update_skip_flags_from_stage,
+        inputs=process_tab_refs["run_until_stage_input"],
+        outputs=[
+            process_tab_refs["skip_diarization_input"],
+            process_tab_refs["skip_classification_input"],
+            process_tab_refs["skip_snippets_input"],
+            process_tab_refs["skip_knowledge_input"],
+        ],
+    )
+
+    # Resume from Intermediate Outputs controls
+    process_tab_refs["resume_refresh_btn"].click(
+        fn=refresh_resume_sessions,
+        outputs=process_tab_refs["resume_session_dropdown"],
+    )
+
+    process_tab_refs["resume_session_dropdown"].change(
+        fn=update_resume_session_info,
+        inputs=process_tab_refs["resume_session_dropdown"],
+        outputs=process_tab_refs["resume_session_info"],
+    )
+
+    process_tab_refs["resume_process_btn"].click(
+        fn=process_from_intermediate_ui,
+        inputs=[
+            process_tab_refs["resume_session_dropdown"],
+            process_tab_refs["resume_stage_dropdown"],
+        ],
+        outputs=process_tab_refs["resume_status"],
     )
 
     # Campaign Tab interactive controls

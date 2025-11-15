@@ -250,28 +250,44 @@ class ConfigurationSectionBuilder:
                     info="Use local Ollama, cloud Groq API, or Google Colab GPU.",
                 )
 
-            # Skip Options
-            with gr.Row():
-                components["skip_diarization_input"] = gr.Checkbox(
-                    label="Skip Speaker Identification",
-                    value=self.initial_defaults.get("skip_diarization", False),
-                    info="Saves time but all segments will be UNKNOWN.",
-                )
-                components["skip_classification_input"] = gr.Checkbox(
-                    label="Skip IC/OOC Classification",
-                    value=self.initial_defaults.get("skip_classification", False),
-                    info="Disables in-character versus out-of-character separation.",
-                )
-                components["skip_snippets_input"] = gr.Checkbox(
-                    label="Skip Snippet Export",
-                    value=self.initial_defaults.get("skip_snippets", True),
-                    info="Skip exporting WAV snippets to save disk space.",
-                )
-                components["skip_knowledge_input"] = gr.Checkbox(
-                    label="Skip Knowledge Extraction",
-                    value=self.initial_defaults.get("skip_knowledge", False),
-                    info="Disable automatic quest/NPC extraction.",
-                )
+            # Pipeline Control
+            components["run_until_stage_input"] = gr.Dropdown(
+                label="Run Pipeline Until",
+                choices=[
+                    ("Full Pipeline (All Stages)", "full"),
+                    ("Stage 4: Transcription Only", "stage_4"),
+                    ("Stage 5: Through Diarization", "stage_5"),
+                    ("Stage 6: Through Classification", "stage_6"),
+                    ("Stage 7: Through Output Generation (Skip Snippets & Knowledge)", "stage_7"),
+                ],
+                value="full",
+                info="Control which stages of the pipeline to execute",
+            )
+
+            # Skip Options (Advanced)
+            with gr.Accordion("Advanced Skip Options", open=False):
+                gr.Markdown("*These options are auto-set by 'Run Pipeline Until' but can be manually overridden*")
+                with gr.Row():
+                    components["skip_diarization_input"] = gr.Checkbox(
+                        label="Skip Speaker Identification",
+                        value=self.initial_defaults.get("skip_diarization", False),
+                        info="Saves time but all segments will be UNKNOWN.",
+                    )
+                    components["skip_classification_input"] = gr.Checkbox(
+                        label="Skip IC/OOC Classification",
+                        value=self.initial_defaults.get("skip_classification", False),
+                        info="Disables in-character versus out-of-character separation.",
+                    )
+                    components["skip_snippets_input"] = gr.Checkbox(
+                        label="Skip Snippet Export",
+                        value=self.initial_defaults.get("skip_snippets", True),
+                        info="Skip exporting WAV snippets to save disk space.",
+                    )
+                    components["skip_knowledge_input"] = gr.Checkbox(
+                        label="Skip Knowledge Extraction",
+                        value=self.initial_defaults.get("skip_knowledge", False),
+                        info="Disable automatic quest/NPC extraction.",
+                    )
 
         return components
 
@@ -359,7 +375,7 @@ class ProcessingControlsBuilder:
                 )
 
             components["runtime_accordion"] = runtime_accordion
-            components["transcription_timer"] = gr.Timer(every=2.0, active=True)
+            components["transcription_timer"] = gr.Timer(value=2.0)
 
         # State for processing flow control
         components["should_process_state"] = gr.State(value=False)
@@ -402,6 +418,82 @@ class ResultsSectionBuilder:
 
         # Auto-scroll JavaScript component (hidden, triggers when results appear)
         components["scroll_trigger"] = gr.HTML(visible=False)
+
+        return components
+
+
+# ============================================================================
+# Resume from Intermediate Section
+# ============================================================================
+
+class ResumeFromIntermediateBuilder:
+    """Builder for resume from intermediate outputs section."""
+
+    def build(self) -> Dict[str, gr.Component]:
+        """
+        Build Resume from Intermediate section.
+
+        Allows users to resume processing from saved intermediate outputs.
+        """
+        from src.ui.intermediate_resume_helper import discover_sessions_with_intermediates
+
+        components = {}
+
+        with gr.Accordion("🔄 Resume from Intermediate Outputs", open=False):
+            gr.Markdown(
+                """
+                Resume processing from a previously saved intermediate stage. This allows you to:
+                - Edit intermediate outputs manually and reprocess
+                - Test different backends on the same data
+                - Skip expensive stages that are already complete
+                """
+            )
+
+            # Discover sessions button and dropdown
+            with gr.Row():
+                components["resume_refresh_btn"] = UIComponents.create_action_button(
+                    "🔍 Find Sessions",
+                    variant="secondary",
+                    size="sm",
+                )
+
+            components["resume_session_dropdown"] = gr.Dropdown(
+                label="Session to Resume",
+                choices=[],
+                value=None,
+                interactive=True,
+                info="Select a session with intermediate outputs",
+            )
+
+            components["resume_stage_dropdown"] = gr.Dropdown(
+                label="Resume from Stage",
+                choices=[
+                    ("Stage 4: Merged Transcript → Run Diarization, Classification, Outputs", 4),
+                    ("Stage 5: Diarization → Run Classification, Outputs", 5),
+                    ("Stage 6: Classification → Regenerate Outputs Only", 6),
+                ],
+                value=5,
+                interactive=True,
+                info="Which stage to resume from",
+            )
+
+            components["resume_session_info"] = gr.Markdown(
+                value=StatusMessages.info(
+                    "Session Info",
+                    "Click 'Find Sessions' to discover available sessions, then select one to see details."
+                )
+            )
+
+            with gr.Row():
+                components["resume_process_btn"] = UIComponents.create_action_button(
+                    "▶️ Resume Processing",
+                    variant="primary",
+                    size="lg",
+                )
+
+            components["resume_status"] = gr.Markdown(
+                value=""
+            )
 
         return components
 
@@ -479,5 +571,8 @@ class ProcessSessionTabBuilder:
 
         results_builder = ResultsSectionBuilder()
         all_components.update(results_builder.build())
+
+        resume_builder = ResumeFromIntermediateBuilder()
+        all_components.update(resume_builder.build())
 
         return all_components

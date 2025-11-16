@@ -383,6 +383,8 @@ class CharacterProfileExtractor:
         """Ensure a CharacterProfile exists for the given character name."""
         profile = profile_manager.get_profile(character_name)
         if profile:
+            # BUGFIX: Ensure the campaign_id is always set to the current campaign context
+            profile.campaign_id = campaign_id
             return profile
 
         if party_character:

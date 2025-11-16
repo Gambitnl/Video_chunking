@@ -45,6 +45,7 @@ from src.ui.characters_tab_modern import (
 )
 from src.ui.stories_output_tab_modern import create_stories_output_tab_modern
 from src.ui.settings_tools_tab_modern import create_settings_tools_tab_modern
+from src.ui.session_artifacts_tab import create_session_artifacts_tab, refresh_sessions as refresh_artifact_sessions
 
 from src.google_drive_auth import (
     get_auth_url,
@@ -1209,6 +1210,7 @@ with gr.Blocks(
         initial_campaign_id=initial_campaign_id,
     )
     stories_tab_refs = create_stories_output_tab_modern(demo)
+    artifacts_tab_refs = create_session_artifacts_tab(demo)
     settings_tab_refs = create_settings_tools_tab_modern(
         demo,
         story_manager=story_manager,
@@ -1311,6 +1313,13 @@ with gr.Blocks(
         )
         social_nebula_update = gr.update(value=None)
 
+        # Artifact Explorer updates
+        artifacts_session_picker_update = gr.update(choices=[], value=None)
+        artifacts_file_list_update = gr.update(value=None)
+        artifacts_file_preview_update = gr.update(value="")
+        artifacts_download_button_update = gr.update(visible=False)
+        artifacts_status_update = gr.update(value=StatusMessages.info("Ready", "Select a session to begin."))
+
         return (
             campaign_id,
             summary,
@@ -1335,6 +1344,11 @@ with gr.Blocks(
             social_session_update,
             social_keyword_update,
             social_nebula_update,
+            artifacts_session_picker_update,
+            artifacts_file_list_update,
+            artifacts_file_preview_update,
+            artifacts_download_button_update,
+            artifacts_status_update,
         )
 
     def _refresh_campaign_tab(campaign_display_name: Optional[str], current_campaign_id: Optional[str]):
@@ -1410,6 +1424,13 @@ with gr.Blocks(
         )
         social_nebula_update = gr.update(value=None)
 
+        # Artifact Explorer updates
+        artifacts_session_picker_update = gr.update(choices=[], value=None)
+        artifacts_file_list_update = gr.update(value=None)
+        artifacts_file_preview_update = gr.update(value="")
+        artifacts_download_button_update = gr.update(visible=False)
+        artifacts_status_update = gr.update(value=StatusMessages.info("Ready", "Select a session to begin."))
+
         return (
             new_campaign_id,
             summary,
@@ -1435,6 +1456,11 @@ with gr.Blocks(
             social_session_update,
             social_keyword_update,
             social_nebula_update,
+            artifacts_session_picker_update,
+            artifacts_file_list_update,
+            artifacts_file_preview_update,
+            artifacts_download_button_update,
+            artifacts_status_update,
         )
 
     shared_outputs_load = [
@@ -1477,6 +1503,11 @@ with gr.Blocks(
         settings_tab_refs["social_session_dropdown"],
         settings_tab_refs["social_keyword_output"],
         settings_tab_refs["social_nebula_output"],
+        artifacts_tab_refs["session_picker"],
+        artifacts_tab_refs["file_list"],
+        artifacts_tab_refs["file_preview"],
+        artifacts_tab_refs["download_button"],
+        artifacts_tab_refs["status_display"],
     ]
 
     settings_tab_refs["save_api_keys_btn"].click(
@@ -1556,6 +1587,11 @@ with gr.Blocks(
         outputs=settings_tab_refs["restart_status"],
     )
 
+    demo.load(
+        fn=refresh_artifact_sessions,
+        outputs=artifacts_tab_refs["session_picker"]
+    )
+
     load_campaign_btn.click(
         fn=_load_campaign,
         inputs=[existing_campaign_dropdown, active_campaign_state],
@@ -1603,6 +1639,11 @@ with gr.Blocks(
         settings_tab_refs["social_session_dropdown"],
         settings_tab_refs["social_keyword_output"],
         settings_tab_refs["social_nebula_output"],
+        artifacts_tab_refs["session_picker"],
+        artifacts_tab_refs["file_list"],
+        artifacts_tab_refs["file_preview"],
+        artifacts_tab_refs["download_button"],
+        artifacts_tab_refs["status_display"],
     ]
 
     start_new_campaign_btn.click(

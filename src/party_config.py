@@ -5,6 +5,7 @@ from typing import Dict, List, Optional, Tuple
 from dataclasses import dataclass, asdict
 from .config import Config
 from .logger import get_logger
+from .file_lock import get_file_lock
 
 
 logger = get_logger(__name__)
@@ -119,17 +120,20 @@ class PartyConfigManager:
         )
 
     def save_parties(self):
-        """Save parties to JSON file"""
+        """Save parties to JSON file with file locking to prevent concurrent write conflicts."""
         self.config_file.parent.mkdir(exist_ok=True, parents=True)
 
-        # Convert to serializable format
-        data = {}
-        for party_id, party in self.parties.items():
-            party_dict = asdict(party)
-            data[party_id] = party_dict
+        # Use file lock to prevent race conditions
+        lock = get_file_lock(self.config_file)
+        with lock:
+            # Convert to serializable format
+            data = {}
+            for party_id, party in self.parties.items():
+                party_dict = asdict(party)
+                data[party_id] = party_dict
 
-        with open(self.config_file, 'w', encoding='utf-8') as f:
-            json.dump(data, f, indent=2, ensure_ascii=False)
+            with open(self.config_file, 'w', encoding='utf-8') as f:
+                json.dump(data, f, indent=2, ensure_ascii=False)
 
     def get_party(self, party_id: str = "default") -> Optional[Party]:
         """Get a party by ID"""
@@ -426,11 +430,14 @@ class CampaignManager:
         return campaign_id, blank_campaign
 
     def _save_campaigns(self):
-        """Save campaigns to JSON file"""
-        data = {}
-        for campaign_id, campaign in self.campaigns.items():
-            campaign_dict = asdict(campaign)
-            data[campaign_id] = campaign_dict
+        """Save campaigns to JSON file with file locking to prevent concurrent write conflicts."""
+        # Use file lock to prevent race conditions
+        lock = get_file_lock(self.config_file)
+        with lock:
+            data = {}
+            for campaign_id, campaign in self.campaigns.items():
+                campaign_dict = asdict(campaign)
+                data[campaign_id] = campaign_dict
 
-        with open(self.config_file, 'w', encoding='utf-8') as f:
-            json.dump(data, f, indent=2, ensure_ascii=False)
+            with open(self.config_file, 'w', encoding='utf-8') as f:
+                json.dump(data, f, indent=2, ensure_ascii=False)

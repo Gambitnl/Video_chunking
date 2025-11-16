@@ -317,8 +317,9 @@ class IntermediateOutputManager:
         ooc_count = 0
         mixed_count = 0
 
-        for seg, classif in zip(segments, classifications):
+        for index, (seg, classif) in enumerate(zip(segments, classifications)):
             merged_seg = {
+                "segment_index": classif.get("segment_index", index),
                 "text": seg.get("text", ""),
                 "start_time": seg.get("start_time", 0.0),
                 "end_time": seg.get("end_time", 0.0),
@@ -420,9 +421,10 @@ class IntermediateOutputManager:
         segments = []
         classifications = []
 
-        for item in merged_data:
+        for index, item in enumerate(merged_data):
             # Extract segment data
             segment = {
+                "segment_index": item.get("segment_index", index),
                 "text": item["text"],
                 "start_time": item["start_time"],
                 "end_time": item["end_time"],
@@ -435,6 +437,7 @@ class IntermediateOutputManager:
 
             # Extract classification data
             classification = {
+                "segment_index": item.get("segment_index", index),
                 "classification": item.get("classification", "IC"),
                 "confidence": item.get("confidence", 0.0),
             }

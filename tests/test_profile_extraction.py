@@ -48,6 +48,19 @@ def test_profile_update_all_categories(category):
     assert update.category == category
 
 
+def test_profile_update_normalizes_timestamp_range():
+    payload = make_update_payload(timestamp="03:24:19 - 03:24:54")
+    update = ProfileUpdate.from_dict(payload)
+    assert update.timestamp == "03:24:19"
+
+
+def test_profile_update_uses_segment_start_when_missing_timestamp():
+    payload = make_update_payload(timestamp=None)
+    payload["segment_start"] = 125.4
+    update = ProfileUpdate.from_dict(payload)
+    assert update.timestamp == "02:05"
+
+
 def test_profile_update_batch_roundtrip():
     batch_payload = {
         "session_id": "session_001",

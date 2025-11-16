@@ -11,11 +11,104 @@
   "aliases": [
     "Furnax"
   ],
-  "campaign": "Gaia Adventures - Culdor Academy",
+  "campaign_id": null,
+  "campaign_name": "Gaia Adventures - Culdor Academy",
   "first_session": "Session 1 (29-Nov-2024)",
-  "last_updated": "2025-10-21T21:50:21.915927",
-  "notable_actions": [],
-  "inventory": [],
+  "last_updated": "2025-11-16T08:29:08.446025",
+  "notable_actions": [
+    {
+      "session": "Session6_test_16nov_0315am",
+      "timestamp": null,
+      "description": "Directs the group on how to proceed with a task, showing leadership.",
+      "type": "ally"
+    },
+    {
+      "session": "Session6_test_16nov_0315am",
+      "timestamp": null,
+      "description": "Performs a perception check to ensure the group remains undetected.",
+      "type": "social"
+    },
+    {
+      "session": "Session6_test_16nov_0315am",
+      "timestamp": null,
+      "description": "Attempts an intimidation roleplay, but the target does not react as expected.",
+      "type": "social"
+    },
+    {
+      "session": "Session6_test_16nov_0315am",
+      "timestamp": null,
+      "description": "Checks if the party members ate popcorn, implying they might be guilty.",
+      "type": "social"
+    },
+    {
+      "session": "Session6_test_16nov_0315am",
+      "timestamp": null,
+      "description": "Participated in a boss fight where he and another party member were betrayed.",
+      "type": "combat"
+    },
+    {
+      "session": "Session6_test_16nov_0315am",
+      "timestamp": null,
+      "description": "Was a bodyguard for a wizard during the one-shot, which ended tragically.",
+      "type": "general"
+    },
+    {
+      "session": "Session6_test_16nov_0315am",
+      "timestamp": null,
+      "description": "Failed to hit the character with a bite attack twice.",
+      "type": "combat"
+    },
+    {
+      "session": "Session6_test_16nov_0315am",
+      "timestamp": null,
+      "description": "Failed to hit the character with a stinger attack, rolling a 13.",
+      "type": "combat"
+    },
+    {
+      "session": "Session6_test_16nov_0315am",
+      "timestamp": null,
+      "description": "Attempts to cast Witchbolt, showing his combat skills and willingness to engage in battle.",
+      "type": "combat"
+    },
+    {
+      "session": "Session6_test_16nov_0315am",
+      "timestamp": null,
+      "description": "Discussed a creative approach to entering the area.",
+      "type": "social"
+    },
+    {
+      "session": "Session6_test_16nov_0315am",
+      "timestamp": null,
+      "description": "Successfully cast a spell to weaken an enemy.",
+      "type": "combat"
+    },
+    {
+      "session": "Session6_test_16nov_0315am",
+      "timestamp": null,
+      "description": "Mends the ship with Furnax and Mend spell.",
+      "type": "combat"
+    }
+  ],
+  "inventory": [
+    {
+      "name": "Mentioned as being left behind during the vigilance duty, possibly indicating his importance or reliance.",
+      "description": "Furnax is left behind by Sha'ek Mindfa'ek during the vigilance duty, suggesting a possible connection or reason for his presence.",
+      "session_acquired": "Session6_test_16nov_0315am",
+      "category": "none"
+    },
+    {
+      "name": "Gains a new item (bag of distraction) and plans to use it strategically.",
+      "description": "Furnax plans to use the bag of distraction, noting its unique properties.",
+      "session_acquired": "Session6_test_16nov_0315am",
+      "category": "item"
+    },
+    {
+      "name": "Possibly a skill or spell that can be used again, but not immediately.",
+      "description": "Furnax mentioned he could use his ability to weaken the hellhound multiple times per day, but it was currently unavailable due to a lack of mana or spell site.",
+      "session_acquired": "Session6_test_16nov_0315am",
+      "category": "general"
+    }
+  ],
   "relationships": [
     {
       "name": "Pipira Shimmerlock",
@@ -28,17 +121,338 @@
       "relationship_type": "rescued by",
       "description": "Was rescued by the academy",
       "first_met": "Before Session 1"
+    },
+    {
+      "name": "Supports Pipira and acknowledges her struggle in managing spells.",
+      "relationship_type": "ally",
+      "description": null,
+      "first_met": "Session6_test_16nov_0315am"
     }
   ],
-  "development_notes": [],
-  "memorable_quotes": [],
+  "development_notes": [
+    {
+      "session": "Session6_test_16nov_0315am",
+      "note": "Suggests a rotation schedule for the watch duty, indicating leadership potential.",
+      "category": "general"
+    },
+    {
+      "session": "Session6_test_16nov_0315am",
+      "note": "Acknowledges the presence of sleeper agents and expresses doubt.",
+      "category": "social"
+    },
+    {
+      "session": "Session6_test_16nov_0315am",
+      "note": "Considers the possibility that a changeling is involved.",
+      "category": "social"
+    },
+    {
+      "session": "Session6_test_16nov_0315am",
+      "note": "Agrees with Sha'ek's plan and suggests discussing the matter with Alinda.",
+      "category": "social"
+    },
+    {
+      "session": "Session6_test_16nov_0315am",
+      "note": "Expresses concern for a fellow party member's safety and well-being.",
+      "category": "social"
+    },
+    {
+      "session": "Session6_test_16nov_0315am",
+      "note": "Demonstrates a pragmatic approach to ensuring the safety and well-being of their group members.",
+      "category": "social"
+    },
+    {
+      "session": "Session6_test_16nov_0315am",
+      "note": "Exhibits patience and understanding during the dice rolling session.",
+      "category": "general"
+    },
+    {
+      "session": "Session6_test_16nov_0315am",
+      "note": "Asks for a second chance, demonstrating resilience.",
+      "category": "general"
+    },
+    {
+      "session": "Session6_test_16nov_0315am",
+      "note": "Illustrates the consequences of poor decisions and dice rolls, showing a realistic approach to failure.",
+      "category": "general"
+    },
+    {
+      "session": "Session6_test_16nov_0315am",
+      "note": "Acknowledges he should have taken the watch at eight o'clock, showing responsibility.",
+      "category": "social"
+    },
+    {
+      "session": "Session6_test_16nov_0315am",
+      "note": "Admits to not being a cleric and expresses willingness to help.",
+      "category": "social"
+    },
+    {
+      "session": "Session6_test_16nov_0315am",
+      "note": "Furnax is seen as a strategic thinker, trying to influence the group's behavior through psychological tactics.",
+      "category": "general"
+    },
+    {
+      "session": "Session6_test_16nov_0315am",
+      "note": "Furnax demonstrates a strong sense of control and manipulation within the group, using their role to influence others.",
+      "category": "general"
+    },
+    {
+      "session": "Session6_test_16nov_0315am",
+      "note": "Shows readiness to take on new challenges and roles.",
+      "category": "social"
+    },
+    {
+      "session": "Session6_test_16nov_0315am",
+      "note": "Adapts to potential threats by preparing different types of rolls.",
+      "category": "social"
+    },
+    {
+      "session": "Session6_test_16nov_0315am",
+      "note": "Demonstrates a caring and observant nature by noticing signs of discomfort in the creature.",
+      "category": "social"
+    },
+    {
+      "session": "Session6_test_16nov_0315am",
+      "note": "Acknowledges the creature's discomfort and suggests ways to improve its position.",
+      "category": "social"
+    },
+    {
+      "session": "Session6_test_16nov_0315am",
+      "note": "Recognizes the need to improve intimidation skills and acknowledges past experience with it.",
+      "category": "social"
+    },
+    {
+      "session": "Session6_test_16nov_0315am",
+      "note": "Acknowledges the need for rest despite feeling well-rested.",
+      "category": "general"
+    },
+    {
+      "session": "Session6_test_16nov_0315am",
+      "note": "Shows willingness to help others learn",
+      "category": "ally"
+    },
+    {
+      "session": "Session6_test_16nov_0315am",
+      "note": "Advises using a different teaching method",
+      "category": "social"
+    },
+    {
+      "session": "Session6_test_16nov_0315am",
+      "note": "Expresses a need to learn from others despite time constraints.",
+      "category": "general"
+    },
+    {
+      "session": "Session6_test_16nov_0315am",
+      "note": "Expresses his preference for spells related to flying and their practical use on a ship.",
+      "category": "general"
+    },
+    {
+      "session": "Session6_test_16nov_0315am",
+      "note": "Shows a more pragmatic approach to character development, focusing on practical skills over flashy abilities.",
+      "category": "general"
+    },
+    {
+      "session": "Session6_test_16nov_0315am",
+      "note": "Experienced betrayal and conflict within the group.",
+      "category": "social"
+    },
+    {
+      "session": "Session6_test_16nov_0315am",
+      "note": "Acknowledges the risk of being a bodyguard and potentially dying.",
+      "category": "general"
+    },
+    {
+      "session": "Session6_test_16nov_0315am",
+      "note": "Goes rogue and turns against his allies, highlighting his potential for betrayal.",
+      "category": "ally"
+    },
+    {
+      "session": "Session6_test_16nov_0315am",
+      "note": "Defends his decision to be a bodyguard, explaining the nature of the character's protection.",
+      "category": "general"
+    },
+    {
+      "session": "Session6_test_16nov_0315am",
+      "note": "Reflects on the potential for betrayal and the risks involved as a bodyguard.",
+      "category": "general"
+    },
+    {
+      "session": "Session6_test_16nov_0315am",
+      "note": "Acknowledges the diary’s lack of substantive information and suggests it might be a ruse.",
+      "category": "general"
+    },
+    {
+      "session": "Session6_test_16nov_0315am",
+      "note": "Acknowledged the luck factor in avoiding a critical hit, expressing relief.",
+      "category": "emotional"
+    },
+    {
+      "session": "Session6_test_16nov_0315am",
+      "note": "Explained Shield mechanics and multi-attacks to the party, showing expertise.",
+      "category": "social"
+    },
+    {
+      "session": "Session6_test_16nov_0315am",
+      "note": "Expresses concern about the use of psychic damage and its consequences.",
+      "category": "social"
+    },
+    {
+      "session": "Session6_test_16nov_0315am",
+      "note": "Admits to overusing a specific ability, showing self-awareness and reflection.",
+      "category": "planning"
+    },
+    {
+      "session": "Session6_test_16nov_0315am",
+      "note": "Shows a pragmatic and persistent attitude, willing to continue despite the frustration.",
+      "category": "social"
+    },
+    {
+      "session": "Session6_test_16nov_0315am",
+      "note": "Demonstrates a willingness to face challenges head-on, even if they are frustrating.",
+      "category": "social"
+    },
+    {
+      "session": "Session6_test_16nov_0315am",
+      "note": "Encourages the group to assign tasks based on initiative, promoting teamwork.",
+      "category": "general"
+    },
+    {
+      "session": "Session6_test_16nov_0315am",
+      "note": "Instructs Sha'ek on the best method to descend, demonstrating his leadership and tactical acumen.",
+      "category": "general"
+    },
+    {
+      "session": "Session6_test_16nov_0315am",
+      "note": "Showing concern for the party's safety and cautioning against unnecessary risks.",
+      "category": "general"
+    },
+    {
+      "session": "Session6_test_16nov_0315am",
+      "note": "Providing support and encouragement to Pipira as she contemplates her next move.",
+      "category": "general"
+    },
+    {
+      "session": "Session6_test_16nov_0315am",
+      "note": "Showed adaptability and willingness to follow a creative plan.",
+      "category": "combat"
+    },
+    {
+      "session": "Session6_test_16nov_0315am",
+      "note": "Expressing reluctance to use his abilities, possibly due to a personal or moral choice.",
+      "category": "general"
+    },
+    {
+      "session": "Session6_test_16nov_0315am",
+      "note": "Focuses on repairing the ship and not moving forward too quickly.",
+      "category": "social"
+    }
+  ],
+  "memorable_quotes": [
+    {
+      "session": "Session6_test_16nov_0315am",
+      "quote": "Je ziet zo'n pakkie wens en jij zegt, ah, kijk die oude tand.",
+      "context": "Furnax makes an amusing observation about perceiving a bear costume as a teenager in a bear suit during the dice rolling session."
+    },
+    {
+      "session": "Session6_test_16nov_0315am",
+      "quote": "Dus, alles is er weer op de gaten. / Maar dat gaat eigenlijk dus... / Dat zal dus wat komen... / Ik ben een kat. / Je bent geen kat. / Jij had dus eigenlijk om acht uur nou de wacht.",
+      "context": "Furnax questions why he is acting like a cat towards someone else and mentions his duty to take watch at eight o'clock."
+    },
+    {
+      "session": "Session6_test_16nov_0315am",
+      "quote": "Terwijl ze heel kalm overkomt, blijft niet veel haast aan de hand te zijn, ik word je wel ontploffed als je maar geluid te krijgen is.",
+      "context": "Furnax warns a potential threat with a sarcastic and threatening tone, highlighting his protectiveness."
+    },
+    {
+      "session": "Session6_test_16nov_0315am",
+      "quote": "en niet dezelfde beweging, zie je toch... soms een beetje al niet ontsnappend bewegen, maar wel van dat ze ongemakkelijk zijn. Weet je, als ze een beetje heel foutjes ziet.",
+      "context": "Furnax is examining a restrained creature to ensure its well-being."
+    },
+    {
+      "session": "Session6_test_16nov_0315am",
+      "quote": "Wat zeg je? Natuurlijk. Als je niet oppast, dan gooi ik je dadelijk dit water in je gezicht.",
+      "context": "Furnax warns another character about the consequences of not paying attention during an intimidation attempt."
+    },
+    {
+      "session": "Session6_test_16nov_0315am",
+      "quote": "Wat een simpele perception.",
+      "context": "Furnax expresses satisfaction with a straightforward Perception check."
+    },
+    {
+      "session": "Session6_test_16nov_0315am",
+      "quote": "Kut!",
+      "context": "Furnax directly states his dissatisfaction about having to pay for the service, indicating a conflict within the party."
+    },
+    {
+      "session": "Session6_test_16nov_0315am",
+      "quote": "Ik ben best wel zo slim.\nAls je op een boot staat en je begint met vliegen.\nDie boot gaat een stuk sneller.\nNee, dat had ik niet gedacht.",
+      "context": "Furnax boasts about his intelligence and flying abilities, showing his confidence in himself."
+    },
+    {
+      "session": "Session6_test_16nov_0315am",
+      "quote": "Dat was poepcorn. Poepcorn in de onderbroek.",
+      "context": "Furnax tries to lighten the mood by making a crude joke, but it backfires and draws attention to itself."
+    },
+    {
+      "session": "Session6_test_16nov_0315am",
+      "quote": "Er is geen inhoudelijke informatie. Er wordt ook niet over geschreven wie ze zoekt. Of dergelijke. Het is heel standaard van.",
+      "context": "Furnax questions whether the diary contains any substantive information, hinting that the content may be misleading or dangerous."
+    },
+    {
+      "session": "Session6_test_16nov_0315am",
+      "quote": "Maar als pip, en twintig.",
+      "context": "Furnax agrees with Pipira's point, adding a playful element to the discussion."
+    },
+    {
+      "session": "Session6_test_16nov_0315am",
+      "quote": "als er een net 20 was geweest had hij waarschijnlijk in 1 keer door het midden",
+      "context": "Furnax mentioned that if he had rolled a 20, the attack would have been fatal."
+    },
+    {
+      "session": "Session6_test_16nov_0315am",
+      "quote": "Omdat ik dan al weet welke monsters ik ook wil gebruiken",
+      "context": "Furnax explains why they are prepared with specific monsters in mind, showing foresight."
+    },
+    {
+      "session": "Session6_test_16nov_0315am",
+      "quote": "The bag of distraction appears as a finely crafted satchel Made of dark leather Covered in arcane symbols of mischief and trickery And small mechanical toys that whirl with their own magical essence.",
+      "context": "Furnax gives a detailed description of the bag of distraction, highlighting its magical and mechanical features."
+    },
+    {
+      "session": "Session6_test_16nov_0315am",
+      "quote": "Je hebt een spel? / Ja. / Wat je hebt gemerkt, is deze heeft geen zwak of sterk in. / In deze lijkt het wel neutraal.",
+      "context": "Furnax is explaining that the entity they are facing does not have a clear strength or weakness, leading to a discussion about their game choice."
+    },
+    {
+      "session": "Session6_test_16nov_0315am",
+      "quote": "Dan gaan we. / Dan haal ik die even weg en dan wil ik Witchbolt casten.",
+      "context": "Furnax is emphasizing the importance of casting Witchbolt despite the current situation."
+    },
+    {
+      "session": "Session6_test_16nov_0315am",
+      "quote": "Explains the consequences of missing a concentration save, emphasizing the importance of staying focused.",
+      "context": "Furnax explains that missing a concentration save results in losing one's blurriness effect, stressing the critical nature of maintaining focus during combat."
+    },
+    {
+      "session": "Session6_test_16nov_0315am",
+      "quote": "Explains the nature of concentration saves and their impact on spell effects.",
+      "context": "Furnax explains that missing a concentration save results in losing one's blurriness effect, emphasizing the importance of maintaining focus during combat."
+    },
+    {
+      "session": "Session6_test_16nov_0315am",
+      "quote": "Je zou er nog nog eens daaronder. Maar dan zou je wel een rol moeten doen. Want dat is ook een behoorlijke val.",
+      "context": "Furnax explains the potential dangers and precautions needed when jumping from a hole in the zeppelin's structure."
+    }
+  ],
   "sessions_appeared": [
     "Session 1",
     "Session 2",
-    "Session 3"
+    "Session 3",
+    "Session6_test_16nov_0315am"
   ],
-  "total_sessions": 3,
-  "current_goals": [],
+  "total_sessions": 4,
+  "current_goals": [
+    "Mentions the recent acquisition of spells related to a flying vessel, hinting at progress in his quest."
+  ],
   "completed_goals": [],
   "dm_notes": "",
   "player_notes": ""

@@ -184,11 +184,14 @@ python process_from_intermediate.py \
 
 **File:** `stage_6_classification.json`
 
+Each segment keeps its `segment_index` so resume flows and downstream tooling can rebuild classifier state exactly as it was produced.
+
 ```json
 {
   "metadata": { ... },
   "segments": [
     {
+      "segment_index": 0,
       "text": "Welcome adventurers!",
       "start_time": 0.0,
       "end_time": 2.5,

@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import json
 import logging
+import re
 from collections import defaultdict
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -13,10 +14,12 @@ from .character_profile import (
     CharacterProfileManager,
     ProfileUpdate,
 )
+from .diarizer import SpeakerProfileManager
 from .party_config import Character, PartyConfigManager
 from .profile_extractor import ProfileExtractor
 
 LOGGER = logging.getLogger(__name__)
+NAME_SPLIT_PATTERN = re.compile(r"\s*(?:,|&|/|\+|;|\band\b)\s*", re.IGNORECASE)
 
 
 @dataclass
@@ -73,8 +76,10 @@ class CharacterProfileExtractor:
         character_lookup: Dict[str, Character] = {char.name: char for char in party.characters}
         character_names = list(character_lookup.keys())
 
+        speaker_lookup = self._build_speaker_lookup(session_id)
+
         transcript_text = transcript_path.read_text(encoding="utf-8")
-        transcript_segments = self._parse_transcript(transcript_text)
+        transcript_segments = self._parse_transcript(transcript_text, speaker_lookup)
         if not transcript_segments:
             raise ValueError("Transcript file is empty or could not be parsed")
 
@@ -107,6 +112,7 @@ class CharacterProfileExtractor:
                 update.character,
                 party.characters,
                 profile_manager,
+                speaker_lookup,
             )
             if not resolved_name:
                 LOGGER.warning("Skipping update for unknown character '%s'", update.character)
@@ -136,7 +142,30 @@ class CharacterProfileExtractor:
         LOGGER.info("Updated %d character profiles", len(updated_characters))
         return updated_characters
 
-    def _parse_transcript(self, transcript_text: str) -> List[Dict[str, Any]]:
+    def _build_speaker_lookup(self, session_id: str) -> Dict[str, str]:
+        """Load speaker ID to person-name mappings for a session."""
+        try:
+            manager = SpeakerProfileManager()
+        except Exception as exc:  # pragma: no cover - defensive logging
+            LOGGER.debug("SpeakerProfileManager unavailable: %s", exc)
+            return {}
+
+        session_profiles = manager.profiles.get(session_id, {})
+        lookup: Dict[str, str] = {}
+        for speaker_id, info in session_profiles.items():
+            person_name = (info or {}).get("name")
+            if not person_name:
+                continue
+            key = self._normalize_speaker_key(speaker_id)
+            if key:
+                lookup[key] = person_name
+        return lookup
+
+    def _parse_transcript(
+        self,
+        transcript_text: str,
+        speaker_lookup: Optional[Dict[str, str]] = None,
+    ) -> List[Dict[str, Any]]:
         """Parse transcript text into segments.
 
         Expected format:
@@ -168,25 +197,27 @@ class CharacterProfileExtractor:
                     # Parse speaker and text
                     if ":" in rest:
                         speaker, text = rest.split(":", 1)
+                        speaker_label = self._map_speaker_label(speaker.strip(), speaker_lookup)
                         segments.append({
                             "text": text.strip(),
-                            "speaker": speaker.strip(),
+                            "speaker": speaker_label,
                             "start": float(start_seconds),
                             "end": float(start_seconds) + 5.0,  # Estimate 5 seconds per segment
                         })
                 except (ValueError, IndexError):
-                    # Couldn't parse, treat as plain text
+                    speaker_label = self._map_speaker_label("Unknown", speaker_lookup)
                     segments.append({
                         "text": line,
-                        "speaker": "Unknown",
+                        "speaker": speaker_label,
                         "start": 0.0,
                         "end": 0.0,
                     })
             else:
                 # Plain text line
+                speaker_label = self._map_speaker_label("Unknown", speaker_lookup)
                 segments.append({
                     "text": line,
-                    "speaker": "Unknown",
+                    "speaker": speaker_label,
                     "start": 0.0,
                     "end": 0.0,
                 })
@@ -278,28 +309,66 @@ class CharacterProfileExtractor:
         else:
             LOGGER.debug("Unhandled update category '%s' while formatting", category)
 
+    @staticmethod
+    def _normalize_speaker_key(value: str) -> str:
+        return "".join(ch for ch in value.lower() if ch.isalnum())
+
+    def _map_speaker_label(
+        self,
+        speaker: str,
+        speaker_lookup: Optional[Dict[str, str]],
+    ) -> str:
+        if not speaker_lookup:
+            return speaker
+        mapped = speaker_lookup.get(self._normalize_speaker_key(speaker))
+        return mapped or speaker
+
+    def _candidate_name_variants(self, raw_name: str) -> List[str]:
+        tokens = [token for token in NAME_SPLIT_PATTERN.split(raw_name) if token.strip()]
+        return tokens or [raw_name]
+
     def _resolve_character_name(
         self,
         raw_name: Optional[str],
         party_characters: List[Character],
         profile_manager: CharacterProfileManager,
+        speaker_lookup: Optional[Dict[str, str]] = None,
     ) -> Optional[str]:
         """Find the canonical character name for an update."""
         if not raw_name:
             return None
 
-        normalized = raw_name.strip().lower()
-        for character in party_characters:
-            if character.name.lower() == normalized:
-                return character.name
-            if character.aliases:
-                for alias in character.aliases:
-                    if alias.lower() == normalized:
-                        return character.name
+        existing_by_lower = {
+            name.lower(): name for name in profile_manager.list_characters()
+        }
 
-        for existing in profile_manager.list_characters():
-            if existing.lower() == normalized:
-                return existing
+        for candidate in self._candidate_name_variants(raw_name):
+            normalized = candidate.strip().strip("'\"")
+            if not normalized:
+                continue
+
+            lowered = normalized.lower()
+            for character in party_characters:
+                if character.name.lower() == lowered:
+                    return character.name
+                if character.aliases:
+                    for alias in character.aliases:
+                        if alias.lower() == lowered:
+                            return character.name
+
+            if lowered in existing_by_lower:
+                return existing_by_lower[lowered]
+
+            if speaker_lookup:
+                speaker_match = speaker_lookup.get(self._normalize_speaker_key(normalized))
+                if speaker_match:
+                    resolved = self._resolve_character_name(
+                        speaker_match,
+                        party_characters,
+                        profile_manager,
+                        None,
+                    )
+                    return resolved or speaker_match
 
         return None
 

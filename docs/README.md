@@ -31,6 +31,8 @@ This directory contains all the documentation for the D&D Session Processor. Bel
 - **[SESSION_NOTEBOOK.md](./SESSION_NOTEBOOK.md)**: A guide to the Story Notebooks feature for generating narrative summaries from transcripts.
 - **[STATUS_INDICATORS.md](./STATUS_INDICATORS.md)**: A reference guide for all status indicators, icons, and symbols used throughout the application.
 - **[COLAB_OFFLOAD_PLAN.md](./COLAB_OFFLOAD_PLAN.md)**: Detailed plan for running the heavy GPU stages in Google Colab, including prep scripts, notebook flow, and sync steps.
+- **[INTERMEDIATE_OUTPUTS_GUIDE.md](./INTERMEDIATE_OUTPUTS_GUIDE.md)**: Describes each intermediate JSON artifact (stages 4-6), how to edit them safely, and how resume processing consumes those files.
+- **[FEATURE_REQUEST_SESSION_ARTIFACT_EXPLORER.md](./FEATURE_REQUEST_SESSION_ARTIFACT_EXPLORER.md)**: Proposal for a built-in session content viewer that surfaces every artifact with metadata and download controls.
 
 ### Model References
 

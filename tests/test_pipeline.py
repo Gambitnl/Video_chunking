@@ -12,10 +12,12 @@ import pytest
 import numpy as np
 from src.config import Config
 from pathlib import Path
+from typing import Dict, Optional
 from unittest.mock import Mock, patch, MagicMock
-from src.pipeline import DDSessionProcessor, create_session_output_dir
+from src.pipeline import DDSessionProcessor, create_session_output_dir, ProcessingStatus
 from src.chunker import AudioChunk
 from src.transcriber import ChunkTranscription, TranscriptionSegment
+from src.intermediate_output import IntermediateOutputManager
 
 
 # ============================================================================
@@ -127,6 +129,112 @@ class TestDDSessionProcessorInit:
         """Test that output directory structure is created."""
         # Note: Output directories are created during process(), not during initialization
         pass
+
+
+@patch('src.pipeline.TranscriberFactory')
+@patch('src.pipeline.DiarizerFactory')
+@patch('src.pipeline.ClassifierFactory')
+def test_load_input_file_metadata_uses_utf8(
+    MockClassifierFactory,
+    MockDiarizerFactory,
+    MockTranscriberFactory,
+    tmp_path
+):
+    """Ensure metadata JSON is read with UTF-8 so Unicode paths do not break resume."""
+    session_dir = tmp_path / "session_unicode"
+    session_dir.mkdir()
+
+    processor = DDSessionProcessor("unicode_session")
+    metadata_path = session_dir / f"{processor.session_id}_data.json"
+    input_path = "C:/Sessions/Ёpisode_音声.mp4"
+    metadata_payload = {"metadata": {"input_file": input_path}}
+    metadata_path.write_text(json.dumps(metadata_payload, ensure_ascii=False), encoding="utf-8")
+
+    original_open = Path.open
+    captured_encoding: Dict[str, Optional[str]] = {}
+
+    def fake_open(self, mode='r', buffering=-1, encoding=None, errors=None, newline=None):
+        if self == metadata_path and 'r' in mode:
+            captured_encoding['value'] = encoding
+        return original_open(self, mode, buffering, encoding, errors, newline)
+
+    with patch.object(Path, "open", new=fake_open):
+        result = processor._load_input_file_from_metadata(session_dir)
+
+    assert captured_encoding.get('value') == "utf-8"
+    assert result == input_path
+
+
+@patch('src.pipeline.TranscriberFactory')
+@patch('src.pipeline.DiarizerFactory')
+@patch('src.pipeline.ClassifierFactory')
+def test_process_from_intermediate_calls_knowledge_stage(
+    MockClassifierFactory,
+    MockDiarizerFactory,
+    MockTranscriberFactory,
+    tmp_path
+):
+    """Resume from stage 6 should route through stage helpers for knowledge extraction."""
+    session_dir = tmp_path / "20250101_000000_resume_test"
+    session_dir.mkdir()
+    manager = IntermediateOutputManager(session_dir)
+
+    segments = [
+        {"text": "Hello world", "start_time": 0.0, "end_time": 2.0, "speaker": "SPEAKER_00"}
+    ]
+    classifications = [
+        {
+            "segment_index": 0,
+            "classification": "IC",
+            "confidence": 0.95,
+            "reasoning": "Greeting"
+        }
+    ]
+    manager.save_classification(segments, classifications)
+
+    processor = DDSessionProcessor("resume_test")
+
+    mock_output_result = MagicMock()
+    mock_output_result.success = True
+    mock_output_result.data = {
+        "output_files": {"json": str(session_dir / "transcript.json")},
+        "statistics": {
+            "total_segments": 1,
+            "ic_segments": 1,
+            "ooc_segments": 0,
+            "ic_percentage": 100.0,
+            "ic_duration_formatted": "00:00:02",
+            "total_duration_formatted": "00:00:02",
+            "character_appearances": {}
+        },
+        "speaker_profiles": {"SPEAKER_00": "DM"}
+    }
+
+    mock_knowledge_result = MagicMock()
+    mock_knowledge_result.success = True
+    mock_knowledge_result.status = ProcessingStatus.COMPLETED
+    mock_knowledge_result.data = {"knowledge_data": {"extracted": {"quests": 1}}}
+
+    processor._stage_outputs_generation = MagicMock(return_value=mock_output_result)
+    processor._stage_audio_segments_export = MagicMock()
+    processor._stage_knowledge_extraction = MagicMock(return_value=mock_knowledge_result)
+
+    result = processor.process_from_intermediate(
+        session_dir=session_dir,
+        from_stage=6,
+        skip_snippets=True,
+        skip_knowledge=False
+    )
+
+    processor._stage_outputs_generation.assert_called_once()
+    processor._stage_knowledge_extraction.assert_called_once()
+    called_args = processor._stage_knowledge_extraction.call_args[0]
+    assert len(called_args) == 4
+    assert isinstance(called_args[0], list)
+    assert isinstance(called_args[1], list)
+    assert called_args[2] == {"SPEAKER_00": "DM"}
+    assert called_args[3] is False
+    assert result["knowledge_extraction"] == {"extracted": {"quests": 1}}
 
 
 # ============================================================================

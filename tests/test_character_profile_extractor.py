@@ -11,7 +11,7 @@ from src.character_profile import (
     ProfileUpdateBatch,
 )
 from src.character_profile_extractor import CharacterProfileExtractor, ExtractedCharacterData
-from src.party_config import PartyConfigManager
+from src.party_config import Character, PartyConfigManager
 from src import config as config_module
 
 
@@ -48,6 +48,47 @@ The goblin attacks!"""
 
         assert len(segments) == 3
         assert all(seg["start"] == 0.0 for seg in segments)
+        assert all(seg["speaker"] == "Unknown" for seg in segments)
+
+    def test_parse_transcript_applies_speaker_lookup(self):
+        extractor = CharacterProfileExtractor()
+        transcript_text = "[00:00:05] SPEAKER_04: Hello there!"
+        segments = extractor._parse_transcript(
+            transcript_text,
+            speaker_lookup={"speaker04": "Sha'ek Mindfa'ek"},
+        )
+        assert segments[0]["speaker"] == "Sha'ek Mindfa'ek"
+
+    def test_resolve_character_name_handles_multiple_names(self, tmp_path, monkeypatch):
+        monkeypatch.setattr(config_module.Config, "MODELS_DIR", tmp_path)
+        profile_mgr = CharacterProfileManager(profiles_dir=tmp_path / "profiles")
+        extractor = CharacterProfileExtractor()
+        party_chars = [
+            Character(name="Furnax", player="Companion", race="", class_name=""),
+            Character(name="Sha'ek Mindfa'ek", player="Player", race="", class_name=""),
+        ]
+        resolved = extractor._resolve_character_name(
+            "Furnax & Sha'ek Mindfa'ek",
+            party_chars,
+            profile_mgr,
+        )
+        assert resolved == "Furnax"
+
+    def test_resolve_character_name_uses_speaker_lookup(self, tmp_path, monkeypatch):
+        monkeypatch.setattr(config_module.Config, "MODELS_DIR", tmp_path)
+        profile_mgr = CharacterProfileManager(profiles_dir=tmp_path / "profiles")
+        extractor = CharacterProfileExtractor()
+        party_chars = [
+            Character(name="Sha'ek Mindfa'ek", player="Player1", race="", class_name=""),
+        ]
+        speaker_lookup = {"speaker04": "Sha'ek Mindfa'ek"}
+        resolved = extractor._resolve_character_name(
+            "SPEAKER_04",
+            party_chars,
+            profile_mgr,
+            speaker_lookup,
+        )
+        assert resolved == "Sha'ek Mindfa'ek"
 
     def test_format_action(self):
         extractor = CharacterProfileExtractor()

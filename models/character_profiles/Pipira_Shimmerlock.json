@@ -12,9 +12,10 @@
     "Pip",
     "Pipira"
   ],
-  "campaign": "Gaia Adventures - Culdor Academy",
+  "campaign_id": null,
+  "campaign_name": "Gaia Adventures - Culdor Academy",
   "first_session": "Session 1 (29-Nov-2024)",
-  "last_updated": "2025-10-21T21:50:21.912918",
+  "last_updated": "2025-11-16T08:29:08.435022",
   "notable_actions": [
     {
       "session": "Session 1",
@@ -45,6 +46,30 @@
       "timestamp": null,
       "description": "Found spell scrolls in the mage's house",
       "type": "exploration"
+    },
+    {
+      "session": "Session6_test_16nov_0315am",
+      "timestamp": null,
+      "description": "Offers to provide water for the group, showing a helpful nature.",
+      "type": "social"
+    },
+    {
+      "session": "Session6_test_16nov_0315am",
+      "timestamp": null,
+      "description": "Administers a mild sedative to the creature, likely to ease its discomfort.",
+      "type": "social"
+    },
+    {
+      "session": "Session6_test_16nov_0315am",
+      "timestamp": null,
+      "description": "Mentioned going to perform ship maintenance despite missing her watch.",
+      "type": "general"
+    },
+    {
+      "session": "Session6_test_16nov_0315am",
+      "timestamp": null,
+      "description": "Planning a thunderstab attack on the zeppelin's structure.",
+      "type": "combat"
     }
   ],
   "inventory": [
@@ -91,20 +116,350 @@
       "relationship_type": "companion",
       "description": "Frost Hellhound companion. Black with dark blue stripes, cold aura. Intelligent and well-trained.",
       "first_met": "Before Session 1"
+    },
+    {
+      "name": "Received support from Fan'nar, strengthening their bond.",
+      "relationship_type": "ally",
+      "description": null,
+      "first_met": "Session6_test_16nov_0315am"
     }
   ],
-  "development_notes": [],
-  "memorable_quotes": [],
+  "development_notes": [
+    {
+      "session": "Session6_test_16nov_0315am",
+      "note": "Struggles with maintaining her wacht (vigilance)",
+      "category": "social"
+    },
+    {
+      "session": "Session6_test_16nov_0315am",
+      "note": "Decides to take on multiple wacht shifts, showing commitment and dedication.",
+      "category": "social"
+    },
+    {
+      "session": "Session6_test_16nov_0315am",
+      "note": "Shows adaptability and resourcefulness in suggesting alternative solutions.",
+      "category": "social"
+    },
+    {
+      "session": "Session6_test_16nov_0315am",
+      "note": "Questions about doing something different, hinting at wanting change.",
+      "category": "general"
+    },
+    {
+      "session": "Session6_test_16nov_0315am",
+      "note": "Pipira seems to be struggling with a personal issue, as seen in their dialogue about eating.",
+      "category": "general"
+    },
+    {
+      "session": "Session6_test_16nov_0315am",
+      "note": "Pipira attempts to assert their role as the 'bad cop' in a partnership, indicating a desire for control and manipulation.",
+      "category": "general"
+    },
+    {
+      "session": "Session6_test_16nov_0315am",
+      "note": "Attempts to understand the creature's position, possibly indicating a desire to help or observe.",
+      "category": "social"
+    },
+    {
+      "session": "Session6_test_16nov_0315am",
+      "note": "Expresses a pragmatic approach to the situation, suggesting that the creature can be moved if uncomfortable.",
+      "category": "social"
+    },
+    {
+      "session": "Session6_test_16nov_0315am",
+      "note": "Advises the group on how to handle a non-responsive target during an intimidation attempt.",
+      "category": "social"
+    },
+    {
+      "session": "Session6_test_16nov_0315am",
+      "note": "Agrees with the need to use Perception for a task.",
+      "category": "general"
+    },
+    {
+      "session": "Session6_test_16nov_0315am",
+      "note": "Asserting her identity in a challenging situation, possibly dealing with gender-based misunderstandings.",
+      "category": "general"
+    },
+    {
+      "session": "Session6_test_16nov_0315am",
+      "note": "Acknowledges a mistake in her task, possibly leading to character growth in self-reflection and accountability.",
+      "category": "general"
+    },
+    {
+      "session": "Session6_test_16nov_0315am",
+      "note": "Joking about sending a character to the upper deck if they become troublesome.",
+      "category": "social"
+    },
+    {
+      "session": "Session6_test_16nov_0315am",
+      "note": "Realizes the character Vivi from Final Fantasy is not a male wizard but rather the female version.",
+      "category": "intellectual"
+    },
+    {
+      "session": "Session6_test_16nov_0315am",
+      "note": "Desires to avoid necromancy",
+      "category": "moral choice"
+    },
+    {
+      "session": "Session6_test_16nov_0315am",
+      "note": "Pipira shows a willingness to participate in the party's financial dealings, suggesting she might be looking for more responsibility or integration into the group.",
+      "category": "social"
+    },
+    {
+      "session": "Session6_test_16nov_0315am",
+      "note": "Acknowledges and reflects on recent learning experience.",
+      "category": "social"
+    },
+    {
+      "session": "Session6_test_16nov_0315am",
+      "note": "Struggles with the decision of which magical effects to remove.",
+      "category": "emotional"
+    },
+    {
+      "session": "Session6_test_16nov_0315am",
+      "note": "Acknowledges Furnax's intelligence and confidence, but also shows humility.",
+      "category": "general"
+    },
+    {
+      "session": "Session6_test_16nov_0315am",
+      "note": "Considers her loyalty to the academy and reveals no hidden agenda.",
+      "category": "general"
+    },
+    {
+      "session": "Session6_test_16nov_0315am",
+      "note": "Supports Sha'ek's assessment and confirms her loyalty to the academy.",
+      "category": "general"
+    },
+    {
+      "session": "Session6_test_16nov_0315am",
+      "note": "Acknowledged the negative experience and its impact on group dynamics.",
+      "category": "general"
+    },
+    {
+      "session": "Session6_test_16nov_0315am",
+      "note": "Questioned the fairness of a one-shot session in a long campaign.",
+      "category": "general"
+    },
+    {
+      "session": "Session6_test_16nov_0315am",
+      "note": "Expressed dissatisfaction with the betrayal and its aftermath.",
+      "category": "general"
+    },
+    {
+      "session": "Session6_test_16nov_0315am",
+      "note": "Encourages Furnax to take his mission more seriously.",
+      "category": "general"
+    },
+    {
+      "session": "Session6_test_16nov_0315am",
+      "note": "Expresses curiosity about the Four Horsemen, their role, and potential encounters.",
+      "category": "social"
+    },
+    {
+      "session": "Session6_test_16nov_0315am",
+      "note": "Expresses disbelief and uncertainty about the diary's significance.",
+      "category": "general"
+    },
+    {
+      "session": "Session6_test_16nov_0315am",
+      "note": "Pipira acknowledges their limited knowledge and the need to use real-life knowledge.",
+      "category": "general"
+    },
+    {
+      "session": "Session6_test_16nov_0315am",
+      "note": "Pipira reflects on the knowledge and experience level of a low-level D&D character.",
+      "category": "general"
+    },
+    {
+      "session": "Session6_test_16nov_0315am",
+      "note": "Acknowledges the difficulty of managing spells in combat.",
+      "category": "social"
+    },
+    {
+      "session": "Session6_test_16nov_0315am",
+      "note": "Shows resilience and acceptance of challenges in the game.",
+      "category": "emotional"
+    },
+    {
+      "session": "Session6_test_16nov_0315am",
+      "note": "Acknowledges the complexity of managing spell effects in combat.",
+      "category": "combat"
+    },
+    {
+      "session": "Session6_test_16nov_0315am",
+      "note": "Expresses a desire to engage in dangerous actions.",
+      "category": "general"
+    },
+    {
+      "session": "Session6_test_16nov_0315am",
+      "note": "Tried to use Mindlink to communicate with another party member from below, emphasizing safety.",
+      "category": "general"
+    },
+    {
+      "session": "Session6_test_16nov_0315am",
+      "note": "Shows concern for the ship's hangsel and its maintenance.",
+      "category": "general"
+    },
+    {
+      "session": "Session6_test_16nov_0315am",
+      "note": "Considering the risks and benefits of her next move with caution.",
+      "category": "general"
+    },
+    {
+      "session": "Session6_test_16nov_0315am",
+      "note": "Taking time to consider her options and make a strategic decision.",
+      "category": "general"
+    },
+    {
+      "session": "Session6_test_16nov_0315am",
+      "note": "Displayed strategic thinking and adaptability in responding to the situation.",
+      "category": "social"
+    },
+    {
+      "session": "Session6_test_16nov_0315am",
+      "note": "Decides to inform the captain about the escape attempt and the deaths of guards.",
+      "category": "social"
+    },
+    {
+      "session": "Session6_test_16nov_0315am",
+      "note": "Decides to take action against the guards who tried to escape.",
+      "category": "combat"
+    }
+  ],
+  "memorable_quotes": [
+    {
+      "session": "Session6_test_16nov_0315am",
+      "quote": "Want ze is wel een beetje misleidend hè.",
+      "context": "Pipira Shimmerlock expresses skepticism about trusting certain individuals on the ship."
+    },
+    {
+      "session": "Session6_test_16nov_0315am",
+      "quote": "Ik wilde haar net al voorstellen, of misschien naakt. Of alleen ondergoed of zo.",
+      "context": "Pipira suggests alternatives to chaining Arlette or leaving her naked, showing flexibility and creativity."
+    },
+    {
+      "session": "Session6_test_16nov_0315am",
+      "quote": "Oh, hij ligt me zo kut, dat kan je dus ook niet lossen, ofzo. / Dat laat ik zijn.",
+      "context": "Pipira Shimmerlock expresses frustration and resignation about the group’s dynamics, indicating a sense of helplessness or concern."
+    },
+    {
+      "session": "Session6_test_16nov_0315am",
+      "quote": "Ik heb een kruid in haar verschoten.",
+      "context": "Pipira is using a herbal remedy on the restrained creature."
+    },
+    {
+      "session": "Session6_test_16nov_0315am",
+      "quote": "Ze lacht je niet uit, maar op dat moment... Alsof ze door je heen kijkt.",
+      "context": "Pipira describes how the target's reaction to an intimidation attempt is unresponsive, almost as if they are not fully present."
+    },
+    {
+      "session": "Session6_test_16nov_0315am",
+      "quote": "Ik ben geen vrouw.",
+      "context": "Pipira Shimmerlock is asserting her identity and possibly dealing with a misunderstanding or insult."
+    },
+    {
+      "session": "Session6_test_16nov_0315am",
+      "quote": "Ik wilde hem eigenlijk omschrijven als zo'n paarse filterhoed. Zo'n paarse filterhoed. Met dan van die gele sterren en maandjes erop en dan zo'n paarse keel.",
+      "context": "Pipira Shimmerlock is discussing the appearance of Sinterklaas for a wizard party."
+    },
+    {
+      "session": "Session6_test_16nov_0315am",
+      "quote": "Hij heeft niet een zwarte gezicht. Maar het is wel heel door de hoed en door de teling dat het gezicht een schaduw gedekt",
+      "context": "Pipira Shimmerlock is describing the appearance of wizards, distinguishing them from more stereotypical depictions."
+    },
+    {
+      "session": "Session6_test_16nov_0315am",
+      "quote": "O nee.",
+      "context": "Pipira Shimmerlock shows reluctance towards a potential ally or enemy."
+    },
+    {
+      "session": "Session6_test_16nov_0315am",
+      "quote": "Je kunt er beter een goudwadden aflokken. Maar tenminste, je moet het halveren, dat gaat kosten.",
+      "context": "Pipira Shimmerlock provides valuable insight into managing in-game resources to ensure long-term sustainability."
+    },
+    {
+      "session": "Session6_test_16nov_0315am",
+      "quote": "Slim, slim, slim.\nEven kijken.",
+      "context": "Pipira reflects and repeats a catchphrase to emphasize her confidence in her own intelligence."
+    },
+    {
+      "session": "Session6_test_16nov_0315am",
+      "quote": "Ja, maar dan is het wel. Als je dit doet na een vijf jaar lange campaign ofzo?",
+      "context": "Pipira was discussing the impact of a one-shot session on the group's campaign and personal enjoyment."
+    },
+    {
+      "session": "Session6_test_16nov_0315am",
+      "quote": "Moeten we hem een keer vastpennen. Dan houdt hij gewoon wijzelijk zijn mond.",
+      "context": "Pipira Shimmerlock expresses concern about Sha'ek's reliability and suggests a physical solution."
+    },
+    {
+      "session": "Session6_test_16nov_0315am",
+      "quote": "Ze zagen er steenachtig uit.",
+      "context": "Pipira describes the appearance of a creature they encountered."
+    },
+    {
+      "session": "Session6_test_16nov_0315am",
+      "quote": "Zijn de wijkrands niet helemaal van steen.",
+      "context": "Pipira explains the nature of a creature they encountered, noting it is not entirely stone-like."
+    },
+    {
+      "session": "Session6_test_16nov_0315am",
+      "quote": "Ik denk dat jullie allemaal hebben gezien. Het lijken bijna Garboy versies van wijkrands te zijn.",
+      "context": "Pipira draws a comparison between the creatures and Garboys, suggesting they are similar in nature but not exactly the same."
+    },
+    {
+      "session": "Session6_test_16nov_0315am",
+      "quote": "Het zijn geen Pokémon.",
+      "context": "Pipira clarifies that the creatures they encountered are not Pokémon-like, suggesting a different classification or origin."
+    },
+    {
+      "session": "Session6_test_16nov_0315am",
+      "quote": "Expresses the challenge of spell management in combat.",
+      "context": "Pipira emphasizes the difficulty of managing spell effects during combat, highlighting her struggle and determination."
+    },
+    {
+      "session": "Session6_test_16nov_0315am",
+      "quote": "Kunnen we toch nog even in de internet komen?",
+      "context": "Pipira expresses a desire to go explore an area beneath the ship."
+    },
+    {
+      "session": "Session6_test_16nov_0315am",
+      "quote": "Ninety feet.",
+      "context": "Pipira explains that she needs to hit a target at ninety feet with her thunderstab spell."
+    },
+    {
+      "session": "Session6_test_16nov_0315am",
+      "quote": "Om binnen te stappen.",
+      "context": "Pipira proposed an unconventional method of entering that involved no immediate combat, which was met with approval by Furnax."
+    },
+    {
+      "session": "Session6_test_16nov_0315am",
+      "quote": "Het was eigenlijk dit. En je had even zo'n effect.",
+      "context": "Pipira discussed the potential outcomes of her proposed method for entering, weighing both advantages and disadvantages."
+    },
+    {
+      "session": "Session6_test_16nov_0315am",
+      "quote": "Don't be afraid of a hellhound. He has only one turn left.",
+      "context": "Pipira Shimmerlock encouraged the group, reassuring them about their ability to handle an enemy."
+    },
+    {
+      "session": "Session6_test_16nov_0315am",
+      "quote": "Ze moesten echt worden neergehaald.",
+      "context": "Pipira expresses a harsh reality of the situation, justifying the deaths of guards who tried to escape."
+    }
+  ],
   "sessions_appeared": [
     "Session 1",
     "Session 2",
-    "Session 3"
+    "Session 3",
+    "Session6_test_16nov_0315am"
   ],
-  "total_sessions": 3,
+  "total_sessions": 4,
   "current_goals": [
     "Study the necromantic properties of the spider webs",
     "Learn new spells from found scrolls",
-    "Investigate the cult and ritual mentioned in the mage's book"
+    "Investigate the cult and ritual mentioned in the mage's book",
+    "Mentioned the search for wizards, possibly indicating progress or a new objective."
   ],
   "completed_goals": [],
   "dm_notes": "",

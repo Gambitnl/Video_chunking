@@ -97,12 +97,14 @@ def sample_classification_data():
     ]
     classifications = [
         {
+            "segment_index": 0,
             "classification": "IC",
             "confidence": 0.95,
             "reasoning": "Dungeon Master opening the session",
             "character": None,
         },
         {
+            "segment_index": 1,
             "classification": "OOC",
             "confidence": 0.92,
             "reasoning": "Discussing real-world food",
@@ -273,7 +275,9 @@ class TestIntermediateOutputManager:
         assert data["segments"][0]["text"] == "Welcome to the adventure!"
         assert data["segments"][0]["classification"] == "IC"
         assert data["segments"][0]["confidence"] == 0.95
+        assert data["segments"][0]["segment_index"] == 0
         assert data["segments"][1]["classification"] == "OOC"
+        assert data["segments"][1]["segment_index"] == 1
 
         # Check statistics
         stats = data["statistics"]
@@ -303,7 +307,34 @@ class TestIntermediateOutputManager:
         # Check classifications
         assert loaded_classifications[0]["classification"] == "IC"
         assert loaded_classifications[0]["confidence"] == 0.95
+        assert loaded_classifications[0]["segment_index"] == 0
         assert loaded_classifications[1]["classification"] == "OOC"
+        assert loaded_classifications[1]["segment_index"] == 1
+
+    def test_load_classification_without_segment_index(
+        self,
+        manager,
+        sample_classification_data
+    ):
+        """Regression test for legacy files that omitted segment_index."""
+        segments, classifications = sample_classification_data
+
+        path = manager.save_classification(segments, classifications)
+
+        # Simulate pre-fix file contents that lacked segment_index.
+        with open(path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        for seg in data["segments"]:
+            seg.pop("segment_index", None)
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump(data, f)
+
+        loaded_segments, loaded_classifications = manager.load_classification()
+
+        assert loaded_segments[0]["segment_index"] == 0
+        assert loaded_segments[1]["segment_index"] == 1
+        assert loaded_classifications[0]["segment_index"] == 0
+        assert loaded_classifications[1]["segment_index"] == 1
 
     def test_load_nonexistent_stage(self, manager):
         """Test loading from a nonexistent stage file."""
@@ -367,3 +398,4 @@ class TestIntermediateOutputManager:
         for orig_class, loaded_class in zip(classifications, loaded_classifications):
             assert loaded_class["classification"] == orig_class["classification"]
             assert loaded_class["confidence"] == orig_class["confidence"]
+            assert loaded_class["segment_index"] == orig_class["segment_index"]

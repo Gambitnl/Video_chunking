@@ -2124,6 +2124,25 @@ class DDSessionProcessor:
             self.logger.error("Processing failed for session '%s'", self.session_id, exc_info=True)
             raise
 
+    def _load_input_file_from_metadata(self, session_dir: Path) -> Optional[str]:
+        """
+        Load the original input file path from the session metadata JSON.
+
+        Args:
+            session_dir: Directory containing the session artifacts.
+
+        Returns:
+            The input file path stored in metadata, or None if unavailable.
+        """
+        metadata_file = session_dir / f"{self.session_id}_data.json"
+        if not metadata_file.exists():
+            return None
+
+        with metadata_file.open("r", encoding="utf-8") as f:
+            metadata = json.load(f)
+
+        return metadata.get("metadata", {}).get("input_file")
+
     def process_from_intermediate(
         self,
         session_dir: Path,
@@ -2236,13 +2255,7 @@ class DDSessionProcessor:
             self.logger.info("Loaded %d classified segments from stage 6", len(classifications))
 
         # Get input file from metadata if available
-        metadata_file = session_dir / f"{self.session_id}_data.json"
-        input_file = None
-        if metadata_file.exists():
-            import json
-            with open(metadata_file, 'r') as f:
-                metadata = json.load(f)
-                input_file = metadata.get("metadata", {}).get("input_file")
+        input_file = self._load_input_file_from_metadata(session_dir)
 
         # Run output generation
         result = self._stage_outputs_generation(
@@ -2259,30 +2272,35 @@ class DDSessionProcessor:
         speaker_profiles = result.data.get("speaker_profiles", {})
 
         # Run optional stages if not skipped
-        segment_export = {}
+        segment_export: Dict[str, Any] = {'segments_dir': None, 'manifest': None}
         if not skip_snippets:
-            # Try to find WAV file
             wav_files = list(session_dir.glob("*.wav"))
             if wav_files:
                 wav_file = wav_files[0]
-                result = self._stage_segment_export(
+                snippet_result = self._stage_audio_segments_export(
                     wav_file,
                     speaker_segments_with_labels,
                     classifications,
-                    output_dir
+                    output_dir,
+                    skip_snippets
                 )
-                if result.success:
-                    segment_export = result.data.get("segment_export", {})
+                if snippet_result.success or snippet_result.status == ProcessingStatus.SKIPPED:
+                    segment_export = snippet_result.data.get("segment_export", segment_export)
+            else:
+                self.logger.warning(
+                    "No WAV file found in %s. Skipping audio segment export.",
+                    session_dir
+                )
 
+        knowledge_result = self._stage_knowledge_extraction(
+            speaker_segments_with_labels,
+            classifications,
+            speaker_profiles,
+            skip_knowledge
+        )
         knowledge_data = {}
-        if not skip_knowledge:
-            ic_only_text = self.formatter.format_ic_only(
-                speaker_segments_with_labels,
-                classifications
-            )
-            result = self._stage_knowledge_extraction(ic_only_text)
-            if result.success:
-                knowledge_data = result.data.get("knowledge_data", {})
+        if knowledge_result.success or knowledge_result.status == ProcessingStatus.SKIPPED:
+            knowledge_data = knowledge_result.data.get("knowledge_data", {})
 
         self.logger.info("=" * 80)
         self.logger.info("Processing from intermediate stage completed successfully")

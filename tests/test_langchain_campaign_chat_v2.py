@@ -321,11 +321,11 @@ def test_rag_integration_retriever_to_llm_flow(mock_sanitize_input, tmp_path):
                 # Create client with mock retriever
                 mock_retriever = Mock()
                 mock_doc1 = Document(
-                    content="The Shadow Lord appeared in Session 5 as the main antagonist.",
+                    page_content="The Shadow Lord appeared in Session 5 as the main antagonist.",
                     metadata={"session_id": "Session_005", "type": "transcript"}
                 )
                 mock_doc2 = Document(
-                    content="The Shadow Lord commands an army of undead.",
+                    page_content="The Shadow Lord commands an army of undead.",
                     metadata={"session_id": "Session_007", "type": "knowledge"}
                 )
                 mock_retriever.retrieve.return_value = [mock_doc1, mock_doc2]
@@ -350,8 +350,8 @@ def test_rag_integration_retriever_to_llm_flow(mock_sanitize_input, tmp_path):
                 # Verify response structure
                 assert result["answer"] == "The Shadow Lord is a mysterious villain."
                 assert len(result["sources"]) == 2
-                assert result["sources"][0].content == mock_doc1.content
-                assert result["sources"][1].content == mock_doc2.content
+                assert result["sources"][0]['content'] == mock_doc1.page_content
+                assert result["sources"][1]['content'] == mock_doc2.page_content
 
 
 @patch('src.langchain.campaign_chat.sanitize_input', return_value="test question")
@@ -404,7 +404,7 @@ def test_rag_integration_context_length_truncation(mock_sanitize_input):
                 mock_retriever = Mock()
                 # Create a very long document
                 long_content = "x" * (MAX_CONTEXT_DOCS_LENGTH + 1000)
-                mock_doc = Document(content=long_content, metadata={"session": "test"})
+                mock_doc = Document(page_content=long_content, metadata={"session": "test"})
                 mock_retriever.retrieve.return_value = [mock_doc]
 
                 client = CampaignChatClient(retriever=mock_retriever)
@@ -416,9 +416,9 @@ def test_rag_integration_context_length_truncation(mock_sanitize_input):
                 mock_llm.assert_called_once()
                 llm_prompt = mock_llm.call_args[0][0]
 
-                # Verify context was truncated (total prompt should not exceed safe limits)
-                # The exact length may vary, but it should not contain the full long_content
-                assert len(llm_prompt) < len(long_content) + 1000
+                # Verify context was truncated and truncation marker is present
+                assert len(llm_prompt) < MAX_CONTEXT_DOCS_LENGTH + 1000
+                assert "... [truncated]" in llm_prompt
 
                 assert result["answer"] == "Response based on truncated context."
 
@@ -438,7 +438,7 @@ def test_rag_integration_with_various_context_inputs(mock_sanitize_input):
             with patch.object(CampaignChatClient, '_initialize_llm', return_value=mock_llm):
                 mock_retriever = Mock()
                 mock_retriever.retrieve.return_value = [
-                    Document(content="Session 5 notes", metadata={"session": "5"})
+                    Document(page_content="Session 5 notes", metadata={"session": "5"})
                 ]
 
                 client = CampaignChatClient(retriever=mock_retriever)

@@ -226,8 +226,10 @@ class CampaignChatClient:
                         )
                         num_sessions = len(sessions)
 
+                except ImportError as e:
+                    logger.warning(f"Could not load campaign data for {self.campaign_id} because a dependency is missing: {e}")
                 except Exception as e:
-                    logger.warning(f"Could not load campaign data for {self.campaign_id}: {e}")
+                    logger.warning(f"Could not load campaign data for {self.campaign_id}: {e}", exc_info=True)
 
             context = SafeFormatDict(
                 campaign_name=campaign_name,

@@ -178,11 +178,11 @@ class CampaignDashboard:
             if Config.OUTPUT_DIR.exists():
                 for session_dir in Config.OUTPUT_DIR.iterdir():
                     if session_dir.is_dir():
-                        # Check if this session belongs to the campaign
-                        metadata_file = session_dir / f"{session_dir.name}_data.json"
-                        if metadata_file.exists():
+                        # Find the session's _data.json file (same pattern as _check_processed_sessions)
+                        data_files = list(session_dir.glob('*_data.json'))
+                        if data_files:
                             try:
-                                with open(metadata_file, 'r', encoding='utf-8') as f:
+                                with open(data_files[0], 'r', encoding='utf-8') as f:
                                     data = json.load(f)
                                     metadata = data.get('metadata', {})
                                     session_campaign_id = metadata.get('campaign_id')

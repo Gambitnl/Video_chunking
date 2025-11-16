@@ -2,7 +2,7 @@
 
 **Generated**: 2025-11-16
 **Session**: claude/find-list-bugs-01V9zTY4AXrt5Gta9yEQkFsq
-**Total Issues**: 25 bugs identified across codebase
+**Total Issues**: 23 bugs identified across codebase
 
 This document tracks all known bugs and issues in the Video Chunking pipeline. Bugs are categorized by severity and include detailed information about location, impact, and suggested fixes.
 
@@ -337,59 +337,83 @@ if not 0 <= CHUNK_OVERLAP_SECONDS <= 60:
 
 ---
 
-### BUG #12: Resource Leak in Audio Loading
+### BUG #12: Resource Leak in Audio Duration Calculation
 
 **Severity**: MEDIUM
-**Location**: `src/audio_processor.py:155-161`
+**Location**: `src/audio_processor.py:120`
 **Category**: Resource Management
 
 **Description**:
-AudioSegment.from_file() doesn't use context managers. Resources may not be freed on exception, leading to file handle leaks.
+The `get_duration()` method uses `AudioSegment.from_file()` without a context manager or explicit cleanup. While pydub's AudioSegment doesn't implement context manager protocol, the underlying file handles may not be released immediately, especially in long-running processes or when exceptions occur.
+
+**Code**:
+```python
+def get_duration(self, path: Path) -> float:
+    audio = AudioSegment.from_file(str(path))
+    return len(audio) / 1000.0  # No explicit cleanup
+```
 
 **Impact**:
-- Memory leaks with large audio files
-- File handle exhaustion
-- "Too many open files" errors with repeated operations
+- Potential file handle leaks in long-running processes
+- File handle exhaustion with repeated calls
+- May cause "Too many open files" errors on systems with low limits
 
 **Suggested Fix**:
 ```python
-# Use try-finally to ensure cleanup
-audio_segment = None
-try:
-    audio_segment = AudioSegment.from_file(path)
-    # ... process ...
-finally:
-    if audio_segment:
-        del audio_segment  # Force cleanup
+def get_duration(self, path: Path) -> float:
+    audio = AudioSegment.from_file(str(path))
+    try:
+        duration = len(audio) / 1000.0
+        return duration
+    finally:
+        # Explicitly remove reference to encourage GC
+        del audio
 ```
+
+**Note**: This is a minor issue as Python's garbage collector will eventually clean up, but explicit cleanup is better practice for long-running processes.
 
 **Priority**: MEDIUM
 
 ---
 
-### BUG #13: File Handle Not Closed in Error Case
+### BUG #13: Resource Leak in Fallback Diarization
 
 **Severity**: MEDIUM
 **Location**: `src/diarizer.py:729`
 **Category**: Resource Management
 
 **Description**:
-AudioSegment.from_file() in fallback method doesn't close file handle properly in error paths.
+The `_create_single_speaker_fallback()` method uses `AudioSegment.from_file()` without explicit cleanup. Similar to BUG #12, this doesn't use a context manager and relies on garbage collection.
+
+**Code**:
+```python
+def _create_single_speaker_fallback(self, audio_path: Path) -> List[SpeakerSegment]:
+    from pydub import AudioSegment
+    audio = AudioSegment.from_file(str(audio_path))
+    duration = len(audio) / 1000.0
+    # No explicit cleanup
+    return [SpeakerSegment(...)]
+```
 
 **Impact**:
-- File handle leaks during diarization failures
-- Could prevent retries
-- Resource accumulation over time
+- File handle leaks during fallback operations
+- Could prevent retries on the same file
+- Resource accumulation in long-running sessions
 
 **Suggested Fix**:
 ```python
-# Ensure proper cleanup in all code paths
-try:
-    audio_segment = AudioSegment.from_file(path)
-    # ... process ...
-finally:
-    # Explicit cleanup
-    pass
+def _create_single_speaker_fallback(self, audio_path: Path) -> List[SpeakerSegment]:
+    from pydub import AudioSegment
+    audio = AudioSegment.from_file(str(audio_path))
+    try:
+        duration = len(audio) / 1000.0
+        return [SpeakerSegment(
+            speaker_id="SPEAKER_00",
+            start_time=0.0,
+            end_time=duration
+        )]
+    finally:
+        del audio  # Encourage immediate cleanup
 ```
 
 **Priority**: MEDIUM
@@ -551,32 +575,7 @@ else:
 
 ---
 
-### BUG #20: Off-by-One Error in Vector Store IDs
-
-**Severity**: LOW
-**Location**: `src/langchain/vector_store.py:89`
-**Category**: Logic Error
-
-**Description**:
-Batch index in IDs uses `batch_start + i` but should account for total offset across multiple batches. This can cause ID collisions.
-
-**Impact**:
-- Duplicate entries in vector store
-- Search returns wrong segments
-- Inconsistent retrieval results
-
-**Suggested Fix**:
-```python
-# Use absolute index instead of batch-relative
-absolute_index = batch_start + i
-segment_id = f"{session_id}_seg_{absolute_index}"
-```
-
-**Priority**: LOW
-
----
-
-### BUG #21: Inconsistent Return Types in Error Paths
+### BUG #20: Inconsistent Return Types in Error Paths
 
 **Severity**: LOW
 **Location**: `src/diarizer.py:544-546`
@@ -601,7 +600,7 @@ if model_unavailable:
 
 ---
 
-### BUG #22: Unsafe JSON Serialization of Numpy Arrays
+### BUG #21: Unsafe JSON Serialization of Numpy Arrays
 
 **Severity**: LOW
 **Location**: `src/diarizer.py:853`
@@ -626,7 +625,7 @@ embedding_list = embedding.tolist()
 
 ---
 
-### BUG #23: Missing Input Length Validation
+### BUG #22: Missing Input Length Validation
 
 **Severity**: LOW
 **Location**: `src/formatter.py:41`
@@ -650,7 +649,7 @@ if len(name) > 255:
 
 ---
 
-### BUG #24: Missing Collection Creation Validation
+### BUG #23: Missing Collection Creation Validation
 
 **Severity**: LOW
 **Location**: `src/langchain/vector_store.py:43-52`
@@ -674,39 +673,14 @@ assert self.transcript_collection is not None, "Failed to create transcript coll
 
 ---
 
-### BUG #25: Mutable Default Arguments Pattern Risk
-
-**Severity**: LOW
-**Location**: `src/intermediate_output.py:85-90`
-**Category**: Code Quality
-
-**Description**:
-While correctly using dataclass field(default_factory=...), pattern inconsistency exists elsewhere in the codebase. Could allow shared default lists across function calls.
-
-**Impact**:
-- Potential state leakage between calls
-- Subtle bugs with mutable defaults
-- Unexpected behavior in edge cases
-
-**Suggested Fix**:
-```python
-# Continue using field(default_factory=...) pattern throughout
-@dataclass
-class Example:
-    items: List[str] = field(default_factory=list)  # Correct
-```
-
-**Priority**: LOW
-
----
 
 ## Summary by Category
 
 ### By Severity
 - **Critical**: 3 bugs (Security & Data Loss)
 - **High**: 4 bugs (Crashes & Race Conditions)
-- **Medium**: 7 bugs (Logic Errors & Resource Leaks)
-- **Low**: 11 bugs (Edge Cases & Inconsistencies)
+- **Medium**: 8 bugs (Logic Errors & Resource Leaks)
+- **Low**: 8 bugs (Edge Cases & Inconsistencies)
 
 ### By Type
 - **Security Issues**: 2 (path traversal vulnerabilities)
@@ -767,17 +741,17 @@ class Example:
 ---
 
 ### Phase 4: Low Priority (Polish & Edge Cases)
-16. **BUG #16** through **BUG #25** - Various edge cases and type safety issues
+16. **BUG #16** through **BUG #23** - Various edge cases and type safety issues
 
-**Estimated Effort**: 10-12 hours
+**Estimated Effort**: 8-10 hours
 **Impact**: Code quality improvements and edge case handling
 
 ---
 
 ## Total Estimated Effort
 - **Phase 1-3 (Critical through Medium)**: 24-34 hours
-- **Phase 4 (Low priority)**: 10-12 hours
-- **Total**: 34-46 hours for complete bug resolution
+- **Phase 4 (Low priority)**: 8-10 hours
+- **Total**: 32-44 hours for complete bug resolution
 
 ---
 

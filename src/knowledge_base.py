@@ -7,6 +7,7 @@ from datetime import datetime
 import ollama
 from .config import Config
 from .logger import get_logger
+from .file_lock import get_file_lock
 
 
 logger = get_logger(__name__)
@@ -299,21 +300,24 @@ class CampaignKnowledgeBase:
             return self._load_knowledge.__wrapped__(self)
 
     def _save_knowledge(self):
-        """Save knowledge base to disk"""
-        # Convert dataclasses to dicts
-        data = {
-            'campaign_id': self.knowledge['campaign_id'],
-            'last_updated': datetime.now().isoformat(),
-            'sessions_processed': self.knowledge['sessions_processed'],
-            'quests': [asdict(q) for q in self.knowledge['quests']],
-            'npcs': [asdict(n) for n in self.knowledge['npcs']],
-            'plot_hooks': [asdict(p) for p in self.knowledge['plot_hooks']],
-            'locations': [asdict(l) for l in self.knowledge['locations']],
-            'items': [asdict(i) for i in self.knowledge['items']]
-        }
+        """Save knowledge base to disk with file locking to prevent concurrent write conflicts."""
+        # Use file lock to prevent race conditions
+        lock = get_file_lock(self.knowledge_file)
+        with lock:
+            # Convert dataclasses to dicts
+            data = {
+                'campaign_id': self.knowledge['campaign_id'],
+                'last_updated': datetime.now().isoformat(),
+                'sessions_processed': self.knowledge['sessions_processed'],
+                'quests': [asdict(q) for q in self.knowledge['quests']],
+                'npcs': [asdict(n) for n in self.knowledge['npcs']],
+                'plot_hooks': [asdict(p) for p in self.knowledge['plot_hooks']],
+                'locations': [asdict(l) for l in self.knowledge['locations']],
+                'items': [asdict(i) for i in self.knowledge['items']]
+            }
 
-        with open(self.knowledge_file, 'w', encoding='utf-8') as f:
-            json.dump(data, f, indent=2, ensure_ascii=False)
+            with open(self.knowledge_file, 'w', encoding='utf-8') as f:
+                json.dump(data, f, indent=2, ensure_ascii=False)
 
     def merge_new_knowledge(self, new_knowledge: Dict, session_id: str):
         """Merge newly extracted knowledge into the knowledge base"""

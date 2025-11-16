@@ -534,17 +534,20 @@ class TestChunkerEdgeCases:
 # ============================================================================
 
 @pytest.mark.slow
-@pytest.mark.skip(reason="Template - not implemented - requires real audio")
+@pytest.mark.skip(reason="Integration test - requires real audio fixtures (tests/fixtures/sample_speech.wav)")
 def test_chunker_with_real_audio(tmp_path):
     """
-    Test chunker with real audio file containing speech and silence.
+    Integration test: Test chunker with real audio file containing speech and silence.
 
-    Duration: ~30 seconds
-    Requires: tests/fixtures/sample_speech.wav
+    This test is skipped by default as it requires:
+    - Real audio file with speech/silence patterns (~30 seconds)
+    - Path: tests/fixtures/sample_speech.wav
+
+    When implemented, this test should:
+    - Verify chunks split at detected silence boundaries
+    - Verify overlap is preserved between chunks
+    - Verify chunk timing is accurate
     """
-    # TODO: Use real audio with speech/silence patterns
-    # TODO: Verify chunks split at silence
-    # TODO: Verify overlap preserved
     pass
 
 

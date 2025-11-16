@@ -19,10 +19,7 @@
 
 ### To Do
 
--   [ ] **BUG-20251103-027**: Global - No conflict detection for concurrent operations
--   [ ] **BUG-20251103-018**: Campaign Dashboard - Narratives include other campaigns
 -   [ ] **P2.1-UX: Campaign Chat UI Improvements** (1-2 days)
--   [ ] **BUG-20251102-01**: CampaignChatClient.ask - Add integration tests for full RAG pipeline
 
 ### In Progress
 
@@ -34,6 +31,9 @@
 -   [x] **BUG-20251103-019**: Live Session - Non-functional placeholder tab
 -   [x] **BUG-20251103-022**: Social Insights - WordCloud dependency not handled gracefully
 -   [x] **BUG-20251103-017**: Campaign Dashboard - Sessions not filtered by campaign
+-   [x] **BUG-20251103-018**: Campaign Dashboard - Narratives include other campaigns (Completed 2025-11-16)
+-   [x] **BUG-20251103-027**: Global - Concurrent operation conflict detection with file locking (Completed 2025-11-16)
+-   [x] **BUG-20251102-01**: CampaignChatClient.ask - RAG pipeline integration tests (Completed 2025-11-16)
 -   [x] **BUG-20251103-008**: Process Session - Real-time progress indicator (Completed 2025-11-14)
 -   [x] **BUG-20251103-021**: Social Insights - Loading indicators during analysis (Completed 2025-11-14)
 -   [x] **BUG-20251103-011**: Campaign Tab - Interactive features with live switching (Completed 2025-11-14)

@@ -18,7 +18,7 @@
 
 ### Repository At A Glance
 - **Purpose**: Transform D&D session recordings into searchable transcripts with speaker diarization and IC/OOC classification
-- **Stack**: Python 3.10+, faster-whisper, PyAnnote.audio, Ollama, Gradio
+- **Stack**: Python 3.10+, faster-whisper, pyannote.audio, Ollama, Gradio
 - **Main Interfaces**: CLI (`cli.py`) and Web UI (`app.py`)
 - **Core Pipeline**: Audio -> Chunking -> Transcription -> Diarization -> Classification -> Output
 - **Status**: Production-ready core pipeline, active feature development
@@ -29,56 +29,56 @@
 
 ```
 Video_chunking/
-├── src/                          # Core Python modules
-│   ├── pipeline.py              # Main orchestration pipeline
-│   ├── audio_processor.py       # M4A -> WAV conversion
-│   ├── chunker.py               # VAD-based smart chunking
-│   ├── transcriber.py           # Multi-backend transcription
-│   ├── diarizer.py              # Speaker identification
-│   ├── classifier.py            # IC/OOC classification
-│   ├── formatter.py             # Output generation
-│   ├── party_config.py          # Party configuration management
-│   ├── checkpoint.py            # Resumable processing
-│   ├── knowledge_base.py        # Campaign knowledge extraction
-│   ├── story_notebook.py        # Narrative generation
-│   ├── config.py                # Configuration management
-│   ├── logger.py                # Logging utilities
-│   ├── ui/                      # UI components
-│   ├── prompts/                 # LLM prompts
-│   └── realtime/                # Real-time processing (experimental)
-├── tests/                        # Pytest test suite
-│   ├── conftest.py              # Test fixtures and configuration
-│   ├── integration/             # Integration tests
-│   ├── system/                  # System-level tests
-│   └── test_*.py                # Unit tests
-├── docs/                         # Documentation (ALL docs go here)
-│   ├── README.md                # Documentation index
-│   ├── SETUP.md                 # Installation guide
-│   ├── USAGE.md                 # Usage guide
-│   ├── QUICKREF.md              # Quick reference
-│   └── CRITICAL_REVIEW_WORKFLOW.md  # Review process
-├── .claude/                      # Claude Code configuration
-│   ├── agents/                  # Agent definitions
-│   │   └── critical-reviewer.md # Critical review agent
-│   └── skills/                  # Reusable skills
-│       ├── campaign-analyzer/   # Campaign analysis skill
-│       ├── session-processor/   # Session processing skill
-│       ├── test-pipeline/       # Test running skill
-│       └── diagnostics-runner/  # Diagnostics skill
-├── models/                       # Speaker profiles, knowledge base
-│   ├── knowledge/               # Campaign knowledge files
-│   └── character_profiles/      # Character profile JSONs
-├── output/                       # Generated transcripts (timestamped)
-├── temp/                         # Temporary processing files
-├── cli.py                        # Command-line interface
-├── app.py                        # Gradio web interface
-├── app_manager.py                # Background process manager
-├── requirements.txt              # Python dependencies
-├── .env.example                  # Configuration template
-├── README.md                     # Project overview
-├── AGENTS.md                     # Repository guidelines
-├── ROADMAP.md                    # Feature roadmap
-└── IMPLEMENTATION_PLANS*.md      # Detailed implementation plans
++-- src/                          # Core Python modules
+    +-- pipeline.py              # Main orchestration pipeline
+    +-- audio_processor.py       # M4A -> WAV conversion
+    +-- chunker.py               # VAD-based smart chunking
+    +-- transcriber.py           # Multi-backend transcription
+    +-- diarizer.py              # Speaker identification
+    +-- classifier.py            # IC/OOC classification
+    +-- formatter.py             # Output generation
+    +-- party_config.py          # Party configuration management
+    +-- checkpoint.py            # Resumable processing
+    +-- knowledge_base.py        # Campaign knowledge extraction
+    +-- story_notebook.py        # Narrative generation
+    +-- config.py                # Configuration management
+    +-- logger.py                # Logging utilities
+    +-- ui/                      # UI components
+    +-- prompts/                 # LLM prompts
+    +-- realtime/                # Real-time processing (experimental)
++-- tests/                        # Pytest test suite
+    +-- conftest.py              # Test fixtures and configuration
+    +-- integration/             # Integration tests
+    +-- system/                  # System-level tests
+    +-- test_*.py                # Unit tests
++-- docs/                         # Documentation (ALL docs go here)
+    +-- README.md                # Documentation index
+    +-- SETUP.md                 # Installation guide
+    +-- USAGE.md                 # Usage guide
+    +-- QUICKREF.md              # Quick reference
+    +-- CRITICAL_REVIEW_WORKFLOW.md  # Review process
++-- .claude/                      # Claude Code configuration
+    +-- agents/                  # Agent definitions
+        +-- critical-reviewer.md # Critical review agent
+    +-- skills/                  # Reusable skills
+        +-- campaign-analyzer/   # Campaign analysis skill
+        +-- session-processor/   # Session processing skill
+        +-- test-pipeline/       # Test running skill
+        +-- diagnostics-runner/  # Diagnostics skill
++-- models/                       # Speaker profiles, knowledge base
+    +-- knowledge/               # Campaign knowledge files
+    +-- character_profiles/      # Character profile JSONs
++-- output/                       # Generated transcripts (timestamped)
++-- temp/                         # Temporary processing files
++-- cli.py                        # Command-line interface
++-- app.py                        # Gradio web interface
++-- app_manager.py                # Background process manager
++-- requirements.txt              # Python dependencies
++-- .env.example                  # Configuration template
++-- README.md                     # Project overview
++-- AGENTS.md                     # Repository guidelines
++-- ROADMAP.md                    # Feature roadmap
++-- IMPLEMENTATION_PLANS*.md      # Detailed implementation plans
 
 DO NOT CREATE FILES OUTSIDE THIS STRUCTURE.
 ALL NEW DOCUMENTATION MUST GO IN docs/.
@@ -275,12 +275,12 @@ def process_audio_file(input_path: Path, config: Config) -> ProcessingResult:
 ### Test Organization
 ```
 tests/
-├── conftest.py              # Fixtures and configuration
-├── test_*.py                # Unit tests (mirror src/ structure)
-├── integration/             # Integration tests
-│   └── test_integration_*.py
-└── system/                  # System-level tests
-    └── test_system_*.py
++-- conftest.py              # Fixtures and configuration
++-- test_*.py                # Unit tests (mirror src/ structure)
++-- integration/             # Integration tests
+    +-- test_integration_*.py
++-- system/                  # System-level tests
+    +-- test_system_*.py
 ```
 
 ### Test Markers
@@ -336,9 +336,9 @@ pytest tests/integration/
 ## Git Workflow
 
 ### Branch Strategy
-You are currently working on branch: `claude/claude-md-mi0k6y3nvdv00x3c-014dkLqq87vrma126xJ2n1SD`
+**CRITICAL**: All development and commits go to your designated feature branch.
 
-**CRITICAL**: All development and commits go to this branch.
+Branch naming convention: `claude/<session-id>` (automatically assigned by Claude Code)
 
 ### Commit Guidelines
 Follow Conventional Commits format:
@@ -369,7 +369,7 @@ git commit -m "docs: Update QUICKREF with party config commands"
 ### Push Protocol
 ```bash
 # Always use -u flag for new branches
-git push -u origin claude/claude-md-mi0k6y3nvdv00x3c-014dkLqq87vrma126xJ2n1SD
+git push -u origin <your-feature-branch>
 
 # If push fails due to network errors, retry up to 4 times with backoff:
 # Wait 2s, retry -> Wait 4s, retry -> Wait 8s, retry -> Wait 16s, final retry
@@ -581,7 +581,7 @@ Key configuration variables (see `.env.example` for full list):
 ```bash
 GROQ_API_KEY=           # Groq Cloud API (fast transcription)
 OPENAI_API_KEY=         # OpenAI API (alternative transcription)
-HF_TOKEN=               # HuggingFace (for PyAnnote models)
+HF_TOKEN=               # HuggingFace (for pyannote models)
 ```
 
 ### Model Configuration
@@ -612,28 +612,28 @@ AUDIT_LOG_ENABLED=true  # Track all operations
 ## Common Pitfalls to Avoid
 
 ### DON'T Do This
-1. ❌ Code without reading the plan -> You'll miss requirements
-2. ❌ Leave documentation until the end -> Context is lost
-3. ❌ Skip keeping plan synchronized -> Plan becomes stale
-4. ❌ Skip tests -> Bugs slip through
-5. ❌ Not request critical review -> Issues ship to production
-6. ❌ Use Unicode characters in docs/code -> cp1252 crashes
-7. ❌ Create files unnecessarily -> Clutters repository
-8. ❌ Push to wrong branch -> Work gets lost
-9. ❌ Commit secrets/API keys -> Security vulnerability
-10. ❌ Use `print()` for logging -> Use `logger` instead
+1. [FAIL] Code without reading the plan -> You'll miss requirements
+2. [FAIL] Leave documentation until the end -> Context is lost
+3. [FAIL] Skip keeping plan synchronized -> Plan becomes stale
+4. [FAIL] Skip tests -> Bugs slip through
+5. [FAIL] Not request critical review -> Issues ship to production
+6. [FAIL] Use Unicode characters in docs/code -> cp1252 crashes
+7. [FAIL] Create files unnecessarily -> Clutters repository
+8. [FAIL] Push to wrong branch -> Work gets lost
+9. [FAIL] Commit secrets/API keys -> Security vulnerability
+10. [FAIL] Use `print()` for logging -> Use `logger` instead
 
 ### DO This Instead
-1. ✅ Start from the plan -> Read before coding
-2. ✅ Document as you go -> Update plan after each subtask
-3. ✅ Keep plan synchronized -> Plan is single source of truth
-4. ✅ Write tests continuously -> Test as you implement
-5. ✅ Request skeptical review -> "Is there truly no issues?"
-6. ✅ Use ASCII only -> Works everywhere
-7. ✅ Edit existing files -> Prefer editing over creating
-8. ✅ Verify branch -> Check before pushing
-9. ✅ Use .env -> Never hardcode secrets
-10. ✅ Use logger -> Proper logging infrastructure
+1. [DONE] Start from the plan -> Read before coding
+2. [DONE] Document as you go -> Update plan after each subtask
+3. [DONE] Keep plan synchronized -> Plan is single source of truth
+4. [DONE] Write tests continuously -> Test as you implement
+5. [DONE] Request skeptical review -> "Is there truly no issues?"
+6. [DONE] Use ASCII only -> Works everywhere
+7. [DONE] Edit existing files -> Prefer editing over creating
+8. [DONE] Verify branch -> Check before pushing
+9. [DONE] Use .env -> Never hardcode secrets
+10. [DONE] Use logger -> Proper logging infrastructure
 
 ---
 
@@ -771,7 +771,7 @@ User Input (M4A/MP3/WAV file)
     |
     v
 [5] DIARIZATION (src/diarizer.py)
-    - PyAnnote.audio speaker embeddings
+    - pyannote.audio speaker embeddings
     - Cluster speakers (SPEAKER_00, SPEAKER_01, ...)
     - Map to party config (Alice, Bob, DM, ...)
     |
@@ -824,7 +824,7 @@ Output Directory: output/YYYYMMDD_HHMMSS_<session_id>/
 - Preserves accurate timestamps
 
 **DiarizerFactory** (`src/diarizer.py`)
-- PyAnnote.audio integration
+- pyannote.audio integration
 - Speaker embedding extraction
 - Clustering for speaker identification
 - Profile learning across sessions
@@ -905,7 +905,7 @@ Still unsure? -> Ask the user
 
 ### External Resources
 - **Whisper Models**: https://github.com/openai/whisper
-- **PyAnnote Audio**: https://github.com/pyannote/pyannote-audio
+- **pyannote.audio**: https://github.com/pyannote/pyannote-audio
 - **Ollama**: https://ollama.ai
 - **Gradio**: https://gradio.app
 - **FFmpeg**: https://ffmpeg.org
@@ -969,4 +969,4 @@ Before considering any task complete, verify:
 4. Ask questions when unsure
 5. Request critical review when ready
 
-**Remember**: Quality emerges from dialogue, not perfection on first try. 🚀
+**Remember**: Quality emerges from dialogue, not perfection on first try.

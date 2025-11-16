@@ -42,7 +42,7 @@
   - **Key sections**:
     - "Operator Workflow" (lines 53-62) - **CRITICAL**: The plan -> implement -> document -> test loop
     - "AI Agent Workflows" - Critical Reviewer methodology
-    - "Character Encoding: cp1252-compatible" - Avoid non-cp1252 characters to ensure broad compatibility across systems and editors. Note: This is a broader set than strict ASCII.
+    - "Character Encoding: ASCII-only" - Use only ASCII characters in all files to prevent encoding issues across different systems and editors
     - "Prompt & Changelog Formatting" - **NEW REQUIREMENT**: Every update must include a UTC timestamp line plus a dated changelog summary.
 
 #### 1.4: Quick Reference

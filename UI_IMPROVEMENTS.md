@@ -544,25 +544,12 @@ search_button.click(
 
 **Example Implementation**:
 ```python
-import time
-from threading import Timer
-
-class DebouncedSearch:
-    def __init__(self, delay=0.3):
-        self.delay = delay
-        self.timer = None
-
-    def debounced_search(self, query):
-        if self.timer:
-            self.timer.cancel()
-        self.timer = Timer(self.delay, lambda: handle_search(query))
-        self.timer.start()
-
-# Add to change event
+# Use Gradio's built-in debouncing (simple and safe)
 search_query.change(
-    fn=debounced_search,
+    fn=handle_search,
     inputs=[search_query],
-    outputs=[search_results_df]
+    outputs=[search_results_df, search_no_results_md],
+    debounce=0.3  # 300ms delay - built-in Gradio feature
 )
 ```
 
@@ -987,9 +974,9 @@ Helps the diarization model identify different speakers...
 |--------|-------|------------|--------------|
 | **Low** | 10 | ~10 days | #3, #4, #6, #8, #9, #10, #11, #12, #17, #19 |
 | **Medium** | 8 | ~16 days | #1, #5, #7, #13, #15, #16, #18, #20 |
-| **High** | 2 | ~9 days | #2 (keyboard nav) |
+| **High** | 1 | ~4-5 days | #2 (keyboard nav) |
 
-**Total Estimated Effort**: 35-40 days for all improvements
+**Total Estimated Effort**: 30-31 days for all improvements
 
 ---
 

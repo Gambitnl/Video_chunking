@@ -47,6 +47,9 @@ models/
 *.mp3
 *.flac
 
+# Classification job files (large JSON files)
+job_*.json
+
 # Google Drive OAuth credentials (sensitive)
 gdrive_credentials.json
 gdrive_token.json

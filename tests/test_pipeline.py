@@ -1870,35 +1870,44 @@ class TestPipelineResume:
 # ============================================================================
 
 @pytest.mark.slow
-@pytest.mark.skip(reason="Template - not implemented - requires real audio file")
+@pytest.mark.skip(reason="Integration test - requires real audio fixtures (tests/fixtures/sample_30s.wav)")
 def test_pipeline_end_to_end_minimal(tmp_path):
     """
-    Test complete pipeline with minimal options (no diarization/classification).
+    Integration test: End-to-end pipeline with minimal processing options.
 
-    Duration: ~2-3 minutes
-    Requires: tests/fixtures/sample_30s.wav
+    This test is skipped by default as it requires:
+    - Real audio file (~30 seconds)
+    - Path: tests/fixtures/sample_30s.wav
+    - Duration: ~2-3 minutes to run
+
+    When implemented, this test should:
+    - Run pipeline with skip_diarization=True, skip_classification=True
+    - Verify all expected output files are created (_data.json, transcript files)
+    - Verify transcript content is reasonable (non-empty, correct structure)
+    - Verify processing completes without errors
     """
-    # TODO: Use small test audio file (~30s)
-    # TODO: Run with skip_diarization=True, skip_classification=True
-    # TODO: Verify all outputs created
-    # TODO: Verify transcript content is reasonable
     pass
 
 
 @pytest.mark.slow
-@pytest.mark.skip(reason="Template - not implemented - requires real audio file")
+@pytest.mark.skip(reason="Integration test - requires real audio fixtures (tests/fixtures/sample_5min.wav)")
 def test_pipeline_end_to_end_full_features(tmp_path):
     """
-    Test complete pipeline with all features enabled.
+    Integration test: End-to-end pipeline with all features enabled.
 
-    Duration: ~10-15 minutes
-    Requires: tests/fixtures/sample_5min.wav
+    This test is skipped by default as it requires:
+    - Real audio file (~5 minutes)
+    - Path: tests/fixtures/sample_5min.wav
+    - Duration: ~10-15 minutes to run
+
+    When implemented, this test should:
+    - Run pipeline with all features enabled (diarization, classification, knowledge extraction)
+    - Verify speaker labels are present in output
+    - Verify IC/OOC classification labels are present
+    - Verify knowledge base entities are extracted
+    - Verify all intermediate outputs are created
+    - Verify processing completes successfully
     """
-    # TODO: Use larger test file (~5 min)
-    # TODO: Run with all features enabled
-    # TODO: Verify speaker labels present
-    # TODO: Verify IC/OOC labels present
-    # TODO: Verify knowledge extracted
     pass
 
 
@@ -1915,18 +1924,39 @@ def create_mock_audio(path: Path, duration: int, sample_rate: int = 16000):
         duration: Duration in seconds
         sample_rate: Sample rate in Hz
 
-    TODO: Implement actual WAV file creation
+    Note: This is a placeholder. For actual testing, use real audio fixtures
+    or implement WAV file generation using libraries like scipy.io.wavfile
+    or pydub to create valid audio data.
+
+    Example implementation:
+        import numpy as np
+        from scipy.io import wavfile
+        # Generate silent audio
+        samples = np.zeros(duration * sample_rate, dtype=np.int16)
+        wavfile.write(str(path), sample_rate, samples)
     """
-    raise NotImplementedError("Mock audio creation not implemented")
+    raise NotImplementedError("Mock audio creation not implemented. Use real audio fixtures or implement with scipy/pydub.")
 
 
 def create_mock_transcription(num_segments: int = 5):
     """
-    Create mock transcription data.
+    Create mock transcription data for testing.
+
+    Args:
+        num_segments: Number of transcription segments to create
 
     Returns:
         List of mock transcription segments
 
-    TODO: Implement
+    Note: This is a placeholder. When implemented, should return a list
+    of Mock objects or dictionaries with fields: text, start_time, end_time,
+    confidence, words, speaker (optional).
+
+    Example implementation:
+        return [
+            Mock(text=f"Segment {i}", start_time=i*10.0, end_time=(i+1)*10.0,
+                 confidence=0.9, words=[], speaker=f"SPEAKER_{i%2}")
+            for i in range(num_segments)
+        ]
     """
-    raise NotImplementedError("Mock transcription creation not implemented")
+    raise NotImplementedError("Mock transcription creation not implemented. See docstring for example.")

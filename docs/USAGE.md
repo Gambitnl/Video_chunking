@@ -742,7 +742,7 @@ The **Artifact Explorer** tab provides a built-in file browser to inspect, previ
 
 1.  Navigate to the **Artifact Explorer** tab in the web UI.
 2.  The list of sessions will be pre-populated. If you have processed a new session since starting the app, click the **Refresh Sessions** button.
-3.  Select a session from the dropdown menu. The current path indicator will show the session root.
+3.  Select a session from the dropdown menu and click **Load Session**. The current path indicator will show the session root.
 4.  Use the **Artifacts** table to browse directories and files:
     - Click a directory row (Directory column = “Yes”) to enter it.
     - Click **Go Up** to return to the parent directory.

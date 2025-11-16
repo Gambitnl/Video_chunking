@@ -282,6 +282,7 @@ def create_session_artifacts_tab(demo):
                 info="Choose a session to view its artifacts."
             )
             refresh_button = gr.Button("Refresh Sessions")
+            load_session_button = gr.Button("Load Session")
 
         with gr.Row():
             path_display = gr.Textbox(
@@ -320,9 +321,9 @@ def create_session_artifacts_tab(demo):
             outputs=[session_picker, status_display],
         )
 
-        session_picker.change(
+        load_session_button.click(
             fn=on_session_selected,
-            inputs=session_picker,
+            inputs=[session_picker],
             outputs=[
                 file_list,
                 status_display,
@@ -389,4 +390,5 @@ def create_session_artifacts_tab(demo):
         "path_display": path_display,
         "session_zip_file": session_zip_file,
         "session_state": session_state,
+        "load_session_button": load_session_button,
     }

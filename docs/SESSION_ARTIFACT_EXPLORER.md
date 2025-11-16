@@ -29,8 +29,8 @@ download widgets) react automatically as the API responses change.
 
 1. Open the **Artifact Explorer** tab and click **Refresh Sessions** if you processed a
    session after launching the UI.
-2. Pick a session from the dropdown; the current path display will show the session
-   root (for example `20251115_184757_test_run`).
+2. Pick a session from the dropdown and click **Load Session**; the current path display
+   will show the session root (for example `20251115_184757_test_run`).
 3. Browse the artifact grid:
    - Click a directory row (Directory column = “Yes”) to enter it.
    - Click **Go Up** to return to the parent directory.

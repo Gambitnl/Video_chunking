@@ -144,6 +144,26 @@ COLAB_TIMEOUT=1800       # 30 minutes max wait
 
 ## ❓ Troubleshooting
 
+### "No pending jobs found" - Worker Not Detecting Files
+
+**Problem**: Colab worker shows "No pending jobs" but files exist in Google Drive.
+
+**Root Cause**: Path type mismatch (PosixPath vs WindowsPath) when running notebook in WSL/container.
+
+**Solution**:
+1. **Restart kernel and run cells in order**:
+   - Stop Cell 5 (worker)
+   - `Kernel → Restart Kernel`
+   - Run Cell 1, then Cell 3, then Cell 4, then Cell 5
+2. **Verify Cell 1 output shows STRING paths** (not PosixPath):
+   ```
+   ✓ GOOD: G:\My Drive\VideoChunking\classification_pending
+   ✗ BAD:  G:\My Drive/VideoChunking/classification_pending (mixed separators)
+   ```
+3. **Check debug output in Cell 5**:
+   - Should show: `os.listdir() returned: ['job_12345.json']`
+   - If empty list, Cell 1 needs to be re-run
+
 ### "Google Drive pending directory not found"
 
 **Problem**: Pipeline can't find Google Drive folders.
@@ -153,7 +173,13 @@ COLAB_TIMEOUT=1800       # 30 minutes max wait
    - Windows: Usually mounts at `G:/My Drive` or `C:/Users/YourName/Google Drive`
 2. **Verify folders exist**:
    - Open File Explorer → Google Drive → Check for `VideoChunking/` folders
-3. **Manual path override**:
+3. **Create folders manually** if they don't exist:
+   ```bash
+   # Windows PowerShell
+   mkdir "G:\My Drive\VideoChunking\classification_pending"
+   mkdir "G:\My Drive\VideoChunking\classification_complete"
+   ```
+4. **Manual path override**:
    ```python
    # In test_colab_classifier.py or your code:
    classifier = ClassifierFactory.create(
@@ -211,6 +237,20 @@ COLAB_TIMEOUT=1800       # 30 minutes max wait
 4. **Process multiple sessions**: Colab worker handles queue automatically
    - Multiple pipelines can submit jobs
    - Processed in order
+
+5. **Running locally (not in Colab)**:
+   - The notebook works locally too (no GPU needed for small jobs)
+   - Install dependencies: `pip install transformers torch`
+   - Uses smaller model (Qwen2.5-1.5B) that runs on CPU
+   - Slower than Colab GPU but useful for testing
+
+6. **Manual job creation from existing output**:
+   - If you have Stage 5 output already, create a job manually:
+   ```bash
+   python create_colab_job.py
+   ```
+   - Move the generated `job_*.json` to Google Drive pending folder
+   - Worker will process it and write results to complete folder
 
 ## 📚 Next Steps
 

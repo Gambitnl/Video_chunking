@@ -172,17 +172,33 @@ class CampaignDashboard:
             details += f"```\n{str(e)}\n```\n"
             return ComponentStatus(False, "Processed Sessions (error)", details)
 
-    def _check_session_narratives(self) -> ComponentStatus:
+    def _check_session_narratives(self, campaign_id: str) -> ComponentStatus:
         try:
             narrative_count = 0
             if Config.OUTPUT_DIR.exists():
                 for session_dir in Config.OUTPUT_DIR.iterdir():
-                    if session_dir.is_dir() and (session_dir / "narratives").exists():
-                        narrative_count += len(list((session_dir / "narratives").glob("*.md")))
-            
-            imported_dir = Config.OUTPUT_DIR / "imported_narratives"
-            if imported_dir.exists():
-                narrative_count += len(list(imported_dir.glob("*.md")))
+                    if session_dir.is_dir():
+                        # Check if this session belongs to the campaign
+                        metadata_file = session_dir / f"{session_dir.name}_data.json"
+                        if metadata_file.exists():
+                            try:
+                                with open(metadata_file, 'r', encoding='utf-8') as f:
+                                    data = json.load(f)
+                                    metadata = data.get('metadata', {})
+                                    session_campaign_id = metadata.get('campaign_id')
+
+                                    # Only count narratives for this campaign's sessions
+                                    if session_campaign_id == campaign_id:
+                                        narratives_dir = session_dir / "narratives"
+                                        if narratives_dir.exists():
+                                            narrative_count += len(list(narratives_dir.glob("*.md")))
+                            except (json.JSONDecodeError, IOError):
+                                # Skip sessions with invalid metadata
+                                continue
+
+            # Note: imported_narratives are global and not campaign-specific
+            # They should be manually reviewed/categorized by users
+            # For now, we exclude them from campaign-specific counts
 
             if narrative_count > 0:
                 details = f"{StatusIndicators.SUCCESS} **Status**: {narrative_count} narrative(s) generated\n\n"
@@ -222,7 +238,7 @@ class CampaignDashboard:
             self._check_knowledge_base(campaign_id),
             self._check_character_profiles(campaign),
             self._check_processed_sessions(campaign_id),
-            self._check_session_narratives(),
+            self._check_session_narratives(campaign_id),
         ]
 
         all_good_titles = [c.title for c in checks if c.is_ok]

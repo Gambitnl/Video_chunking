@@ -83,7 +83,8 @@ class CampaignChatClient:
         self,
         llm_provider: str = None,
         model_name: str = None,
-        retriever=None
+        retriever=None,
+        campaign_id: Optional[str] = None
     ):
         """
         Initialize the campaign chat client.
@@ -92,10 +93,12 @@ class CampaignChatClient:
             llm_provider: LLM provider ('ollama' or 'openai')
             model_name: Model name to use
             retriever: Optional retriever for RAG (defaults to simple keyword search)
+            campaign_id: Optional campaign ID for contextual prompts
         """
         self.llm_provider = llm_provider or Config.LLM_BACKEND
         self.model_name = model_name or Config.OLLAMA_MODEL
         self.retriever = retriever
+        self.campaign_id = campaign_id
 
         # Initialize LLM based on provider
         self.llm = self._initialize_llm()
@@ -183,20 +186,55 @@ class CampaignChatClient:
         )
 
     def _load_system_prompt(self) -> str:
-        """Load the system prompt template."""
+        """Load the system prompt template with campaign context."""
         prompt_file = Path(__file__).parent.parent.parent / "prompts" / "campaign_assistant.txt"
 
         try:
             with open(prompt_file, "r", encoding="utf-8") as f:
                 template = f.read()
 
+            # Load campaign data if campaign_id is provided
+            campaign_name = "Unknown"
+            num_sessions = 0
+            pc_names = "Unknown"
+
+            if self.campaign_id:
+                try:
+                    from src.party_config import CampaignManager, PartyConfigManager
+                    from src.story_notebook import StoryNotebookManager
+
+                    # Load campaign info
+                    campaign_mgr = CampaignManager()
+                    campaign = campaign_mgr.get_campaign(self.campaign_id)
+
+                    if campaign:
+                        campaign_name = campaign.name
+
+                        # Load party info to get PC names
+                        party_mgr = PartyConfigManager()
+                        party = party_mgr.get_party(campaign.party_id)
+
+                        if party and party.characters:
+                            pc_names = ", ".join([char.name for char in party.characters])
+
+                        # Get session count for this campaign
+                        story_mgr = StoryNotebookManager()
+                        sessions = story_mgr.list_sessions(
+                            limit=None,
+                            campaign_id=self.campaign_id,
+                            include_unassigned=False
+                        )
+                        num_sessions = len(sessions)
+
+                except Exception as e:
+                    logger.warning(f"Could not load campaign data for {self.campaign_id}: {e}")
+
             context = SafeFormatDict(
-                campaign_name="Unknown",
-                num_sessions=0,
-                pc_names="Unknown",
+                campaign_name=campaign_name,
+                num_sessions=num_sessions,
+                pc_names=pc_names,
             )
 
-            # TODO: Replace placeholders with actual campaign data
             return template.format_map(context)
         except FileNotFoundError:
             logger.warning(f"System prompt file not found: {prompt_file}")

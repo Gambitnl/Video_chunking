@@ -257,7 +257,7 @@ def render_processing_response(response: Dict[str, Any]) -> Tuple:
         response: Response dictionary from process_session function
 
     Returns:
-        Tuple of (status_md, results_visible, full, ic, ooc, stats_md, snippet_md, scroll_js)
+        Tuple of (status_md, results_visible, full, ic, ooc, stats_md, snippet_md, scroll_js, cancel_btn_update)
     """
     # JavaScript to scroll to results section
     scroll_js = """
@@ -281,6 +281,7 @@ def render_processing_response(response: Dict[str, Any]) -> Tuple:
             StatusMessages.info("Statistics", "No statistics available."),
             StatusMessages.info("Snippet Export", "No snippet information available."),
             gr.update(visible=False),
+            gr.update(visible=False),  # Hide cancel button when processing completes
         )
 
     if response.get("status") != "success":
@@ -297,6 +298,7 @@ def render_processing_response(response: Dict[str, Any]) -> Tuple:
             StatusMessages.info("Statistics", "No statistics available."),
             StatusMessages.info("Snippet Export", "No snippet information available."),
             gr.update(visible=False),
+            gr.update(visible=False),  # Hide cancel button when processing fails
         )
 
     stats_markdown = format_statistics_markdown(
@@ -314,6 +316,7 @@ def render_processing_response(response: Dict[str, Any]) -> Tuple:
         stats_markdown,
         snippet_markdown,
         gr.update(value=scroll_js, visible=True),
+        gr.update(visible=False),  # Hide cancel button when processing succeeds
     )
 
 
@@ -329,7 +332,7 @@ def prepare_processing_status(
     Validate inputs and prepare UI status before processing.
 
     Returns:
-        Tuple of (status_message, results_section_update, should_proceed_flag, event_log_clear)
+        Tuple of (status_message, results_section_update, should_proceed_flag, event_log_clear, cancel_btn_update)
     """
     validation_errors = validate_session_inputs(
         audio_file,
@@ -351,6 +354,7 @@ def prepare_processing_status(
             gr.update(visible=False),
             False,
             "",  # Clear event log on error
+            gr.update(visible=False),  # Hide cancel button on validation error
         )
 
     return (
@@ -358,6 +362,7 @@ def prepare_processing_status(
         gr.update(visible=False),
         True,
         "",  # Clear event log when starting new session
+        gr.update(visible=True),  # Show cancel button when processing starts
     )
 
 

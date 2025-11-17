@@ -361,6 +361,14 @@ class ProcessingControlsBuilder:
                 full_width=True,
             )
 
+            components["cancel_btn"] = UIComponents.create_action_button(
+                "Cancel Processing",
+                variant="stop",
+                size="md",
+                full_width=True,
+                visible=False,
+            )
+
             # Overall Progress Indicator (prominent, visible during processing)
             components["overall_progress_display"] = gr.Markdown(
                 value="",

@@ -4,9 +4,11 @@ from pathlib import Path
 from time import perf_counter
 from typing import Optional, List, Dict, Tuple, Any
 from datetime import datetime
+from threading import Event
 from .config import Config
 from .constants import PipelineStage, ProcessingStatus, Classification, ConfidenceDefaults
 from .checkpoint import CheckpointManager
+from .exceptions import CancelledError
 from .audio_processor import AudioProcessor
 from .chunker import HybridChunker, AudioChunk
 from .transcriber import TranscriberFactory, ChunkTranscription, TranscriptionSegment
@@ -1519,6 +1521,17 @@ class DDSessionProcessor:
 
         return reconstructed_chunks
 
+    def _check_cancellation(self):
+        """
+        Check if processing has been cancelled by the user.
+
+        Raises:
+            CancelledError: If cancel_event is set
+        """
+        if self.cancel_event and self.cancel_event.is_set():
+            self.logger.info("Processing cancelled by user")
+            raise CancelledError("Processing was cancelled by user")
+
     def process(
         self,
         input_file: Path,
@@ -1527,7 +1540,8 @@ class DDSessionProcessor:
         skip_classification: bool = False,
         skip_snippets: bool = False,
         skip_knowledge: bool = False,
-        is_test_run: bool = False
+        is_test_run: bool = False,
+        cancel_event: Optional[Event] = None
     ):
         """
         Process a complete D&D session recording through the 9-stage pipeline.
@@ -1554,6 +1568,7 @@ class DDSessionProcessor:
             skip_snippets: Skip audio segment export (default: False)
             skip_knowledge: Skip knowledge extraction (default: False)
             is_test_run: Flag for test mode (default: False)
+            cancel_event: Threading Event to signal cancellation (default: None)
 
         Returns:
             Dictionary containing:
@@ -1565,8 +1580,10 @@ class DDSessionProcessor:
 
         Raises:
             RuntimeError: If critical pipeline stage fails
+            CancelledError: If processing is cancelled by user via cancel_event
         """
         self.is_test_run = is_test_run
+        self.cancel_event = cancel_event
 
         # ====================================================================
         # Setup and Initialization
@@ -1660,6 +1677,9 @@ class DDSessionProcessor:
         StatusTracker.start_session(self.session_id, skip_flags, session_options, campaign_id=self.campaign_id)
 
         try:
+            # Check for cancellation before starting processing
+            self._check_cancellation()
+
             # ============================================================
             # Stage 1: Audio Conversion
             # ============================================================
@@ -1695,6 +1715,8 @@ class DDSessionProcessor:
                     completed_stages,
                     checkpoint_metadata
                 )
+                # Check for cancellation after Stage 1
+                self._check_cancellation()
 
             # ============================================================
             # Stage 2: Audio Chunking
@@ -1727,6 +1749,8 @@ class DDSessionProcessor:
                     completed_stages,
                     checkpoint_metadata
                 )
+                # Check for cancellation after Stage 2
+                self._check_cancellation()
 
             # ============================================================
             # Stage 3: Audio Transcription
@@ -1784,6 +1808,8 @@ class DDSessionProcessor:
                     completed_stages,
                     checkpoint_metadata
                 )
+                # Check for cancellation after Stage 3
+                self._check_cancellation()
 
             # ============================================================
             # Stage 4: Transcription Merging
@@ -1850,6 +1876,9 @@ class DDSessionProcessor:
                     except Exception as e:
                         self.logger.warning("Failed to save intermediate output for stage 4: %s", e)
 
+                # Check for cancellation after Stage 4
+                self._check_cancellation()
+
             # ============================================================
             # Stage 5: Speaker Diarization
             # ============================================================
@@ -1914,6 +1943,9 @@ class DDSessionProcessor:
                             )
                         except Exception as e:
                             self.logger.warning("Failed to save intermediate output for stage 5: %s", e)
+
+                    # Check for cancellation after Stage 5
+                    self._check_cancellation()
                 else:
                     raise RuntimeError(f"Speaker diarization failed: {', '.join(result.errors)}")
 
@@ -2001,6 +2033,9 @@ class DDSessionProcessor:
                             self.logger.info("Generated %d scenes", len(scenes))
                         except Exception as e:
                             self.logger.warning("Failed to generate scene bundles: %s", e)
+
+                    # Check for cancellation after Stage 6
+                    self._check_cancellation()
                 else:
                     raise RuntimeError(f"Segment classification failed: {', '.join(result.errors)}")
 
@@ -2048,6 +2083,8 @@ class DDSessionProcessor:
                     completed_stages,
                     checkpoint_metadata
                 )
+                # Check for cancellation after Stage 7
+                self._check_cancellation()
 
             # ============================================================
             # Stage 8: Audio Segments Export
@@ -2083,6 +2120,8 @@ class DDSessionProcessor:
                     completed_stages,
                     checkpoint_metadata
                 )
+                # Check for cancellation after Stage 8
+                self._check_cancellation()
 
             # ============================================================
             # Stage 9: Knowledge Extraction
@@ -2117,6 +2156,8 @@ class DDSessionProcessor:
                     completed_stages,
                     checkpoint_metadata
                 )
+                # Check for cancellation after Stage 9
+                self._check_cancellation()
 
             # ============================================================
             # Pipeline Complete - Log Summary and Cleanup

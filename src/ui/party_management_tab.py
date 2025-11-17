@@ -61,7 +61,7 @@ def create_party_management_tab(available_parties: List[str]) -> None:
                 import_btn = UIComponents.create_action_button("Import Party", variant="primary")
                 import_status = gr.Textbox(label="Status", interactive=False)
 
-        def export_party_ui(party_id: str) -> Tuple[Path | None, str]:
+        def export_party_ui(party_id: str) -> Tuple[str | None, str]:
             if not party_id:
                 return None, "Please select a party to export."
             try:
@@ -69,7 +69,7 @@ def create_party_management_tab(available_parties: List[str]) -> None:
                 temp_path = Path(temp_file.name)
                 temp_file.close()
                 party_manager.export_party(party_id, temp_path)
-                return temp_path, StatusMessages.success("Party Exported", f"Successfully exported '{party_id}'.")
+                return str(temp_path), StatusMessages.success("Party Exported", f"Successfully exported '{party_id}'.")
             except Exception as exc:  # pragma: no cover - UI handler
                 error_msg = StatusMessages.error(
                     "Export Failed",

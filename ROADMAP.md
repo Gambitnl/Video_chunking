@@ -1,6 +1,6 @@
 # VideoChunking Project Roadmap
 
-> **Last Updated**: 2025-11-04
+> **Last Updated**: 2025-11-18
 > **Multi-Agent Collaboration**: This roadmap consolidates plans from Claude, Gemini, and ChatGPT (Codex)
 
 ---

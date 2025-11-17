@@ -8,13 +8,11 @@
         "player": "Player1",
         "race": "Adar (from Adar)",
         "class_name": "Cleric of Ioun",
-        "description": "Battle-scarred Adaran cleric whose psionic scars glow whenever he channels Ioun's light. Sha'ek catalogues planar anomalies for Culdor Academy, doubles as the team's medic, and fights with calm, deliberate strikes that steady panicking allies.",
+        "description": "The Broken - A hardened veteran cleric with glowing green eyes. Survived the Smelting ritual, connected to Quori spirit Golos. Wears heavy chain mail, carries a large bag and shield with Ioun's emblem.",
         "aliases": [
           "Sha'ek",
-          "Shaek",
           "The Broken",
-          "The Defect",
-          "Mindfaek"
+          "The Defect"
         ]
       },
       {
@@ -22,11 +20,10 @@
         "player": "Player2",
         "race": "Gnome",
         "class_name": "Wizard",
-        "description": "Tinkerer-wizard whose spellbook is wrapped in copper filigree and packed with field prototypes. Pipira constantly narrates hypotheses, layers divinations over traps, and enters fights with a satchel of improvised clockwork focus stones.",
+        "description": "Pip - An ambitious gnome student wizard. Perceptive, eager to learn, fond of experiments and tinkering with mechanical objects.",
         "aliases": [
           "Pip",
-          "Pipira",
-          "Professor Pip"
+          "Pipira"
         ]
       },
       {
@@ -34,11 +31,10 @@
         "player": "Player3",
         "race": "Winter Eladrin",
         "class_name": "Handyman/Ranger",
-        "description": "Winter Eladrin scout known for silent footwork and sweeping tactical diagrams. Fan'nar tracks quarry by scent crystals embedded in their armor and alternates between flail bursts and precise cold arrow volleys when battles spread out.",
+        "description": "Pas'Ta - Snow-white skin, blond hair, wears fur clothing. Works for Culdor Academy. Sharp-witted, mysterious, prefers working alone. Uses archery and flail, carries a magical black leather Grimoire.",
         "aliases": [
           "Pas'Ta",
-          "Fan'nar",
-          "The Snowblade"
+          "Fan'nar"
         ]
       },
       {
@@ -46,15 +42,14 @@
         "player": "Companion",
         "race": "Frost Hellhound",
         "class_name": "Beast Companion",
-        "description": "Frost hellhound rescued from a shattered planar gate. Furnax exhales rime clouds that muffle sound, pads ahead as the party's living perimeter alarm, and only obeys shouted Adaran command words from Pip and Sha'ek.",
+        "description": "Pip's companion - Black with dark blue stripes, cold aura. Unruly but well-trained, intelligent, rescued by the academy.",
         "aliases": [
-          "Furnax",
-          "Frost Pup"
+          "Furnax"
         ]
       }
     ],
     "campaign": "Gaia Adventures",
-    "notes": "Recon team cataloguing Gaia's magical storms for Culdor Academy. Keeps strict field logs, rotates leadership depending on mission profile, and shuns unknown extraplanar patrons."
+    "notes": "Party exploring Gaia. Suspicious of non-Gaian entities. Connected to Culdor Academy. Characters have experienced magical chaos events."
   },
   "team_op": {
     "party_name": "Team OP",
@@ -65,37 +60,33 @@
         "player": "Remy",
         "race": "Adar (from Adar)",
         "class_name": "Cleric of Ioun",
-        "description": "Solo operative version of Sha'ek who channels greater doses of radiant power and carries a reliquary kit for single-combat rituals. He relies on delayed-burst wards, carries a planar compass, and treats every encounter like a tactical puzzle against overwhelming odds.",
+        "description": "The Broken - A hardened veteran cleric with glowing green eyes. Survived the Smelting ritual, connected to Quori spirit Golos. Wears heavy chain mail, carries a large bag and shield with Ioun's emblem.",
         "aliases": [
           "Sha'ek",
-          "Shaek",
           "The Broken",
-          "The Defect",
-          "Mindfaek"
+          "The Defect"
         ]
       },
       {
         "name": "Pipira Shimmerlock",
-        "player": "Player2",
+        "player": "Anne",
         "race": "Gnome",
         "class_name": "Wizard",
-        "description": "Pipira consults remotely for Team OP, providing arcane telemetry, prototype spell grenades, and temporary familiars pre-loaded with scouting routines.",
+        "description": "Pip - An ambitious gnome student wizard. Perceptive, eager to learn, fond of experiments and tinkering with mechanical objects.",
         "aliases": [
           "Pip",
-          "Pipira",
-          "Professor Pip"
+          "Pipira"
         ]
       },
       {
         "name": "Fan'nar Khe'Lek",
-        "player": "Player3",
+        "player": "Mischa",
         "race": "Winter Eladrin",
         "class_name": "Handyman/Ranger",
-        "description": "Fan'nar acts as Sha'ek's spotter when missions escalate, projecting icy sigils that mark cover routes and maintaining a floating ledger of favors owed to Team OP.",
+        "description": "Pas'Ta - Snow-white skin, blond hair, wears fur clothing. Works for Culdor Academy. Sharp-witted, mysterious, prefers working alone. Uses archery and flail, carries a magical black leather Grimoire.",
         "aliases": [
           "Pas'Ta",
-          "Fan'nar",
-          "The Snowblade"
+          "Fan'nar"
         ]
       },
       {
@@ -103,15 +94,14 @@
         "player": "Companion",
         "race": "Frost Hellhound",
         "class_name": "Beast Companion",
-        "description": "Solo missions outfit Furnax with rune-branded barding that amplifies their chilling bay, letting Sha'ek lock down battlefields even without the rest of the Broken Seekers.",
+        "description": "Pip's companion - Black with dark blue stripes, cold aura. Unruly but well-trained, intelligent, rescued by the academy.",
         "aliases": [
-          "Furnax",
-          "Frost Pup"
+          "Furnax"
         ]
       }
     ],
     "campaign": "Team OP Adventures",
-    "notes": "Sha'ek-led strike force used for high-powered dungeon trials. Operates with heavy divination support and favors single-hero heroics backed by remote allies."
+    "notes": "Sha'ek's solo adventures and Team OP sessions. High-powered character exploring challenging scenarios."
   },
   "my_campaign": {
     "party_name": "The Broken Seekers",
@@ -122,13 +112,11 @@
         "player": "Player1",
         "race": "Adar (from Adar)",
         "class_name": "Cleric of Ioun",
-        "description": "Field-commander Sha'ek balances protective warding with relentless advance tactics. His journals outline precise healing rotations and recorded visions from Golos that warn of temporal fractures around Gaia.",
+        "description": "The Broken - A hardened veteran cleric with glowing green eyes. Survived the Smelting ritual, connected to Quori spirit Golos. Wears heavy chain mail, carries a large bag and shield with Ioun's emblem.",
         "aliases": [
           "Sha'ek",
-          "Shaek",
           "The Broken",
-          "The Defect",
-          "Mindfaek"
+          "The Defect"
         ]
       },
       {
@@ -136,11 +124,10 @@
         "player": "Player2",
         "race": "Gnome",
         "class_name": "Wizard",
-        "description": "Campaign archivist for the group. Pipira sketches every artifact, builds clever sound-cancelling devices before stealth runs, and keeps a hidden codex of custom counterspell phrases.",
+        "description": "Pip - An ambitious gnome student wizard. Perceptive, eager to learn, fond of experiments and tinkering with mechanical objects.",
         "aliases": [
           "Pip",
-          "Pipira",
-          "Professor Pip"
+          "Pipira"
         ]
       },
       {
@@ -148,11 +135,10 @@
         "player": "Player3",
         "race": "Winter Eladrin",
         "class_name": "Handyman/Ranger",
-        "description": "Fan'nar moonlights as the academy's artifact courier. Their winter magic flash-freezes doorframes, and they pair a spiked flail with vine-wrapped arrows to anchor foes in place for Sha'ek's channeling.",
+        "description": "Pas'Ta - Snow-white skin, blond hair, wears fur clothing. Works for Culdor Academy. Sharp-witted, mysterious, prefers working alone. Uses archery and flail, carries a magical black leather Grimoire.",
         "aliases": [
           "Pas'Ta",
-          "Fan'nar",
-          "The Snowblade"
+          "Fan'nar"
         ]
       },
       {
@@ -160,14 +146,13 @@
         "player": "Companion",
         "race": "Frost Hellhound",
         "class_name": "Beast Companion",
-        "description": "Furnax's howl can etch hoarfrost circles that double as teleport beacons for the rest of the pack. The companion responds to treats stored in Pipira's bandolier and marks enemies with scent tags visible through Sha'ek's visor.",
+        "description": "Pip's companion - Black with dark blue stripes, cold aura. Unruly but well-trained, intelligent, rescued by the academy.",
         "aliases": [
-          "Furnax",
-          "Frost Pup"
+          "Furnax"
         ]
       }
     ],
     "campaign": "Gaia Adventures",
-    "notes": "Variant roster used when adapting Gaia Adventures to home campaigns. Encourages experimentation with artifact-driven objectives and cross-faction alliances."
+    "notes": "Party exploring Gaia. Suspicious of non-Gaian entities. Connected to Culdor Academy. Characters have experienced magical chaos events."
   }
 }

@@ -289,6 +289,7 @@ class ProcessSessionEventWiring:
                 self.components["results_section"],
                 self.components["should_process_state"],
                 self.components["event_log_display"],
+                self.components["cancel_btn"],
             ],
             queue=False,
         ).then(
@@ -324,6 +325,7 @@ class ProcessSessionEventWiring:
                 self.components["stats_output"],
                 self.components["snippet_output"],
                 self.components["scroll_trigger"],
+                self.components["cancel_btn"],
             ],
             queue=True,
         )

@@ -248,8 +248,8 @@ def cancel_processing(session_id: str) -> str:
     Returns:
         Status message indicating whether cancellation was successful
     """
-    if session_id in _active_cancel_events:
-        cancel_event = _active_cancel_events[session_id]
+    cancel_event = _active_cancel_events.get(session_id)
+    if cancel_event:
         cancel_event.set()
         logger.info(f"Cancellation requested for session '{session_id}'")
         return f"Cancellation requested for session '{session_id}'. The pipeline will stop at the next checkpoint."

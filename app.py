@@ -49,6 +49,7 @@ from src.ui.party_management_tab import create_party_management_tab
 from src.ui.stories_output_tab_modern import create_stories_output_tab_modern
 from src.ui.settings_tools_tab_modern import create_settings_tools_tab_modern
 from src.ui.session_artifacts_tab import create_session_artifacts_tab, refresh_sessions as refresh_artifact_sessions
+from src.ui.search_tab import create_search_tab
 
 from src.google_drive_auth import (
     get_auth_url,
@@ -1329,6 +1330,7 @@ with gr.Blocks(
     create_party_management_tab(available_parties)
     stories_tab_refs = create_stories_output_tab_modern(demo)
     artifacts_tab_refs = create_session_artifacts_tab(demo)
+    create_search_tab(demo)
     settings_tab_refs = create_settings_tools_tab_modern(
         demo,
         story_manager=story_manager,

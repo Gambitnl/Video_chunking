@@ -20,7 +20,7 @@ Example:
 """
 from __future__ import annotations
 
-from typing import Any, Callable, Dict
+from typing import Any, Callable, Dict, Optional
 
 import gradio as gr
 
@@ -64,6 +64,7 @@ class ProcessSessionEventWiring:
         process_session_fn: Callable[..., Any],
         preflight_fn: Callable[..., Any],
         active_campaign_state: gr.State,
+        cancel_fn: Optional[Callable[[str], str]] = None,
     ):
         """
         Initialize event wiring manager.
@@ -73,11 +74,13 @@ class ProcessSessionEventWiring:
             process_session_fn: Function to process sessions (from app.py)
             preflight_fn: Function to run preflight checks (from app.py)
             active_campaign_state: Gradio state containing active campaign ID
+            cancel_fn: Optional function to cancel processing (from app.py)
         """
         self.components = components
         self.process_session_fn = process_session_fn
         self.preflight_fn = preflight_fn
         self.active_campaign_state = active_campaign_state
+        self.cancel_fn = cancel_fn
 
     def wire_all_events(self) -> None:
         """
@@ -96,6 +99,7 @@ class ProcessSessionEventWiring:
         self._wire_file_upload_events()
         self._wire_party_selection_events()
         self._wire_processing_events()
+        self._wire_cancel_events()
         self._wire_preflight_events()
         self._wire_polling_events()
 
@@ -323,6 +327,31 @@ class ProcessSessionEventWiring:
             ],
             queue=True,
         )
+
+    # -------------------------------------------------------------------------
+    # Cancel Events
+    # -------------------------------------------------------------------------
+
+    def _wire_cancel_events(self) -> None:
+        """
+        Wire events for the cancel button.
+
+        The cancel button allows users to stop processing mid-execution.
+        When clicked, it sets a cancel event that the pipeline checks periodically.
+        """
+        if self.cancel_fn and "cancel_btn" in self.components:
+            def handle_cancel(session_id: str) -> str:
+                """Handle cancel button click."""
+                if not session_id:
+                    return StatusMessages.warning("Cancel", "No session ID provided.")
+                return StatusMessages.info("Cancel Requested", self.cancel_fn(session_id))
+
+            self.components["cancel_btn"].click(
+                fn=handle_cancel,
+                inputs=[self.components["session_id_input"]],
+                outputs=[self.components["status_output"]],
+                queue=False,
+            )
 
     # -------------------------------------------------------------------------
     # Preflight Events

@@ -89,6 +89,7 @@ def create_process_session_tab_modern(
     *,
     campaign_badge_text: str,
     initial_campaign_name: str = "Manual Setup",
+    cancel_fn: Optional[Callable[[str], str]] = None,
 ) -> Tuple[List[str], Dict[str, gr.components.Component]]:
     """Create the campaign-aware Process Session tab.
 
@@ -147,6 +148,7 @@ def create_process_session_tab_modern(
             process_session_fn=process_session_fn,
             preflight_fn=preflight_fn,
             active_campaign_state=active_campaign_state,
+            cancel_fn=cancel_fn,
         )
         event_wiring.wire_all_events()
 

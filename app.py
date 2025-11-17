@@ -7,6 +7,7 @@ from pathlib import Path
 sys.path.append(str(Path(__file__).resolve().parent))
 import subprocess
 from pathlib import Path
+from threading import Event
 
 import gradio as gr
 import requests
@@ -14,6 +15,7 @@ import requests
 from typing import Any, Dict, List, Optional, Tuple
 
 from src.pipeline import DDSessionProcessor
+from src.exceptions import CancelledError
 from src.config import Config
 from src.diarizer import SpeakerProfileManager
 from src.character_profile import CharacterProfileManager
@@ -58,6 +60,9 @@ from src.google_drive_auth import (
 )
 from src.restart_manager import RestartManager
 
+# Global dictionary to track cancel events for active processing sessions
+# Key: session_id, Value: threading.Event
+_active_cancel_events: Dict[str, Event] = {}
 
 def ui_load_api_keys() -> Tuple[str, str, str, str]:
     """Load API keys on UI startup and format for Gradio."""
@@ -231,6 +236,26 @@ _artifact_counter = CampaignArtifactCounter(
     cache_ttl_seconds=300,
     logger=logger
 )
+
+
+def cancel_processing(session_id: str) -> str:
+    """
+    Cancel an active processing session.
+
+    Args:
+        session_id: The session ID to cancel
+
+    Returns:
+        Status message indicating whether cancellation was successful
+    """
+    if session_id in _active_cancel_events:
+        cancel_event = _active_cancel_events[session_id]
+        cancel_event.set()
+        logger.info(f"Cancellation requested for session '{session_id}'")
+        return f"Cancellation requested for session '{session_id}'. The pipeline will stop at the next checkpoint."
+    else:
+        logger.warning(f"No active processing found for session '{session_id}'")
+        return f"No active processing found for session '{session_id}'. It may have already completed or not started yet."
 
 
 def _notebook_status() -> str:
@@ -884,13 +909,22 @@ def process_session(
             scene_summary_mode=scene_summary_mode,
         )
 
-        pipeline_result = processor.process(
-            input_file=_resolve_audio_path(audio_file),
-            skip_diarization=skip_diarization,
-            skip_classification=skip_classification,
-            skip_snippets=skip_snippets,
-            skip_knowledge=skip_knowledge
-        )
+        # Create cancel event for this session
+        cancel_event = Event()
+        _active_cancel_events[resolved_session_id] = cancel_event
+
+        try:
+            pipeline_result = processor.process(
+                input_file=_resolve_audio_path(audio_file),
+                skip_diarization=skip_diarization,
+                skip_classification=skip_classification,
+                skip_snippets=skip_snippets,
+                skip_knowledge=skip_knowledge,
+                cancel_event=cancel_event
+            )
+        finally:
+            # Clean up cancel event regardless of outcome
+            _active_cancel_events.pop(resolved_session_id, None)
 
         if not isinstance(pipeline_result, dict):
             log_audit_event(
@@ -961,6 +995,24 @@ def process_session(
             "snippet": snippet_payload,
             "knowledge": pipeline_result.get("knowledge_extraction") or {},
             "output_files": output_files,
+        }
+
+    except CancelledError as e:
+        logger.info(f"Session processing cancelled for '{resolved_session_id}': {e}")
+        log_audit_event(
+            "ui.session.process.cancelled",
+            actor="user",
+            source="gradio",
+            status="cancelled",
+            metadata={
+                "session_id": resolved_session_id,
+                "campaign_id": campaign_id,
+            },
+        )
+        return {
+            "status": "cancelled",
+            "message": "Processing was cancelled by user.",
+            "details": str(e),
         }
 
     except Exception as e:
@@ -1263,6 +1315,7 @@ with gr.Blocks(
         active_campaign_state=active_campaign_state,
         campaign_badge_text=initial_badge,
         initial_campaign_name=initial_campaign_name if initial_campaign_id else "Manual Setup",
+        cancel_fn=cancel_processing,
     )
 
     campaign_tab_refs = create_campaign_tab_modern(demo)

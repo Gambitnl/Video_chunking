@@ -228,6 +228,7 @@ The goblin attacks!"""
             session_id="session_123",
             profile_manager=profile_mgr,
             party_manager=party_mgr,
+            campaign_id="campaign_xyz",
         )
 
         assert "Thorin" in results
@@ -239,3 +240,4 @@ The goblin attacks!"""
         assert any("dragon" in action.description for action in profile.notable_actions)
         assert "session_123" in profile.sessions_appeared
         assert profile.total_sessions == len(profile.sessions_appeared)
+        assert profile.campaign_id == "campaign_xyz"

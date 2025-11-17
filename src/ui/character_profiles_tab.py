@@ -284,7 +284,7 @@ def create_character_profiles_tab(
                     str(exc),
                 )
 
-        def extract_profiles_ui(transcript_file, party_id, session_id):
+        def extract_profiles_ui(transcript_file, party_id, session_id, campaign_name):
             if transcript_file is None:
                 return StatusMessages.error(
                     "Transcript Required",
@@ -303,6 +303,15 @@ def create_character_profiles_tab(
                     "Provide a session ID so the updates can be tracked."
                 )
 
+            campaign_id = None
+            if campaign_name and campaign_name != "All Campaigns":
+                campaign_names = refresh_campaign_names()
+                campaign_id = next(
+                    (cid for cid, cname in campaign_names.items() if cname == campaign_name),
+                    None
+                )
+            effective_campaign_id = campaign_id or party_id
+
             try:
                 from src.character_profile_extractor import CharacterProfileExtractor
                 from src.character_profile import CharacterProfileManager
@@ -318,6 +327,7 @@ def create_character_profiles_tab(
                     session_id=session_id,
                     profile_manager=profile_mgr,
                     party_manager=party_mgr,
+                    campaign_id=effective_campaign_id,
                 )
 
                 summary_lines = [
@@ -326,6 +336,7 @@ def create_character_profiles_tab(
                         f"Updated {len(results)} character profile(s)."
                     ),
                     f"**Party**: {party_id}",
+                    f"**Campaign**: {effective_campaign_id}",
                     f"**Session**: {session_id}",
                     "",
                     "### Character Updates",
@@ -418,9 +429,13 @@ def create_character_profiles_tab(
             queue=True,
         ).then(
             fn=extract_profiles_ui,
-            inputs=[extract_transcript_file, extract_party_dropdown, extract_session_id],
+            inputs=[extract_transcript_file, extract_party_dropdown, extract_session_id, campaign_selector],
             outputs=[extract_status],
             queue=True,
+        ).then(
+            fn=load_character_list,
+            inputs=[campaign_selector],
+            outputs=[char_table, char_select, export_char_dropdown],
         )
 
         blocks.load(

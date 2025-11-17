@@ -1441,14 +1441,14 @@ with gr.Blocks(
         """Handler for the rename campaign button."""
         campaign_id = _campaign_id_from_name(campaign_display_name) or active_campaign_id
         if not campaign_id:
-            return StatusMessages.error("Rename Failed", "No campaign selected to rename."), *[gr.update()] * 31
+            return StatusMessages.error("Rename Failed", "No campaign selected to rename."), *[gr.update()] * 42
 
         if not new_name or not new_name.strip():
-            return StatusMessages.error("Rename Failed", "New campaign name cannot be empty."), *[gr.update()] * 31
+            return StatusMessages.error("Rename Failed", "New campaign name cannot be empty."), *[gr.update()] * 42
 
         success = campaign_manager.rename_campaign(campaign_id, new_name)
         if not success:
-            return StatusMessages.error("Rename Failed", f"Could not rename to '{new_name}'. Check logs for details (e.g., name already in use)."), *[gr.update()] * 31
+            return StatusMessages.error("Rename Failed", f"Could not rename to '{new_name}'. Check logs for details (e.g., name already in use)."), *[gr.update()] * 42
 
         # On success, refresh everything
         _refresh_campaign_names()
@@ -1463,7 +1463,7 @@ with gr.Blocks(
         """Handler for the delete campaign button."""
         campaign_id = _campaign_id_from_name(campaign_display_name) or active_campaign_id
         if not campaign_id:
-            return StatusMessages.error("Delete Failed", "No campaign selected to delete."), None, None, *[gr.update()] * 29
+            return StatusMessages.error("Delete Failed", "No campaign selected to delete."), None, None, *[gr.update()] * 42
 
         success = campaign_manager.delete_campaign(campaign_id)
         if not success:

@@ -60,7 +60,7 @@
     "notes": null
   },
   "campaign_004": {
-    "name": "New Campaign 4",
+    "name": "Test Campaign",
     "party_id": "",
     "settings": {
       "num_speakers": 4,

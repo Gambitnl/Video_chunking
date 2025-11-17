@@ -24,7 +24,7 @@ class StatusMessages:
         Returns:
             Markdown-formatted error message
         """
-        md = f"### {SI.ERROR} {title}\n\n{message}"
+        md = f"**Error: {title}**\n\n{message}"
         if details:
             md += f"\n\n**Details:**\n```\n{details}\n```"
         return md

@@ -112,3 +112,35 @@ def test_get_chat_history(conversation_store):
 def test_get_chat_history_nonexistent(conversation_store):
     history = conversation_store.get_chat_history("conv_nonexistent")
     assert history == []
+
+def test_rename_conversation(conversation_store):
+    """Test renaming a conversation updates the campaign name."""
+    conversation_id = conversation_store.create_conversation("Original Campaign")
+
+    # Rename the conversation
+    assert conversation_store.rename_conversation(conversation_id, "New Campaign Name")
+
+    # Verify the campaign name was updated
+    conversation = conversation_store.load_conversation(conversation_id)
+    assert conversation["context"]["campaign"] == "New Campaign Name"
+
+def test_rename_conversation_nonexistent(conversation_store):
+    """Test renaming a nonexistent conversation returns False."""
+    assert not conversation_store.rename_conversation("conv_nonexistent", "New Name")
+
+def test_rename_conversation_empty_name(conversation_store):
+    """Test renaming with empty name returns False."""
+    conversation_id = conversation_store.create_conversation()
+    assert not conversation_store.rename_conversation(conversation_id, "")
+    assert not conversation_store.rename_conversation(conversation_id, "   ")
+
+def test_rename_conversation_long_name(conversation_store):
+    """Test renaming with a very long name truncates to 100 chars."""
+    conversation_id = conversation_store.create_conversation()
+    long_name = "A" * 200
+
+    assert conversation_store.rename_conversation(conversation_id, long_name)
+
+    conversation = conversation_store.load_conversation(conversation_id)
+    assert len(conversation["context"]["campaign"]) == 100
+    assert conversation["context"]["campaign"] == "A" * 100

@@ -118,11 +118,17 @@ class SearchEngine:
         Raises:
             No exceptions - returns empty list on error after logging
         """
+        # Allow empty queries for filter-only searches
+        # If no query and no filters, return empty results
         if not query or not query.strip():
-            logger.warning("Empty query provided")
-            return []
+            if not filters:
+                logger.warning("Empty query and no filters provided")
+                return []
+            # Filter-only search (no text matching)
+            query = ""
+        else:
+            query = query.strip()
 
-        query = query.strip()
         results: List[SearchResult] = []
 
         # Compile regex pattern if needed
@@ -137,8 +143,9 @@ class SearchEngine:
             # Exact match uses escaped regex
             pattern = re.compile(re.escape(query), re.IGNORECASE)
 
+        # FIX: Use enumerate to track index for efficient context extraction
         # Search through segments
-        for segment in self.index.segments:
+        for idx, segment in enumerate(self.index.segments):
             # Apply filters first (cheap operation)
             if not self._passes_filters(segment, filters):
                 continue
@@ -147,7 +154,11 @@ class SearchEngine:
             match = False
             match_text = ""
 
-            if mode == SearchMode.FULL_TEXT:
+            # If query is empty, match all (filter-only search)
+            if not query:
+                match = True
+                match_text = segment.text[:100]  # Show first 100 chars
+            elif mode == SearchMode.FULL_TEXT:
                 # Case-insensitive substring search
                 if query.lower() in segment.text.lower():
                     match = True
@@ -167,8 +178,9 @@ class SearchEngine:
                 )
 
                 if include_context:
+                    # Pass index directly instead of searching for it (O(1) vs O(n))
                     result.context_before, result.context_after = self._get_context(
-                        segment
+                        idx, segment
                     )
 
                 results.append(result)
@@ -273,12 +285,20 @@ class SearchEngine:
 
         Args:
             segment: Segment to score
-            query: Search query
+            query: Search query (can be empty for filter-only searches)
 
         Returns:
             Relevance score (higher is better, typically 1.0-5.0)
         """
         score = 1.0
+
+        # For filter-only searches (empty query), use timestamp as score
+        if not query:
+            # More recent segments get slightly higher scores
+            score += segment.timestamp * 0.0001
+            if segment.ic_ooc == "IC":
+                score += 0.2
+            return score
 
         # Boost score if query appears multiple times
         count = segment.text.lower().count(query.lower())
@@ -289,8 +309,9 @@ class SearchEngine:
             score += 0.2
 
         # Boost if match is closer to start of text (title/topic match)
+        # FIX: Check for empty text to avoid ZeroDivisionError
         match_pos = segment.text.lower().find(query.lower())
-        if match_pos != -1:
+        if match_pos != -1 and len(segment.text) > 0:
             # Position score: 1.0 at start, 0.0 at end
             position_score = 1.0 - (match_pos / len(segment.text))
             score += position_score * 0.3
@@ -298,7 +319,7 @@ class SearchEngine:
         return score
 
     def _get_context(
-        self, segment: TranscriptSegment
+        self, idx: int, segment: TranscriptSegment
     ) -> Tuple[List[str], List[str]]:
         """
         Get context segments (before and after).
@@ -306,7 +327,10 @@ class SearchEngine:
         Retrieves up to 2 segments before and 2 segments after the target segment,
         but only from the same session (stops at session boundaries).
 
+        FIX: Accept index directly instead of searching for it (O(1) vs O(n)).
+
         Args:
+            idx: Index of segment in self.index.segments
             segment: Target segment
 
         Returns:
@@ -314,13 +338,6 @@ class SearchEngine:
         """
         context_before = []
         context_after = []
-
-        # Find segment in index
-        try:
-            idx = self.index.segments.index(segment)
-        except ValueError:
-            # Segment not in index (shouldn't happen)
-            return context_before, context_after
 
         # Get 2 segments before (same session only)
         for i in range(max(0, idx - 2), idx):

@@ -11,11 +11,10 @@ from __future__ import annotations
 
 import json
 import logging
-import pickle
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, asdict
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, Optional, Set
+from typing import Dict, List, Optional, Set, Any
 
 logger = logging.getLogger("DDSessionProcessor.transcript_indexer")
 
@@ -121,7 +120,8 @@ class TranscriptIndexer:
         self.cache_dir = Path(cache_dir) if cache_dir else self.output_dir / ".cache"
         self.cache_dir.mkdir(parents=True, exist_ok=True)
 
-        self.cache_file = self.cache_dir / "transcript_index.pkl"
+        # FIX: Use JSON instead of pickle for security (prevents arbitrary code execution)
+        self.cache_file = self.cache_dir / "transcript_index.json"
         self.index: Optional[TranscriptIndex] = None
 
     def build_index(self, force_rebuild: bool = False) -> TranscriptIndex:
@@ -141,8 +141,7 @@ class TranscriptIndexer:
         if not force_rebuild and self.cache_file.exists():
             logger.info(f"Loading index from cache: {self.cache_file}")
             try:
-                with open(self.cache_file, 'rb') as f:
-                    self.index = pickle.load(f)
+                self.index = self._load_cache()
                 logger.info(
                     f"Loaded index: {self.index.get_total_segments()} segments "
                     f"from {self.index.get_session_count()} sessions"
@@ -206,10 +205,17 @@ class TranscriptIndexer:
         session_id = parts[2]
 
         # Look for JSON data file
-        json_files = list(session_dir.glob("*_data.json"))
+        # FIX: Sort to ensure deterministic behavior if multiple files exist
+        json_files = sorted(list(session_dir.glob("*_data.json")))
         if not json_files:
             logger.warning(f"No data.json file found in {session_dir}")
             return
+
+        # Warn if multiple JSON files found (should be rare)
+        if len(json_files) > 1:
+            logger.warning(
+                f"Multiple data.json files found in {session_dir}, using {json_files[0]}"
+            )
 
         data_file = json_files[0]
 
@@ -252,16 +258,79 @@ class TranscriptIndexer:
 
         logger.debug(f"Indexed {len(segments)} segments from {session_id}")
 
+    def _load_cache(self) -> TranscriptIndex:
+        """
+        Load index from JSON cache file.
+
+        FIX: Use JSON instead of pickle for security (prevents arbitrary code execution).
+
+        Returns:
+            Loaded TranscriptIndex
+
+        Raises:
+            Exception if cache file is invalid or corrupted
+        """
+        with open(self.cache_file, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+
+        # Reconstruct TranscriptIndex from JSON
+        index = TranscriptIndex()
+
+        # Deserialize segments
+        for seg_data in data.get('segments', []):
+            segment = TranscriptSegment(
+                session_id=seg_data['session_id'],
+                timestamp=seg_data['timestamp'],
+                timestamp_str=seg_data['timestamp_str'],
+                speaker=seg_data['speaker'],
+                text=seg_data['text'],
+                ic_ooc=seg_data['ic_ooc'],
+                segment_index=seg_data['segment_index'],
+                session_date=seg_data.get('session_date'),
+                file_path=Path(seg_data['file_path']) if seg_data.get('file_path') else None,
+            )
+            index.add_segment(segment)
+
+        # Restore sessions metadata
+        index.sessions = data.get('sessions', {})
+
+        # Restore indexed_at timestamp
+        if 'indexed_at' in data:
+            index.indexed_at = datetime.fromisoformat(data['indexed_at'])
+
+        return index
+
     def _save_cache(self) -> None:
         """
-        Save index to cache file using pickle.
+        Save index to cache file using JSON.
 
+        FIX: Use JSON instead of pickle for security (prevents arbitrary code execution).
         The cache file is stored in the cache directory and can be
         quickly loaded on subsequent runs to avoid re-indexing.
         """
         try:
-            with open(self.cache_file, 'wb') as f:
-                pickle.dump(self.index, f, protocol=pickle.HIGHEST_PROTOCOL)
+            # Serialize index to JSON-compatible format
+            data = {
+                'indexed_at': self.index.indexed_at.isoformat(),
+                'sessions': self.index.sessions,
+                'segments': [
+                    {
+                        'session_id': seg.session_id,
+                        'timestamp': seg.timestamp,
+                        'timestamp_str': seg.timestamp_str,
+                        'speaker': seg.speaker,
+                        'text': seg.text,
+                        'ic_ooc': seg.ic_ooc,
+                        'segment_index': seg.segment_index,
+                        'session_date': seg.session_date,
+                        'file_path': str(seg.file_path) if seg.file_path else None,
+                    }
+                    for seg in self.index.segments
+                ],
+            }
+
+            with open(self.cache_file, 'w', encoding='utf-8') as f:
+                json.dump(data, f, ensure_ascii=False, indent=2)
             logger.info(f"Index cached to {self.cache_file}")
         except Exception as e:
             logger.error(f"Failed to save cache: {e}")

@@ -10,6 +10,7 @@ Date: 2025-11-17
 from __future__ import annotations
 
 import logging
+import re  # FIX: Move import to top of file (PEP 8)
 from datetime import datetime
 from pathlib import Path
 from typing import List, Optional
@@ -221,7 +222,6 @@ def create_search_tab(project_root: Path) -> None:
             # This makes it easier for users to spot the relevant portion
             highlighted_text = seg.text
             # Simple case-insensitive highlighting (works for full-text search)
-            import re
             # Escape special regex characters in query for highlighting
             escaped_query = re.escape(query)
             highlighted_text = re.sub(

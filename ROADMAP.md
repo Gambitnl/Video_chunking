@@ -465,6 +465,108 @@ Transform long-form D&D session recordings into rich, searchable transcripts wit
 
 ---
 
+#### Interactive Clarification System
+
+**Owner**: Open
+**Status**: Proposed
+**Effort**: 5-7 days
+**Impact**: HIGH - Significantly improves accuracy for ambiguous cases
+**Priority**: P2 (Important Enhancement)
+
+**Problem Statement**:
+Current pipeline makes best-guess decisions when uncertain about:
+- Speaker identification (confidence < 0.7)
+- Character-to-speaker mapping (ambiguous matches)
+- IC/OOC classification (borderline confidence scores)
+- Speaker count mismatches (detected vs. expected)
+
+These guesses can compound errors throughout the session, reducing transcript quality.
+
+**Proposed Solution**:
+Real-time chat interface in Gradio UI where the pipeline pauses to ask users clarifying questions when confidence is low. User responses are stored for learning and improve future accuracy.
+
+**Key Features**:
+1. **Question Queue System** - Pause pipeline, queue questions with context
+2. **Interactive Chat UI** - Real-time questions during processing with audio playback
+3. **Learning System** - Store corrections to improve future confidence
+4. **Confidence Thresholds** - Configurable thresholds for triggering questions
+5. **Timeout Handling** - Continue with best guess if user doesn't respond
+
+**Example User Experience**:
+```
+[Pipeline Processing: 45% complete]
+
+AI: "I detected this segment at 12:35"
+    [Play Audio Button]
+    > "I think we should attack the dragon now!"
+
+    Confidence: 68% (Speaker_01 = "Thorin")
+
+    Is this correct?
+    [Yes, that's Thorin] [No, it's someone else] [Skip]
+```
+
+**Use Cases**:
+- Diarization: "I'm 68% confident this is Thorin. Confirm?"
+- Character mapping: "I detected 5 speakers but you specified 4 characters. Who is SPEAKER_04?"
+- IC/OOC: "This seems borderline IC/OOC (62% confidence). Which is it?"
+- Speaker identification: "This voice is similar to both Alice and Bob. Who's speaking?"
+
+**Components to Implement**:
+1. **InteractiveClarifier** (`src/interactive_clarifier.py`) - NEW
+   - Question queue with priority levels
+   - Context storage (audio snippets, transcript text, timestamps)
+   - User response handling and validation
+   - Learning from corrections
+
+2. **Background Process Communication** (`app_manager.py`) - MODIFY
+   - Pipeline pause/resume mechanism
+   - WebSocket/SSE for real-time UI updates
+   - Question routing to active UI sessions
+
+3. **Chat UI Component** (`src/ui/process_session_tab_modern.py`) - MODIFY
+   - Real-time chat interface during processing
+   - Audio playback for context
+   - Quick-action buttons for common responses
+   - Timeout countdown display
+
+4. **Learning Integration** - MODIFY
+   - Update speaker embeddings based on feedback (`src/diarizer.py`)
+   - Store corrections in party profiles (`src/party_config.py`)
+   - Improve confidence scoring algorithms
+
+**Configuration**:
+```python
+# .env additions
+INTERACTIVE_CLARIFICATION_ENABLED=true
+CLARIFICATION_CONFIDENCE_THRESHOLD=0.7  # Ask if below this
+CLARIFICATION_TIMEOUT_SECONDS=60        # Auto-skip if no response
+CLARIFICATION_MAX_QUESTIONS=20          # Limit per session
+```
+
+**Technical Challenges**:
+- Real-time communication between background process and UI
+- Audio snippet extraction and playback
+- State management during pipeline pause
+- Graceful degradation if UI disconnected
+- Testing interactive flows
+
+**Success Metrics**:
+- Reduction in post-processing corrections needed
+- Improved speaker identification accuracy (target: >90%)
+- User satisfaction with interactive experience
+- Learning effectiveness (fewer questions in later sessions)
+
+**Implementation Plan**:
+See [IMPLEMENTATION_PLANS_INTERACTIVE_CLARIFICATION.md](IMPLEMENTATION_PLANS_INTERACTIVE_CLARIFICATION.md)
+
+**Dependencies**:
+- Requires stable background processing (app_manager.py)
+- Requires audio snippet extraction (snipper.py)
+- Optional: Real-time status updates (WebSocket/SSE)
+
+---
+
 ### P3: Future Enhancements (2-3+ Months)
 
 #### Character Profile Enhancements

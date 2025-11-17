@@ -715,8 +715,8 @@ class DDSessionProcessor:
                 )
 
                 try:
-                    # Perform diarization
-                    speaker_segments, speaker_embeddings = self.diarizer.diarize(wav_file)
+                    # Perform diarization with specified number of speakers
+                    speaker_segments, speaker_embeddings = self.diarizer.diarize(wav_file, num_speakers=self.num_speakers)
                     speaker_segments_with_labels = self.diarizer.assign_speakers_to_transcription(
                         merged_segments,
                         speaker_segments

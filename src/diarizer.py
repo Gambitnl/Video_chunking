@@ -136,7 +136,7 @@ class SpeakerSegment:
 
 class BaseDiarizer:
     """Abstract base class for diarization backends."""
-    def diarize(self, audio_path: Path) -> Tuple[List[SpeakerSegment], Dict[str, np.ndarray]]:
+    def diarize(self, audio_path: Path, num_speakers: Optional[int] = None) -> Tuple[List[SpeakerSegment], Dict[str, np.ndarray]]:
         raise NotImplementedError
 
     def assign_speakers_to_transcription(
@@ -188,12 +188,19 @@ class HuggingFaceApiDiarizer(BaseDiarizer):
         response.raise_for_status()
         return response.json()
 
-    def diarize(self, audio_path: Path) -> Tuple[List[SpeakerSegment], Dict[str, np.ndarray]]:
+    def diarize(self, audio_path: Path, num_speakers: Optional[int] = None) -> Tuple[List[SpeakerSegment], Dict[str, np.ndarray]]:
         """Perform speaker diarization using the Hugging Face API."""
         if not self.api_token:
             raise ValueError("HF_TOKEN is not set. Cannot use Hugging Face API.")
 
-        self.logger.info("Offloading diarization to Hugging Face API for %s", audio_path.name)
+        if num_speakers is not None:
+            self.logger.info(
+                "Offloading diarization to Hugging Face API for %s (num_speakers=%d, note: API may not support this parameter)",
+                audio_path.name,
+                num_speakers
+            )
+        else:
+            self.logger.info("Offloading diarization to Hugging Face API for %s", audio_path.name)
         headers = {"Authorization": f"Bearer {self.api_token}"}
 
         with open(audio_path, "rb") as f:
@@ -399,12 +406,13 @@ class SpeakerDiarizer(BaseDiarizer):
 
         return diarization_input
 
-    def _perform_diarization(self, diarization_input: Union[Dict, str]) -> Tuple['Annotation', List[SpeakerSegment]]:
+    def _perform_diarization(self, diarization_input: Union[Dict, str], num_speakers: Optional[int] = None) -> Tuple['Annotation', List[SpeakerSegment]]:
         """
         Execute diarization pipeline and convert results to segments.
 
         Args:
             diarization_input: Either a dict with audio data or a file path string
+            num_speakers: Optional expected number of speakers to constrain diarization
 
         Returns:
             A tuple of (diarization_result, segments_list) where:
@@ -412,7 +420,12 @@ class SpeakerDiarizer(BaseDiarizer):
             - segments_list: List of SpeakerSegment objects
         """
         self.logger.debug("Running diarization pipeline...")
-        diarization = self.pipeline(diarization_input)
+
+        # Pass num_speakers to PyAnnote if provided
+        if num_speakers is not None:
+            diarization = self.pipeline(diarization_input, num_speakers=num_speakers)
+        else:
+            diarization = self.pipeline(diarization_input)
 
         # Convert to our format
         segments = []
@@ -577,7 +590,7 @@ class SpeakerDiarizer(BaseDiarizer):
 
         return speaker_embeddings
 
-    def diarize(self, audio_path: Path) -> Tuple[List[SpeakerSegment], Dict[str, np.ndarray]]:
+    def diarize(self, audio_path: Path, num_speakers: Optional[int] = None) -> Tuple[List[SpeakerSegment], Dict[str, np.ndarray]]:
         """
         Perform speaker diarization on audio file.
 
@@ -589,6 +602,9 @@ class SpeakerDiarizer(BaseDiarizer):
 
         Args:
             audio_path: Path to WAV file
+            num_speakers: Optional expected number of speakers (e.g., 4 for 3 players + 1 DM).
+                         If provided, PyAnnote will use this as a constraint rather than auto-detecting.
+                         Recommended range: 2-10 speakers.
 
         Returns:
             A tuple containing:
@@ -602,11 +618,22 @@ class SpeakerDiarizer(BaseDiarizer):
             segments = self._create_fallback_diarization(audio_path)
             return segments, {}
 
+        # Validate num_speakers parameter if provided
+        if num_speakers is not None:
+            if not isinstance(num_speakers, int) or num_speakers < 2 or num_speakers > 10:
+                self.logger.warning(
+                    "num_speakers=%s is outside recommended range (2-10). "
+                    "This may lead to suboptimal results. Proceeding anyway.",
+                    num_speakers
+                )
+            else:
+                self.logger.info("Running diarization with num_speakers=%d", num_speakers)
+
         # Step 1: Load audio for diarization
         diarization_input = self._load_audio_for_diarization(audio_path)
 
         # Step 2: Perform diarization
-        diarization, segments = self._perform_diarization(diarization_input)
+        diarization, segments = self._perform_diarization(diarization_input, num_speakers)
 
         # Step 3: Extract speaker embeddings
         speaker_embeddings = self._extract_speaker_embeddings(audio_path, diarization)

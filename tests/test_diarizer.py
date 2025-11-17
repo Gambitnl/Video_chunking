@@ -695,6 +695,83 @@ class TestExtractedMethods:
                 "SPEAKER_00", mock_diarization, mock_audio
             )
 
+    def test_perform_diarization_with_num_speakers(self, diarizer):
+        """Test that _perform_diarization passes num_speakers to the pipeline."""
+        mock_diarization = MagicMock()
+        mock_diarization.itertracks.return_value = [
+            (MagicMock(start=0.0, end=2.5), None, "SPEAKER_00"),
+            (MagicMock(start=2.5, end=5.0), None, "SPEAKER_01"),
+        ]
+
+        diarizer.pipeline = MagicMock(return_value=mock_diarization)
+
+        # Execute with num_speakers parameter
+        diarization_result, segments = diarizer._perform_diarization("dummy_input.wav", num_speakers=4)
+
+        # Verify that pipeline was called with num_speakers
+        diarizer.pipeline.assert_called_once_with("dummy_input.wav", num_speakers=4)
+        assert len(segments) == 2
+
+    def test_perform_diarization_without_num_speakers(self, diarizer):
+        """Test that _perform_diarization works without num_speakers parameter."""
+        mock_diarization = MagicMock()
+        mock_diarization.itertracks.return_value = [
+            (MagicMock(start=0.0, end=2.5), None, "SPEAKER_00"),
+        ]
+
+        diarizer.pipeline = MagicMock(return_value=mock_diarization)
+
+        # Execute without num_speakers parameter
+        diarization_result, segments = diarizer._perform_diarization("dummy_input.wav")
+
+        # Verify that pipeline was called without num_speakers
+        diarizer.pipeline.assert_called_once_with("dummy_input.wav")
+        assert len(segments) == 1
+
+    def test_diarize_with_valid_num_speakers(self, diarizer, tmp_path, caplog):
+        """Test that diarize logs info when num_speakers is in valid range."""
+        # Setup
+        mock_pipeline_instance = MagicMock()
+        mock_diarization_result = MagicMock()
+        mock_diarization_result.itertracks.return_value = []
+        mock_diarization_result.labels.return_value = []
+        mock_pipeline_instance.return_value = mock_diarization_result
+        diarizer.pipeline = mock_pipeline_instance
+        diarizer.embedding_model = None
+
+        dummy_audio_path = tmp_path / "audio.wav"
+        dummy_audio_path.touch()
+
+        # Execute with valid num_speakers
+        with caplog.at_level("INFO"):
+            segments, embeddings = diarizer.diarize(dummy_audio_path, num_speakers=4)
+
+        # Verify logging
+        assert "Running diarization with num_speakers=4" in caplog.text
+
+    def test_diarize_with_invalid_num_speakers(self, diarizer, tmp_path, caplog):
+        """Test that diarize warns when num_speakers is outside recommended range."""
+        # Setup
+        mock_pipeline_instance = MagicMock()
+        mock_diarization_result = MagicMock()
+        mock_diarization_result.itertracks.return_value = []
+        mock_diarization_result.labels.return_value = []
+        mock_pipeline_instance.return_value = mock_diarization_result
+        diarizer.pipeline = mock_pipeline_instance
+        diarizer.embedding_model = None
+
+        dummy_audio_path = tmp_path / "audio.wav"
+        dummy_audio_path.touch()
+
+        # Execute with invalid num_speakers (too high)
+        with caplog.at_level("WARNING"):
+            segments, embeddings = diarizer.diarize(dummy_audio_path, num_speakers=15)
+
+        # Verify warning
+        assert "outside recommended range (2-10)" in caplog.text
+        # Should still proceed
+        mock_pipeline_instance.assert_called_once()
+
 class TestHuggingFaceApiDiarizer:
     """Test the HuggingFaceApiDiarizer."""
 

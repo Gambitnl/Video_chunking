@@ -249,18 +249,43 @@ def create_campaign_chat_tab(project_root: Path) -> None:
             logger.error(f"Error updating conversation dropdown: {e}", exc_info=True)
             return gr.update(choices=["Error loading conversations"], value=None)
 
+    def extract_conversation_id(dropdown_val: str) -> str:
+        """
+        Extract conversation ID from dropdown value.
+
+        The dropdown format is: "conv_12345678 (N msgs) - Campaign Name"
+        This helper extracts just the conversation ID part.
+
+        Args:
+            dropdown_val: Dropdown selection value
+
+        Returns:
+            Conversation ID or None if invalid
+        """
+        if not dropdown_val or dropdown_val == "No conversations yet":
+            return None
+        return dropdown_val.split(" ")[0]
+
     def delete_conversation(dropdown_val: str):
         """Delete the selected conversation."""
-        if not dropdown_val or dropdown_val == "No conversations yet":
-            return [], "", gr.update(), f"{SI.WARNING} No conversation selected"
+        nonlocal current_conversation_id
 
-        # Extract conversation ID from dropdown value
-        conversation_id = dropdown_val.split(" ")[0]
+        conversation_id = extract_conversation_id(dropdown_val)
+        if not conversation_id:
+            return [], "", gr.update(), f"{SI.WARNING} No conversation selected"
 
         try:
             success = conv_store.delete_conversation(conversation_id)
             if success:
                 logger.info(f"Deleted conversation: {conversation_id}")
+
+                # Reset active conversation if it was the one deleted
+                if current_conversation_id == conversation_id:
+                    current_conversation_id = None
+                    if chat_client:
+                        chat_client.clear_memory()
+                    logger.info("Active conversation was deleted, state reset")
+
                 return (
                     [],
                     "",
@@ -292,14 +317,12 @@ def create_campaign_chat_tab(project_root: Path) -> None:
 
     def rename_conversation(dropdown_val: str, new_name: str):
         """Rename the selected conversation."""
-        if not dropdown_val or dropdown_val == "No conversations yet":
+        conversation_id = extract_conversation_id(dropdown_val)
+        if not conversation_id:
             return gr.update(), f"{SI.WARNING} No conversation selected"
 
         if not new_name or not new_name.strip():
             return gr.update(), f"{SI.WARNING} Please enter a new campaign name"
-
-        # Extract conversation ID from dropdown value
-        conversation_id = dropdown_val.split(" ")[0]
 
         try:
             success = conv_store.rename_conversation(conversation_id, new_name.strip())
@@ -512,9 +535,7 @@ def create_campaign_chat_tab(project_root: Path) -> None:
         )
 
         load_conv_btn.click(
-            fn=lambda dropdown_val: load_conversation(
-                dropdown_val.split(" ")[0] if dropdown_val else None
-            ),
+            fn=lambda dropdown_val: load_conversation(extract_conversation_id(dropdown_val)),
             inputs=[conversation_dropdown],
             outputs=[chatbot, msg_input, sources_display]
         )

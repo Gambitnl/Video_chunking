@@ -321,7 +321,7 @@ class ConversationStore:
             logger.error("Campaign name cannot be empty")
             return False
 
-        # Sanitize campaign name (limit length, remove problematic characters)
+        # Sanitize campaign name (strip whitespace and limit length)
         new_campaign_name = new_campaign_name.strip()[:100]
 
         # Use file locking to prevent race conditions

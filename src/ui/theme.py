@@ -83,6 +83,21 @@ MODERN_CSS = """
     width: 100% !important;
 }
 
+/* Additional Gradio-specific tab fixes */
+.tabs > .tab-nav + div {
+    min-width: 100% !important;
+}
+
+/* Fix for individual tab items */
+div[id^="component-"] {
+    box-sizing: border-box;
+}
+
+/* Prevent tab container from shrinking */
+.gradio-container .tabs {
+    width: 100%;
+}
+
 /* Card styling for sections */
 .card {
     background: white;

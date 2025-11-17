@@ -246,8 +246,14 @@ campaign_names = campaign_manager.get_campaign_names()
 
 
 def _refresh_campaign_names() -> Dict[str, str]:
+    """Forces a reload of campaign data from disk and returns an updated name map."""
     global campaign_names
+    # By calling _load_campaigns() directly, we bypass any in-memory cache and
+    # ensure the CampaignManager has the latest data from the campaigns.json file.
+    # This is critical after operations like creation or deletion.
+    campaign_manager.campaigns = campaign_manager._load_campaigns()
     campaign_names = campaign_manager.get_campaign_names()
+    logger.debug(f"Refreshed campaign names: {list(campaign_names.values())}")
     return campaign_names
 
 

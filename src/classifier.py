@@ -1,7 +1,9 @@
 """In-Character / Out-of-Character classification using LLM"""
+import hashlib
 import os
 import re
 import json
+import time
 from typing import List, Dict, Optional, Any
 from dataclasses import dataclass
 from abc import ABC, abstractmethod
@@ -10,7 +12,7 @@ from .config import Config
 from .logger import get_logger
 from .preflight import PreflightIssue
 from .retry import retry_with_backoff
-from .constants import Classification, ConfidenceDefaults
+from .constants import Classification, ClassificationType, ConfidenceDefaults
 from .rate_limiter import RateLimiter
 from .llm_factory import OllamaClientFactory, OllamaConfig, OllamaConnectionError
 
@@ -28,27 +30,104 @@ class ClassificationResult:
     confidence: float  # 0.0 to 1.0
     reasoning: str
     character: Optional[str] = None  # Character name if IC
+    classification_type: ClassificationType = ClassificationType.UNKNOWN
+    speaker_label: Optional[str] = None
+    speaker_name: Optional[str] = None
+    speaker_role: Optional[str] = None
+    character_confidence: Optional[float] = None
+    unknown_speaker: bool = False
+    temporal_metadata: Optional[Dict[str, Any]] = None
+    prompt_hash: Optional[str] = None
+    response_hash: Optional[str] = None
+    prompt_preview: Optional[str] = None
+    response_preview: Optional[str] = None
+    generation_latency_ms: Optional[int] = None
+    model: Optional[str] = None
 
     def to_dict(self) -> dict:
         """Converts the ClassificationResult to a dictionary for serialization."""
-        return {
+        data = {
             "segment_index": self.segment_index,
             "classification": self.classification.value,  # Serialize as string
+            "classification_type": self.classification_type.value,
             "confidence": self.confidence,
             "reasoning": self.reasoning,
             "character": self.character,
         }
+        if self.speaker_label:
+            data["speaker_label"] = self.speaker_label
+        if self.speaker_name:
+            data["speaker_name"] = self.speaker_name
+        if self.speaker_role:
+            data["speaker_role"] = self.speaker_role
+        if self.character_confidence is not None:
+            data["character_confidence"] = self.character_confidence
+        if self.unknown_speaker:
+            data["unknown_speaker"] = self.unknown_speaker
+        if self.temporal_metadata:
+            data["temporal_metadata"] = self.temporal_metadata
+        if self.prompt_hash:
+            data["prompt_hash"] = self.prompt_hash
+        if self.response_hash:
+            data["response_hash"] = self.response_hash
+        if self.prompt_preview:
+            data["prompt_preview"] = self.prompt_preview
+        if self.response_preview:
+            data["response_preview"] = self.response_preview
+        if self.generation_latency_ms is not None:
+            data["generation_latency_ms"] = self.generation_latency_ms
+        if self.model:
+            data["model"] = self.model
+        return data
 
     @classmethod
     def from_dict(cls, data: dict) -> "ClassificationResult":
         """Creates a ClassificationResult from a dictionary."""
+        classification_type = data.get("classification_type", ClassificationType.UNKNOWN.value)
+        try:
+            classification_type_enum = ClassificationType(classification_type)
+        except ValueError:
+            classification_type_enum = ClassificationType.UNKNOWN
+
         return cls(
             segment_index=data["segment_index"],
             classification=Classification(data["classification"]),  # Parse from string
             confidence=data["confidence"],
             reasoning=data["reasoning"],
             character=data.get("character"),
+            classification_type=classification_type_enum,
+            speaker_label=data.get("speaker_label"),
+            speaker_name=data.get("speaker_name"),
+            speaker_role=data.get("speaker_role"),
+            character_confidence=data.get("character_confidence"),
+            unknown_speaker=data.get("unknown_speaker", False),
+            temporal_metadata=data.get("temporal_metadata"),
+            prompt_hash=data.get("prompt_hash"),
+            response_hash=data.get("response_hash"),
+            prompt_preview=data.get("prompt_preview"),
+            response_preview=data.get("response_preview"),
+            generation_latency_ms=data.get("generation_latency_ms"),
+            model=data.get("model"),
         )
+
+
+@dataclass
+class SpeakerInfo:
+    """Resolved speaker information for prompt building."""
+    label: str
+    name: Optional[str] = None
+    character: Optional[str] = None
+    role: str = "UNKNOWN"
+    confidence: Optional[float] = None
+    unknown: bool = False
+
+    def display_name(self) -> str:
+        """Readable representation for prompts/logging."""
+        name_parts = [part for part in [self.name, self.character] if part]
+        human_label = " / ".join(name_parts)
+        if human_label:
+            return f"{human_label} ({self.label})"
+        return self.label
 
 
 class BaseClassifier(ABC):
@@ -59,7 +138,9 @@ class BaseClassifier(ABC):
         self,
         segments: List[Dict],
         character_names: List[str],
-        player_names: List[str]
+        player_names: List[str],
+        speaker_map: Optional[Dict[str, Dict[str, Any]]] = None,
+        temporal_metadata: Optional[List[Dict[str, Any]]] = None
     ) -> List[ClassificationResult]:
         """Classify segments as IC or OOC"""
         pass
@@ -132,9 +213,11 @@ class BaseClassifier(ABC):
             ClassificationResult with parsed values
         """
         classification = Classification.IN_CHARACTER
+        classification_type = ClassificationType.UNKNOWN
         confidence = ConfidenceDefaults.DEFAULT
         reasoning = "Could not parse response"
         character = None
+        speaker_name = None
 
         # Use regex to extract fields more robustly
         # This handles multi-line values and out-of-order fields
@@ -154,9 +237,17 @@ class BaseClassifier(ABC):
                 )
                 classification = Classification.IN_CHARACTER
 
+        type_match = re.search(r'(?:Type|Categorie):\s*(\w+)', response, re.IGNORECASE)
+        if type_match:
+            type_text = type_match.group(1).strip().upper()
+            try:
+                classification_type = ClassificationType(type_text)
+            except ValueError:
+                self.logger.debug("Unknown classification type '%s' for segment %s", type_text, index)
+
         # Extract reasoning - capture everything after "Reden:" until next field or end
         reden_match = re.search(
-            r'Reden:\s*(.+?)(?=(?:Vertrouwen:|Personage:|$))',
+            r'Reden:\s*(.+?)(?=(?:Vertrouwen:|Personage:|Type:|Categorie:|Speaker:|Spreker:|$))',
             response,
             re.DOTALL | re.IGNORECASE
         )
@@ -184,12 +275,20 @@ class BaseClassifier(ABC):
             if char_text.upper() != "N/A":
                 character = char_text
 
+        speaker_match = re.search(r'(?:Spreker|Speaker):\s*(.+?)(?:\n|$)', response, re.IGNORECASE)
+        if speaker_match:
+            speaker_text = speaker_match.group(1).strip()
+            if speaker_text.upper() != "N/A":
+                speaker_name = speaker_text
+
         return ClassificationResult(
             segment_index=index,
             classification=classification,
             confidence=confidence,
             reasoning=reasoning,
-            character=character
+            character=character,
+            classification_type=classification_type,
+            speaker_name=speaker_name,
         )
 
 
@@ -245,6 +344,12 @@ class OllamaClassifier(BaseClassifier):
                 f"Error: {e}"
             ) from e
 
+        self.audit_mode = Config.CLASSIFIER_AUDIT_MODE
+        self.prompt_preview_length = Config.CLASSIFIER_PROMPT_PREVIEW_CHARS
+        self.max_context_segments = Config.CLASSIFIER_CONTEXT_MAX_SEGMENTS
+        self.max_past_duration = Config.CLASSIFIER_CONTEXT_PAST_SECONDS
+        self.max_future_duration = Config.CLASSIFIER_CONTEXT_FUTURE_SECONDS
+
     def preflight_check(self):
         issues = []
         try:
@@ -266,69 +371,352 @@ class OllamaClassifier(BaseClassifier):
         self,
         segments: List[Dict],
         character_names: List[str],
-        player_names: List[str]
+        player_names: List[str],
+        speaker_map: Optional[Dict[str, Dict[str, Any]]] = None,
+        temporal_metadata: Optional[List[Dict[str, Any]]] = None
     ) -> List[ClassificationResult]:
         """Classify each segment using LLM reasoning."""
-        results = []
+        if not segments:
+            return []
+
+        active_speaker_map = speaker_map or self._build_fallback_speaker_map(segments)
+        speaker_overview = self._format_speaker_overview(active_speaker_map)
+        session_duration = self._get_session_duration(segments)
+        past_classifications: List[Classification] = []
+        results: List[ClassificationResult] = []
 
         for i, segment in enumerate(segments):
-            prev_text = segments[i-1]['text'] if i > 0 else ""
-            current_text = segment['text']
-            next_text = segments[i+1]['text'] if i < len(segments) - 1 else ""
+            context_segments = self._gather_context_segments(segments, i)
+            speaker_info = self._resolve_speaker_info(segment.get("speaker"), active_speaker_map)
+            metadata = (
+                temporal_metadata[i]
+                if temporal_metadata and i < len(temporal_metadata)
+                else self._build_temporal_metadata(
+                    i,
+                    segment,
+                    segments,
+                    past_classifications,
+                    session_duration
+                )
+            )
+
+            prompt_text = self._build_prompt_with_context(
+                character_names=character_names,
+                player_names=player_names,
+                speaker_overview=speaker_overview,
+                metadata=metadata,
+                context_segments=context_segments,
+                speaker_info=speaker_info,
+                speaker_map=active_speaker_map,
+            )
 
             result = self._classify_with_context(
-                prev_text,
-                current_text,
-                next_text,
-                character_names,
-                player_names,
-                i
+                prompt_text,
+                index=i,
+                speaker_info=speaker_info,
+                metadata=metadata,
             )
             results.append(result)
+            past_classifications.append(result.classification)
 
         return results
 
     def _classify_with_context(
         self,
-        prev_text: str,
-        current_text: str,
-        next_text: str,
-        character_names: List[str],
-        player_names: List[str],
-        index: int
+        prompt: str,
+        index: int,
+        speaker_info: SpeakerInfo,
+        metadata: Dict[str, Any],
     ) -> ClassificationResult:
         """Classify a single segment with context."""
-        prompt = self._build_prompt(
-            prev_text,
-            current_text,
-            next_text,
-            character_names,
-            player_names
-        )
+        start = time.perf_counter()
+        response_payload = self._generate_with_retry(prompt, index)
+        latency_ms = int((time.perf_counter() - start) * 1000)
 
-        response_text = self._generate_with_retry(prompt, index)
-        if response_text is None:
-            return ClassificationResult(
+        if response_payload is None:
+            result = ClassificationResult(
                 segment_index=index,
                 classification=Classification.IN_CHARACTER,
                 confidence=ConfidenceDefaults.DEFAULT,
-                reasoning="Classification failed, defaulted to IC"
+                reasoning="Classification failed, defaulted to IC",
+                classification_type=ClassificationType.UNKNOWN,
             )
+            response_text = ""
+        else:
+            response_text = response_payload.get("response", "")
+            result = self._parse_response(response_text, index)
+            result.model = response_payload.get("model")
 
-        return self._parse_response(response_text, index)
+        result.generation_latency_ms = latency_ms
+        result.temporal_metadata = metadata
+        self._apply_speaker_metadata(result, speaker_info)
+        self._infer_classification_type(result, speaker_info)
+        self._attach_prompt_metadata(result, prompt, response_text)
+        return result
 
-    def _generate_with_retry(self, prompt: str, index: int) -> Optional[str]:
+    def _build_prompt_with_context(
+        self,
+        *,
+        character_names: List[str],
+        player_names: List[str],
+        speaker_overview: str,
+        metadata: Dict[str, Any],
+        context_segments: Dict[str, Any],
+        speaker_info: SpeakerInfo,
+        speaker_map: Dict[str, Dict[str, Any]],
+    ) -> str:
+        char_list = ", ".join(character_names) if character_names else "Unknown"
+        player_list = ", ".join(player_names) if player_names else "Unknown"
+
+        metadata_block = self._format_metadata_block(metadata)
+        past_context = self._format_context_block(
+            context_segments["past"],
+            speaker_map,
+            reverse=True,
+        )
+        future_context = self._format_context_block(
+            context_segments["future"],
+            speaker_map,
+            reverse=False,
+        )
+
+        prev_text = "\n".join(
+            [
+                "Sprekerkaart:",
+                speaker_overview or "geen bekende sprekerinformatie",
+                "",
+                "Metadata huidig segment:",
+                metadata_block,
+                "",
+                "Recente context (meest recent eerst):",
+                past_context or "[geen eerdere context]",
+            ]
+        )
+        current_text = self._format_segment_line(context_segments["current"], speaker_info)
+        next_text = "\n".join(
+            [
+                "Aankomende context:",
+                future_context or "[geen toekomstige context]",
+            ]
+        )
+
+        return self.prompt_template.format(
+            char_list=char_list,
+            player_list=player_list,
+            prev_text=prev_text,
+            current_text=current_text,
+            next_text=next_text,
+        )
+
+    def _format_metadata_block(self, metadata: Dict[str, Any]) -> str:
+        recent = metadata.get("recent_classifications") or []
+        recent_text = ", ".join(recent) if recent else "geen"
+        return (
+            f"Tijdstempel: {metadata.get('timestamp', '00:00:00')} "
+            f"({metadata.get('session_offset', 0.0):.2f}s in sessie)\n"
+            f"Fase: {metadata.get('phase', 'in-progress')}\n"
+            f"Turn-rate (30s): {metadata.get('turn_rate', 0.0):.2f} beurten/seconde\n"
+            f"Recente classificaties: {recent_text}"
+        )
+
+    def _format_context_block(
+        self,
+        segments: List[Dict[str, Any]],
+        speaker_map: Dict[str, Dict[str, Any]],
+        *,
+        reverse: bool,
+    ) -> str:
+        if not segments:
+            return ""
+
+        ordered_segments = reversed(segments) if reverse else segments
+        lines = []
+        for seg in ordered_segments:
+            info = self._resolve_speaker_info(seg.get("speaker"), speaker_map)
+            lines.append(self._format_segment_line(seg, info))
+        return "\n".join(lines)
+
+    def _format_segment_line(self, segment: Dict[str, Any], speaker_info: SpeakerInfo) -> str:
+        timestamp = self._format_timestamp(segment.get("start_time"))
+        text = (segment.get("text") or "").strip()
+        return f"[{timestamp}] {speaker_info.display_name()}: {text}"
+
+    def _format_timestamp(self, value: Optional[float]) -> str:
+        value = float(value or 0.0)
+        hours = int(value // 3600)
+        minutes = int((value % 3600) // 60)
+        seconds = int(value % 60)
+        return f"{hours:02d}:{minutes:02d}:{seconds:02d}"
+
+    def _get_session_duration(self, segments: List[Dict[str, Any]]) -> float:
+        if not segments:
+            return 0.0
+        tail = segments[-1]
+        return float(tail.get("end_time") or tail.get("start_time") or 0.0)
+
+    def _gather_context_segments(self, segments: List[Dict[str, Any]], index: int) -> Dict[str, Any]:
+        current = segments[index]
+        start_time = float(current.get("start_time") or 0.0)
+
+        past: List[Dict[str, Any]] = []
+        future: List[Dict[str, Any]] = []
+
+        for j in range(index - 1, -1, -1):
+            if len(past) >= self.max_context_segments:
+                break
+            candidate = segments[j]
+            delta = start_time - float(candidate.get("start_time") or 0.0)
+            if delta > self.max_past_duration:
+                break
+            past.append(candidate)
+
+        for j in range(index + 1, len(segments)):
+            if len(future) >= self.max_context_segments:
+                break
+            candidate = segments[j]
+            delta = float(candidate.get("start_time") or 0.0) - start_time
+            if delta > self.max_future_duration:
+                break
+            future.append(candidate)
+
+        return {"current": current, "past": past, "future": future}
+
+    def _build_temporal_metadata(
+        self,
+        index: int,
+        segment: Dict[str, Any],
+        segments: List[Dict[str, Any]],
+        past_classifications: List[Classification],
+        session_duration: float,
+    ) -> Dict[str, Any]:
+        start = float(segment.get("start_time") or 0.0)
+        recent_labels = [c.value for c in past_classifications[-4:]]
+        turn_rate = self._calculate_turn_rate(index, segments, window_seconds=30.0)
+        phase_ratio = start / session_duration if session_duration else 0.0
+        if phase_ratio < 0.15:
+            phase = "start"
+        elif phase_ratio > 0.85:
+            phase = "wrap-up"
+        else:
+            phase = "in-progress"
+
+        return {
+            "timestamp": self._format_timestamp(start),
+            "session_offset": start,
+            "turn_rate": round(turn_rate, 2),
+            "recent_classifications": recent_labels,
+            "phase": phase,
+        }
+
+    def _calculate_turn_rate(
+        self,
+        index: int,
+        segments: List[Dict[str, Any]],
+        window_seconds: float,
+    ) -> float:
+        if index == 0:
+            return 0.0
+
+        current_start = float(segments[index].get("start_time") or 0.0)
+        window_start = current_start - window_seconds
+        count = 0
+        earliest = current_start
+
+        for j in range(index - 1, -1, -1):
+            candidate_start = float(segments[j].get("start_time") or 0.0)
+            if candidate_start < window_start:
+                break
+            earliest = candidate_start
+            count += 1
+
+        time_span = current_start - earliest
+        if time_span <= 0:
+            return float(count)
+        return count / time_span
+
+    def _build_fallback_speaker_map(self, segments: List[Dict[str, Any]]) -> Dict[str, Dict[str, Any]]:
+        fallback: Dict[str, Dict[str, Any]] = {}
+        for segment in segments:
+            label = segment.get("speaker") or "UNKNOWN"
+            fallback.setdefault(label, {"role": "UNKNOWN"})
+        return fallback
+
+    def _format_speaker_overview(self, speaker_map: Dict[str, Dict[str, Any]]) -> str:
+        if not speaker_map:
+            return "Geen bekende sprekerinformatie beschikbaar."
+
+        lines = []
+        for label in sorted(speaker_map.keys()):
+            entry = speaker_map[label] or {}
+            name = entry.get("name") or entry.get("player_name")
+            character = entry.get("character") or entry.get("character_name")
+            role = (entry.get("role") or ("PLAYER" if character else "UNKNOWN")).upper()
+            details = ", ".join([item for item in [name, character, role] if item])
+            lines.append(f"{label}: {details or role}")
+        return "\n".join(lines)
+
+    def _resolve_speaker_info(
+        self,
+        speaker_id: Optional[str],
+        speaker_map: Dict[str, Dict[str, Any]],
+    ) -> SpeakerInfo:
+        label = speaker_id or "UNKNOWN"
+        entry = speaker_map.get(label, {})
+        name = entry.get("name") or entry.get("player_name")
+        character = entry.get("character") or entry.get("character_name")
+        role = entry.get("role") or ("PLAYER" if character else "UNKNOWN")
+        return SpeakerInfo(
+            label=label,
+            name=name,
+            character=character,
+            role=str(role).upper(),
+            confidence=entry.get("confidence"),
+            unknown=entry.get("unknown_speaker", False),
+        )
+
+    def _apply_speaker_metadata(self, result: ClassificationResult, speaker_info: SpeakerInfo) -> None:
+        result.speaker_label = speaker_info.label
+        if not result.speaker_name and speaker_info.name:
+            result.speaker_name = speaker_info.name
+        result.speaker_role = speaker_info.role
+        result.character_confidence = speaker_info.confidence
+        result.unknown_speaker = speaker_info.unknown
+        if not result.character and speaker_info.character:
+            result.character = speaker_info.character
+
+    def _infer_classification_type(self, result: ClassificationResult, speaker_info: SpeakerInfo) -> None:
+        if result.classification_type != ClassificationType.UNKNOWN:
+            return
+
+        role = (speaker_info.role or "UNKNOWN").upper()
+        if result.classification == Classification.IN_CHARACTER:
+            if role == "DM_NARRATOR":
+                result.classification_type = ClassificationType.DM_NARRATION
+            elif role == "DM_NPC":
+                result.classification_type = ClassificationType.NPC_DIALOGUE
+            else:
+                result.classification_type = ClassificationType.CHARACTER
+        elif result.classification == Classification.OUT_OF_CHARACTER:
+            result.classification_type = ClassificationType.OOC_OTHER
+
+    def _attach_prompt_metadata(self, result: ClassificationResult, prompt: str, response_text: str) -> None:
+        result.prompt_hash = hashlib.sha256(prompt.encode("utf-8")).hexdigest()
+        result.response_hash = hashlib.sha256(response_text.encode("utf-8")).hexdigest() if response_text else None
+        if self.audit_mode:
+            result.prompt_preview = prompt[: self.prompt_preview_length]
+            result.response_preview = response_text[: self.prompt_preview_length] if response_text else None
+
+    def _generate_with_retry(self, prompt: str, index: int) -> Optional[Dict[str, Any]]:
         try:
-            response = self._generate_with_model(self.model, prompt)
-            return response['response']
+            return self._generate_with_model(self.model, prompt)
         except Exception as exc:
             low_vram_response = self._maybe_retry_with_low_vram(prompt, index, exc)
             if low_vram_response is not None:
-                return low_vram_response['response']
+                return low_vram_response
 
             fallback_response = self._maybe_retry_with_fallback(prompt, index, exc)
             if fallback_response is not None:
-                return fallback_response['response']
+                return fallback_response
 
             self.logger.warning(
                 "Classification failed for segment %s using %s: %s",
@@ -579,7 +967,9 @@ class GroqClassifier(BaseClassifier):
         self,
         segments: List[Dict],
         character_names: List[str],
-        player_names: List[str]
+        player_names: List[str],
+        speaker_map: Optional[Dict[str, Dict[str, Any]]] = None,
+        temporal_metadata: Optional[List[Dict[str, Any]]] = None
     ) -> List[ClassificationResult]:
         """Classify each segment using the Groq API."""
         results = []
@@ -736,7 +1126,9 @@ Personage: <naam of N/A>"""
         self,
         segments: List[Dict],
         character_names: List[str],
-        player_names: List[str]
+        player_names: List[str],
+        speaker_map: Optional[Dict[str, Dict[str, Any]]] = None,
+        temporal_metadata: Optional[List[Dict[str, Any]]] = None
     ) -> List[ClassificationResult]:
         """
         Classify segments by uploading to Google Drive and waiting for Colab to process.

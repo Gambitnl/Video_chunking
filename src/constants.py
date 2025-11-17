@@ -28,6 +28,18 @@ class Classification(str, Enum):
         return names[self]
 
 
+class ClassificationType(str, Enum):
+    """Granular classification detail for narrative processing."""
+    CHARACTER = "CHARACTER"
+    DM_NARRATION = "DM_NARRATION"
+    NPC_DIALOGUE = "NPC_DIALOGUE"
+    OOC_OTHER = "OOC_OTHER"
+    UNKNOWN = "UNKNOWN"
+
+    def __str__(self) -> str:
+        return self.value
+
+
 class TranscriptFilter(str, Enum):
     """Filter options for transcript formatting."""
     ALL = "all"

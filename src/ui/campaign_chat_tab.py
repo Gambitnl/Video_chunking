@@ -249,6 +249,85 @@ def create_campaign_chat_tab(project_root: Path) -> None:
             logger.error(f"Error updating conversation dropdown: {e}", exc_info=True)
             return gr.update(choices=["Error loading conversations"], value=None)
 
+    def delete_conversation(dropdown_val: str):
+        """Delete the selected conversation."""
+        if not dropdown_val or dropdown_val == "No conversations yet":
+            return [], "", gr.update(), f"{SI.WARNING} No conversation selected"
+
+        # Extract conversation ID from dropdown value
+        conversation_id = dropdown_val.split(" ")[0]
+
+        try:
+            success = conv_store.delete_conversation(conversation_id)
+            if success:
+                logger.info(f"Deleted conversation: {conversation_id}")
+                return (
+                    [],
+                    "",
+                    update_conversation_dropdown(),
+                    f"{SI.SUCCESS} Conversation deleted successfully"
+                )
+            else:
+                return (
+                    gr.update(),
+                    "",
+                    gr.update(),
+                    StatusMessages.error(
+                        "Delete Failed",
+                        f"Unable to delete conversation {conversation_id}"
+                    )
+                )
+        except Exception as e:
+            logger.error(f"Error deleting conversation: {e}", exc_info=True)
+            return (
+                gr.update(),
+                "",
+                gr.update(),
+                StatusMessages.error(
+                    "Delete Failed",
+                    "An error occurred while deleting the conversation.",
+                    "Error details have been logged for troubleshooting."
+                )
+            )
+
+    def rename_conversation(dropdown_val: str, new_name: str):
+        """Rename the selected conversation."""
+        if not dropdown_val or dropdown_val == "No conversations yet":
+            return gr.update(), f"{SI.WARNING} No conversation selected"
+
+        if not new_name or not new_name.strip():
+            return gr.update(), f"{SI.WARNING} Please enter a new campaign name"
+
+        # Extract conversation ID from dropdown value
+        conversation_id = dropdown_val.split(" ")[0]
+
+        try:
+            success = conv_store.rename_conversation(conversation_id, new_name.strip())
+            if success:
+                logger.info(f"Renamed conversation {conversation_id} to '{new_name}'")
+                return (
+                    update_conversation_dropdown(),
+                    f"{SI.SUCCESS} Conversation renamed to '{new_name}'"
+                )
+            else:
+                return (
+                    gr.update(),
+                    StatusMessages.error(
+                        "Rename Failed",
+                        f"Unable to rename conversation {conversation_id}"
+                    )
+                )
+        except Exception as e:
+            logger.error(f"Error renaming conversation: {e}", exc_info=True)
+            return (
+                gr.update(),
+                StatusMessages.error(
+                    "Rename Failed",
+                    "An error occurred while renaming the conversation.",
+                    "Error details have been logged for troubleshooting."
+                )
+            )
+
     def format_sources_display(chat_history: List[Dict]) -> str:
         """Format sources from the last assistant message."""
         if not chat_history:
@@ -295,8 +374,16 @@ def create_campaign_chat_tab(project_root: Path) -> None:
             if not sources:
                 return f"{SI.INFO} No sources cited for this answer"
 
-            # Format sources
-            sources_md = "### Sources\n\n"
+            # Format sources with context
+            # Add excerpt from the answer to show which message these sources belong to
+            answer_excerpt = last_assistant_msg["content"][:150]
+            if len(last_assistant_msg["content"]) > 150:
+                answer_excerpt += "..."
+
+            sources_md = f"### {SI.INFO} Sources for Latest Response\n\n"
+            sources_md += f"**Answer:** _{answer_excerpt}_\n\n"
+            sources_md += "---\n\n"
+
             for i, source in enumerate(sources, 1):
                 content = source.get("content", "")
                 metadata = source.get("metadata", {})
@@ -306,11 +393,11 @@ def create_campaign_chat_tab(project_root: Path) -> None:
                     session_id = metadata.get("session_id", "Unknown")
                     timestamp = metadata.get("timestamp", "??:??:??")
                     speaker = metadata.get("speaker", "Unknown")
-                    sources_md += f"**{i}. Transcript [{session_id}, {timestamp}]**\n"
+                    sources_md += f"**{i}. {SI.ACTION_SEND} Transcript [{session_id}, {timestamp}]**\n"
                     sources_md += f"*{speaker}:* {content}\n\n"
                 else:
                     name = metadata.get("name", "Unknown")
-                    sources_md += f"**{i}. {source_type.title()}: {name}**\n"
+                    sources_md += f"**{i}. {SI.ACTION_LOAD} {source_type.title()}: {name}**\n"
                     sources_md += f"{content}\n\n"
 
             return sources_md
@@ -354,8 +441,18 @@ def create_campaign_chat_tab(project_root: Path) -> None:
         with gr.Row():
             clear_btn = gr.Button(f"{SI.ACTION_CLEAR} Chat", size="sm")
             new_conv_btn = gr.Button(f"{SI.ACTION_NEW} Conversation", size="sm", variant="primary")
-            delete_btn = gr.Button(f"{SI.ACTION_DELETE} Selected", size="sm", variant="secondary")
-            rename_btn = gr.Button(f"{SI.ACTION_EDIT} Rename", size="sm", variant="secondary")
+
+        with gr.Row():
+            with gr.Column(scale=3):
+                gr.Markdown("### Manage Conversations")
+                with gr.Row():
+                    delete_btn = gr.Button(f"{SI.ACTION_DELETE} Delete Selected", size="sm", variant="stop")
+                    rename_name_input = gr.Textbox(
+                        label="New Campaign Name",
+                        placeholder="Enter new name...",
+                        scale=2
+                    )
+                    rename_btn = gr.Button(f"{SI.ACTION_EDIT} Rename", size="sm", variant="secondary")
 
             with gr.Column(scale=1):
                 gr.Markdown("### Conversations")
@@ -420,6 +517,18 @@ def create_campaign_chat_tab(project_root: Path) -> None:
             ),
             inputs=[conversation_dropdown],
             outputs=[chatbot, msg_input, sources_display]
+        )
+
+        delete_btn.click(
+            fn=delete_conversation,
+            inputs=[conversation_dropdown],
+            outputs=[chatbot, msg_input, conversation_dropdown, sources_display]
+        )
+
+        rename_btn.click(
+            fn=rename_conversation,
+            inputs=[conversation_dropdown, rename_name_input],
+            outputs=[conversation_dropdown, sources_display]
         )
 
         # Initialize

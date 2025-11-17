@@ -298,6 +298,58 @@ class ConversationStore:
 
         return conversations[:limit]
 
+    def rename_conversation(self, conversation_id: str, new_campaign_name: str) -> bool:
+        """
+        Rename a conversation by updating its campaign name.
+
+        Args:
+            conversation_id: Conversation ID
+            new_campaign_name: New campaign name
+
+        Returns:
+            True if renamed successfully, False otherwise
+        """
+        # Validate conversation ID to prevent path traversal
+        try:
+            self._validate_conversation_id(conversation_id)
+        except ValueError as e:
+            logger.error(f"Invalid conversation ID for rename: {e}")
+            return False
+
+        # Validate new name
+        if not new_campaign_name or not new_campaign_name.strip():
+            logger.error("Campaign name cannot be empty")
+            return False
+
+        # Sanitize campaign name (limit length, remove problematic characters)
+        new_campaign_name = new_campaign_name.strip()[:100]
+
+        # Use file locking to prevent race conditions
+        lock_path = self._get_lock_path(conversation_id)
+        lock = filelock.FileLock(lock_path, timeout=10)
+
+        try:
+            with lock:
+                conversation = self.load_conversation(conversation_id)
+                if not conversation:
+                    logger.warning(f"Cannot rename, conversation not found: {conversation_id}")
+                    return False
+
+                # Update campaign name
+                conversation["context"]["campaign"] = new_campaign_name
+                conversation["updated_at"] = datetime.now().isoformat()
+
+                self._save_conversation(conversation_id, conversation)
+                logger.info(f"Renamed conversation {conversation_id} to '{new_campaign_name}'")
+
+            return True
+        except filelock.Timeout:
+            logger.error(f"Timeout acquiring lock for rename: {conversation_id}")
+            return False
+        except Exception as e:
+            logger.error(f"Error renaming conversation {conversation_id}: {e}")
+            return False
+
     def delete_conversation(self, conversation_id: str) -> bool:
         """
         Delete a conversation.

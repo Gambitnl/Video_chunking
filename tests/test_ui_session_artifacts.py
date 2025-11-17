@@ -9,6 +9,8 @@ import pytest
 
 from src.ui.session_artifacts_tab import (
     create_session_artifacts_tab,
+    delete_selected_artifact,
+    delete_session_directory,
     download_session_zip,
     go_up_directory,
     handle_artifact_selection,
@@ -217,3 +219,65 @@ def test_download_session_zip(monkeypatch, tmp_path):
     assert file_update["visible"] is True
     assert file_update["value"] == str(zip_path)
     assert "Session archive ready" in status_markdown
+
+
+def test_delete_selected_artifact_success(monkeypatch):
+    """Deleting a file should refresh the listing with a success message."""
+    monkeypatch.setattr(
+        "src.ui.session_artifacts_tab.delete_artifact_api",
+        lambda rel, recursive=False: {
+            "status": "success",
+            "data": {"relative_path": rel},
+            "error": None,
+        },
+    )
+    monkeypatch.setattr(
+        "src.ui.session_artifacts_tab.get_directory_tree_api",
+        lambda rel: {
+            "status": "success",
+            "data": {"items": []},
+            "error": None,
+        },
+    )
+
+    outputs = delete_selected_artifact("session/file.txt", "session", "session")
+    status_markdown = outputs[1]
+    assert "Deleted" in status_markdown
+
+
+def test_delete_selected_artifact_error(monkeypatch):
+    """Errors from the delete API should be surfaced."""
+    monkeypatch.setattr(
+        "src.ui.session_artifacts_tab.delete_artifact_api",
+        lambda rel, recursive=False: {"status": "invalid", "error": "boom", "data": None},
+    )
+    monkeypatch.setattr(
+        "src.ui.session_artifacts_tab.get_directory_tree_api",
+        lambda rel: {
+            "status": "success",
+            "data": {"items": []},
+            "error": None,
+        },
+    )
+
+    outputs = delete_selected_artifact("session/file.txt", "session", "session")
+    status_markdown = outputs[1]
+    assert "boom" in status_markdown
+
+
+def test_delete_session_directory(monkeypatch):
+    """Deleting a session should refresh the session dropdown."""
+    monkeypatch.setattr(
+        "src.ui.session_artifacts_tab.delete_artifact_api",
+        lambda rel, recursive=True: {"status": "success", "data": {}, "error": None},
+    )
+    monkeypatch.setattr(
+        "src.ui.session_artifacts_tab.list_sessions_api",
+        lambda: {"status": "success", "data": {"sessions": []}, "error": None},
+    )
+
+    outputs = delete_session_directory("session")
+    dropdown_update = outputs[0]
+    status_markdown = outputs[1]
+    assert dropdown_update["choices"] == []
+    assert "Removed session" in status_markdown

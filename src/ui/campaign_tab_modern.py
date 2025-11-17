@@ -35,6 +35,26 @@ def create_campaign_tab_modern(blocks: gr.Blocks) -> Dict[str, gr.components.Com
                 scale=0
             )
 
+        # Campaign Management Section
+        with gr.Accordion("Manage Selected Campaign", open=False):
+            with gr.Row():
+                new_campaign_name_input = gr.Textbox(
+                    label="New Campaign Name",
+                    placeholder="Enter new name and click rename...",
+                    scale=3
+                )
+                rename_campaign_btn = gr.Button(
+                    "Rename Campaign",
+                    variant="primary",
+                    scale=1
+                )
+            with gr.Row():
+                delete_campaign_btn = gr.Button(
+                    "Delete Selected Campaign",
+                    variant="stop",
+                )
+            manage_status_md = gr.Markdown(value="")
+
         # Campaign Overview Section
         gr.Markdown("## Campaign Overview")
         overview_md = gr.Markdown(
@@ -68,4 +88,8 @@ def create_campaign_tab_modern(blocks: gr.Blocks) -> Dict[str, gr.components.Com
         "session_library": session_library_md,
         "campaign_selector": campaign_selector,
         "refresh_btn": refresh_btn,
+        "new_campaign_name_input": new_campaign_name_input,
+        "rename_campaign_btn": rename_campaign_btn,
+        "delete_campaign_btn": delete_campaign_btn,
+        "manage_status": manage_status_md,
     }

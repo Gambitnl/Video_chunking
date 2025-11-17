@@ -48,6 +48,10 @@ This directory contains all the documentation for the D&D Session Processor. Bel
 - **[AGENT_ONBOARDING.md](../AGENT_ONBOARDING.md)**: (In root) **START HERE** - Comprehensive onboarding guide with structured reading path for new AI agents and contributors. Tells you what to read and in what order.
 - **[DEVELOPMENT.md](./DEVELOPMENT.md)**: A development chronicle logging major implementation and refactoring sessions.
 - **[DIARIZATION_CLASSIFICATION_HISTORY.md](./DIARIZATION_CLASSIFICATION_HISTORY.md)**: Pipeline history focused on Stage 5/6 diarization and IC/OOC classification issues, mitigations, and pending work.
+
+### Analysis & Technical Reviews
+
+- **[IC_OOC_CLASSIFICATION_ANALYSIS.md](./IC_OOC_CLASSIFICATION_ANALYSIS.md)**: **MULTI-AGENT DISCUSSION** - Detailed analysis of IC/OOC classification quality, character attribution issues, and enhancement proposals (P0-P4). Structured for collaborative AI agent review and implementation planning.
 - **[UI_STATUS.md](./UI_STATUS.md)**: A debugging and status guide for the Party Management UI tab.
 - **[MASTER_PLAN.md](./MASTER_PLAN.md)**: The single source of truth for all open work items, sprint planning, and project status.
 - **[CRITICAL_REVIEW_WORKFLOW.md](./CRITICAL_REVIEW_WORKFLOW.md)**: A step-by-step guide to the Critical Reviewer Agent methodology for rigorous code review with documented reasoning.

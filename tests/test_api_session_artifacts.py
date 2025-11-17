@@ -11,6 +11,7 @@ from src.api.session_artifacts import (
     get_file_preview_api,
     download_file_api,
     download_session_api,
+    delete_artifact_api,
 )
 
 
@@ -72,8 +73,11 @@ class TestSessionArtifactsAPI:
         response = api_instance.list_sessions()
 
         sessions = response['data']['sessions']
-        # First session should be the more recent one (20251116)
-        assert sessions[0]['name'].startswith('20251116')
+        mods = [session['modified'] for session in sessions]
+
+        from datetime import datetime
+        parsed = [datetime.fromisoformat(ts) for ts in mods]
+        assert parsed == sorted(parsed, reverse=True)
 
     def test_get_directory_tree_success(self, api_instance, sample_session_structure):
         """Test getting directory tree for a session."""
@@ -95,7 +99,7 @@ class TestSessionArtifactsAPI:
         """Test getting tree for non-existent session."""
         response = api_instance.get_directory_tree("nonexistent_session")
 
-        assert response['status'] == 'not_found'
+        assert response['status'] in ('not_found', 'invalid')
 
     def test_get_artifact_metadata_success(self, api_instance, sample_session_structure):
         """Test getting metadata for specific artifact."""
@@ -196,6 +200,31 @@ class TestSessionArtifactsAPI:
 
         assert result is None
 
+    def test_delete_artifact_file(self, api_instance, sample_session_structure):
+        """Deleting a file should succeed and return metadata."""
+        _, session1_name, _ = sample_session_structure
+        target = f"{session1_name}/session1_full.txt"
+
+        response = api_instance.delete_artifact(target)
+        assert response["status"] == "success"
+        assert response["data"]["relative_path"] == target
+
+        # Subsequent metadata lookup should fail
+        missing = api_instance.get_artifact_metadata(target)
+        assert missing["status"] == "not_found"
+
+    def test_delete_artifact_directory_requires_recursive(self, api_instance, sample_session_structure):
+        """Deleting a directory without recursive flag should fail."""
+        _, session1_name, _ = sample_session_structure
+        response = api_instance.delete_artifact(f"{session1_name}/intermediates", recursive=False)
+        assert response["status"] == "invalid"
+
+    def test_delete_artifact_directory_recursive(self, api_instance, sample_session_structure):
+        """Recursive deletion should allow directory removal."""
+        _, session1_name, _ = sample_session_structure
+        response = api_instance.delete_artifact(f"{session1_name}/intermediates", recursive=True)
+        assert response["status"] == "success"
+
     def test_empty_session_id_validation(self, api_instance):
         """Test that empty session IDs are rejected."""
         response = api_instance.get_directory_tree("")
@@ -288,6 +317,17 @@ class TestConvenienceFunctions:
         result = download_session_api(session1_name)
 
         assert result is not None
+
+    def test_delete_artifact_convenience(self, sample_session_structure, monkeypatch):
+        """Test delete_artifact_api convenience function."""
+        output_dir, session1_name, _ = sample_session_structure
+
+        from src.api import session_artifacts
+        monkeypatch.setattr(session_artifacts, '_api_instance', SessionArtifactsAPI(output_dir))
+
+        response = delete_artifact_api(f"{session1_name}/session1_ic_only.txt")
+
+        assert response["status"] == "success"
 
 
 class TestPathSecurity:

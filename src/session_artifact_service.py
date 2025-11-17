@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import zipfile
+import shutil
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
@@ -215,6 +216,53 @@ class SessionArtifactService:
                 archive.write(file_path, arcname=arcname)
         self.logger.info("Created session bundle at %s", archive_path)
         return archive_path
+
+    def delete_artifact(
+        self,
+        relative_path: RelativePath,
+        recursive: bool = False,
+    ) -> ArtifactMetadata:
+        """
+        Delete a file or directory from the output tree.
+
+        Args:
+            relative_path: Path relative to the output directory.
+            recursive: Allow deleting non-empty directories.
+
+        Returns:
+            Metadata describing the deleted artifact.
+        """
+        artifact_path = self._resolve_relative_path(relative_path)
+        if artifact_path == self.output_dir:
+            raise SessionArtifactServiceError("Refusing to delete the output directory root")
+
+        if not artifact_path.exists():
+            raise SessionArtifactServiceError(f"Artifact '{relative_path}' does not exist")
+
+        metadata = self.get_artifact_metadata(relative_path)
+
+        try:
+            if artifact_path.is_dir():
+                contains_entries = any(artifact_path.iterdir())
+                if contains_entries and not recursive:
+                    raise SessionArtifactServiceError(
+                        "Directory is not empty; pass recursive=True to delete it"
+                    )
+                if recursive:
+                    shutil.rmtree(artifact_path)
+                else:
+                    artifact_path.rmdir()
+            else:
+                artifact_path.unlink()
+        except SessionArtifactServiceError:
+            raise
+        except Exception as exc:
+            raise SessionArtifactServiceError(
+                f"Failed to delete '{relative_path}': {exc}"
+            ) from exc
+
+        self.logger.info("Deleted artifact '%s'", metadata.relative_path)
+        return metadata
 
     # ------------------------------------------------------------------
     # Helpers

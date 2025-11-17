@@ -1184,6 +1184,32 @@ def artifacts_download(ctx, session_path, file, output):
             raise click.Abort()
 
 
+@artifacts.command('delete')
+@click.argument('target')
+@click.option(
+    '--recursive/--no-recursive',
+    default=False,
+    show_default=True,
+    help='Allow deleting non-empty directories recursively.',
+)
+@click.pass_context
+def artifacts_delete(ctx, target, recursive):
+    """Delete a file or directory from the session outputs."""
+    from src.api.session_artifacts import delete_artifact_api
+
+    response = delete_artifact_api(target, recursive=recursive)
+
+    if response['status'] != 'success':
+        console.print(f"[red]Error:[/red] {response['error']}")
+        _audit(ctx, "cli.artifacts.delete", status="error", target=target, recursive=recursive, error=response['error'])
+        raise click.Abort()
+
+    data = response['data']
+    artifact_kind = "directory" if data["is_directory"] else "file"
+    console.print(f"[yellow]Deleted {artifact_kind}:[/yellow] {data['relative_path']}")
+    _audit(ctx, "cli.artifacts.delete", status="success", target=target, recursive=recursive)
+
+
 cli.add_command(artifacts)
 
 

@@ -401,6 +401,39 @@ class CampaignManager:
         self.campaigns[campaign_id] = campaign
         self._save_campaigns()
 
+    def rename_campaign(self, campaign_id: str, new_name: str) -> bool:
+        """Renames a campaign after validation."""
+        new_name = new_name.strip()
+        if not new_name:
+            logger.error("Campaign rename failed: New name cannot be empty.")
+            return False
+
+        if campaign_id not in self.campaigns:
+            logger.error(f"Campaign rename failed: ID '{campaign_id}' not found.")
+            return False
+
+        # Check if new name is already in use by another campaign
+        for cid, camp in self.campaigns.items():
+            if cid != campaign_id and camp.name.lower() == new_name.lower():
+                logger.error(f"Campaign rename failed: Name '{new_name}' is already in use.")
+                return False
+
+        self.campaigns[campaign_id].name = new_name
+        self._save_campaigns()
+        logger.info(f"Renamed campaign '{campaign_id}' to '{new_name}'.")
+        return True
+
+    def delete_campaign(self, campaign_id: str) -> bool:
+        """Deletes a campaign."""
+        if campaign_id not in self.campaigns:
+            logger.warning(f"Attempted to delete non-existent campaign '{campaign_id}'.")
+            return False
+
+        del self.campaigns[campaign_id]
+        self._save_campaigns()
+        logger.info(f"Deleted campaign '{campaign_id}'.")
+        return True
+
     def create_blank_campaign(
         self,
         name: Optional[str] = None,

@@ -9,6 +9,7 @@ import gradio as gr
 import pandas as pd
 
 from src.api.session_artifacts import (
+    delete_artifact_api,
     download_file_api,
     download_session_api,
     get_directory_tree_api,
@@ -29,16 +30,13 @@ COLUMNS = [
 
 
 def _empty_dataframe() -> pd.DataFrame:
-    """Return an empty dataframe with the expected columns."""
     return pd.DataFrame(columns=COLUMNS)
 
 
 def _format_timestamp(value: str) -> str:
-    """Format ISO timestamp strings for display."""
     if not value:
         return ""
     try:
-        # Handle naive + timezone-aware values
         if value.endswith("Z"):
             value = value.replace("Z", "+00:00")
         dt = datetime.datetime.fromisoformat(value)
@@ -48,7 +46,6 @@ def _format_timestamp(value: str) -> str:
 
 
 def _build_table(items: List[Dict[str, Any]]) -> pd.DataFrame:
-    """Convert API artifacts into a dataframe for the UI."""
     rows = []
     for item in items:
         rows.append({
@@ -65,8 +62,13 @@ def _build_table(items: List[Dict[str, Any]]) -> pd.DataFrame:
     return pd.DataFrame(rows, columns=COLUMNS)
 
 
+def _replace_status(outputs: Tuple[Any, ...], status_markdown: str) -> Tuple[Any, ...]:
+    updated = list(outputs)
+    updated[1] = status_markdown
+    return tuple(updated)
+
+
 def refresh_sessions():
-    """Load the list of sessions via the SessionArtifactsAPI."""
     response = list_sessions_api()
     if response["status"] != "success":
         return (
@@ -76,19 +78,18 @@ def refresh_sessions():
 
     sessions = response["data"]["sessions"]
     choices = [session["relative_path"] for session in sessions]
-    message = (
-        StatusMessages.info(
+    if sessions:
+        message = StatusMessages.info(
             "Ready",
             f"Select a session to explore ({len(sessions)} available)."
         )
-        if sessions
-        else StatusMessages.info("Ready", "No processed sessions were found.")
-    )
+    else:
+        message = StatusMessages.info("Ready", "No processed sessions were found.")
+
     return gr.update(choices=choices, value=None), message
 
 
 def _directory_error(message: str):
-    """Return a standard set of updates when directory interaction fails."""
     return (
         gr.update(value=_empty_dataframe()),
         StatusMessages.error("Error", message),
@@ -103,7 +104,6 @@ def _directory_error(message: str):
 
 
 def _directory_success(relative_path: str, items: List[Dict[str, Any]]):
-    """Return updates for a successful directory listing."""
     df = _build_table(items)
     return (
         gr.update(value=df),
@@ -119,7 +119,6 @@ def _directory_success(relative_path: str, items: List[Dict[str, Any]]):
 
 
 def _load_directory(relative_path: Optional[str]):
-    """Fetch directory contents for the provided path."""
     if not relative_path:
         return _directory_error("Select a session to begin.")
 
@@ -132,14 +131,8 @@ def _load_directory(relative_path: Optional[str]):
 
 
 def on_session_selected(session_path: Optional[str]):
-    """Handle a new session selection."""
-    directory_outputs = _load_directory(session_path)
-    return (*directory_outputs, session_path)
-
-
-def handle_directory_navigation(target_path: Optional[str]):
-    """Navigate to a given directory path."""
-    return _load_directory(target_path)
+    outputs = _load_directory(session_path)
+    return (*outputs, session_path)
 
 
 def go_up_directory(
@@ -147,7 +140,6 @@ def go_up_directory(
     session_root: Optional[str],
     current_items: Optional[List[Dict[str, Any]]] = None,
 ):
-    """Navigate to the parent directory."""
     if not current_path or not session_root:
         return _directory_error("Select a session to begin.")
 
@@ -160,7 +152,7 @@ def go_up_directory(
             None,
             current_path,
             current_items or [],
-            gr.update(),
+            gr.update(value=current_path),
             gr.update(value=None, visible=False),
         )
 
@@ -175,7 +167,6 @@ def handle_artifact_selection(
     current_directory: Optional[str],
     evt: gr.SelectData,
 ):
-    """Respond to row selection within the artifacts table."""
     if not items or evt is None or evt.index is None:
         return (
             gr.update(),
@@ -207,7 +198,7 @@ def handle_artifact_selection(
             None,
             current_directory,
             items,
-            gr.update(),
+            gr.update(value=current_directory or ""),
             gr.update(value=None, visible=False),
         )
 
@@ -226,7 +217,7 @@ def handle_artifact_selection(
             None,
             current_directory,
             items,
-            gr.update(),
+            gr.update(value=current_directory or ""),
             gr.update(value=None, visible=False),
         )
 
@@ -239,13 +230,12 @@ def handle_artifact_selection(
         selected["relative_path"],
         current_directory,
         items,
-        gr.update(),
+        gr.update(value=current_directory or ""),
         gr.update(value=None, visible=False),
     )
 
 
 def download_session_zip(session_root: Optional[str]):
-    """Create a zip archive for the selected session."""
     if not session_root:
         return (
             gr.update(value=None, visible=False),
@@ -266,8 +256,79 @@ def download_session_zip(session_root: Optional[str]):
     )
 
 
+def delete_selected_artifact(
+    selected_relative_path: Optional[str],
+    current_directory: Optional[str],
+    session_root: Optional[str],
+):
+    base_path = current_directory or session_root
+    if not base_path:
+        return _directory_error("Select a session to begin.")
+
+    if not selected_relative_path:
+        outputs = _load_directory(base_path)
+        return _replace_status(outputs, StatusMessages.error("Error", "Select an artifact to delete."))
+
+    response = delete_artifact_api(selected_relative_path, recursive=False)
+    if response["status"] != "success":
+        outputs = _load_directory(base_path)
+        return _replace_status(
+            outputs,
+            StatusMessages.error("Error", response["error"] or "Failed to delete artifact."),
+        )
+
+    outputs = list(_load_directory(base_path))
+    outputs[1] = StatusMessages.success("Deleted", f"Removed {response['data']['relative_path']}.")
+    outputs[2] = gr.update(value="", placeholder="Select a file to preview its content.")
+    outputs[3] = gr.update(value=None, visible=False)
+    outputs[4] = None
+    outputs[8] = gr.update(value=None, visible=False)
+    return tuple(outputs)
+
+
+def delete_session_directory(session_root: Optional[str]):
+    dropdown_update, ready_status = refresh_sessions()
+    base_outputs = (
+        dropdown_update,
+        ready_status,
+        gr.update(value=_empty_dataframe()),
+        gr.update(value="", placeholder="Select a file to preview its content."),
+        gr.update(value=None, visible=False),
+        None,
+        None,
+        [],
+        gr.update(value=""),
+        gr.update(value=None, visible=False),
+        None,
+    )
+
+    if not session_root:
+        error_status = StatusMessages.error("Error", "Select a session before deleting.")
+        return base_outputs[0], error_status, *base_outputs[2:]
+
+    response = delete_artifact_api(session_root, recursive=True)
+    dropdown_update, _ = refresh_sessions()
+    if response["status"] != "success":
+        status = StatusMessages.error("Error", response["error"] or "Failed to delete session.")
+    else:
+        status = StatusMessages.success("Deleted", f"Removed session {session_root}.")
+
+    return (
+        dropdown_update,
+        status,
+        gr.update(value=_empty_dataframe()),
+        gr.update(value="", placeholder="Select a file to preview its content."),
+        gr.update(value=None, visible=False),
+        None,
+        None,
+        [],
+        gr.update(value=""),
+        gr.update(value=None, visible=False),
+        None,
+    )
+
+
 def create_session_artifacts_tab(demo):
-    """Creates the Session Artifact Explorer tab."""
     with gr.Tab("Artifact Explorer"):
         gr.Markdown("## Session Artifact Explorer")
 
@@ -279,7 +340,7 @@ def create_session_artifacts_tab(demo):
         with gr.Row():
             session_picker = gr.Dropdown(
                 label="Select a Session",
-                info="Choose a session to view its artifacts."
+                info="Choose a session to view its artifacts.",
             )
             refresh_button = gr.Button("Refresh Sessions")
             load_session_button = gr.Button("Load Session")
@@ -292,6 +353,7 @@ def create_session_artifacts_tab(demo):
             )
             go_up_button = gr.Button("Go Up")
             download_session_button = gr.Button("Download Session Zip")
+            delete_session_button = gr.Button("Delete Session", variant="stop")
             session_zip_file = gr.File(label="Session Archive", visible=False)
 
         with gr.Row():
@@ -299,7 +361,7 @@ def create_session_artifacts_tab(demo):
                 gr.Markdown("### Artifacts")
                 file_list = gr.DataFrame(
                     headers=COLUMNS,
-                    datatype=["str", "str", "number", "str", "str", "str", "str"],
+                    datatype=["str"] * len(COLUMNS),
                     row_count=10,
                     col_count=(len(COLUMNS), "fixed"),
                     interactive=True,
@@ -310,9 +372,10 @@ def create_session_artifacts_tab(demo):
                     label="File Content",
                     lines=15,
                     interactive=False,
-                    placeholder="Select a text file to preview its content."
+                    placeholder="Select a text file to preview its content.",
                 )
                 download_button = gr.File(label="Download Selected File", visible=False)
+                delete_selected_button = gr.Button("Delete Selected Artifact", variant="stop")
 
         status_display = gr.Markdown(value=StatusMessages.info("Ready", "Select a session to begin."))
 
@@ -377,12 +440,48 @@ def create_session_artifacts_tab(demo):
             outputs=[session_zip_file, status_display],
         )
 
+        delete_selected_button.click(
+            fn=delete_selected_artifact,
+            inputs=[selected_file_path, current_directory_state, session_state],
+            outputs=[
+                file_list,
+                status_display,
+                file_preview,
+                download_button,
+                selected_file_path,
+                current_directory_state,
+                artifact_rows_state,
+                path_display,
+                session_zip_file,
+            ],
+        )
+
+        delete_session_button.click(
+            fn=delete_session_directory,
+            inputs=[session_state],
+            outputs=[
+                session_picker,
+                status_display,
+                file_list,
+                file_preview,
+                download_button,
+                selected_file_path,
+                current_directory_state,
+                artifact_rows_state,
+                path_display,
+                session_zip_file,
+                session_state,
+            ],
+        )
+
     return {
         "session_picker": session_picker,
         "refresh_button": refresh_button,
+        "load_session_button": load_session_button,
         "file_list": file_list,
         "file_preview": file_preview,
         "download_button": download_button,
+        "delete_selected_button": delete_selected_button,
         "status_display": status_display,
         "selected_file_path": selected_file_path,
         "current_directory_state": current_directory_state,
@@ -390,5 +489,4 @@ def create_session_artifacts_tab(demo):
         "path_display": path_display,
         "session_zip_file": session_zip_file,
         "session_state": session_state,
-        "load_session_button": load_session_button,
     }

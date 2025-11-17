@@ -169,6 +169,10 @@ class ProcessSessionEventWiring:
             diarization_backend,
             classification_backend,
             campaign_id,
+            enable_audit_mode,
+            redact_prompts,
+            generate_scenes,
+            scene_summary_mode,
             should_proceed,
         ):
             """
@@ -256,6 +260,10 @@ class ProcessSessionEventWiring:
                 diarization_backend,
                 classification_backend,
                 campaign_id,
+                enable_audit_mode,
+                redact_prompts,
+                generate_scenes,
+                scene_summary_mode,
             )
 
             # Render the processing response (format transcripts, stats, etc.)
@@ -297,6 +305,10 @@ class ProcessSessionEventWiring:
                 self.components["diarization_backend_input"],
                 self.components["classification_backend_input"],
                 self.active_campaign_state,
+                self.components["enable_audit_mode_input"],
+                self.components["redact_prompts_input"],
+                self.components["generate_scenes_input"],
+                self.components["scene_summary_mode_input"],
                 self.components["should_process_state"],
             ],
             outputs=[

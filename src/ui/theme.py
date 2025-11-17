@@ -71,6 +71,18 @@ MODERN_CSS = """
     background: transparent;
 }
 
+/* Fix tab content width consistency - prevents tabs from resizing */
+.tab-content {
+    min-width: 100%;
+    max-width: 100%;
+}
+
+/* Ensure all tab panels have consistent width */
+.tabitem {
+    min-width: 100% !important;
+    width: 100% !important;
+}
+
 /* Card styling for sections */
 .card {
     background: white;

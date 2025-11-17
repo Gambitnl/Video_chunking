@@ -12,10 +12,10 @@
     "Pas'Ta",
     "Fan'nar"
   ],
-  "campaign_id": null,
+  "campaign_id": "team_op",
   "campaign_name": "Gaia Adventures - Culdor Academy",
   "first_session": "Session 1 (29-Nov-2024)",
-  "last_updated": "2025-11-16T08:29:08.457547",
+  "last_updated": "2025-11-17T16:47:37.328123",
   "notable_actions": [
     {
       "session": "Session 1",
@@ -122,6 +122,12 @@
       "relationship_type": "ally",
       "description": null,
       "first_met": "Session6_test_16nov_0315am"
+    },
+    {
+      "name": "Fan'nar seems to be working alongside Sha'ek and others in a cooperative manner.",
+      "relationship_type": "general",
+      "description": null,
+      "first_met": "test_s6_17nov_0901am"
     }
   ],
   "development_notes": [
@@ -169,6 +175,11 @@
       "session": "Session6_test_16nov_0315am",
       "note": "Showing concern for Furnax's well-being during the encounter.",
       "category": "ally"
+    },
+    {
+      "session": "test_s6_17nov_0901am",
+      "note": "Used Mindlink to communicate with Pipira Shimmerlock.",
+      "category": "social"
     }
   ],
   "memorable_quotes": [
@@ -202,9 +213,10 @@
     "Session 1",
     "Session 2",
     "Session 3",
-    "Session6_test_16nov_0315am"
+    "Session6_test_16nov_0315am",
+    "test_s6_17nov_0901am"
   ],
-  "total_sessions": 4,
+  "total_sessions": 5,
   "current_goals": [
     "Investigate the disappearances",
     "Support the party despite preferring to work alone",

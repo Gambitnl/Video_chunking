@@ -7,6 +7,17 @@ import json
 from cli import cli
 
 
+def _prepare_api_instance(monkeypatch, output_dir):
+    """Reset the global session artifact API to point at a test directory."""
+    from src.api import session_artifacts
+
+    monkeypatch.setattr(
+        session_artifacts,
+        '_api_instance',
+        session_artifacts.SessionArtifactsAPI(output_dir=output_dir),
+    )
+
+
 @pytest.fixture
 def cli_runner():
     """Create a Click CLI test runner."""
@@ -40,8 +51,10 @@ class TestArtifactsList:
         """Test listing when no sessions exist."""
         # Mock Config.OUTPUT_DIR to point to empty directory
         from src import config
-        monkeypatch.setattr(config.Config, 'OUTPUT_DIR', tmp_path / "empty_output")
-        (tmp_path / "empty_output").mkdir()
+        empty_dir = tmp_path / "empty_output"
+        empty_dir.mkdir()
+        monkeypatch.setattr(config.Config, 'OUTPUT_DIR', empty_dir)
+        _prepare_api_instance(monkeypatch, empty_dir)
 
         result = cli_runner.invoke(cli, ['artifacts', 'list'])
 
@@ -53,6 +66,7 @@ class TestArtifactsList:
         output_dir, session_name = sample_session_dir
         from src import config
         monkeypatch.setattr(config.Config, 'OUTPUT_DIR', output_dir)
+        _prepare_api_instance(monkeypatch, output_dir)
 
         result = cli_runner.invoke(cli, ['artifacts', 'list'])
 
@@ -65,6 +79,7 @@ class TestArtifactsList:
         output_dir, _ = sample_session_dir
         from src import config
         monkeypatch.setattr(config.Config, 'OUTPUT_DIR', output_dir)
+        _prepare_api_instance(monkeypatch, output_dir)
 
         result = cli_runner.invoke(cli, ['artifacts', 'list', '--limit', '1'])
 
@@ -75,6 +90,7 @@ class TestArtifactsList:
         output_dir, session_name = sample_session_dir
         from src import config
         monkeypatch.setattr(config.Config, 'OUTPUT_DIR', output_dir)
+        _prepare_api_instance(monkeypatch, output_dir)
 
         result = cli_runner.invoke(cli, ['artifacts', 'list', '--json'])
 
@@ -91,8 +107,10 @@ class TestArtifactsTree:
     def test_tree_nonexistent_session(self, cli_runner, tmp_path, monkeypatch):
         """Test tree for non-existent session."""
         from src import config
-        monkeypatch.setattr(config.Config, 'OUTPUT_DIR', tmp_path / "output")
-        (tmp_path / "output").mkdir()
+        output_dir = tmp_path / "output"
+        output_dir.mkdir()
+        monkeypatch.setattr(config.Config, 'OUTPUT_DIR', output_dir)
+        _prepare_api_instance(monkeypatch, output_dir)
 
         result = cli_runner.invoke(cli, ['artifacts', 'tree', 'nonexistent'])
 
@@ -104,6 +122,7 @@ class TestArtifactsTree:
         output_dir, session_name = sample_session_dir
         from src import config
         monkeypatch.setattr(config.Config, 'OUTPUT_DIR', output_dir)
+        _prepare_api_instance(monkeypatch, output_dir)
 
         result = cli_runner.invoke(cli, ['artifacts', 'tree', session_name])
 
@@ -117,6 +136,7 @@ class TestArtifactsTree:
         output_dir, session_name = sample_session_dir
         from src import config
         monkeypatch.setattr(config.Config, 'OUTPUT_DIR', output_dir)
+        _prepare_api_instance(monkeypatch, output_dir)
 
         result = cli_runner.invoke(cli, ['artifacts', 'tree', session_name])
 
@@ -128,6 +148,7 @@ class TestArtifactsTree:
         output_dir, session_name = sample_session_dir
         from src import config
         monkeypatch.setattr(config.Config, 'OUTPUT_DIR', output_dir)
+        _prepare_api_instance(monkeypatch, output_dir)
 
         result = cli_runner.invoke(cli, ['artifacts', 'tree', session_name, '--json'])
 
@@ -143,8 +164,10 @@ class TestArtifactsDownload:
     def test_download_nonexistent_session(self, cli_runner, tmp_path, monkeypatch):
         """Test downloading non-existent session."""
         from src import config
-        monkeypatch.setattr(config.Config, 'OUTPUT_DIR', tmp_path / "output")
-        (tmp_path / "output").mkdir()
+        output_dir = tmp_path / "output"
+        output_dir.mkdir()
+        monkeypatch.setattr(config.Config, 'OUTPUT_DIR', output_dir)
+        _prepare_api_instance(monkeypatch, output_dir)
 
         result = cli_runner.invoke(cli, ['artifacts', 'download', 'nonexistent'])
 
@@ -157,6 +180,7 @@ class TestArtifactsDownload:
         from src import config
         monkeypatch.setattr(config.Config, 'OUTPUT_DIR', output_dir)
         monkeypatch.setattr(config.Config, 'TEMP_DIR', tmp_path / "temp")
+        _prepare_api_instance(monkeypatch, output_dir)
 
         with cli_runner.isolated_filesystem(temp_dir=tmp_path):
             result = cli_runner.invoke(cli, ['artifacts', 'download', session_name])
@@ -169,6 +193,7 @@ class TestArtifactsDownload:
         output_dir, session_name = sample_session_dir
         from src import config
         monkeypatch.setattr(config.Config, 'OUTPUT_DIR', output_dir)
+        _prepare_api_instance(monkeypatch, output_dir)
 
         with cli_runner.isolated_filesystem(temp_dir=tmp_path):
             result = cli_runner.invoke(
@@ -184,6 +209,7 @@ class TestArtifactsDownload:
         output_dir, session_name = sample_session_dir
         from src import config
         monkeypatch.setattr(config.Config, 'OUTPUT_DIR', output_dir)
+        _prepare_api_instance(monkeypatch, output_dir)
 
         result = cli_runner.invoke(
             cli,
@@ -199,6 +225,7 @@ class TestArtifactsDownload:
         from src import config
         monkeypatch.setattr(config.Config, 'OUTPUT_DIR', output_dir)
         monkeypatch.setattr(config.Config, 'TEMP_DIR', tmp_path / "temp")
+        _prepare_api_instance(monkeypatch, output_dir)
 
         output_file = tmp_path / "custom_output.zip"
 
@@ -210,3 +237,47 @@ class TestArtifactsDownload:
         assert result.exit_code == 0
         # Note: In isolated filesystem, the file may not actually be at the expected path
         # but the command should succeed
+
+
+class TestArtifactsDelete:
+    """Tests for 'artifacts delete' command."""
+
+    def test_delete_file(self, cli_runner, sample_session_dir, monkeypatch):
+        """Deleting a file should remove it from disk."""
+        output_dir, session_name = sample_session_dir
+        from src import config
+        monkeypatch.setattr(config.Config, 'OUTPUT_DIR', output_dir)
+        _prepare_api_instance(monkeypatch, output_dir)
+
+        target = f"{session_name}/test_session_ic_only.txt"
+        result = cli_runner.invoke(cli, ['artifacts', 'delete', target])
+
+        assert result.exit_code == 0
+        assert "Deleted" in result.output
+        assert not (output_dir / target).exists()
+
+    def test_delete_directory_requires_recursive(self, cli_runner, sample_session_dir, monkeypatch):
+        """Attempting to delete a directory without recursive should fail."""
+        output_dir, session_name = sample_session_dir
+        from src import config
+        monkeypatch.setattr(config.Config, 'OUTPUT_DIR', output_dir)
+        _prepare_api_instance(monkeypatch, output_dir)
+
+        target = f"{session_name}/intermediates"
+        result = cli_runner.invoke(cli, ['artifacts', 'delete', target])
+
+        assert result.exit_code != 0
+        assert "Error" in result.output
+
+    def test_delete_directory_recursive(self, cli_runner, sample_session_dir, monkeypatch):
+        """Recursive deletion should succeed."""
+        output_dir, session_name = sample_session_dir
+        from src import config
+        monkeypatch.setattr(config.Config, 'OUTPUT_DIR', output_dir)
+        _prepare_api_instance(monkeypatch, output_dir)
+
+        target = f"{session_name}/intermediates"
+        result = cli_runner.invoke(cli, ['artifacts', 'delete', target, '--recursive'])
+
+        assert result.exit_code == 0
+        assert "Deleted directory" in result.output

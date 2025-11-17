@@ -744,13 +744,14 @@ The **Artifact Explorer** tab provides a built-in file browser to inspect, previ
 2.  The list of sessions will be pre-populated. If you have processed a new session since starting the app, click the **Refresh Sessions** button.
 3.  Select a session from the dropdown menu and click **Load Session**. The current path indicator will show the session root.
 4.  Use the **Artifacts** table to browse directories and files:
-    - Click a directory row (Directory column = “Yes”) to enter it.
+    - Click a directory row (Directory column = "Yes") to enter it.
     - Click **Go Up** to return to the parent directory.
 5.  Click any file row to preview/download it.
     -   Supported text files (`.txt`, `.md`, `.json`, `.log`, `.srt`, `.vtt`, etc.) display a truncated preview powered by the backend API.
-    -   Binary files show a “preview not available” notice but can still be downloaded.
+    -   Binary files show a "preview not available" notice but can still be downloaded.
 6.  Once a file is selected, a **Download Selected File** component appears with a sandboxed link.
 7.  Use **Download Session Zip** to create a full archive of the session outputs directly from the browser.
+8.  Use **Delete Selected Artifact** to remove the selected file or folder, or **Delete Session** to purge the entire session directory (it disappears from the dropdown immediately).
 
 ## MCP Agent Workflows (Planned)
 - LangChain agent orchestrates pipeline tools for context-aware processing.

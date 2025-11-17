@@ -111,13 +111,39 @@ def create_process_session_tab(
                     )
                     skip_snippets_input = gr.Checkbox(
                         label="Skip Audio Snippets",
-                        info="Skip exporting individual WAV files. Saves disk space; transcripts will still be generated.",
+                        info="Skip exporting individual WAV files. Saves disk space; transcripts will be generated.",
                     )
                     skip_knowledge_input = gr.Checkbox(
                         label="Skip Campaign Knowledge Extraction",
                         info="Skip automatic extraction of quests, NPCs, locations, and items. Recommended to leave enabled.",
                         value=False,
                     )
+
+                with gr.Accordion("Advanced Processing Options", open=False):
+                    with gr.Row():
+                        enable_audit_mode_input = gr.Checkbox(
+                            label="Enable Audit Mode",
+                            info="Save detailed classification prompts and responses for reproducibility. Increases disk usage but enables debugging.",
+                            value=False,
+                        )
+                        redact_prompts_input = gr.Checkbox(
+                            label="Redact Prompts in Logs",
+                            info="When audit mode is enabled, redact full dialogue text from audit logs (preserves privacy).",
+                            value=False,
+                        )
+
+                    with gr.Row():
+                        generate_scenes_input = gr.Checkbox(
+                            label="Generate Scene Bundles",
+                            info="Automatically detect and bundle segments into narrative scenes. Improves story extraction quality.",
+                            value=True,
+                        )
+                        scene_summary_mode_input = gr.Dropdown(
+                            choices=["template", "llm", "none"],
+                            value="template",
+                            label="Scene Summary Mode",
+                            info="How to generate scene summaries: template (fast), llm (detailed), none (no summaries)"
+                        )
 
                 process_btn = UIComponents.create_action_button(
                     "Process Session",
@@ -363,6 +389,10 @@ def create_process_session_tab(
                 skip_classification_input,
                 skip_snippets_input,
                 skip_knowledge_input,
+                enable_audit_mode_input,
+                redact_prompts_input,
+                generate_scenes_input,
+                scene_summary_mode_input,
             ],
             outputs=[
                 status_output,
@@ -386,6 +416,10 @@ def create_process_session_tab(
         "skip_classification_input": skip_classification_input,
         "skip_snippets_input": skip_snippets_input,
         "skip_knowledge_input": skip_knowledge_input,
+        "enable_audit_mode_input": enable_audit_mode_input,
+        "redact_prompts_input": redact_prompts_input,
+        "generate_scenes_input": generate_scenes_input,
+        "scene_summary_mode_input": scene_summary_mode_input,
         "status_output": status_output,
         "full_output": full_output,
         "ic_output": ic_output,

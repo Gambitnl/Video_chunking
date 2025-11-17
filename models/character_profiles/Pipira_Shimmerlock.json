@@ -12,10 +12,10 @@
     "Pip",
     "Pipira"
   ],
-  "campaign_id": null,
+  "campaign_id": "team_op",
   "campaign_name": "Gaia Adventures - Culdor Academy",
   "first_session": "Session 1 (29-Nov-2024)",
-  "last_updated": "2025-11-16T08:29:08.435022",
+  "last_updated": "2025-11-17T16:47:37.324123",
   "notable_actions": [
     {
       "session": "Session 1",
@@ -70,6 +70,12 @@
       "timestamp": null,
       "description": "Planning a thunderstab attack on the zeppelin's structure.",
       "type": "combat"
+    },
+    {
+      "session": "test_s6_17nov_0901am",
+      "timestamp": null,
+      "description": "Pipira carefully observes her surroundings for any signs of danger.",
+      "type": "exploration"
     }
   ],
   "inventory": [
@@ -324,6 +330,11 @@
       "session": "Session6_test_16nov_0315am",
       "note": "Decides to take action against the guards who tried to escape.",
       "category": "combat"
+    },
+    {
+      "session": "test_s6_17nov_0901am",
+      "note": "Trying to leave her warden position and seeking other wizards for knowledge.",
+      "category": "general"
     }
   ],
   "memorable_quotes": [
@@ -452,9 +463,10 @@
     "Session 1",
     "Session 2",
     "Session 3",
-    "Session6_test_16nov_0315am"
+    "Session6_test_16nov_0315am",
+    "test_s6_17nov_0901am"
   ],
-  "total_sessions": 4,
+  "total_sessions": 5,
   "current_goals": [
     "Study the necromantic properties of the spider webs",
     "Learn new spells from found scrolls",

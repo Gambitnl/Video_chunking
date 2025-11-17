@@ -450,3 +450,166 @@ class IntermediateOutputManager:
             classifications.append(classification)
 
         return segments, classifications
+
+    # Audit logging methods for Topic 6 (Auditability)
+
+    def save_audit_log(
+        self,
+        segment_index: int,
+        prompt_data: Dict[str, Any],
+        response_data: Dict[str, Any],
+        model_info: Dict[str, Any],
+        redact: bool = False,
+    ) -> None:
+        """
+        Append a classification audit entry to the NDJSON audit log.
+
+        Args:
+            segment_index: Index of the segment being classified
+            prompt_data: Dictionary containing prompt context (prev/current/next text, speaker info)
+            response_data: Dictionary containing raw LLM response and parsed results
+            model_info: Dictionary containing model name, options, retry info
+            redact: If True, strip full text bodies but keep hashes and structural metadata
+        """
+        self.ensure_intermediates_dir()
+        audit_log_path = self.intermediates_dir / "stage_6_prompts.ndjson"
+
+        import hashlib
+
+        # Compute hashes for full content
+        prompt_text = str(prompt_data)
+        response_text = str(response_data.get("raw_response", ""))
+
+        prompt_hash = hashlib.sha256(prompt_text.encode()).hexdigest()
+        response_hash = hashlib.sha256(response_text.encode()).hexdigest()
+
+        # Build audit entry
+        audit_entry = {
+            "segment_index": segment_index,
+            "timestamp": datetime.now().isoformat(),
+            "prompt_hash": prompt_hash,
+            "response_hash": response_hash,
+            "model": model_info.get("model", "unknown"),
+            "options": model_info.get("options", {}),
+            "retry_strategy": model_info.get("retry_strategy"),
+        }
+
+        if not redact:
+            # Include truncated previews (first 256 chars)
+            audit_entry["prompt_preview"] = prompt_text[:256]
+            audit_entry["response_preview"] = response_text[:256]
+            audit_entry["prompt_data"] = prompt_data
+            audit_entry["response_data"] = response_data
+        else:
+            # Redacted mode: only include structure, no full text
+            audit_entry["prompt_structure"] = {
+                "has_prev": "prev_text" in prompt_data,
+                "has_current": "current_text" in prompt_data,
+                "has_next": "next_text" in prompt_data,
+                "speaker_count": len(prompt_data.get("speakers", [])),
+            }
+
+        # Append to NDJSON file
+        with open(audit_log_path, "a", encoding="utf-8") as f:
+            f.write(json.dumps(audit_entry) + "\n")
+
+        logger.debug(f"Appended audit entry for segment {segment_index} to {audit_log_path}")
+
+    def get_audit_log_path(self) -> Path:
+        """Get the path to the audit log file."""
+        return self.intermediates_dir / "stage_6_prompts.ndjson"
+
+    def update_classification_metadata(self, metadata: Dict[str, Any]) -> None:
+        """
+        Update the metadata block of stage_6_classification.json.
+
+        Args:
+            metadata: Dictionary containing metadata to merge (model, generation_stats, etc.)
+        """
+        stage_path = self.get_stage_path(6)
+        if not stage_path.exists():
+            logger.warning(f"Cannot update metadata: {stage_path} does not exist")
+            return
+
+        with open(stage_path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+
+        # Merge new metadata
+        existing_metadata = data.get("metadata", {})
+        existing_metadata.update(metadata)
+        data["metadata"] = existing_metadata
+
+        # Add reference to audit log if it exists
+        audit_log = self.get_audit_log_path()
+        if audit_log.exists():
+            data["metadata"]["prompt_log"] = str(audit_log.relative_to(self.session_output_dir))
+
+        with open(stage_path, "w", encoding="utf-8") as f:
+            json.dump(data, f, indent=2)
+
+        logger.debug(f"Updated classification metadata in {stage_path}")
+
+    # Scene bundle methods for Topic 7 (Scene-Level Bundles)
+
+    def save_scene_bundles(
+        self,
+        scenes: List[Dict[str, Any]],
+        statistics: Optional[Dict[str, Any]] = None,
+    ) -> Path:
+        """
+        Save scene bundles to stage_6_scenes.json.
+
+        Args:
+            scenes: List of scene dictionaries with fields:
+                - scene_index: int
+                - start_time: float
+                - end_time: float
+                - dominant_type: str (e.g., "CHARACTER", "DM_NARRATION")
+                - speaker_list: List[str]
+                - summary: str (optional)
+                - confidence_span: Dict[str, float] (optional, with "min" and "max")
+            statistics: Optional statistics about the scenes
+
+        Returns:
+            Path to the saved scenes file
+        """
+        self.ensure_intermediates_dir()
+        scenes_path = self.intermediates_dir / "stage_6_scenes.json"
+
+        data = {
+            "metadata": {
+                "session_id": self.session_id,
+                "generated_at": datetime.now().isoformat(),
+                "total_scenes": len(scenes),
+            },
+            "scenes": scenes,
+        }
+
+        if statistics:
+            data["statistics"] = statistics
+
+        with open(scenes_path, "w", encoding="utf-8") as f:
+            json.dump(data, f, indent=2)
+
+        logger.info(f"Saved {len(scenes)} scene bundles to {scenes_path}")
+        return scenes_path
+
+    def load_scene_bundles(self) -> Tuple[List[Dict[str, Any]], Dict[str, Any]]:
+        """
+        Load scene bundles from stage_6_scenes.json.
+
+        Returns:
+            Tuple of (scenes list, metadata dict)
+
+        Raises:
+            FileNotFoundError: If the scenes file doesn't exist
+        """
+        scenes_path = self.intermediates_dir / "stage_6_scenes.json"
+
+        if not scenes_path.exists():
+            raise FileNotFoundError(f"Scene bundles file not found: {scenes_path}")
+
+        with open(scenes_path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+
+        return data.get("scenes", []), data.get("metadata", {})

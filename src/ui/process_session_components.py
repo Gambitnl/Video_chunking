@@ -289,6 +289,32 @@ class ConfigurationSectionBuilder:
                         info="Disable automatic quest/NPC extraction.",
                     )
 
+                with gr.Accordion("Advanced Processing Options", open=False):
+                    with gr.Row():
+                        components["enable_audit_mode_input"] = gr.Checkbox(
+                            label="Enable Audit Mode",
+                            value=False,
+                            info="Save detailed classification prompts and responses for reproducibility. Increases disk usage but enables debugging.",
+                        )
+                        components["redact_prompts_input"] = gr.Checkbox(
+                            label="Redact Prompts in Logs",
+                            value=False,
+                            info="When audit mode is enabled, redact full dialogue text from audit logs.",
+                        )
+
+                    with gr.Row():
+                        components["generate_scenes_input"] = gr.Checkbox(
+                            label="Generate Scene Bundles",
+                            value=True,
+                            info="Automatically detect and bundle segments into narrative scenes.",
+                        )
+                        components["scene_summary_mode_input"] = gr.Dropdown(
+                            choices=["template", "llm", "none"],
+                            value="template",
+                            label="Scene Summary Mode",
+                            info="How to generate scene summaries (template=fast, llm=detailed, none=skip)",
+                        )
+
         return components
 
 
@@ -397,7 +423,7 @@ class ResultsSectionBuilder:
         Returns:
             Dictionary with component references:
             - results_section (Group)
-            - full_output
+            - full_output (HighlightedText)
             - ic_output
             - ooc_output
             - stats_output
@@ -408,7 +434,21 @@ class ResultsSectionBuilder:
 
         with gr.Group(visible=False, elem_id="process-results-section") as results_section:
             gr.Markdown("### Step 4: Review Results")
-            components["full_output"] = gr.Textbox(label="Full Transcript", lines=10)
+            
+            # IMPROVEMENT: Use HighlightedText for a richer, color-coded transcript view.
+            color_map = {
+                "CHARACTER": "blue",
+                "DM_NARRATION": "gray",
+                "NPC_DIALOGUE": "purple",
+                "OOC_OTHER": "red",
+            }
+            components["full_output"] = gr.HighlightedText(
+                label="Full Transcript (Color-Coded by Classification)",
+                color_map=color_map,
+                interactive=False,
+                show_legend=True,
+            )
+            
             components["ic_output"] = gr.Textbox(label="In-Character Transcript", lines=10)
             components["ooc_output"] = gr.Textbox(label="Out-of-Character Transcript", lines=10)
             components["stats_output"] = gr.Markdown()

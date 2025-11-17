@@ -275,7 +275,7 @@ def render_processing_response(response: Dict[str, Any]) -> Tuple:
         return (
             StatusMessages.error("Processing Failed", "Unexpected response from pipeline."),
             gr.update(visible=False),
-            "",
+            None, # highlighted_transcript
             "",
             "",
             StatusMessages.info("Statistics", "No statistics available."),
@@ -291,7 +291,7 @@ def render_processing_response(response: Dict[str, Any]) -> Tuple:
                 response.get("details", "")
             ),
             gr.update(visible=False),
-            response.get("full", ""),
+            response.get("highlighted_transcript") or None,
             response.get("ic", ""),
             response.get("ooc", ""),
             StatusMessages.info("Statistics", "No statistics available."),
@@ -308,7 +308,7 @@ def render_processing_response(response: Dict[str, Any]) -> Tuple:
     return (
         StatusMessages.success("Processing Complete", response.get("message", "Session processed successfully.")),
         gr.update(visible=True),
-        response.get("full", ""),
+        response.get("highlighted_transcript") or [], # Use new highlighted data for full_output
         response.get("ic", ""),
         response.get("ooc", ""),
         stats_markdown,

@@ -179,3 +179,41 @@ def test_zip_requires_directory(service_env):
 
     with pytest.raises(SessionArtifactServiceError):
         service.create_session_zip("session_golf/note.txt")
+
+
+def test_delete_file_removes_artifact(service_env):
+    """Deleting a file should remove it from disk and return metadata."""
+    service, output_dir, _ = service_env
+    session = output_dir / "session_hotel"
+    session.mkdir()
+    target = session / "obsolete.txt"
+    _write_text(target, "obsolete")
+
+    metadata = service.delete_artifact("session_hotel/obsolete.txt")
+    assert metadata.name == "obsolete.txt"
+    assert not target.exists()
+
+
+def test_delete_directory_requires_recursive_flag(service_env):
+    """Non-empty directories require recursive deletion."""
+    service, output_dir, _ = service_env
+    session = output_dir / "session_india"
+    nested = session / "intermediates"
+    nested.mkdir(parents=True)
+    _write_text(nested / "stage.json", "{}")
+
+    with pytest.raises(SessionArtifactServiceError):
+        service.delete_artifact("session_india/intermediates", recursive=False)
+
+
+def test_delete_directory_recursive(service_env):
+    """Recursive deletion should remove directories and their contents."""
+    service, output_dir, _ = service_env
+    session = output_dir / "session_juliet"
+    nested = session / "segments"
+    nested.mkdir(parents=True)
+    _write_text(nested / "chunk.txt", "chunk")
+
+    metadata = service.delete_artifact("session_juliet/segments", recursive=True)
+    assert metadata.is_directory is True
+    assert not nested.exists()

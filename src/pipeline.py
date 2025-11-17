@@ -21,6 +21,7 @@ from .status_tracker import StatusTracker
 from .knowledge_base import KnowledgeExtractor, CampaignKnowledgeBase
 from .preflight import PreflightChecker, PreflightIssue
 from .intermediate_output import IntermediateOutputManager
+from .scene_builder import SceneBuilder
 
 try:  # pragma: no cover - convenience for test environment
     from unittest.mock import Mock as _Mock  # type: ignore
@@ -148,6 +149,10 @@ class DDSessionProcessor:
         transcription_backend: str = "whisper",
         diarization_backend: str = "pyannote",
         classification_backend: str = "ollama",
+        enable_audit_mode: bool = False,
+        redact_prompts: bool = False,
+        generate_scenes: bool = True,
+        scene_summary_mode: str = "template",
     ):
         """
         Args:
@@ -157,7 +162,15 @@ class DDSessionProcessor:
             player_names: List of player names
             num_speakers: Expected number of speakers (3 players + 1 DM = 4)
             party_id: Party configuration to use (defaults to "default")
+            language: Language for transcription (default: "en")
             resume: Enable checkpoint resume functionality (default: True)
+            transcription_backend: Backend for transcription (whisper, groq, openai)
+            diarization_backend: Backend for diarization (pyannote, etc.)
+            classification_backend: Backend for classification (ollama, etc.)
+            enable_audit_mode: Save detailed classification prompts/responses (default: False)
+            redact_prompts: Redact full text from audit logs when enabled (default: False)
+            generate_scenes: Automatically group segments into scenes (default: True)
+            scene_summary_mode: How to generate scene summaries - template, llm, or none (default: "template")
         """
         self.session_id = session_id
         self.safe_session_id = sanitize_filename(session_id)
@@ -201,6 +214,12 @@ class DDSessionProcessor:
             self.party_context = None
 
         self.num_speakers = num_speakers
+
+        # Store audit and scene generation settings
+        self.enable_audit_mode = enable_audit_mode
+        self.redact_prompts = redact_prompts
+        self.generate_scenes = generate_scenes
+        self.scene_summary_mode = scene_summary_mode
 
         # Initialize components
         self.audio_processor = AudioProcessor()
@@ -1963,6 +1982,25 @@ class DDSessionProcessor:
                             )
                         except Exception as e:
                             self.logger.warning("Failed to save intermediate output for stage 6: %s", e)
+
+                    # Generate scene bundles if enabled
+                    if self.generate_scenes:
+                        try:
+                            self.logger.info("Building narrative scenes from classifications...")
+                            scene_builder = SceneBuilder(
+                                max_gap_seconds=75.0,  # TODO: Make configurable via UI
+                                check_classification_change=True
+                            )
+                            scenes = scene_builder.build_scenes(
+                                speaker_segments_with_labels,
+                                [c.to_dict() for c in classifications],
+                                summary_mode=self.scene_summary_mode
+                            )
+                            statistics = scene_builder.calculate_statistics(scenes)
+                            intermediate_output_manager.save_scene_bundles(scenes, statistics)
+                            self.logger.info("Generated %d scenes", len(scenes))
+                        except Exception as e:
+                            self.logger.warning("Failed to generate scene bundles: %s", e)
                 else:
                     raise RuntimeError(f"Segment classification failed: {', '.join(result.errors)}")
 

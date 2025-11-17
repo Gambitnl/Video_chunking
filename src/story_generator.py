@@ -33,48 +33,67 @@ class StoryGenerator:
             sys.stderr = old_stderr
             ollama_logger.setLevel(original_level)
 
-    def _build_prompt(self, perspective_name: str, segments: List[Dict], character_names: List[str], narrator: bool, notebook_context: str) -> str:
-        key_segments: List[str] = []
+    def _build_story_transcript(self, segments: List[Dict], perspective_name: str) -> str:
+        """
+        Build a rich, story-like transcript from structured segments.
+        """
+        story_parts: List[str] = []
+        narrative_types = {"CHARACTER", "DM_NARRATION", "NPC_DIALOGUE"}
+
         for seg in segments:
-            if seg.get("classification", "IC") != "IC":
+            classification_type = seg.get("classification_type")
+            if not classification_type in narrative_types:
                 continue
+
             text = (seg.get("text") or "").strip()
             if not text:
                 continue
-            char = seg.get("character") or seg.get("speaker_name") or ""
-            timestamp = seg.get("start_time")
-            try:
-                stamp = float(timestamp)
-            except (TypeError, ValueError):
-                stamp = 0.0
-            key_segments.append(f"[{stamp:06.2f}] {char}: {text}")
-            if len(key_segments) >= 60:
-                break
 
-        joined_segments = "\n".join(key_segments) if key_segments else "(Transcript excerpts unavailable)"
+            actor = seg.get("character_name") or seg.get("speaker_name", "Unknown")
+
+            if classification_type == "DM_NARRATION":
+                story_parts.append(text)
+            elif classification_type in ("CHARACTER", "NPC_DIALOGUE"):
+                pov_marker = ""
+                if perspective_name.lower() == actor.lower():
+                    pov_marker = " (You)"
+                
+                story_parts.append(f'{actor}{pov_marker}: "{text}"')
+        
+        return "\n\n".join(story_parts)
+
+
+    def _build_prompt(self, perspective_name: str, segments: List[Dict], character_names: List[str], narrator: bool, notebook_context: str) -> str:
+        
+        story_transcript = self._build_story_transcript(segments, perspective_name)
+        if not story_transcript:
+            story_transcript = "(No narrative segments were found in this session.)"
+
         persona = (
             f"You are the character {perspective_name}, one of the main protagonists."
             if not narrator
             else "You are an omniscient narrator summarizing events for the campaign log."
         )
+        
         supporting = (
             "Campaign notebook excerpt:\n" + (notebook_context[:3000] if notebook_context else "(no additional notes provided)")
         )
+        
         instructions = (
-            "Write a concise per-session narrative (~3-5 paragraphs) capturing actions, emotions, and consequences. Maintain continuity with prior sessions and keep vocabulary consistent with the character's voice."
+            f"Write a concise, first-person narrative from the perspective of {perspective_name} (~3-5 paragraphs) capturing your actions, emotions, and consequences. Maintain continuity with prior sessions and keep your vocabulary consistent with your character's voice."
             if not narrator
-            else "Provide a balanced overview highlighting each character's contributions while keeping the tone neutral and descriptive."
+            else "Provide a balanced, third-person overview highlighting each character's contributions while keeping the tone neutral and descriptive. Write it in the style of a fantasy novel."
         )
 
         return (
             f"{persona}\n"
-            "You are summarizing a D&D session using the following transcript extracts.\n"
+            "You are to write a story summary of a D&D session using the following story transcript.\n"
             "Focus on the referenced events; infer light transitions when necessary but avoid inventing new story beats.\n"
             "Keep the output under 500 words.\n\n"
-            "Transcript snippets:\n"
-            f"{joined_segments}\n\n"
-            f"{supporting}\n\n"
-            "Instructions:\n"
+            "**Story Transcript**:\n"
+            f"{story_transcript}\n\n"
+            f"**Supporting Notes**:\n{supporting}\n\n"
+            "**Your Task**:\n"
             f"{instructions}\n"
         )
 

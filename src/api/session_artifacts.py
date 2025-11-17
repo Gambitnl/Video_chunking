@@ -275,6 +275,41 @@ class SessionArtifactsAPI:
             self.logger.error(f"Failed to create session zip: {e}", exc_info=True)
             return None
 
+    def delete_artifact(self, relative_path: str, recursive: bool = False) -> Dict[str, Any]:
+        """
+        Delete an artifact (file or directory) via the service layer.
+
+        Args:
+            relative_path: Relative path to the artifact.
+            recursive: Allow deleting non-empty directories.
+
+        Returns:
+            Response dictionary describing the deleted artifact.
+        """
+        if not relative_path:
+            return self._error_response("relative_path is required", status="invalid")
+
+        try:
+            metadata = self.service.delete_artifact(relative_path, recursive=recursive)
+            return self._success_response({
+                "deleted": True,
+                "name": metadata.name,
+                "relative_path": metadata.relative_path,
+                "artifact_type": metadata.artifact_type,
+                "size_bytes": metadata.size_bytes,
+                "created": metadata.created.isoformat(),
+                "modified": metadata.modified.isoformat(),
+                "is_directory": metadata.is_directory,
+                "recursive": recursive,
+            })
+        except SessionArtifactServiceError as e:
+            if "does not exist" in str(e):
+                return self._error_response(str(e), status="not_found")
+            return self._error_response(str(e), status="invalid")
+        except Exception as e:
+            self.logger.error(f"Failed to delete artifact {relative_path}: {e}", exc_info=True)
+            return self._error_response(f"Failed to delete artifact: {str(e)}")
+
 
 # Global API instance (can be imported by other modules)
 _api_instance: Optional[SessionArtifactsAPI] = None
@@ -335,3 +370,9 @@ def download_session_api(relative_path: str) -> Optional[Tuple[Path, str]]:
     """Download session (convenience wrapper)."""
     api = get_api_instance()
     return api.download_session(relative_path)
+
+
+def delete_artifact_api(relative_path: str, recursive: bool = False) -> Dict[str, Any]:
+    """Delete an artifact (convenience wrapper)."""
+    api = get_api_instance()
+    return api.delete_artifact(relative_path, recursive=recursive)

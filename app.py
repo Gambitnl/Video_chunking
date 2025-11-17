@@ -43,6 +43,7 @@ from src.ui.characters_tab_modern import (
     create_characters_tab_modern,
     character_tab_snapshot,
 )
+from src.ui.party_management_tab import create_party_management_tab
 from src.ui.stories_output_tab_modern import create_stories_output_tab_modern
 from src.ui.settings_tools_tab_modern import create_settings_tools_tab_modern
 from src.ui.session_artifacts_tab import create_session_artifacts_tab, refresh_sessions as refresh_artifact_sessions
@@ -1272,6 +1273,7 @@ with gr.Blocks(
         active_campaign_state=active_campaign_state,
         initial_campaign_id=initial_campaign_id,
     )
+    create_party_management_tab(available_parties)
     stories_tab_refs = create_stories_output_tab_modern(demo)
     artifacts_tab_refs = create_session_artifacts_tab(demo)
     settings_tab_refs = create_settings_tools_tab_modern(

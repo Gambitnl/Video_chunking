@@ -255,7 +255,12 @@ def create_social_insights_tab(
         initial_sessions = story_manager.list_sessions()
 
     def refresh_sessions_ui(campaign_name: str = "All Campaigns"):
-        """Refresh session list when campaign changes."""
+        """
+        Refresh session list when campaign changes.
+
+        Also clears previous analysis results to avoid showing stale data
+        from a different campaign.
+        """
         campaign_id = None
         if campaign_name != "All Campaigns":
             campaign_names_map = refresh_campaign_names()
@@ -264,7 +269,21 @@ def create_social_insights_tab(
                 None
             )
         sessions = story_manager.list_sessions(campaign_id=campaign_id)
-        return gr.update(choices=sessions, value=sessions[0] if sessions else None)
+
+        # Clear previous analysis results when campaign changes
+        clear_message = StatusMessages.info(
+            "Campaign Changed",
+            f"Switched to {campaign_name}. Select a session and click Analyze Banter to view insights."
+        )
+
+        return (
+            gr.update(choices=sessions, value=sessions[0] if sessions else None),  # session dropdown
+            None,  # Clear keyword_output
+            None,  # Clear topics_output
+            None,  # Clear nebula_output
+            None,  # Clear insights_output
+            clear_message,  # Update status with campaign change message
+        )
 
     # UI Layout
     with gr.Tab("Social Insights"):
@@ -356,7 +375,14 @@ def create_social_insights_tab(
         campaign_selector.change(
             fn=refresh_sessions_ui,
             inputs=[campaign_selector],
-            outputs=[insight_session_id],
+            outputs=[
+                insight_session_id,
+                keyword_output,
+                topics_output,
+                nebula_output,
+                insights_output,
+                status_output,
+            ],
         )
 
         insight_btn.click(

@@ -559,9 +559,10 @@ If you find a `[~]` task with timestamp >24 hours old:
   - **Effort**: 20 min | **Conflict Risk**: ⚠️ LOW
   → BUG_HUNT_TODO.md:393
 
-- [~] **BUG-20251103-024**: Social Insights - Stale nebula after campaign filter change (Agent: Claude Sonnet 4.5, Started: 2025-11-18 15:00 UTC, Files: src/ui/social_insights_tab.py)
-  - **Files**: `src/ui/social_insights_tab.py:356-360`
-  - **Effort**: 30 min | **Conflict Risk**: ⚠️ LOW
+- [x] **BUG-20251103-024**: Social Insights - Stale nebula after campaign filter change (Agent: Claude Sonnet 4.5, Completed: 2025-11-18)
+  - **Files**: `src/ui/social_insights_tab.py:257-286, 375-386`
+  - **Effort**: 30 min (actual: 20 min) | **Conflict Risk**: ⚠️ LOW
+  - **Fix**: Modified refresh_sessions_ui to return 6 outputs (session dropdown + 5 cleared result components), added StatusMessages feedback when campaign changes
   → BUG_HUNT_TODO.md:410
 
 #### Campaign Dashboard Polish

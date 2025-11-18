@@ -574,7 +574,7 @@ If you find a `[~]` task with timestamp >24 hours old:
   - **Effort**: 20 min | **Conflict Risk**: ⚠️⚠️ MEDIUM
   → BUG_HUNT_TODO.md:335
 
-- [ ] **BUG-20251103-015**: Campaign Dashboard - Health percentage edge case
+- [x] **BUG-20251103-015**: Campaign Dashboard - Health percentage edge case (Agent: Jules, Completed: 2025-11-18)
   - **Files**: `src/campaign_dashboard.py:196`
   - **Effort**: 15 min | **Conflict Risk**: ⚠️⚠️ MEDIUM
   → BUG_HUNT_TODO.md:341

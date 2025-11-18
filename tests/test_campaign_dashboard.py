@@ -121,25 +121,55 @@ class TestCampaignDashboard:
         assert "Partial" in status_partial.details
         assert "Missing**: Gimli" in status_partial.details
 
-    def test_check_processed_sessions(self, dashboard_with_mocks):
+    @patch('builtins.open')
+    @patch('json.load')
+    def test_check_processed_sessions(self, mock_json_load, mock_open, dashboard_with_mocks):
         # Import here to access the mocked version from the autouse fixture
         from src.campaign_dashboard import Config
         dashboard, _ = dashboard_with_mocks
 
-        # Case 1: Sessions found
+        # Case 1: Sessions found for the campaign
         Config.OUTPUT_DIR.exists.return_value = True
         mock_session_dir = MagicMock(spec=Path)
         mock_session_dir.name = "session_123"
         mock_session_dir.is_dir.return_value = True
-        mock_session_dir.glob.return_value = ["foo_data.json"]
+        mock_data_file = MagicMock()
+        mock_session_dir.glob.return_value = [mock_data_file]
         Config.OUTPUT_DIR.iterdir.return_value = [mock_session_dir]
         
-        status_found = dashboard._check_processed_sessions()
+        mock_json_load.return_value = {"campaign_id": "test_campaign"}
+
+        mock_stat_result = MagicMock()
+        mock_stat_result.st_mtime = 1
+        mock_session_dir.stat.return_value = mock_stat_result
+
+        status_found = dashboard._check_processed_sessions("test_campaign")
         assert status_found.is_ok
         assert "1 session(s) found" in status_found.details
 
         # Case 2: No sessions found
         Config.OUTPUT_DIR.exists.return_value = False
-        status_none = dashboard._check_processed_sessions()
+        status_none = dashboard._check_processed_sessions("test_campaign")
         assert not status_none.is_ok
         assert "No sessions processed yet" in status_none.details
+
+    def test_generate_with_all_checks_failing(self, dashboard_with_mocks):
+        dashboard, mocks = dashboard_with_mocks
+        campaign = Campaign(name="Test Campaign", party_id="p1", settings=CampaignSettings())
+        mocks['campaign'].get_campaign_names.return_value = {"test_id": "Test Campaign"}
+        mocks['campaign'].get_campaign.return_value = campaign
+
+        # This is the key insight: the mock needs to behave like the ComponentStatus object.
+        from src.campaign_dashboard import ComponentStatus
+        mock_failed_status = ComponentStatus(is_ok=False, title="Failed Check", details="This is a failure message.")
+
+        with patch.object(dashboard, '_check_party_config', return_value=mock_failed_status), \
+             patch.object(dashboard, '_check_processing_settings', return_value=mock_failed_status), \
+             patch.object(dashboard, '_check_knowledge_base', return_value=mock_failed_status), \
+             patch.object(dashboard, '_check_character_profiles', return_value=mock_failed_status), \
+             patch.object(dashboard, '_check_processed_sessions', return_value=mock_failed_status), \
+             patch.object(dashboard, '_check_session_narratives', return_value=mock_failed_status):
+
+            result = dashboard.generate("Test Campaign")
+            assert "Health: Needs Setup (0%)" in result
+            assert "This is a failure message." in result

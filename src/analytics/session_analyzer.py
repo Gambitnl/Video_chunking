@@ -25,6 +25,15 @@ from .data_models import (
 
 logger = logging.getLogger("DDSessionProcessor.session_analyzer")
 
+# Insight generation thresholds (extracted as constants for maintainability)
+DURATION_THRESHOLD_LONG = 1.5  # Sessions >150% of average are considered "notably long"
+DURATION_THRESHOLD_SHORT = 0.5  # Sessions <50% of average are considered "notably short"
+IC_THRESHOLD_HIGH = 20.0  # IC% deviation above average to trigger "high IC" insight
+OOC_THRESHOLD_HIGH = 20.0  # OOC% deviation above average to trigger "high OOC" insight
+SPEAKER_COUNT_THRESHOLD = 2.0  # Speaker count deviation above average to trigger insight
+IC_VARIANCE_CONSISTENT = 10.0  # Standard deviation below this is "consistent"
+IC_VARIANCE_VARYING = 25.0  # Standard deviation above this is "varying significantly"
+
 
 class SessionAnalyzer:
     """
@@ -467,13 +476,13 @@ class SessionAnalyzer:
         longest = max(sessions, key=lambda s: s.duration)
         shortest = min(sessions, key=lambda s: s.duration)
 
-        if longest.duration > avg_duration * 1.5:
+        if longest.duration > avg_duration * DURATION_THRESHOLD_LONG:
             insights.append(
                 f"Session '{longest.session_name}' was notably long "
-                f"({longest.duration_formatted()}), 50%+ above average"
+                f"({longest.duration_formatted()}), {int((DURATION_THRESHOLD_LONG - 1) * 100)}%+ above average"
             )
 
-        if shortest.duration < avg_duration * 0.5:
+        if shortest.duration < avg_duration * DURATION_THRESHOLD_SHORT:
             insights.append(
                 f"Session '{shortest.session_name}' was notably short "
                 f"({shortest.duration_formatted()}), 50%+ below average"
@@ -486,13 +495,13 @@ class SessionAnalyzer:
         most_ic = max(sessions, key=lambda s: s.ic_percentage())
         most_ooc = max(sessions, key=lambda s: s.ooc_percentage())
 
-        if most_ic.ic_percentage() > avg_ic + 20:
+        if most_ic.ic_percentage() > avg_ic + IC_THRESHOLD_HIGH:
             insights.append(
                 f"Session '{most_ic.session_name}' had high IC content "
                 f"({most_ic.ic_percentage():.1f}%), well above average"
             )
 
-        if most_ooc.ooc_percentage() > (100 - avg_ic) + 20:
+        if most_ooc.ooc_percentage() > (100 - avg_ic) + OOC_THRESHOLD_HIGH:
             insights.append(
                 f"Session '{most_ooc.session_name}' had high OOC content "
                 f"({most_ooc.ooc_percentage():.1f}%), well above average"
@@ -503,7 +512,7 @@ class SessionAnalyzer:
         avg_speakers = sum(speaker_counts) / len(speaker_counts)
 
         most_speakers = max(sessions, key=lambda s: s.speaker_count)
-        if most_speakers.speaker_count > avg_speakers + 2:
+        if most_speakers.speaker_count > avg_speakers + SPEAKER_COUNT_THRESHOLD:
             insights.append(
                 f"Session '{most_speakers.session_name}' had {most_speakers.speaker_count} "
                 f"speakers, more than typical ({avg_speakers:.1f} average)"
@@ -514,12 +523,12 @@ class SessionAnalyzer:
             ic_variance = sum((x - avg_ic) ** 2 for x in ic_percentages) / len(ic_percentages)
             ic_std_dev = ic_variance ** 0.5
 
-            if ic_std_dev < 10:
+            if ic_std_dev < IC_VARIANCE_CONSISTENT:
                 insights.append(
                     f"Sessions show consistent IC/OOC balance "
                     f"(avg {avg_ic:.1f}% IC, std dev {ic_std_dev:.1f}%)"
                 )
-            elif ic_std_dev > 25:
+            elif ic_std_dev > IC_VARIANCE_VARYING:
                 insights.append(
                     f"Sessions vary significantly in IC/OOC balance "
                     f"(std dev {ic_std_dev:.1f}%)"

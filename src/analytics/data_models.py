@@ -99,10 +99,10 @@ class SessionMetrics:
         assert self.ic_message_count >= 0, "IC message count cannot be negative"
         assert self.ooc_message_count >= 0, "OOC message count cannot be negative"
 
-        # Ensure IC + OOC = total (allow small floating point error)
+        # Ensure IC + OOC = total (must be exact match)
         total_messages = self.ic_message_count + self.ooc_message_count
         if self.message_count > 0:
-            assert abs(total_messages - self.message_count) <= 1, \
+            assert total_messages == self.message_count, \
                 f"IC + OOC messages ({total_messages}) != total messages ({self.message_count})"
 
     def ic_percentage(self) -> float:

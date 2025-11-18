@@ -283,7 +283,7 @@ class AnalyticsVisualizer:
         if not insights:
             return f"{SI.INFO} No insights generated"
 
-        md = "### {SI.LIGHTBULB} Auto-Generated Insights\n\n"
+        md = f"### {SI.LIGHTBULB} Auto-Generated Insights\n\n"
 
         for i, insight in enumerate(insights, 1):
             md += f"{i}. {insight}\n"

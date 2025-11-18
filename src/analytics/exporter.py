@@ -218,8 +218,8 @@ class AnalyticsExporter:
                         f"{char_stats.ic_percentage():.2f}",
                         f"{char_stats.ooc_percentage():.2f}",
                         f"{char_stats.avg_message_length:.2f}",
-                        char_stats.first_appearance if char_stats.first_appearance else "",
-                        char_stats.last_appearance if char_stats.last_appearance else ""
+                        char_stats.first_appearance if char_stats.first_appearance is not None else "",
+                        char_stats.last_appearance if char_stats.last_appearance is not None else ""
                     ]
                     writer.writerow(row)
 

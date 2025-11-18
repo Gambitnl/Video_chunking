@@ -11,6 +11,7 @@ This tab provides:
 from __future__ import annotations
 
 import logging
+from datetime import datetime
 from pathlib import Path
 from typing import List, Optional, Tuple
 
@@ -38,10 +39,6 @@ def create_analytics_tab(project_root: Path) -> None:
     visualizer = AnalyticsVisualizer()
     exporter = AnalyticsExporter()
 
-    # State for selected sessions and results
-    current_comparison = None
-    current_timeline = None
-
     def refresh_sessions() -> gr.Dropdown:
         """Refresh the list of available sessions."""
         try:
@@ -64,23 +61,29 @@ def create_analytics_tab(project_root: Path) -> None:
                 value=[]
             )
 
-    def analyze_sessions(selected_sessions: List[str]) -> Tuple[str, str, str]:
+    def analyze_sessions(
+        selected_sessions: List[str],
+        comparison_state,
+        timeline_state
+    ) -> Tuple[str, str, str, object, object]:
         """
         Analyze selected sessions and generate comparison.
 
         Args:
             selected_sessions: List of session IDs to analyze
+            comparison_state: Current comparison state
+            timeline_state: Current timeline state
 
         Returns:
-            Tuple of (summary_md, comparison_md, insights_md)
+            Tuple of (summary_md, comparison_md, insights_md, new_comparison, new_timeline)
         """
-        nonlocal current_comparison, current_timeline
-
         if not selected_sessions:
             return (
                 StatusMessages.info("No Selection", "Please select at least one session to analyze"),
                 "",
-                ""
+                "",
+                None,
+                None
             )
 
         if len(selected_sessions) > 5:
@@ -90,7 +93,9 @@ def create_analytics_tab(project_root: Path) -> None:
                     f"You selected {len(selected_sessions)} sessions. Please select 5 or fewer."
                 ),
                 "",
-                ""
+                "",
+                None,
+                None
             )
 
         try:
@@ -106,7 +111,9 @@ def create_analytics_tab(project_root: Path) -> None:
                         "Could not load any of the selected sessions."
                     ),
                     "",
-                    ""
+                    "",
+                    None,
+                    None
                 )
 
             if len(sessions) < len(selected_sessions):
@@ -117,10 +124,6 @@ def create_analytics_tab(project_root: Path) -> None:
             # Generate comparison
             comparison = analyzer.compare_sessions(sessions)
             timeline = analyzer.generate_timeline(sessions)
-
-            # Store results
-            current_comparison = comparison
-            current_timeline = timeline
 
             # Generate visualizations
             summary_md = visualizer.generate_summary_stats(comparison)
@@ -140,7 +143,9 @@ def create_analytics_tab(project_root: Path) -> None:
             return (
                 summary_md,
                 full_comparison_md,
-                timeline_insights_md
+                timeline_insights_md,
+                comparison,
+                timeline
             )
 
         except Exception as e:
@@ -148,26 +153,28 @@ def create_analytics_tab(project_root: Path) -> None:
             return (
                 StatusMessages.error(
                     "Analysis Failed",
-                    "An error occurred while analyzing sessions.",
-                    str(e)
+                    "An unexpected error occurred while analyzing sessions.",
+                    "Check the application logs for more details."
                 ),
                 "",
-                ""
+                "",
+                None,
+                None
             )
 
-    def export_analytics(export_format: str) -> str:
+    def export_analytics(export_format: str, comparison_state, timeline_state) -> str:
         """
         Export analytics data to selected format.
 
         Args:
             export_format: Format to export ("json", "csv", "markdown", "all")
+            comparison_state: Current comparison state
+            timeline_state: Current timeline state
 
         Returns:
             Status message
         """
-        nonlocal current_comparison, current_timeline
-
-        if not current_comparison:
+        if not comparison_state:
             return StatusMessages.warning(
                 "No Data",
                 "Please analyze sessions before exporting"
@@ -181,8 +188,8 @@ def create_analytics_tab(project_root: Path) -> None:
             if export_format == "all":
                 # Export all formats
                 results = exporter.export_full_report(
-                    current_comparison,
-                    current_timeline,
+                    comparison_state,
+                    timeline_state,
                     export_dir
                 )
 
@@ -204,27 +211,24 @@ def create_analytics_tab(project_root: Path) -> None:
                     )
 
             elif export_format == "json":
-                from datetime import datetime
                 filename = f"analytics_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
                 success = exporter.export_to_json(
-                    current_comparison,
+                    comparison_state,
                     export_dir / filename
                 )
 
             elif export_format == "csv":
-                from datetime import datetime
                 filename = f"analytics_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
                 success = exporter.export_to_csv(
-                    current_comparison,
+                    comparison_state,
                     export_dir / filename
                 )
 
             elif export_format == "markdown":
-                from datetime import datetime
                 filename = f"analytics_{datetime.now().strftime('%Y%m%d_%H%M%S')}.md"
                 success = exporter.export_to_markdown(
-                    current_comparison,
-                    current_timeline,
+                    comparison_state,
+                    timeline_state,
                     export_dir / filename
                 )
 
@@ -246,16 +250,38 @@ def create_analytics_tab(project_root: Path) -> None:
                     f"Could not export to {export_format}"
                 )
 
+        except PermissionError:
+            logger.error("Permission denied while exporting analytics", exc_info=True)
+            return StatusMessages.error(
+                "Permission Denied",
+                "Cannot write to export directory. Check file permissions."
+            )
+        except OSError as e:
+            logger.error(f"OS error while exporting analytics: {e}", exc_info=True)
+            if "disk full" in str(e).lower() or "no space" in str(e).lower():
+                return StatusMessages.error(
+                    "Disk Full",
+                    "Not enough disk space to save export."
+                )
+            else:
+                return StatusMessages.error(
+                    "File System Error",
+                    "Could not save file. Check disk space and permissions."
+                )
         except Exception as e:
             logger.error(f"Error exporting analytics: {e}", exc_info=True)
             return StatusMessages.error(
                 "Export Failed",
-                "An error occurred while exporting",
-                str(e)
+                "An unexpected error occurred while exporting.",
+                "Check the application logs for more details."
             )
 
     # Create the UI
     with gr.Tab("Analytics"):
+        # State variables for thread-safe storage
+        comparison_state = gr.State(value=None)
+        timeline_state = gr.State(value=None)
+
         gr.Markdown(f"""
         ### {SI.CHART} Session Analytics Dashboard
 
@@ -352,27 +378,31 @@ def create_analytics_tab(project_root: Path) -> None:
 
         analyze_btn.click(
             fn=analyze_sessions,
-            inputs=[session_dropdown],
-            outputs=[summary_display, comparison_display, timeline_display]
+            inputs=[session_dropdown, comparison_state, timeline_state],
+            outputs=[summary_display, comparison_display, timeline_display, comparison_state, timeline_state]
         )
 
         export_json_btn.click(
-            fn=lambda: export_analytics("json"),
+            fn=lambda comp, timeline: export_analytics("json", comp, timeline),
+            inputs=[comparison_state, timeline_state],
             outputs=[export_status]
         )
 
         export_csv_btn.click(
-            fn=lambda: export_analytics("csv"),
+            fn=lambda comp, timeline: export_analytics("csv", comp, timeline),
+            inputs=[comparison_state, timeline_state],
             outputs=[export_status]
         )
 
         export_md_btn.click(
-            fn=lambda: export_analytics("markdown"),
+            fn=lambda comp, timeline: export_analytics("markdown", comp, timeline),
+            inputs=[comparison_state, timeline_state],
             outputs=[export_status]
         )
 
         export_all_btn.click(
-            fn=lambda: export_analytics("all"),
+            fn=lambda comp, timeline: export_analytics("all", comp, timeline),
+            inputs=[comparison_state, timeline_state],
             outputs=[export_status]
         )
 

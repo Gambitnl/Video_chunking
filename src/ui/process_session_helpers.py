@@ -280,14 +280,13 @@ def render_processing_response(response: Dict[str, Any]) -> Tuple:
             if (resultsSection && resultsSection.offsetParent !== null) {
                 // Element exists and is visible
                 resultsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                return true;
+                return;
             }
 
             attempts++;
             if (attempts < maxAttempts) {
                 setTimeout(tryScroll, retryInterval);
             }
-            return false;
         }
 
         // Initial attempt after short delay for DOM updates

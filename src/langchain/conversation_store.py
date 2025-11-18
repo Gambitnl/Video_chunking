@@ -257,12 +257,38 @@ class ConversationStore:
             self._validate_conversation_data(conversation)
 
             return conversation
-        except (json.JSONDecodeError, IOError) as e:
+        except json.JSONDecodeError as e:
+            logger.error(f"Error loading conversation {conversation_id}: {e}")
+            self._quarantine_corrupted_file(conversation_file)
+            return None
+        except IOError as e:
             logger.error(f"Error loading conversation {conversation_id}: {e}")
             return None
         except ValueError as e:
             logger.error(f"Invalid conversation data in {conversation_id}: {e}")
             return None
+
+    def _quarantine_corrupted_file(self, conversation_file: Path) -> None:
+        """Move a corrupted conversation file aside to prevent repeated failures."""
+
+        corrupted_path = conversation_file.with_suffix(conversation_file.suffix + ".corrupted")
+        if corrupted_path.exists():
+            timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
+            corrupted_path = conversation_file.with_suffix(
+                conversation_file.suffix + f".corrupted.{timestamp}"
+            )
+
+        try:
+            conversation_file.rename(corrupted_path)
+            logger.warning(
+                "Quarantined corrupted conversation file to %s", corrupted_path
+            )
+        except OSError as quarantine_error:
+            logger.warning(
+                "Failed to quarantine corrupted conversation file %s: %s",
+                conversation_file,
+                quarantine_error,
+            )
 
     def list_conversations(self, limit: int = 50) -> List[Dict]:
         """

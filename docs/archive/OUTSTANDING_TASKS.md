@@ -312,7 +312,7 @@ If you find a `[~]` task with timestamp >24 hours old:
 
 - [ ] BUG-20251102-12: ConversationStore.add_message - Test updating relevant_sessions → BUG_HUNT_TODO.md:53
 
-- [ ] BUG-20251102-13: ConversationStore.load_conversation - Test corrupted JSON → BUG_HUNT_TODO.md:57
+- [~] BUG-20251102-13: ConversationStore.load_conversation - Test corrupted JSON (Agent: GPT-5.1-Codex, Started: 2025-11-18 20:45 UTC) → BUG_HUNT_TODO.md:57
 
 - [ ] BUG-20251102-14: ConversationStore.list_conversations - Test with large numbers → BUG_HUNT_TODO.md:61
 

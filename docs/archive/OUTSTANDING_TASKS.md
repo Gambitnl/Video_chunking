@@ -479,7 +479,7 @@ If you find a `[~]` task with timestamp >24 hours old:
   - **Fix**: Improved JavaScript auto-scroll with retry logic, increased timeout from 100ms to 300ms, added visibility checks
   → BUG_HUNT_TODO.md:289
 
-- [ ] **BUG-20251103-011**: Campaign Tab - Static content, no interactive features
+- [~] **BUG-20251103-011**: Campaign Tab - Static content, no interactive features (Agent: Claude Sonnet 4.5, Started: 2025-11-18 14:30 UTC, Files: src/ui/campaign_tab_modern.py, app.py)
   - **Files**: `src/ui/campaign_tab_modern.py:9-46`
   - **Effort**: 2-3 hours | **Conflict Risk**: ⚠️ LOW
   → BUG_HUNT_TODO.md:315

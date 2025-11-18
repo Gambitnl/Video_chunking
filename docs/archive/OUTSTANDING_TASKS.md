@@ -78,7 +78,7 @@ If you find a `[~]` task with timestamp >24 hours old:
 
 - **P4**: ⏸️ Deferred (0/4 started)
 
-- **Bugs**: 🔴 87 open (58 LangChain test gaps + 29 UI issues)
+- **Bugs**: 🔴 86 open (58 LangChain test gaps + 28 UI issues)
 
 
 
@@ -547,7 +547,7 @@ If you find a `[~]` task with timestamp >24 hours old:
 
 
 
-### Low Priority (10 bugs)
+### Low Priority (9 bugs)
 
 #### Quick Fixes (Isolated, Low Conflict)
 - [x] **BUG-20251103-020**: Live Session - Stop button enabled before Start (Agent: Claude Sonnet 4.5, Completed: 2025-11-18 - Already fixed in commit 8d637f9)
@@ -556,9 +556,10 @@ If you find a `[~]` task with timestamp >24 hours old:
   - **Fix**: Both buttons now have `.interactive = False` set explicitly. Feature marked as "Coming Soon" with disabled UI.
   → BUG_HUNT_TODO.md:373
 
-- [~] **BUG-20251103-023**: Social Insights - Temp file cleanup not guaranteed (Agent: Claude Sonnet 4.5, Started: 2025-11-18 10:15 UTC)
-  - **Files**: `src/ui/social_insights_tab.py:49-50`
-  - **Effort**: 20 min | **Conflict Risk**: ⚠️ LOW
+- [x] **BUG-20251103-023**: Social Insights - Temp file cleanup not guaranteed (Agent: Claude Sonnet 4.5, Completed: 2025-11-18)
+  - **Files**: `src/ui/social_insights_tab.py:60-72`
+  - **Effort**: 20 min (actual: 15 min) | **Conflict Risk**: ⚠️ LOW
+  - **Fix**: Added cleanup logic at start of analyze_ooc_ui() to remove old *_nebula.png files from temp/ directory. Uses glob pattern matching with graceful error handling.
   → BUG_HUNT_TODO.md:393
 
 - [x] **BUG-20251103-024**: Social Insights - Stale nebula after campaign filter change (Agent: Claude Sonnet 4.5, Completed: 2025-11-18)

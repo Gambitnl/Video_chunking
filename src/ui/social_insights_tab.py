@@ -55,6 +55,21 @@ def create_social_insights_tab(
 
             from src.analyzer import OOCAnalyzer
             from src.config import Config
+            import os
+
+            # Clean up old nebula temp files to prevent disk space accumulation
+            # This runs at the start of each analysis to remove previous session files
+            try:
+                if Config.TEMP_DIR.exists():
+                    for temp_file in Config.TEMP_DIR.glob("*_nebula.png"):
+                        try:
+                            temp_file.unlink()
+                        except (OSError, PermissionError):
+                            # Ignore errors if file is in use or already deleted
+                            pass
+            except Exception:
+                # Cleanup failure should not prevent analysis
+                pass
 
             # Check dependencies
             try:

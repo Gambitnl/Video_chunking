@@ -51,6 +51,13 @@ from src.ui.settings_tools_tab_modern import create_settings_tools_tab_modern
 from src.ui.session_artifacts_tab import create_session_artifacts_tab, refresh_sessions as refresh_artifact_sessions
 from src.ui.search_tab import create_search_tab
 from src.ui.analytics_tab import create_analytics_tab
+from src.ui.character_analytics_tab import create_character_analytics_tab
+from src.ui.diagnostics_helpers import (
+    run_health_check,
+    export_diagnostics,
+    list_conversations,
+    clear_all_conversations,
+)
 
 from src.google_drive_auth import (
     get_auth_url,
@@ -1333,6 +1340,7 @@ with gr.Blocks(
     artifacts_tab_refs = create_session_artifacts_tab(demo)
     create_search_tab(demo)
     create_analytics_tab(Path.cwd())
+    create_character_analytics_tab(character_profile_manager, campaign_manager, Path.cwd())
     settings_tab_refs = create_settings_tools_tab_modern(
         demo,
         story_manager=story_manager,
@@ -1474,7 +1482,24 @@ with gr.Blocks(
 
     def _create_new_campaign(name: str):
         proposed_name = name.strip() if name else ""
-        new_campaign_id, _ = campaign_manager.create_blank_campaign(name=proposed_name or None)
+
+        # Validate that campaign name is not empty/whitespace-only
+        if not proposed_name:
+            error_msg = StatusMessages.error(
+                "Invalid Campaign Name",
+                "Campaign name cannot be empty or contain only whitespace.",
+                "Please provide a valid campaign name."
+            )
+            # Return error message and keep UI in current state
+            return (
+                gr.update(), # Keep current campaign_id
+                error_msg,
+                gr.update(), # Keep current manifest
+                gr.update(value=name), # Keep the input value to show what was invalid
+                *[gr.update()] * 39, # Keep rest of UI unchanged
+            )
+
+        new_campaign_id, _ = campaign_manager.create_blank_campaign(name=proposed_name)
 
         knowledge = CampaignKnowledgeBase(campaign_id=new_campaign_id)
         if not knowledge.knowledge_file.exists():
@@ -1593,8 +1618,8 @@ with gr.Blocks(
         characters_tab_refs["extract_party_dropdown"],
         stories_tab_refs["session_list"],
         stories_tab_refs["narrative_hint"],
-        settings_tab_refs["diagnostics"],
-        settings_tab_refs["chat"],
+        settings_tab_refs["diagnostics_output"],
+        settings_tab_refs["chat_output"],
         settings_tab_refs["social_campaign_selector"],
         settings_tab_refs["social_session_dropdown"],
         settings_tab_refs["social_keyword_output"],
@@ -1708,6 +1733,28 @@ with gr.Blocks(
     settings_tab_refs["restart_app_btn"].click(
         fn=ui_restart_application,
         outputs=settings_tab_refs["restart_status"],
+    )
+
+    # Diagnostics event handlers
+    settings_tab_refs["run_health_check_btn"].click(
+        fn=run_health_check,
+        outputs=settings_tab_refs["diagnostics_output"],
+    )
+
+    settings_tab_refs["export_diagnostics_btn"].click(
+        fn=lambda: export_diagnostics()[0],  # Return only the message
+        outputs=settings_tab_refs["diagnostics_output"],
+    )
+
+    # Conversation management event handlers
+    settings_tab_refs["list_conversations_btn"].click(
+        fn=list_conversations,
+        outputs=settings_tab_refs["chat_output"],
+    )
+
+    settings_tab_refs["clear_all_conversations_btn"].click(
+        fn=clear_all_conversations,
+        outputs=settings_tab_refs["chat_output"],
     )
 
     demo.load(

@@ -57,6 +57,7 @@ This directory contains all the documentation for the D&D Session Processor. Bel
 - **[CRITICAL_REVIEW_WORKFLOW.md](./CRITICAL_REVIEW_WORKFLOW.md)**: A step-by-step guide to the Critical Reviewer Agent methodology for rigorous code review with documented reasoning.
 - **[CRITICAL_REVIEWER_SETUP_SUMMARY.md](./CRITICAL_REVIEWER_SETUP_SUMMARY.md)**: Summary of the Critical Reviewer Agent integration, including all files created/modified and how to use the system.
 - **[AGENTS.md](../AGENTS.md)**: (In root) Core instructions for AI agents working in this repository, including Critical Reviewer invocation.
+- **[CODEX.md](./CODEX.md)**: Guidance for the ChatGPT (Codex) agent covering identity checks, workflow expectations, and integration focus areas.
 - **Operator Workflow**: See [AGENTS.md#operator-workflow](../AGENTS.md#operator-workflow) for the required plan -> implement -> document -> test loop that keeps implementation plans in sync.
 - **[ROADMAP.md](../ROADMAP.md)**: (In root) Consolidated multi-agent roadmap covering priorities, ownership, and sequencing.
 - **[COLLECTIVE_ROADMAP.md](../COLLECTIVE_ROADMAP.md)**: (In root) The high-level project plan and agent priorities.

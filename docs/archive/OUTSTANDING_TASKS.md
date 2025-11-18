@@ -78,7 +78,7 @@ If you find a `[~]` task with timestamp >24 hours old:
 
 - **P4**: ⏸️ Deferred (0/4 started)
 
-- **Bugs**: 🔴 86 open (58 LangChain test gaps + 28 UI issues)
+- **Bugs**: 🔴 85 open (58 LangChain test gaps + 27 UI issues)
 
 
 
@@ -547,7 +547,7 @@ If you find a `[~]` task with timestamp >24 hours old:
 
 
 
-### Low Priority (9 bugs)
+### Low Priority (8 bugs)
 
 #### Quick Fixes (Isolated, Low Conflict)
 - [x] **BUG-20251103-020**: Live Session - Stop button enabled before Start (Agent: Claude Sonnet 4.5, Completed: 2025-11-18 - Already fixed in commit 8d637f9)
@@ -585,9 +585,10 @@ If you find a `[~]` task with timestamp >24 hours old:
   → BUG_HUNT_TODO.md:347
 
 #### App.py Edge Cases
-- [~] **BUG-20251103-003**: Campaign Launcher - No validation for empty/whitespace names (Agent: Claude Sonnet 4.5, Started: 2025-11-18 10:30 UTC)
-  - **Files**: `app.py:780-843`
-  - **Effort**: 30 min | **Conflict Risk**: ⚠️⚠️ MEDIUM
+- [x] **BUG-20251103-003**: Campaign Launcher - No validation for empty/whitespace names (Agent: Claude Sonnet 4.5, Completed: 2025-11-18)
+  - **Files**: `app.py:1483-1520`
+  - **Effort**: 30 min (actual: 25 min) | **Conflict Risk**: ⚠️⚠️ MEDIUM
+  - **Fix**: Added validation in _create_new_campaign() to reject empty/whitespace-only names. Shows error message with guidance, keeps UI in current state. Matches validation pattern from _handle_rename_campaign().
   → BUG_HUNT_TODO.md:263
 
 - [ ] **BUG-20251103-010**: Process Session - Name parsing doesn't handle edge cases

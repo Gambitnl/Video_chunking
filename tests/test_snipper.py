@@ -1,5 +1,7 @@
 import json
 from pathlib import Path
+from unittest.mock import MagicMock, patch
+import subprocess
 
 import pytest
 
@@ -19,7 +21,20 @@ class DummyAudioSegment:
 
 @pytest.fixture(autouse=True)
 def stub_audio_segment(monkeypatch):
-    """Ensure tests never invoke the real pydub/ffmpeg stack."""
+    """
+    Ensure tests never invoke the real pydub/ffmpeg stack.
+
+    Disables streaming by default to prevent legacy tests from calling FFmpeg.
+    Tests that explicitly test streaming mode override this with their own monkeypatch.
+    """
+    # Disable streaming by default for backward compatibility with legacy tests
+    monkeypatch.setattr(
+        "src.snipper.Config.USE_STREAMING_SNIPPET_EXPORT",
+        False,
+        raising=False
+    )
+
+    # Stub pydub for legacy mode
     dummy_segment = DummyAudioSegment()
     monkeypatch.setattr(
         "src.snipper.AudioSegment.from_file",
@@ -195,3 +210,211 @@ def test_export_segments_skips_cleanup_when_disabled(tmp_path, monkeypatch):
     )
 
     assert preserved.exists(), "Cleanup should be skipped when disabled"
+
+
+# ============================================================================
+# Streaming Export Tests (FFmpeg-based)
+# ============================================================================
+
+def test_ffmpeg_path_discovery_from_system_path(monkeypatch):
+    """Test that FFmpeg is found in system PATH."""
+    monkeypatch.setattr("src.snipper.Config.USE_STREAMING_SNIPPET_EXPORT", True, raising=False)
+
+    with patch('shutil.which', return_value='/usr/bin/ffmpeg'):
+        snipper = AudioSnipper()
+        assert snipper.use_streaming is True
+        assert snipper.ffmpeg_path == "ffmpeg"
+
+
+def test_ffmpeg_path_discovery_from_local_bundle(monkeypatch, tmp_path):
+    """Test that FFmpeg is found in local bundle when not in PATH."""
+    monkeypatch.setattr("src.snipper.Config.USE_STREAMING_SNIPPET_EXPORT", True, raising=False)
+    monkeypatch.setattr("src.snipper.Config.PROJECT_ROOT", tmp_path, raising=False)
+
+    # Create mock local FFmpeg
+    local_ffmpeg_dir = tmp_path / "ffmpeg" / "bin"
+    local_ffmpeg_dir.mkdir(parents=True)
+    local_ffmpeg_exe = local_ffmpeg_dir / "ffmpeg.exe"
+    local_ffmpeg_exe.touch()
+
+    with patch('shutil.which', return_value=None):
+        snipper = AudioSnipper()
+        assert snipper.use_streaming is True
+        assert str(local_ffmpeg_exe) in snipper.ffmpeg_path
+
+
+def test_streaming_segment_extraction_success(monkeypatch, tmp_path):
+    """Test successful FFmpeg segment extraction."""
+    monkeypatch.setattr("src.snipper.Config.USE_STREAMING_SNIPPET_EXPORT", True, raising=False)
+
+    audio_path = tmp_path / "session.wav"
+    audio_path.write_bytes(b"fake-audio")
+    output_path = tmp_path / "segment.wav"
+
+    mock_result = MagicMock()
+    mock_result.returncode = 0
+
+    with patch('shutil.which', return_value='/usr/bin/ffmpeg'):
+        snipper = AudioSnipper()
+
+        with patch('subprocess.run', return_value=mock_result) as mock_run:
+            snipper._extract_segment_with_ffmpeg(
+                audio_path=audio_path,
+                start_time=1.5,
+                end_time=3.0,
+                output_path=output_path
+            )
+
+            # Verify FFmpeg command
+            call_args = mock_run.call_args
+            command = call_args[0][0]
+            assert command[0] == "ffmpeg"
+            assert "-ss" in command
+            assert "1.500" in command  # Start time
+            assert "-t" in command
+            assert "1.500" in command  # Duration (3.0 - 1.5)
+            assert "-i" in command
+            assert str(audio_path) in command
+            assert str(output_path) in command
+
+
+def test_streaming_segment_extraction_ffmpeg_error(monkeypatch, tmp_path):
+    """Test FFmpeg extraction error handling."""
+    monkeypatch.setattr("src.snipper.Config.USE_STREAMING_SNIPPET_EXPORT", True, raising=False)
+
+    audio_path = tmp_path / "session.wav"
+    output_path = tmp_path / "segment.wav"
+
+    with patch('shutil.which', return_value='/usr/bin/ffmpeg'):
+        snipper = AudioSnipper()
+
+        mock_error = subprocess.CalledProcessError(
+            returncode=1,
+            cmd=['ffmpeg'],
+            stderr="FFmpeg error: invalid input"
+        )
+
+        with patch('subprocess.run', side_effect=mock_error):
+            with pytest.raises(RuntimeError, match="FFmpeg extraction failed"):
+                snipper._extract_segment_with_ffmpeg(
+                    audio_path=audio_path,
+                    start_time=0.0,
+                    end_time=1.0,
+                    output_path=output_path
+                )
+
+
+def test_streaming_segment_extraction_timeout(monkeypatch, tmp_path):
+    """Test FFmpeg extraction timeout handling."""
+    monkeypatch.setattr("src.snipper.Config.USE_STREAMING_SNIPPET_EXPORT", True, raising=False)
+
+    audio_path = tmp_path / "session.wav"
+    output_path = tmp_path / "segment.wav"
+
+    with patch('shutil.which', return_value='/usr/bin/ffmpeg'):
+        snipper = AudioSnipper()
+
+        with patch('subprocess.run', side_effect=subprocess.TimeoutExpired('ffmpeg', 30)):
+            with pytest.raises(RuntimeError, match="FFmpeg extraction timed out"):
+                snipper._extract_segment_with_ffmpeg(
+                    audio_path=audio_path,
+                    start_time=0.0,
+                    end_time=1.0,
+                    output_path=output_path
+                )
+
+
+def test_streaming_mode_enabled_uses_ffmpeg(monkeypatch, temp_output_dir, sample_segments):
+    """Test that streaming mode uses FFmpeg, not pydub."""
+    monkeypatch.setattr("src.snipper.Config.USE_STREAMING_SNIPPET_EXPORT", True, raising=False)
+    monkeypatch.setattr("src.snipper.Config.CLEAN_STALE_CLIPS", True, raising=False)
+
+    audio_path = temp_output_dir / "session.wav"
+    audio_path.write_bytes(b"fake-audio")
+
+    mock_result = MagicMock()
+    mock_result.returncode = 0
+
+    with patch('shutil.which', return_value='/usr/bin/ffmpeg'):
+        snipper = AudioSnipper()
+
+        with patch('subprocess.run', return_value=mock_result) as mock_run:
+            snipper.export_segments(
+                audio_path=audio_path,
+                segments=sample_segments,
+                base_output_dir=temp_output_dir,
+                session_id="streaming_test"
+            )
+
+            # Verify FFmpeg was called for each segment
+            assert mock_run.call_count == len(sample_segments)
+
+            # Verify manifest was created
+            manifest_path = temp_output_dir / "streaming_test" / "manifest.json"
+            assert manifest_path.exists()
+
+            manifest_data = json.loads(manifest_path.read_text(encoding="utf-8"))
+            assert manifest_data["status"] == "complete"
+            assert manifest_data["total_clips"] == len(sample_segments)
+
+
+def test_legacy_mode_uses_pydub(monkeypatch, temp_output_dir, sample_segments):
+    """Test that legacy mode (streaming disabled) uses pydub."""
+    monkeypatch.setattr("src.snipper.Config.USE_STREAMING_SNIPPET_EXPORT", False, raising=False)
+    monkeypatch.setattr("src.snipper.Config.CLEAN_STALE_CLIPS", True, raising=False)
+
+    audio_path = temp_output_dir / "session.wav"
+    audio_path.write_bytes(b"fake-audio")
+
+    # Stub pydub
+    dummy_audio = DummyAudioSegment()
+    monkeypatch.setattr("src.snipper.AudioSegment.from_file", lambda *args, **kwargs: dummy_audio)
+
+    snipper = AudioSnipper()
+    assert snipper.use_streaming is False
+
+    # Should not raise (pydub path works)
+    result = snipper.export_segments(
+        audio_path=audio_path,
+        segments=sample_segments,
+        base_output_dir=temp_output_dir,
+        session_id="legacy_test"
+    )
+
+    # Verify manifest was created
+    manifest_path = result["manifest"]
+    assert manifest_path.exists()
+
+    manifest_data = json.loads(manifest_path.read_text(encoding="utf-8"))
+    assert manifest_data["status"] == "complete"
+    assert manifest_data["total_clips"] == len(sample_segments)
+
+
+def test_minimum_segment_duration_enforced(monkeypatch, tmp_path):
+    """Test that minimum segment duration (0.01s) is enforced."""
+    monkeypatch.setattr("src.snipper.Config.USE_STREAMING_SNIPPET_EXPORT", True, raising=False)
+
+    audio_path = tmp_path / "session.wav"
+    output_path = tmp_path / "segment.wav"
+
+    mock_result = MagicMock()
+    mock_result.returncode = 0
+
+    with patch('shutil.which', return_value='/usr/bin/ffmpeg'):
+        snipper = AudioSnipper()
+
+        with patch('subprocess.run', return_value=mock_result) as mock_run:
+            # Zero-duration segment should be clamped to 0.01s
+            snipper._extract_segment_with_ffmpeg(
+                audio_path=audio_path,
+                start_time=5.0,
+                end_time=5.0,  # Same as start
+                output_path=output_path
+            )
+
+            # Verify duration was set to minimum 0.01s
+            call_args = mock_run.call_args
+            command = call_args[0][0]
+            duration_idx = command.index("-t") + 1
+            duration = float(command[duration_idx])
+            assert duration == 0.01

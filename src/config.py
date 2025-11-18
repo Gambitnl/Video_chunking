@@ -87,6 +87,10 @@ class Config:
         "SNIPPET_PLACEHOLDER_MESSAGE",
         "No audio snippets were generated for this session."
     )
+    USE_STREAMING_SNIPPET_EXPORT: bool = get_env_as_bool(
+        "USE_STREAMING_SNIPPET_EXPORT",
+        True  # Default to streaming for memory efficiency
+    )
 
     # Ollama Settings
     OLLAMA_MODEL: str = os.getenv("OLLAMA_MODEL", "qwen2.5:7b")

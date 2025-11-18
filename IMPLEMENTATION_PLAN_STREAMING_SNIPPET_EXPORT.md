@@ -518,6 +518,30 @@ USE_STREAMING_SNIPPET_EXPORT=true
 
 **Merge Recommendation:** ✅ **APPROVED** - Ready for commit and push
 
+### Code Review Findings (Round 2 - Automated Bots)
+
+**Automated Review Completed: 2025-11-18 16:00 UTC**
+
+#### Issue 1: Code Duplication (HIGH)
+**Finding:** `_find_ffmpeg()` duplicates logic from `AudioProcessor`
+**Impact:** Maintenance burden, cross-platform bug (hardcoded ffmpeg.exe)
+**Fix Applied:** Removed `_find_ffmpeg()`, reuse `AudioProcessor.ffmpeg_path`
+**Status:** ✅ RESOLVED
+
+#### Issue 2: Error Message Inconsistency (MEDIUM)
+**Finding:** `stderr.strip()` called twice (log + exception)
+**Impact:** Code readability, minor performance
+**Fix Applied:** Strip once, store in variable, reuse
+**Status:** ✅ RESOLVED
+
+#### Issue 3: Test Regression (P1 CRITICAL)
+**Finding:** Default `USE_STREAMING_SNIPPET_EXPORT=True` breaks legacy tests
+**Impact:** Test suite fails when FFmpeg not available or pydub mocks fail
+**Fix Applied:** Updated `autouse=True` fixture to disable streaming by default for legacy tests
+**Status:** ✅ RESOLVED
+
+**Post-Review Status:** All issues addressed, ready for final commit
+
 ---
 
 ## Changelog
@@ -529,6 +553,10 @@ USE_STREAMING_SNIPPET_EXPORT=true
 - **2025-11-18 15:00 UTC**: Wrote 8 comprehensive unit tests (tests/test_snipper.py)
 - **2025-11-18 15:15 UTC**: Self-review completed - APPROVED for merge
 - **2025-11-18 15:30 UTC**: Implementation plan updated with completion status
+- **2025-11-18 16:00 UTC**: Addressed code review findings:
+  - Removed _find_ffmpeg() duplication, reuse AudioProcessor.ffmpeg_path
+  - Fixed error message consistency (strip stderr once)
+  - Fixed test regression (autouse fixture disables streaming for legacy tests)
 
 ---
 

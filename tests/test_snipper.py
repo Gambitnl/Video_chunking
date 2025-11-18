@@ -21,7 +21,20 @@ class DummyAudioSegment:
 
 @pytest.fixture(autouse=True)
 def stub_audio_segment(monkeypatch):
-    """Ensure tests never invoke the real pydub/ffmpeg stack."""
+    """
+    Ensure tests never invoke the real pydub/ffmpeg stack.
+
+    Disables streaming by default to prevent legacy tests from calling FFmpeg.
+    Tests that explicitly test streaming mode override this with their own monkeypatch.
+    """
+    # Disable streaming by default for backward compatibility with legacy tests
+    monkeypatch.setattr(
+        "src.snipper.Config.USE_STREAMING_SNIPPET_EXPORT",
+        False,
+        raising=False
+    )
+
+    # Stub pydub for legacy mode
     dummy_segment = DummyAudioSegment()
     monkeypatch.setattr(
         "src.snipper.AudioSegment.from_file",

@@ -23,31 +23,14 @@ class AudioSnipper:
         # Streaming export configuration
         self.use_streaming = Config.USE_STREAMING_SNIPPET_EXPORT
         if self.use_streaming:
-            self.ffmpeg_path = self._find_ffmpeg()
+            # Reuse AudioProcessor's FFmpeg discovery (no duplication)
+            from .audio_processor import AudioProcessor
+            audio_processor = AudioProcessor()
+            self.ffmpeg_path = audio_processor.ffmpeg_path
             self.logger.info(
                 "Streaming snippet export enabled (FFmpeg: %s)",
                 self.ffmpeg_path
             )
-
-    def _find_ffmpeg(self) -> str:
-        """Find FFmpeg executable - try PATH first, then local install."""
-        import shutil
-
-        # Try to find in PATH
-        ffmpeg_in_path = shutil.which("ffmpeg")
-        if ffmpeg_in_path:
-            self.logger.debug("FFmpeg discovered in PATH: %s", ffmpeg_in_path)
-            return "ffmpeg"
-
-        # Try local installation
-        local_ffmpeg = Config.PROJECT_ROOT / "ffmpeg" / "bin" / "ffmpeg.exe"
-        if local_ffmpeg.exists():
-            self.logger.debug("FFmpeg discovered in local bundle: %s", local_ffmpeg)
-            return str(local_ffmpeg)
-
-        # Default to "ffmpeg" and let it fail with helpful error
-        self.logger.warning("FFmpeg not found; relying on system PATH resolution")
-        return "ffmpeg"
 
     def _extract_segment_with_ffmpeg(
         self,
@@ -97,8 +80,9 @@ class AudioSnipper:
                 start_time, duration, output_path.name
             )
         except subprocess.CalledProcessError as e:
-            self.logger.error("FFmpeg segment extraction failed: %s", e.stderr.strip())
-            raise RuntimeError(f"FFmpeg extraction failed: {e.stderr}")
+            error_msg = e.stderr.strip() if e.stderr else "Unknown error"
+            self.logger.error("FFmpeg segment extraction failed: %s", error_msg)
+            raise RuntimeError(f"FFmpeg extraction failed: {error_msg}")
         except subprocess.TimeoutExpired:
             self.logger.error("FFmpeg extraction timed out after 30s")
             raise RuntimeError("FFmpeg extraction timed out (30s limit)")

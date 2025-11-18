@@ -519,9 +519,10 @@ If you find a `[~]` task with timestamp >24 hours old:
   - **Effort**: 1 hour | **Conflict Risk**: ⚠️⚠️ MEDIUM
   → BUG_HUNT_TODO.md:269
 
-- [ ] **BUG-20251103-009**: Process Session - Audio path resolution inconsistent
-  - **Files**: `app.py:499-507`
-  - **Effort**: 1 hour | **Conflict Risk**: ⚠️⚠️ MEDIUM
+- [x] **BUG-20251103-009**: Process Session - Audio path resolution inconsistent (Agent: Claude Sonnet 4.5, Completed: 2025-11-18)
+  - **Files**: `app.py:757-806`
+  - **Effort**: 45 min (actual) | **Conflict Risk**: ⚠️⚠️ MEDIUM
+  - **Fix**: Enhanced _resolve_audio_path to handle str, Path, dict, list, file-like objects with existence validation. Changed return type from str to Path to match pipeline.process() signature.
   → BUG_HUNT_TODO.md:301
 
 - [ ] **BUG-20251103-013**: Campaign Dashboard - No error recovery for corrupted files

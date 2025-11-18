@@ -258,16 +258,41 @@ def render_processing_response(response: Dict[str, Any]) -> Tuple:
 
     Returns:
         Tuple of (status_md, results_visible, full, ic, ooc, stats_md, snippet_md, scroll_js, cancel_btn_update)
+
+    Implementation Notes (2025-11-18):
+        BUG-20251103-007: Improved auto-scroll reliability
+        - Increased initial delay from 100ms to 300ms for Gradio rendering
+        - Added retry logic (5 attempts, 200ms intervals) for robustness
+        - Checks both element existence AND visibility (offsetParent !== null)
+        - Handles edge cases where results section renders slowly
     """
     # JavaScript to scroll to results section
+    # Uses retry logic to handle Gradio's rendering delays
     scroll_js = """
     <script>
-    setTimeout(function() {
-        const resultsSection = document.getElementById('process-results-section');
-        if (resultsSection) {
-            resultsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    (function() {
+        let attempts = 0;
+        const maxAttempts = 5;
+        const retryInterval = 200; // ms
+
+        function tryScroll() {
+            const resultsSection = document.getElementById('process-results-section');
+            if (resultsSection && resultsSection.offsetParent !== null) {
+                // Element exists and is visible
+                resultsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                return true;
+            }
+
+            attempts++;
+            if (attempts < maxAttempts) {
+                setTimeout(tryScroll, retryInterval);
+            }
+            return false;
         }
-    }, 100);
+
+        // Initial attempt after short delay for DOM updates
+        setTimeout(tryScroll, 300);
+    })();
     </script>
     """
 

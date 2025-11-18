@@ -50,6 +50,7 @@ from src.ui.stories_output_tab_modern import create_stories_output_tab_modern
 from src.ui.settings_tools_tab_modern import create_settings_tools_tab_modern
 from src.ui.session_artifacts_tab import create_session_artifacts_tab, refresh_sessions as refresh_artifact_sessions
 from src.ui.search_tab import create_search_tab
+from src.ui.analytics_tab import create_analytics_tab
 
 from src.google_drive_auth import (
     get_auth_url,
@@ -1331,6 +1332,7 @@ with gr.Blocks(
     stories_tab_refs = create_stories_output_tab_modern(demo)
     artifacts_tab_refs = create_session_artifacts_tab(demo)
     create_search_tab(demo)
+    create_analytics_tab(Path.cwd())
     settings_tab_refs = create_settings_tools_tab_modern(
         demo,
         story_manager=story_manager,

@@ -63,7 +63,7 @@ def create_social_insights_tab(
                 error_msg = StatusMessages.error(
                     "Missing Dependency",
                     "The 'wordcloud' package is required for social insights analysis.",
-                    "Install it with: pip install wordcloud"
+                    "Install all dependencies with: pip install -r requirements.txt"
                 )
                 yield (error_msg, None, None, None, error_msg)
                 return
@@ -198,8 +198,9 @@ def create_social_insights_tab(
                 StatusMessages.loading("Generating Topic Nebula word cloud")
             )
 
-            # Generate word cloud from keyword frequencies
-            keyword_freq = {kw.term: kw.frequency for kw in insights.keywords}
+            # Generate word cloud from TF-IDF scores (not raw frequency)
+            # Use TF-IDF scores to highlight most "important" terms
+            keyword_scores = {kw.term: kw.score for kw in insights.keywords}
 
             wc = WordCloud(
                 width=800,
@@ -210,7 +211,7 @@ def create_social_insights_tab(
                 contour_width=3,
                 contour_color="#89DDF5",
             )
-            wc.generate_from_frequencies(keyword_freq)
+            wc.generate_from_frequencies(keyword_scores)
 
             temp_path = Config.TEMP_DIR / f"{sanitized_session_id}_nebula.png"
             wc.to_file(str(temp_path))
@@ -224,11 +225,20 @@ def create_social_insights_tab(
             yield (keyword_md, topic_md, str(temp_path), insights_md, success_msg)
 
         except Exception as exc:
-            import traceback
+            # Log full traceback for debugging, but don't expose to user
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(
+                f"OOC analysis for session '{session_id}' failed",
+                exc_info=True
+            )
+
+            # User-friendly error message without technical details
             error_msg = StatusMessages.error(
                 "Analysis Failed",
-                "Unable to complete social insights analysis.",
-                f"Error: {type(exc).__name__}: {str(exc)}\n\n{traceback.format_exc()}"
+                "An unexpected error occurred during social insights analysis.",
+                "Please check the application logs for technical details, "
+                "or try re-running the analysis."
             )
             yield (error_msg, None, None, None, error_msg)
 

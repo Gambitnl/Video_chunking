@@ -325,10 +325,22 @@ class OOCAnalyzer:
             tfidf_matrix = vectorizer.fit_transform([text_for_lda])
             feature_names = vectorizer.get_feature_names_out()
 
+            # Calculate optimal number of components
+            # Ensure at least 1 topic, max num_topics requested
+            optimal_components = max(1, min(num_topics, len(feature_names) // 10))
+
+            # Guard against edge case: not enough features for topic modeling
+            if optimal_components < 1 or len(feature_names) < 5:
+                logger.warning(
+                    f"Insufficient features for topic modeling "
+                    f"(features={len(feature_names)}, min=5)"
+                )
+                return []
+
             # Fit LDA model
             lda = LatentDirichletAllocation(
-                n_components=min(num_topics, len(feature_names) // 10),  # Avoid too many topics
-                max_iter=10,  # Fast iteration for responsiveness
+                n_components=optimal_components,
+                max_iter=50,  # Increased from 10 for better topic quality
                 learning_method='online',
                 random_state=42,
                 n_jobs=-1,  # Use all CPUs
@@ -373,14 +385,24 @@ class OOCAnalyzer:
         """
         Calculate a simplified coherence score for a topic.
 
-        This is a basic implementation that measures how well keywords
-        co-occur in the document. Real coherence would use external corpus.
+        **IMPORTANT**: This is a custom heuristic, not a standard coherence metric.
+        It does NOT align with academic metrics like C_v, NPMI, or UCI coherence.
+
+        This simplified implementation measures keyword co-occurrence within
+        sliding windows. For production use or research, consider using
+        gensim.models.coherencemodel for standard metrics.
+
+        Algorithm:
+        - Counts windows (10 tokens) where 2+ topic keywords co-occur
+        - Normalizes by total number of windows
+        - Scaled and capped at 1.0
 
         Args:
             keywords: List of (word, weight) tuples
 
         Returns:
-            Coherence score between 0 and 1
+            Coherence score between 0 and 1 (higher = more coherent)
+            Note: Scores are NOT comparable to standard coherence metrics
         """
         if not keywords:
             return 0.0

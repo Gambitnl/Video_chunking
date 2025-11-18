@@ -78,7 +78,7 @@ If you find a `[~]` task with timestamp >24 hours old:
 
 - **P4**: ⏸️ Deferred (0/4 started)
 
-- **Bugs**: 🔴 88 open (58 LangChain test gaps + 30 UI issues)
+- **Bugs**: 🔴 87 open (58 LangChain test gaps + 29 UI issues)
 
 
 
@@ -547,12 +547,13 @@ If you find a `[~]` task with timestamp >24 hours old:
 
 
 
-### Low Priority (11 bugs)
+### Low Priority (10 bugs)
 
 #### Quick Fixes (Isolated, Low Conflict)
-- [~] **BUG-20251103-020**: Live Session - Stop button enabled before Start (Agent: Claude Sonnet 4.5, Started: 2025-11-18 10:00 UTC)
-  - **Files**: `src/ui/live_session_tab.py:111-115`
-  - **Effort**: 15 min | **Conflict Risk**: ⚠️ LOW
+- [x] **BUG-20251103-020**: Live Session - Stop button enabled before Start (Agent: Claude Sonnet 4.5, Completed: 2025-11-18 - Already fixed in commit 8d637f9)
+  - **Files**: `src/ui/live_session_tab.py:121,127`
+  - **Effort**: 15 min (verification only) | **Conflict Risk**: ⚠️ LOW
+  - **Fix**: Both buttons now have `.interactive = False` set explicitly. Feature marked as "Coming Soon" with disabled UI.
   → BUG_HUNT_TODO.md:373
 
 - [ ] **BUG-20251103-023**: Social Insights - Temp file cleanup not guaranteed

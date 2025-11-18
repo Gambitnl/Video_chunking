@@ -12,10 +12,10 @@
     "Pas'Ta",
     "Fan'nar"
   ],
-  "campaign_id": "team_op",
+  "campaign_id": "campaign_004",
   "campaign_name": "Gaia Adventures - Culdor Academy",
   "first_session": "Session 1 (29-Nov-2024)",
-  "last_updated": "2025-11-17T16:47:37.328123",
+  "last_updated": "2025-11-18T16:55:05.749244",
   "notable_actions": [
     {
       "session": "Session 1",
@@ -40,6 +40,30 @@
       "timestamp": null,
       "description": "Fan'nar suggests asking questions and researching the creatures further.",
       "type": "general"
+    },
+    {
+      "session": "test_s6_extract_18nov_0817am",
+      "timestamp": null,
+      "description": "Participates in the concentration save, showing involvement.",
+      "type": "social"
+    },
+    {
+      "session": "test_s6_extract_18nov_0817am",
+      "timestamp": null,
+      "description": "Successfully dodges the creature's attack and mentions his luck.",
+      "type": "combat"
+    },
+    {
+      "session": "test_s6_extract_18nov_0817am",
+      "timestamp": null,
+      "description": "Successfully rolls for the deksave, showing resourcefulness.",
+      "type": "combat"
+    },
+    {
+      "session": "test_s6_extract_18nov_0817am",
+      "timestamp": null,
+      "description": "Executes Furnix's order to perform a Frigid Howl.",
+      "type": "combat"
     }
   ],
   "inventory": [
@@ -78,6 +102,24 @@
       "description": "The party is in a situation where they might gain new equipment or powers, though not directly mentioned.",
       "session_acquired": "Session6_test_16nov_0315am",
       "category": "general"
+    },
+    {
+      "name": "Recieves a list of names for the interviews from Pipira Shimmerlock.",
+      "description": "Fan'nar Khe'Lek receives a list of names to interview from Pipira Shimmerlock, showing the distribution of tasks.",
+      "session_acquired": "test_s6_extract_18nov_0817am",
+      "category": "social"
+    },
+    {
+      "name": "Fan'nar is carrying a book that was previously found, indicating a possession change.",
+      "description": "Fan'nar is handling and discussing the Krimwaal book.",
+      "session_acquired": "test_s6_extract_18nov_0817am",
+      "category": "item"
+    },
+    {
+      "name": "Possibly gains items or abilities from the damage roll, though not explicitly stated.",
+      "description": "Fan'nar Khe'Lek successfully inflicts damage with a creative description, potentially acquiring new items or abilities.",
+      "session_acquired": "test_s6_extract_18nov_0817am",
+      "category": "equipment upgrade"
     }
   ],
   "relationships": [
@@ -128,6 +170,18 @@
       "relationship_type": "general",
       "description": null,
       "first_met": "test_s6_17nov_0901am"
+    },
+    {
+      "name": "Expresses romantic interest in Pipira Shimmerlock, initiating a new connection.",
+      "relationship_type": "romantic",
+      "description": null,
+      "first_met": "test_s6_extract_18nov_0817am"
+    },
+    {
+      "name": "Acknowledges his close friendship with Pipira, suggesting a strong bond.",
+      "relationship_type": "ally",
+      "description": null,
+      "first_met": "test_s6_extract_18nov_0817am"
     }
   ],
   "development_notes": [
@@ -180,6 +234,161 @@
       "session": "test_s6_17nov_0901am",
       "note": "Used Mindlink to communicate with Pipira Shimmerlock.",
       "category": "social"
+    },
+    {
+      "session": "test_s6_extract_18nov_0817am",
+      "note": "Acknowledges the team's high energy levels and emphasizes the importance of respecting a superior.",
+      "category": "social"
+    },
+    {
+      "session": "test_s6_extract_18nov_0817am",
+      "note": "Acknowledges the captain’s frequent presence in the relaxation room and suggests a direct approach.",
+      "category": "social"
+    },
+    {
+      "session": "test_s6_extract_18nov_0817am",
+      "note": "Takes on the responsibility of conducting interviews, indicating leadership and task management.",
+      "category": "social"
+    },
+    {
+      "session": "test_s6_extract_18nov_0817am",
+      "note": "Exhibits a moment of fear and uncertainty, questioning identities.",
+      "category": "general"
+    },
+    {
+      "session": "test_s6_extract_18nov_0817am",
+      "note": "Fan'nar is trying to take over the watch duty but lacks focus and confidence.",
+      "category": "general"
+    },
+    {
+      "session": "test_s6_extract_18nov_0817am",
+      "note": "Fan'nar acknowledges his inexperience and tries to manage the situation calmly.",
+      "category": "general"
+    },
+    {
+      "session": "test_s6_extract_18nov_0817am",
+      "note": "Fan'nar's repeated 'Nee' suggests his reluctance or nervousness about taking on the watch duty.",
+      "category": "general"
+    },
+    {
+      "session": "test_s6_extract_18nov_0817am",
+      "note": "Fan'nar's struggle to take over the watch duty reveals his inexperience and nervousness.",
+      "category": "general"
+    },
+    {
+      "session": "test_s6_extract_18nov_0817am",
+      "note": "Fan'nar's repeated 'Nee' indicates his reluctance or nervousness about taking on the watch duty.",
+      "category": "general"
+    },
+    {
+      "session": "test_s6_extract_18nov_0817am",
+      "note": "Acknowledges the need to use an item more often and values it for its utility.",
+      "category": "general"
+    },
+    {
+      "session": "test_s6_extract_18nov_0817am",
+      "note": "Questions the standard procedure for purchasing supplies, suggesting a different approach.",
+      "category": "social"
+    },
+    {
+      "session": "test_s6_extract_18nov_0817am",
+      "note": "Attempts to find a short-term solution for dealing with interviews.",
+      "category": "social"
+    },
+    {
+      "session": "test_s6_extract_18nov_0817am",
+      "note": "Acknowledges the reality of medical appointments despite the interviews.",
+      "category": "social"
+    },
+    {
+      "session": "test_s6_extract_18nov_0817am",
+      "note": "He is questioning the involvement of others in a mission.",
+      "category": "social"
+    },
+    {
+      "session": "test_s6_extract_18nov_0817am",
+      "note": "Suggests using a physical restraint on Eentje to ensure cooperation.",
+      "category": "social"
+    },
+    {
+      "session": "test_s6_extract_18nov_0817am",
+      "note": "The mention of 'verrader' suggests Fan'nar may be experiencing guilt or conflict.",
+      "category": "emotional"
+    },
+    {
+      "session": "test_s6_extract_18nov_0817am",
+      "note": "Mentioning the Shroud of Black, indicating a connection to it.",
+      "category": "emotional"
+    },
+    {
+      "session": "test_s6_extract_18nov_0817am",
+      "note": "Confirms the group has been working for eight hours and suggests it's late in the day.",
+      "category": "time management"
+    },
+    {
+      "session": "test_s6_extract_18nov_0817am",
+      "note": "Acknowledges the need to focus on the party's safety while managing multiple responsibilities.",
+      "category": "social"
+    },
+    {
+      "session": "test_s6_extract_18nov_0817am",
+      "note": "Acknowledges the ongoing challenges and responsibilities of managing a ship's tasks.",
+      "category": "social"
+    },
+    {
+      "session": "test_s6_extract_18nov_0817am",
+      "note": "Acknowledges his luck and the dice rolling, showing a sense of humor in adversity.",
+      "category": "social"
+    },
+    {
+      "session": "test_s6_extract_18nov_0817am",
+      "note": "Reflects on the missed opportunity to use a special move.",
+      "category": "social"
+    },
+    {
+      "session": "test_s6_extract_18nov_0817am",
+      "note": "Expresses uncertainty about certain abilities, showing a cautious nature",
+      "category": "knowledge"
+    },
+    {
+      "session": "test_s6_extract_18nov_0817am",
+      "note": "Engages in technical game discussion, showing knowledge and interest.",
+      "category": "game tech"
+    },
+    {
+      "session": "test_s6_extract_18nov_0817am",
+      "note": "Seems to be observing and agreeing with Furnax's actions, possibly building a sense of camaraderie.",
+      "category": "social"
+    },
+    {
+      "session": "test_s6_extract_18nov_0817am",
+      "note": "Shows a strategic approach to handling the situation with Furnix's Frigid Howl.",
+      "category": "social"
+    },
+    {
+      "session": "test_s6_extract_18nov_0817am",
+      "note": "Considered a circus move for an attack, showing adaptability.",
+      "category": "combat"
+    },
+    {
+      "session": "test_s6_extract_18nov_0817am",
+      "note": "Asked about the possibility of returning to relics, indicating interest in past experiences.",
+      "category": "goal_progress"
+    },
+    {
+      "session": "test_s6_extract_18nov_0817am",
+      "note": "Acknowledges the incapacitation of enemies and his own strategy, showing adaptability.",
+      "category": "combat"
+    },
+    {
+      "session": "test_s6_extract_18nov_0817am",
+      "note": "He is focused on practical solutions, such as repairing the boat and dealing with enemies.",
+      "category": "practical"
+    },
+    {
+      "session": "test_s6_extract_18nov_0817am",
+      "note": "Fan'nar seems to be in a state of distress, possibly due to his relationship with the noise-cancelling character.",
+      "category": "emotional"
     }
   ],
   "memorable_quotes": [
@@ -207,6 +416,41 @@
       "session": "Session6_test_16nov_0315am",
       "quote": "Die spels krijg je ook half. Weet je wat dat betekent?",
       "context": "Fan'nar discusses the advantages of being an illusionist at Culdor Academy, allowing him to learn spells from scrolls more efficiently."
+    },
+    {
+      "session": "test_s6_extract_18nov_0817am",
+      "quote": "Ik ga met het Spits gekomen.",
+      "context": "Fan'nar declares his intention to excel and gain recognition, showing determination."
+    },
+    {
+      "session": "test_s6_extract_18nov_0817am",
+      "quote": "Jullie komen bij elkaar. Eigenlijk te gaan overleggen van wie gaat naar de eerste wacht nemen.",
+      "context": "Fan'nar Khe'Lek organizes the group for their next shift and mentions finding a book."
+    },
+    {
+      "session": "test_s6_extract_18nov_0817am",
+      "quote": "als er een net 20 was geweest had hij waarschijnlijk in 1 keer door het midden",
+      "context": "Fan'nar Khe'Lek jokingly remarks on the difficulty of pulling off a successful attack."
+    },
+    {
+      "session": "test_s6_extract_18nov_0817am",
+      "quote": "oh een meisje",
+      "context": "Fan'nar expressed surprise at the appearance of a girl."
+    },
+    {
+      "session": "test_s6_extract_18nov_0817am",
+      "quote": "Nee. Nee. Door hem af te leiden ofzo, kan dat dan?",
+      "context": "Fan'nar inquires about how a critical attack can help someone else, showing their confusion."
+    },
+    {
+      "session": "test_s6_extract_18nov_0817am",
+      "quote": "Een gedeelte van de vleugel. Laten we. Ja, ik vind het een beetje moeilijk uit te leggen. Als ik de wife ben, zo te zeggen, dit zijn de vleugels, dit zijn de benen, want de vleugels zijn meteen een potom, zo te zeggen.",
+      "context": "Fan'nar's comment adds to the unsettling nature of the encounter and showcases his emotional reaction to the situation."
+    },
+    {
+      "session": "test_s6_extract_18nov_0817am",
+      "quote": "Ik heb een hypnotic pet voor jou.",
+      "context": "The group decides on a strategy involving controlling enemies with an item."
     }
   ],
   "sessions_appeared": [
@@ -214,14 +458,16 @@
     "Session 2",
     "Session 3",
     "Session6_test_16nov_0315am",
-    "test_s6_17nov_0901am"
+    "test_s6_17nov_0901am",
+    "test_s6_extract_18nov_0817am"
   ],
-  "total_sessions": 5,
+  "total_sessions": 6,
   "current_goals": [
     "Investigate the disappearances",
     "Support the party despite preferring to work alone",
     "Uncover the cult's plans",
-    "Suggests the group should wait for others to act first."
+    "Suggests the group should wait for others to act first.",
+    "Acknowledges the group has found a book that could be crucial for their mission."
   ],
   "completed_goals": [],
   "dm_notes": "",

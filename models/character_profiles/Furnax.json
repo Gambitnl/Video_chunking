@@ -11,10 +11,10 @@
   "aliases": [
     "Furnax"
   ],
-  "campaign_id": null,
+  "campaign_id": "campaign_004",
   "campaign_name": "Gaia Adventures - Culdor Academy",
   "first_session": "Session 1 (29-Nov-2024)",
-  "last_updated": "2025-11-16T08:29:08.446025",
+  "last_updated": "2025-11-18T16:55:06.215457",
   "notable_actions": [
     {
       "session": "Session6_test_16nov_0315am",
@@ -87,6 +87,174 @@
       "timestamp": null,
       "description": "Mends the ship with Furnax and Mend spell.",
       "type": "combat"
+    },
+    {
+      "session": "test_s6_extract_18nov_0817am",
+      "timestamp": null,
+      "description": "Initiates the plan to enter and confront the captain or a prisoner.",
+      "type": "social"
+    },
+    {
+      "session": "test_s6_extract_18nov_0817am",
+      "timestamp": null,
+      "description": "Decides to open the arrow as a defensive measure.",
+      "type": "combat"
+    },
+    {
+      "session": "test_s6_extract_18nov_0817am",
+      "timestamp": null,
+      "description": "Willing to do extra tasks, suggesting a proactive and reliable nature.",
+      "type": "task-oriented"
+    },
+    {
+      "session": "test_s6_extract_18nov_0817am",
+      "timestamp": null,
+      "description": "Reminding the group of their next task and ensuring nothing is missed.",
+      "type": "social"
+    },
+    {
+      "session": "test_s6_extract_18nov_0817am",
+      "timestamp": null,
+      "description": "Demonstrates an ability involving red spots and balls appearing on his arms.",
+      "type": "ally"
+    },
+    {
+      "session": "test_s6_extract_18nov_0817am",
+      "timestamp": null,
+      "description": "Demonstrates willingness to use meta-knowledge in game situations, suggesting a blend of role-playing and real-world knowledge.",
+      "type": "general"
+    },
+    {
+      "session": "test_s6_extract_18nov_0817am",
+      "timestamp": null,
+      "description": "Executed a multi-attack sequence on Jacques.",
+      "type": "combat"
+    },
+    {
+      "session": "test_s6_extract_18nov_0817am",
+      "timestamp": null,
+      "description": "Participates in the concentration save, showing involvement.",
+      "type": "social"
+    },
+    {
+      "session": "test_s6_extract_18nov_0817am",
+      "timestamp": null,
+      "description": "Noticed the injured creature's healing process and deduced its nature.",
+      "type": "combat"
+    },
+    {
+      "session": "test_s6_extract_18nov_0817am",
+      "timestamp": null,
+      "description": "Provides guidance and support to Pipira during combat",
+      "type": "ally"
+    },
+    {
+      "session": "test_s6_extract_18nov_0817am",
+      "timestamp": null,
+      "description": "Used Chromatic Fire to deal 12 fire damage in a combat situation.",
+      "type": "combat"
+    },
+    {
+      "session": "test_s6_extract_18nov_0817am",
+      "timestamp": null,
+      "description": "Cast Chromatic Fire on an enemy to deal 12 fire damage.",
+      "type": "combat"
+    },
+    {
+      "session": "test_s6_extract_18nov_0817am",
+      "timestamp": null,
+      "description": "Predicts the incoming attack and advises on defense strategies",
+      "type": "combat"
+    },
+    {
+      "session": "test_s6_extract_18nov_0817am",
+      "timestamp": null,
+      "description": "Uses the Chaotic Shuffle effectively to deal damage in combat.",
+      "type": "combat"
+    },
+    {
+      "session": "test_s6_extract_18nov_0817am",
+      "timestamp": null,
+      "description": "Describes the bag of distraction and its magical properties.",
+      "type": "general"
+    },
+    {
+      "session": "test_s6_extract_18nov_0817am",
+      "timestamp": null,
+      "description": "Decides to move a significant distance in the game, showing initiative.",
+      "type": "combat"
+    },
+    {
+      "session": "test_s6_extract_18nov_0817am",
+      "timestamp": null,
+      "description": "Threatens to shoot the group if they don't cooperate.",
+      "type": "combat"
+    },
+    {
+      "session": "test_s6_extract_18nov_0817am",
+      "timestamp": null,
+      "description": "Explain Shield usage and roll outcome",
+      "type": "combat"
+    },
+    {
+      "session": "test_s6_extract_18nov_0817am",
+      "timestamp": null,
+      "description": "Rolls a successful damage roll, inflicting significant damage on an enemy with a creative description.",
+      "type": "combat"
+    },
+    {
+      "session": "test_s6_extract_18nov_0817am",
+      "timestamp": null,
+      "description": "Offers to help with the situation but is cautious.",
+      "type": "social"
+    },
+    {
+      "session": "test_s6_extract_18nov_0817am",
+      "timestamp": null,
+      "description": "Lied the door and chased a creature off the ship.",
+      "type": "combat"
+    },
+    {
+      "session": "test_s6_extract_18nov_0817am",
+      "timestamp": null,
+      "description": "Uses Misty Stepper to approach Pipira Shimmerlock from underneath.",
+      "type": "combat"
+    },
+    {
+      "session": "test_s6_extract_18nov_0817am",
+      "timestamp": null,
+      "description": "Providing information on the depth of a cavern.",
+      "type": "social"
+    },
+    {
+      "session": "test_s6_extract_18nov_0817am",
+      "timestamp": null,
+      "description": "Attempted to control a hellhound but failed.",
+      "type": "combat"
+    },
+    {
+      "session": "test_s6_extract_18nov_0817am",
+      "timestamp": null,
+      "description": "Implies a recent absence and return.",
+      "type": "social"
+    },
+    {
+      "session": "test_s6_extract_18nov_0817am",
+      "timestamp": null,
+      "description": "Delivered a critical hit that brought the enemy to bloodied state.",
+      "type": "combat"
+    },
+    {
+      "session": "test_s6_extract_18nov_0817am",
+      "timestamp": null,
+      "description": "Acknowledges the incapacitation of enemies and their actions, showing tactical awareness.",
+      "type": "combat"
+    },
+    {
+      "session": "test_s6_extract_18nov_0817am",
+      "timestamp": null,
+      "description": "Acknowledges that he might need to roleplay intimidation.",
+      "type": "social"
     }
   ],
   "inventory": [
@@ -106,6 +274,36 @@
       "name": "Possibly a skill or spell that can be used again, but not immediately.",
       "description": "Furnax mentioned he could use his ability to weaken the hellhound multiple times per day, but it was currently unavailable due to a lack of mana or spell site.",
       "session_acquired": "Session6_test_16nov_0315am",
+      "category": "general"
+    },
+    {
+      "name": "Furnax mentions that he has lost a book named 'Fuckelbergin', indicating the loss of an item.",
+      "description": "Furnax recalls losing a book called 'Fuckelbergin' and had to come up with another ship name for his quest.",
+      "session_acquired": "test_s6_extract_18nov_0817am",
+      "category": "social"
+    },
+    {
+      "name": "Discusses the Bag of Distraction and its charges, indicating potential item management issues.",
+      "description": "Furnax inquires about the recharging of a Bag of Distraction, suggesting he might be unsure of its proper use.",
+      "session_acquired": "test_s6_extract_18nov_0817am",
+      "category": "social"
+    },
+    {
+      "name": "Possibly gains a mastery property on his weapon, though this is uncertain without more context.",
+      "description": "Furnax discusses potential access to a weapon mastery property, which could imply new equipment or abilities.",
+      "session_acquired": "test_s6_extract_18nov_0817am",
+      "category": "general"
+    },
+    {
+      "name": "Possibly mentions buying a shield from the academy.",
+      "description": "Furnax references purchasing a shield at the academy, potentially indicating recent equipment changes.",
+      "session_acquired": "test_s6_extract_18nov_0817am",
+      "category": "narrative"
+    },
+    {
+      "name": "Mentioning his equipment kit.",
+      "description": "Furnax mentions having a climbers kit and other equipment, indicating preparation for an upcoming task.",
+      "session_acquired": "test_s6_extract_18nov_0817am",
       "category": "general"
     }
   ],
@@ -127,6 +325,72 @@
       "relationship_type": "ally",
       "description": null,
       "first_met": "Session6_test_16nov_0315am"
+    },
+    {
+      "name": "Demonstrates leadership and teamwork by taking the initiative to enter the captain's area.",
+      "relationship_type": "social",
+      "description": null,
+      "first_met": "test_s6_extract_18nov_0817am"
+    },
+    {
+      "name": "Asks Arlinde for a list of people to interview, indicating trust and cooperation.",
+      "relationship_type": "social",
+      "description": null,
+      "first_met": "test_s6_extract_18nov_0817am"
+    },
+    {
+      "name": "Considers teaching another character, showing a potential mentorship role or willingness to form an alliance.",
+      "relationship_type": "ally",
+      "description": null,
+      "first_met": "test_s6_extract_18nov_0817am"
+    },
+    {
+      "name": "Checks Pipira's loyalty and expresses relief upon her confirmation, strengthening their bond in the group.",
+      "relationship_type": "ally",
+      "description": null,
+      "first_met": "test_s6_extract_18nov_0817am"
+    },
+    {
+      "name": "Counsels Sha'ek, showing a supportive and protective relationship",
+      "relationship_type": "ally",
+      "description": null,
+      "first_met": "test_s6_extract_18nov_0817am"
+    },
+    {
+      "name": "Expressed jealousy towards Pipira's move, indicating a competitive dynamic.",
+      "relationship_type": "general",
+      "description": null,
+      "first_met": "test_s6_extract_18nov_0817am"
+    },
+    {
+      "name": "Shows a willingness to trust his companions despite his initial mistrust.",
+      "relationship_type": "ally",
+      "description": null,
+      "first_met": "test_s6_extract_18nov_0817am"
+    },
+    {
+      "name": "Interaction with Pipira Shimmerlock, suggesting a dynamic relationship.",
+      "relationship_type": "social",
+      "description": null,
+      "first_met": "test_s6_extract_18nov_0817am"
+    },
+    {
+      "name": "Acknowledges the potential danger and impact on Pipira.",
+      "relationship_type": "social",
+      "description": null,
+      "first_met": "test_s6_extract_18nov_0817am"
+    },
+    {
+      "name": "Working together with Pipira Shimmerlock to ensure safety.",
+      "relationship_type": "general",
+      "description": null,
+      "first_met": "test_s6_extract_18nov_0817am"
+    },
+    {
+      "name": "Describes Oli's reaction to the violence, showing a change in their relationship.",
+      "relationship_type": "ally",
+      "description": null,
+      "first_met": "test_s6_extract_18nov_0817am"
     }
   ],
   "development_notes": [
@@ -344,6 +608,421 @@
       "session": "Session6_test_16nov_0315am",
       "note": "Focuses on repairing the ship and not moving forward too quickly.",
       "category": "social"
+    },
+    {
+      "session": "test_s6_extract_18nov_0817am",
+      "note": "Proposes a rotation schedule for the watch duty, suggesting it be done every four hours.",
+      "category": "general"
+    },
+    {
+      "session": "test_s6_extract_18nov_0817am",
+      "note": "Expresses concern about potential double spies among the group.",
+      "category": "social"
+    },
+    {
+      "session": "test_s6_extract_18nov_0817am",
+      "note": "Mentions Perlux, possibly indicating a connection or relationship.",
+      "category": "general"
+    },
+    {
+      "session": "test_s6_extract_18nov_0817am",
+      "note": "Furnax is questioning the use of creativity in gameplay, suggesting a more rules-based approach.",
+      "category": "social"
+    },
+    {
+      "session": "test_s6_extract_18nov_0817am",
+      "note": "Asserts his role as the 'bad cop'.",
+      "category": "social"
+    },
+    {
+      "session": "test_s6_extract_18nov_0817am",
+      "note": "Furnax reveals that 'Fuckelbergin' is the first book he ever created, suggesting his origin as a creative individual.",
+      "category": "social"
+    },
+    {
+      "session": "test_s6_extract_18nov_0817am",
+      "note": "Tries to negotiate a more favorable position with Pipira Shimmerlock.",
+      "category": "social"
+    },
+    {
+      "session": "test_s6_extract_18nov_0817am",
+      "note": "Implies a willingness to manipulate situations for personal gain.",
+      "category": "social"
+    },
+    {
+      "session": "test_s6_extract_18nov_0817am",
+      "note": "Furnax reassures the group about his watch duty, showing confidence despite the group's doubts.",
+      "category": "general"
+    },
+    {
+      "session": "test_s6_extract_18nov_0817am",
+      "note": "Expresses concern about the appearance of a fellow wizard, hinting at racial or cultural sensitivities.",
+      "category": "social"
+    },
+    {
+      "session": "test_s6_extract_18nov_0817am",
+      "note": "Attempts to help a new person by offering to teach them something.",
+      "category": "social"
+    },
+    {
+      "session": "test_s6_extract_18nov_0817am",
+      "note": "Discusses the possibility of trading skills and knowledge with others.",
+      "category": "social"
+    },
+    {
+      "session": "test_s6_extract_18nov_0817am",
+      "note": "Discusses the possibility of trading skills and knowledge, indicating a willingness to share resources.",
+      "category": "social"
+    },
+    {
+      "session": "test_s6_extract_18nov_0817am",
+      "note": "Expresses a willingness to share knowledge and resources, hinting at a collaborative mindset.",
+      "category": "social"
+    },
+    {
+      "session": "test_s6_extract_18nov_0817am",
+      "note": "Acknowledging the limitations of cross-learning due to his own specialization and limited resources.",
+      "category": "general"
+    },
+    {
+      "session": "test_s6_extract_18nov_0817am",
+      "note": "Questions the conventional system, suggesting a more flexible approach.",
+      "category": "social"
+    },
+    {
+      "session": "test_s6_extract_18nov_0817am",
+      "note": "Shows a practical and resourceful side, addressing the issue of supplies on the ship.",
+      "category": "social"
+    },
+    {
+      "session": "test_s6_extract_18nov_0817am",
+      "note": "Manages to take over a task and ensure the group's progress.",
+      "category": "general"
+    },
+    {
+      "session": "test_s6_extract_18nov_0817am",
+      "note": "Advises Pipira to consider their choices carefully and acknowledges her intelligence.",
+      "category": "general"
+    },
+    {
+      "session": "test_s6_extract_18nov_0817am",
+      "note": "Provides reassurance and acknowledges Pipira's intelligence.",
+      "category": "general"
+    },
+    {
+      "session": "test_s6_extract_18nov_0817am",
+      "note": "Expresses willingness to visit Pipira's home despite the possibility of dealing with her cats.",
+      "category": "social"
+    },
+    {
+      "session": "test_s6_extract_18nov_0817am",
+      "note": "He is skeptical of the others' loyalty and mission integrity.",
+      "category": "social"
+    },
+    {
+      "session": "test_s6_extract_18nov_0817am",
+      "note": "He is asserting his own commitment to the mission.",
+      "category": "social"
+    },
+    {
+      "session": "test_s6_extract_18nov_0817am",
+      "note": "Reflects on the potential for betrayal within their party, demonstrating caution and vigilance.",
+      "category": "social"
+    },
+    {
+      "session": "test_s6_extract_18nov_0817am",
+      "note": "Questions about the Four Horsemen and their nature reflect Furnax's curiosity and investigative drive.",
+      "category": "intellectual"
+    },
+    {
+      "session": "test_s6_extract_18nov_0817am",
+      "note": "Acknowledges the party's ability to see into the future, showing respect.",
+      "category": "social"
+    },
+    {
+      "session": "test_s6_extract_18nov_0817am",
+      "note": "Acknowledges the knowledge of cults from his school background.",
+      "category": "knowledge"
+    },
+    {
+      "session": "test_s6_extract_18nov_0817am",
+      "note": "Mentions the lack of significant cult activities in Atlas.",
+      "category": "information"
+    },
+    {
+      "session": "test_s6_extract_18nov_0817am",
+      "note": "Acknowledges the limited information about cult activities in Atlas.",
+      "category": "knowledge"
+    },
+    {
+      "session": "test_s6_extract_18nov_0817am",
+      "note": "Acknowledging Sha'ek's actions and encouraging further investigation.",
+      "category": "supportive"
+    },
+    {
+      "session": "test_s6_extract_18nov_0817am",
+      "note": "Expresses satisfaction with a magical item he created for Marja.",
+      "category": "personal"
+    },
+    {
+      "session": "test_s6_extract_18nov_0817am",
+      "note": "Furnax seems hesitant about the Krimwaal book and corrects himself after initial confusion.",
+      "category": "social"
+    },
+    {
+      "session": "test_s6_extract_18nov_0817am",
+      "note": "Furnax shows a level of respect and trust in the group's decision-making process, even when expressing initial hesitation.",
+      "category": "social"
+    },
+    {
+      "session": "test_s6_extract_18nov_0817am",
+      "note": "Attempts to maintain focus and provides a demonstration of abilities.",
+      "category": "general"
+    },
+    {
+      "session": "test_s6_extract_18nov_0817am",
+      "note": "Participates in the decision-making process for assigning watch duties.",
+      "category": "social"
+    },
+    {
+      "session": "test_s6_extract_18nov_0817am",
+      "note": "Acknowledges a need for caution and knowledge about the environment.",
+      "category": "general"
+    },
+    {
+      "session": "test_s6_extract_18nov_0817am",
+      "note": "Shares their meta-knowledge and how it influences decision-making in the game.",
+      "category": "general"
+    },
+    {
+      "session": "test_s6_extract_18nov_0817am",
+      "note": "Provides valuable tactical insight and challenges the feasibility of Sha'ek's plan.",
+      "category": "social"
+    },
+    {
+      "session": "test_s6_extract_18nov_0817am",
+      "note": "Showed adaptability and resourcefulness in combat, using a stinger attack.",
+      "category": "general"
+    },
+    {
+      "session": "test_s6_extract_18nov_0817am",
+      "note": "Confirmed the construct's nature and its completion through the use of stone.",
+      "category": "combat"
+    },
+    {
+      "session": "test_s6_extract_18nov_0817am",
+      "note": "Shows interest in Sha'ek's weapon history, potentially hinting at a deeper relationship or rivalry.",
+      "category": "social"
+    },
+    {
+      "session": "test_s6_extract_18nov_0817am",
+      "note": "Decides to remain hidden despite potential damage from casting a spell.",
+      "category": "general"
+    },
+    {
+      "session": "test_s6_extract_18nov_0817am",
+      "note": "Discusses the limitations and uses of his abilities, showing strategic thinking.",
+      "category": "general"
+    },
+    {
+      "session": "test_s6_extract_18nov_0817am",
+      "note": "Expressed willingness to help his allies by casting spells and taking the front.",
+      "category": "general"
+    },
+    {
+      "session": "test_s6_extract_18nov_0817am",
+      "note": "Demonstrates tactical acumen and foresight in predicting attacks",
+      "category": "general"
+    },
+    {
+      "session": "test_s6_extract_18nov_0817am",
+      "note": "Shows flexibility and adaptability in a complex combat situation.",
+      "category": "combat"
+    },
+    {
+      "session": "test_s6_extract_18nov_0817am",
+      "note": "Questions the reliability of his own abilities, showing self-reflection.",
+      "category": "combat"
+    },
+    {
+      "session": "test_s6_extract_18nov_0817am",
+      "note": "Shows adaptability by using the Chaotic Shuffle effectively in combat.",
+      "category": "combat"
+    },
+    {
+      "session": "test_s6_extract_18nov_0817am",
+      "note": "Acknowledged the power of Pipira's move, suggesting a sense of awe or jealousy.",
+      "category": "general"
+    },
+    {
+      "session": "test_s6_extract_18nov_0817am",
+      "note": "Discusses the importance of the bag of distraction and its mechanics with the group.",
+      "category": "general"
+    },
+    {
+      "session": "test_s6_extract_18nov_0817am",
+      "note": "Demonstrates flexibility and resourcefulness by using the bag of distraction despite limitations.",
+      "category": "general"
+    },
+    {
+      "session": "test_s6_extract_18nov_0817am",
+      "note": "Demonstrates a quick and impulsive decision-making process under pressure.",
+      "category": "combat"
+    },
+    {
+      "session": "test_s6_extract_18nov_0817am",
+      "note": "Acknowledges the group's knowledge and his need to adapt.",
+      "category": "social"
+    },
+    {
+      "session": "test_s6_extract_18nov_0817am",
+      "note": "Shows a sense of relief and gratitude for the opportunity to roll again.",
+      "category": "social"
+    },
+    {
+      "session": "test_s6_extract_18nov_0817am",
+      "note": "Questions the practicality of Shield usage in combat.",
+      "category": "combat"
+    },
+    {
+      "session": "test_s6_extract_18nov_0817am",
+      "note": "Expresses difficulty with managing in-game mechanics and spell effects.",
+      "category": "social"
+    },
+    {
+      "session": "test_s6_extract_18nov_0817am",
+      "note": "Admits to having fun with the blur effect despite its difficulty.",
+      "category": "social"
+    },
+    {
+      "session": "test_s6_extract_18nov_0817am",
+      "note": "Expresses feeling high and blessed, showing emotional instability.",
+      "category": "emotional"
+    },
+    {
+      "session": "test_s6_extract_18nov_0817am",
+      "note": "Refuses to be influenced by others, asserting his own actions despite potential consequences.",
+      "category": "moral choice"
+    },
+    {
+      "session": "test_s6_extract_18nov_0817am",
+      "note": "Acknowledged the presence of a creature and suggested actions within its territory.",
+      "category": "combat"
+    },
+    {
+      "session": "test_s6_extract_18nov_0817am",
+      "note": "Doubted his own abilities to communicate effectively with the group from a distance.",
+      "category": "general"
+    },
+    {
+      "session": "test_s6_extract_18nov_0817am",
+      "note": "Demonstrates adaptability by using different tactics in combat.",
+      "category": "combat"
+    },
+    {
+      "session": "test_s6_extract_18nov_0817am",
+      "note": "Recognizes the unexpected outcome of the battle and its implications.",
+      "category": "combat"
+    },
+    {
+      "session": "test_s6_extract_18nov_0817am",
+      "note": "Shows concern for his allies and the situation at hand.",
+      "category": "combat"
+    },
+    {
+      "session": "test_s6_extract_18nov_0817am",
+      "note": "Explains the ongoing situation with hangsels and wyverns.",
+      "category": "social"
+    },
+    {
+      "session": "test_s6_extract_18nov_0817am",
+      "note": "Explains the necessity of multiple trips and tasks to achieve their goals.",
+      "category": "social"
+    },
+    {
+      "session": "test_s6_extract_18nov_0817am",
+      "note": "Explains the limitations and structure of the lower deck.",
+      "category": "social"
+    },
+    {
+      "session": "test_s6_extract_18nov_0817am",
+      "note": "Furnax is demonstrating caution and a methodical approach to the situation, ensuring safety before making decisions.",
+      "category": "social"
+    },
+    {
+      "session": "test_s6_extract_18nov_0817am",
+      "note": "Acknowledging his inexperience with a task.",
+      "category": "general"
+    },
+    {
+      "session": "test_s6_extract_18nov_0817am",
+      "note": "Furnax is considering creative but risky solutions to the situation.",
+      "category": "general"
+    },
+    {
+      "session": "test_s6_extract_18nov_0817am",
+      "note": "Asks about the ability to use a spell again, indicating a reliance on magical abilities.",
+      "category": "magical"
+    },
+    {
+      "session": "test_s6_extract_18nov_0817am",
+      "note": "Acknowledges the state of a photo, likely indicating personal significance and potential trauma.",
+      "category": "general"
+    },
+    {
+      "session": "test_s6_extract_18nov_0817am",
+      "note": "Acknowledges a mistake in killing Aletta, showing remorse.",
+      "category": "emotional"
+    },
+    {
+      "session": "test_s6_extract_18nov_0817am",
+      "note": "Acknowledges the use of violence and its consequences.",
+      "category": "emotional"
+    },
+    {
+      "session": "test_s6_extract_18nov_0817am",
+      "note": "Reflects on past actions and their impact, indicating personal growth.",
+      "category": "emotional"
+    },
+    {
+      "session": "test_s6_extract_18nov_0817am",
+      "note": "Shares knowledge and experiences with the group, showing mentorship or leadership.",
+      "category": "social"
+    },
+    {
+      "session": "test_s6_extract_18nov_0817am",
+      "note": "Discusses the dangers of the forest and the presence of dangerous animals.",
+      "category": "social"
+    },
+    {
+      "session": "test_s6_extract_18nov_0817am",
+      "note": "Mentions the presence of various animals and the need to control their population.",
+      "category": "social"
+    },
+    {
+      "session": "test_s6_extract_18nov_0817am",
+      "note": "Furnax is expressing a desire to help and support his teammates, indicating loyalty and care.",
+      "category": "emotional"
+    },
+    {
+      "session": "test_s6_extract_18nov_0817am",
+      "note": "Expresses a willingness to potentially kill for the campaign.",
+      "category": "moral choice"
+    },
+    {
+      "session": "test_s6_extract_18nov_0817am",
+      "note": "Considers alternative actions if no other springers are present, showing strategic thinking.",
+      "category": "social"
+    },
+    {
+      "session": "test_s6_extract_18nov_0817am",
+      "note": "Contemplates rolling for medicine next time to avoid similar situations.",
+      "category": "social"
+    },
+    {
+      "session": "test_s6_extract_18nov_0817am",
+      "note": "Furnax shows a strategic and tactical approach, suggesting he is planning ahead.",
+      "category": "social"
     }
   ],
   "memorable_quotes": [
@@ -441,17 +1120,213 @@
       "session": "Session6_test_16nov_0315am",
       "quote": "Je zou er nog nog eens daaronder. Maar dan zou je wel een rol moeten doen. Want dat is ook een behoorlijke val.",
       "context": "Furnax explains the potential dangers and precautions needed when jumping from a hole in the zeppelin's structure."
+    },
+    {
+      "session": "test_s6_extract_18nov_0817am",
+      "quote": "Hallo kapitein. A la posta. Onze verstekeling. Nu gevangenen.",
+      "context": "Furnax leads the team into knocking on the captain’s door, showing their readiness to proceed with their mission."
+    },
+    {
+      "session": "test_s6_extract_18nov_0817am",
+      "quote": "Ik zou dorst. Precies, maar leek heilig water, weet je dat. Je komt je kamertje uit, daar bij die gezamenlijke ruimte, zie daar een klerk. Eigenlijk net zo'n water heilig aan het maken.",
+      "context": "Furnax is instructed to drink holy water, but has an inexplicable urge to do so regardless of the circumstances."
+    },
+    {
+      "session": "test_s6_extract_18nov_0817am",
+      "quote": "But dan is het Fuckelbergin.",
+      "context": "Furnax humorously references 'Fuckelbergin' as an alternative to 'Huckleberry Finn'."
+    },
+    {
+      "session": "test_s6_extract_18nov_0817am",
+      "quote": "En de fly. Want die zijn op een schip gewoon heel erg handig.",
+      "context": "Furnax is recommending which of several magical abilities Pipira can choose from."
+    },
+    {
+      "session": "test_s6_extract_18nov_0817am",
+      "quote": "Hahaha. Dat was poepcorn. Jawel, ik wil met die short of luck... hahaha.",
+      "context": "Furnax and others are discussing something that has led to corn in someone's underpants, creating a humorous situation."
+    },
+    {
+      "session": "test_s6_extract_18nov_0817am",
+      "quote": "Ik heb een keer een one shot gespeeld, Anne. En ik zat in een party, Anne. Waarvan één van de leden zijn missie was... Om te saboteren. Om ons te saboteren. De missie was, één van onze andere partyleden die moest je assassinen.",
+      "context": "Furnax shares a past experience with the group where they were betrayed by one of their own, leading to a momentary setback."
+    },
+    {
+      "session": "test_s6_extract_18nov_0817am",
+      "quote": "Ja, chaos is gewoon een echte oeroude entiteit, ja, wat slecht is, laten we het gewoon eenvoudig houden. Dat laatste gedeelte met de houwbringers, dat is nog niet helemaal bevestigd, maar daar komt het wel op neer vanuit oude verhalen.",
+      "context": "Furnax discusses chaos theory and the houwbringers in relation to Gaia's recent events."
+    },
+    {
+      "session": "test_s6_extract_18nov_0817am",
+      "quote": "Fem in dit geval, is niet alleen per se honger, het gaat van, we hebben eten nodig, maar ook honger na 1 nacht. Honger... Refereeput 1 Honger na sterke horen. Dat is elke soort honger die je je kan voorstellen.",
+      "context": "Furnax elaborates on the famin, explaining it goes beyond just hunger and includes a heightened sense of need."
+    },
+    {
+      "session": "test_s6_extract_18nov_0817am",
+      "quote": "States that they are aware of the cults due to their school background.",
+      "context": "Furnax clarifies that his knowledge of cults comes from academic study rather than general public awareness, highlighting the specialized nature of this information."
+    },
+    {
+      "session": "test_s6_extract_18nov_0817am",
+      "quote": "De nikkerpartie is starten en iedereen naakt.",
+      "context": "Furnax is making light of the situation by joking about the alarms being related to porn."
+    },
+    {
+      "session": "test_s6_extract_18nov_0817am",
+      "quote": "Uit zijn favoriete lijst.",
+      "context": "Furnax is inquiring about the source of the alarm, adding to the confusion."
+    },
+    {
+      "session": "test_s6_extract_18nov_0817am",
+      "quote": "'Een lucky kan ik op attack roepsen, ja.' '22 raakt wel.'",
+      "context": "Furnax used a special attack to land a successful blow on the enemy, showcasing his tactical prowess."
+    },
+    {
+      "session": "test_s6_extract_18nov_0817am",
+      "quote": "en je hebt nu gemiddeld damage per ronde",
+      "context": "Furnax was discussing the average damage his character could deal."
+    },
+    {
+      "session": "test_s6_extract_18nov_0817am",
+      "quote": "ik heb een helemaal standaard item hoor",
+      "context": "Furnax mentioned having a standard, unremarkable item."
+    },
+    {
+      "session": "test_s6_extract_18nov_0817am",
+      "quote": "Wat had ik toen gezegd voor een wapen?",
+      "context": "Furnax asks what weapon Sha'ek had before, showing his interest in understanding the character's background."
+    },
+    {
+      "session": "test_s6_extract_18nov_0817am",
+      "quote": "Ik kies dan voor de damage.\n[02:21:57] SPEAKER_02: Fire damage.\nOp 10?\nJa.\nDat is 12 fire damage.",
+      "context": "Furnax decides on a fire-based attack, showing his combat readiness and willingness to engage in battle."
+    },
+    {
+      "session": "test_s6_extract_18nov_0817am",
+      "quote": "Dit is de Bight. Uhm, 17. Volgens mij haalt dat niet.",
+      "context": "Furnax describes the incoming attack and its outcome."
+    },
+    {
+      "session": "test_s6_extract_18nov_0817am",
+      "quote": "Eet zichzelf!",
+      "context": "Furnax makes a humorous and unexpected statement, adding to the atmosphere."
+    },
+    {
+      "session": "test_s6_extract_18nov_0817am",
+      "quote": "Ik gok het erop of die mij wel of niet hit.",
+      "context": "Furnax decides to cast a cone spell with uncertain results, showing willingness to take risks."
+    },
+    {
+      "session": "test_s6_extract_18nov_0817am",
+      "quote": "'Mijn Chaotic Shuffle. Naar die motherfuckers.'",
+      "context": "Furnax describes his Chaotic Shuffle item and how it deals damage in combat."
+    },
+    {
+      "session": "test_s6_extract_18nov_0817am",
+      "quote": "Ik vind dit zo leuk bedacht! Ik zal hem wel even in charge hebben. En dan kan ik nog als een bonus action nog een keer in die zak grabbelen.",
+      "context": "Furnax expresses excitement about using the bag of distraction for a bonus action to retrieve an item."
+    },
+    {
+      "session": "test_s6_extract_18nov_0817am",
+      "quote": "Het is een cast at will. Het is een counteract. Eén is weg. Twee... Hij is incapacitated.",
+      "context": "Furnax explains that using an item will result in disadvantage on their next attack roll before the end of the next turn."
+    },
+    {
+      "session": "test_s6_extract_18nov_0817am",
+      "quote": "Dat hoeft niet. Ja, fuck jou.",
+      "context": "Furnax is arguing about the movement rules during a tactical discussion, showing impatience and frustration."
+    },
+    {
+      "session": "test_s6_extract_18nov_0817am",
+      "quote": "Ik kan alleen nog maar met electric shit iets doen. Lightning Tucson.",
+      "context": "Furnax reveals his inability to perform non-electric magic and references a game he might have chosen differently."
+    },
+    {
+      "session": "test_s6_extract_18nov_0817am",
+      "quote": "Witchbolt? Witchbolt?",
+      "context": "Furnax repeatedly asks about and confirms the Witchbolt spell, showing excitement or uncertainty."
+    },
+    {
+      "session": "test_s6_extract_18nov_0817am",
+      "quote": "'Dat heeft helemaal geen zin.' and 'Zo werkt het.'",
+      "context": "Furnax expresses frustration with the shield's effectiveness."
+    },
+    {
+      "session": "test_s6_extract_18nov_0817am",
+      "quote": "Ik vind het altijd moeilijk als wizard om die spelletjes erbij af te schepen. Wat heb ik nou allemaal gedraaid?",
+      "context": "Furnax discusses his struggles with managing spell effects and the importance of being consistent."
+    },
+    {
+      "session": "test_s6_extract_18nov_0817am",
+      "quote": "Dat is eigenlijk wel een goeie. Dus daar hou ik ook even van.",
+      "context": "Furnax discusses the unfolding situation and its consequences."
+    },
+    {
+      "session": "test_s6_extract_18nov_0817am",
+      "quote": "Daarop gehakt worden, want ze zijn zelf ook dus... Hoelang dat zo goed blijft gaan.",
+      "context": "Furnax explains that hangsels are being ground down by wyverns, who themselves are also struggling."
+    },
+    {
+      "session": "test_s6_extract_18nov_0817am",
+      "quote": "We hebben geen zin meer.",
+      "context": "The party expresses their desire to stop, and Furnax talks about the pigs in the area."
+    },
+    {
+      "session": "test_s6_extract_18nov_0817am",
+      "quote": "Ze ziet er eigenlijk al meteen bloedig uit.",
+      "context": "Furnax mentions that the pigs have been shot and are in the freezer."
+    },
+    {
+      "session": "test_s6_extract_18nov_0817am",
+      "quote": "Die hebben zo'n lijf hè. Gewoon die in het doorsneden gewoon.",
+      "context": "Furnax describes the large animals they hunt, focusing on their small legs in contrast to their massive bodies."
+    },
+    {
+      "session": "test_s6_extract_18nov_0817am",
+      "quote": "Dat zijn echt kanonnen van beesten.",
+      "context": "Furnax describes in detail how the hunted animals are disproportionate, emphasizing their size compared to their legs."
+    },
+    {
+      "session": "test_s6_extract_18nov_0817am",
+      "quote": "Als je jezelf zo vasthoudt. En als je weer in de relics mag, zeg. Weet je wel, een vreemdstuken maken. Het was eerst een 5. Maar dat is nu een 16. Met mijn laatste lucky.",
+      "context": "Furnax reflected on his last successful attack, attributing it to luck."
+    },
+    {
+      "session": "test_s6_extract_18nov_0817am",
+      "quote": "min max max max",
+      "context": "Furnax is discussing the utility of his Misty Step ability in terms of optimal character build."
+    },
+    {
+      "session": "test_s6_extract_18nov_0817am",
+      "quote": "Maar de rando's... Nee, die moeten blijven leven. Maar de campagne-character... Die schieten we kapot.",
+      "context": "Furnax expresses a harsh view on who lives and dies in the campaign, showing his callous nature."
+    },
+    {
+      "session": "test_s6_extract_18nov_0817am",
+      "quote": "Maar er was niemand gestorven.",
+      "context": "Furnax reassures the group that no one died on their ship, highlighting a crucial moment in the campaign."
+    },
+    {
+      "session": "test_s6_extract_18nov_0817am",
+      "quote": "Pas op voor 3 weken en dan is het een zondag.",
+      "context": "Furnax hints at a future event happening on a Sunday in three weeks, possibly related to the magical chaos."
     }
   ],
   "sessions_appeared": [
     "Session 1",
     "Session 2",
     "Session 3",
-    "Session6_test_16nov_0315am"
+    "Session6_test_16nov_0315am",
+    "test_s6_extract_18nov_0817am"
   ],
-  "total_sessions": 4,
+  "total_sessions": 5,
   "current_goals": [
-    "Mentions the recent acquisition of spells related to a flying vessel, hinting at progress in his quest."
+    "Mentions the recent acquisition of spells related to a flying vessel, hinting at progress in his quest.",
+    "Discusses the potential survival situation on the ship and suggests setting up a patrol schedule.",
+    "Mentions the search for people connected to death and other harbingers.",
+    "Describes the use of a mechanical item from the bag of distraction.",
+    "Decides to cast Witchbolt after gathering information.",
+    "Furnax discusses the group's plan to deal with a demented enemy."
   ],
   "completed_goals": [],
   "dm_notes": "",

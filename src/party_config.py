@@ -5,6 +5,7 @@ from typing import Dict, List, Optional, Tuple
 from dataclasses import dataclass, asdict
 from .config import Config
 from .logger import get_logger
+from .file_lock import get_file_lock
 
 
 logger = get_logger(__name__)
@@ -119,17 +120,20 @@ class PartyConfigManager:
         )
 
     def save_parties(self):
-        """Save parties to JSON file"""
+        """Save parties to JSON file with file locking to prevent concurrent write conflicts."""
         self.config_file.parent.mkdir(exist_ok=True, parents=True)
 
-        # Convert to serializable format
-        data = {}
-        for party_id, party in self.parties.items():
-            party_dict = asdict(party)
-            data[party_id] = party_dict
+        # Use file lock to prevent race conditions
+        lock = get_file_lock(self.config_file)
+        with lock:
+            # Convert to serializable format
+            data = {}
+            for party_id, party in self.parties.items():
+                party_dict = asdict(party)
+                data[party_id] = party_dict
 
-        with open(self.config_file, 'w', encoding='utf-8') as f:
-            json.dump(data, f, indent=2, ensure_ascii=False)
+            with open(self.config_file, 'w', encoding='utf-8') as f:
+                json.dump(data, f, indent=2, ensure_ascii=False)
 
     def get_party(self, party_id: str = "default") -> Optional[Party]:
         """Get a party by ID"""
@@ -397,6 +401,39 @@ class CampaignManager:
         self.campaigns[campaign_id] = campaign
         self._save_campaigns()
 
+    def rename_campaign(self, campaign_id: str, new_name: str) -> bool:
+        """Renames a campaign after validation."""
+        new_name = new_name.strip()
+        if not new_name:
+            logger.error("Campaign rename failed: New name cannot be empty.")
+            return False
+
+        if campaign_id not in self.campaigns:
+            logger.error(f"Campaign rename failed: ID '{campaign_id}' not found.")
+            return False
+
+        # Check if new name is already in use by another campaign
+        for cid, camp in self.campaigns.items():
+            if cid != campaign_id and camp.name.lower() == new_name.lower():
+                logger.error(f"Campaign rename failed: Name '{new_name}' is already in use.")
+                return False
+
+        self.campaigns[campaign_id].name = new_name
+        self._save_campaigns()
+        logger.info(f"Renamed campaign '{campaign_id}' to '{new_name}'.")
+        return True
+
+    def delete_campaign(self, campaign_id: str) -> bool:
+        """Deletes a campaign."""
+        if campaign_id not in self.campaigns:
+            logger.warning(f"Attempted to delete non-existent campaign '{campaign_id}'.")
+            return False
+
+        del self.campaigns[campaign_id]
+        self._save_campaigns()
+        logger.info(f"Deleted campaign '{campaign_id}'.")
+        return True
+
     def create_blank_campaign(
         self,
         name: Optional[str] = None,
@@ -426,11 +463,14 @@ class CampaignManager:
         return campaign_id, blank_campaign
 
     def _save_campaigns(self):
-        """Save campaigns to JSON file"""
-        data = {}
-        for campaign_id, campaign in self.campaigns.items():
-            campaign_dict = asdict(campaign)
-            data[campaign_id] = campaign_dict
+        """Save campaigns to JSON file with file locking to prevent concurrent write conflicts."""
+        # Use file lock to prevent race conditions
+        lock = get_file_lock(self.config_file)
+        with lock:
+            data = {}
+            for campaign_id, campaign in self.campaigns.items():
+                campaign_dict = asdict(campaign)
+                data[campaign_id] = campaign_dict
 
-        with open(self.config_file, 'w', encoding='utf-8') as f:
-            json.dump(data, f, indent=2, ensure_ascii=False)
+            with open(self.config_file, 'w', encoding='utf-8') as f:
+                json.dump(data, f, indent=2, ensure_ascii=False)

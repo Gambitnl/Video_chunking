@@ -1,10 +1,57 @@
 {
   "campaign_id": "campaign_004",
-  "last_updated": "2025-11-02T23:44:18.105054",
-  "sessions_processed": [],
-  "quests": [],
+  "last_updated": "2025-11-17T11:28:22.655352",
+  "sessions_processed": [
+    "test_s6_17nov_0901am"
+  ],
+  "quests": [
+    {
+      "title": "Survival on the Ship",
+      "description": "Survive and control the ship's magical systems",
+      "status": "active",
+      "first_mentioned": "test_s6_17nov_0901am",
+      "last_updated": "test_s6_17nov_0901am",
+      "related_npcs": [],
+      "related_locations": [],
+      "notes": []
+    }
+  ],
   "npcs": [],
-  "plot_hooks": [],
-  "locations": [],
+  "plot_hooks": [
+    {
+      "summary": "Mysterious knuckles",
+      "details": "The knuckles are mentioned as starting to rattle, which could be a hint or an event that needs further investigation.",
+      "first_mentioned": "test_s6_17nov_0901am",
+      "last_updated": "test_s6_17nov_0901am",
+      "related_npcs": [],
+      "related_quests": [],
+      "resolved": false,
+      "resolution": null
+    },
+    {
+      "summary": "Unknown person's identity",
+      "details": "Sha'ek Mindfa'ek mentions not knowing someone's name, indicating there might be some unknown connection or mystery involving the character.",
+      "first_mentioned": "test_s6_17nov_0901am",
+      "last_updated": "test_s6_17nov_0901am",
+      "related_npcs": [],
+      "related_quests": [],
+      "resolved": false,
+      "resolution": null
+    }
+  ],
+  "locations": [
+    {
+      "name": "The Ship",
+      "description": "A vessel where the characters are forced to survive and control its magical systems.",
+      "first_mentioned": "test_s6_17nov_0901am",
+      "last_updated": "test_s6_17nov_0901am",
+      "type": "dungeon",
+      "notable_features": [],
+      "npcs_present": [],
+      "visits": [
+        "test_s6_17nov_0901am"
+      ]
+    }
+  ],
   "items": []
 }

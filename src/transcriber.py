@@ -402,6 +402,139 @@ class GroqTranscriber(BaseTranscriber):
         )
 
 
+class OpenAITranscriber(BaseTranscriber):
+    """
+    OpenAI Whisper API transcription - cloud-based Whisper.
+
+    Pros:
+    - Very fast (cloud-accelerated)
+    - High quality results
+    - No local GPU needed
+    - Official OpenAI implementation
+
+    Cons:
+    - Requires API key
+    - Internet connection required
+    - Pay-per-use pricing
+    """
+
+    def __init__(self, api_key: str = None):
+        from openai import OpenAI
+        import tempfile
+
+        self.api_key = api_key or Config.OPENAI_API_KEY
+        if not self.api_key:
+            raise ValueError("OpenAI API key required. Set OPENAI_API_KEY in .env")
+
+        self.client = OpenAI(api_key=self.api_key)
+        self.temp_dir = Path(tempfile.gettempdir())
+        self.logger = get_logger("transcriber.openai")
+
+    def transcribe_chunk(
+        self,
+        chunk: AudioChunk,
+        language: str = Config.WHISPER_LANGUAGE
+    ) -> ChunkTranscription:
+        """Transcribe using OpenAI Whisper API"""
+        import soundfile as sf
+
+        # OpenAI requires a file path, so save chunk temporarily
+        temp_path = self.temp_dir / f"chunk_{chunk.chunk_index}.wav"
+        sf.write(str(temp_path), chunk.audio, chunk.sample_rate)
+        self.logger.debug("Submitting chunk %d to OpenAI (temp file: %s)", chunk.chunk_index, temp_path)
+
+        try:
+            # Call OpenAI API
+            with open(str(temp_path), "rb") as audio_file:
+                response = self._make_api_call(audio_file, language)
+
+            # Parse response
+            segments = []
+            response_words = getattr(response, "words", None)
+            for seg in response.segments:
+                # Adjust timestamps to absolute time
+                absolute_start = chunk.start_time + seg['start']
+                absolute_end = chunk.start_time + seg['end']
+
+                words = None
+                if response_words:
+                    words = [
+                        {
+                            'word': w['word'],
+                            'start': chunk.start_time + w['start'],
+                            'end': chunk.start_time + w['end'],
+                            'probability': w.get('probability', 1.0)
+                        }
+                        for w in response_words
+                        if seg['start'] <= w['start'] <= seg['end']
+                    ]
+
+                segments.append(TranscriptionSegment(
+                    text=seg['text'].strip(),
+                    start_time=absolute_start,
+                    end_time=absolute_end,
+                    words=words
+                ))
+
+            return ChunkTranscription(
+                chunk_index=chunk.chunk_index,
+                chunk_start=chunk.start_time,
+                chunk_end=chunk.end_time,
+                segments=segments,
+                language=response.language
+            )
+
+        finally:
+            # Clean up temp file
+            if temp_path.exists():
+                temp_path.unlink()
+                self.logger.debug("Cleaned temporary chunk file %s", temp_path)
+
+    def preflight_check(self):
+        """Check OpenAI API availability and authentication."""
+        issues = []
+
+        if not self.api_key:
+            issues.append(
+                PreflightIssue(
+                    component="transcriber.openai",
+                    message="OpenAI API key not configured. Set OPENAI_API_KEY in .env file.",
+                    severity="error",
+                )
+            )
+            return issues
+
+        try:
+            # Test API with minimal request
+            response = self.client.chat.completions.create(
+                messages=[{"role": "user", "content": "test"}],
+                model="gpt-3.5-turbo",
+                max_tokens=1,
+            )
+            self.logger.debug("OpenAI API preflight check passed")
+        except Exception as e:
+            issues.append(
+                PreflightIssue(
+                    component="transcriber.openai",
+                    message=f"OpenAI API test failed: {str(e)}. Check API key and internet connection.",
+                    severity="error",
+                )
+            )
+
+        return issues
+
+    @retry_with_backoff(retries=3, backoff_in_seconds=1)
+    def _make_api_call(self, audio_file, language):
+        """Make API call with retry logic."""
+        return self.client.audio.transcriptions.create(
+            file=audio_file,
+            model="whisper-1",
+            language=language if language != "auto" else None,
+            response_format="verbose_json",
+            timestamp_granularities=["segment", "word"]
+        )
+
+
 class TranscriberFactory:
     """Factory to create appropriate transcriber based on config"""
 
@@ -423,7 +556,6 @@ class TranscriberFactory:
         elif backend == "groq":
             return GroqTranscriber()
         elif backend == "openai":
-            # TODO: Implement OpenAI transcriber if needed
-            raise NotImplementedError("OpenAI transcriber not yet implemented")
+            return OpenAITranscriber()
         else:
             raise ValueError(f"Unknown transcriber backend: {backend}")

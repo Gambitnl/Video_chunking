@@ -33,6 +33,10 @@ ENV/
 *.swo
 *~
 
+# Jupyter Notebooks
+*.ipynb
+!colab_classification_worker.ipynb
+
 # Project specific
 .env
 output/
@@ -42,6 +46,9 @@ models/
 *.m4a
 *.mp3
 *.flac
+
+# Classification job files (large JSON files)
+job_*.json
 
 # Google Drive OAuth credentials (sensitive)
 gdrive_credentials.json
@@ -81,3 +88,5 @@ docs/pipeline_flowchart.svg
 # Test data - generated during test runs
 models/knowledge/default_knowledge.json
 models/speaker_profiles.json
+
+.claude/settings.local.json

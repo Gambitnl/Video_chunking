@@ -71,6 +71,36 @@ MODERN_CSS = """
     background: transparent;
 }
 
+/* Fix tab content width consistency - force all tabs to expand to full width */
+.gradio-container {
+    min-width: 1200px !important;
+}
+
+/* Ensure all tab panels take full width of container */
+.tabitem {
+    min-width: 100% !important;
+    width: 100% !important;
+}
+
+/* Force tab content to expand */
+.tabitem > div {
+    min-width: 100% !important;
+}
+
+/* Prevent container from collapsing based on content */
+.tabs {
+    width: 100% !important;
+    min-width: 100% !important;
+}
+
+/* Ensure markdown and other components expand to fill tab */
+.tabitem .markdown,
+.tabitem .block,
+.tabitem > div > div {
+    width: 100% !important;
+    box-sizing: border-box;
+}
+
 /* Card styling for sections */
 .card {
     background: white;

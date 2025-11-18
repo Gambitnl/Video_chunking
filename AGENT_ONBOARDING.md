@@ -23,28 +23,34 @@
 
 **Read these files first** to understand what this project does and how we work:
 
-#### 1.1: Project Overview
+#### 1.1: AI Assistant Guide (RECOMMENDED START)
+**File**: [`CLAUDE.md`](./CLAUDE.md)
+- **What to learn**: Comprehensive guide covering codebase structure, workflows, conventions, and common tasks
+- **Why read this**: All-in-one reference designed specifically for AI assistants
+- **Key sections**: "Operator Workflow", "Development Standards", "Common Tasks Reference"
+
+#### 1.2: Project Overview
 **File**: [`docs/PROJECT_SUMMARY.md`](./docs/PROJECT_SUMMARY.md)
 - **What to learn**: What this project does, key features, technology stack
 - **Why read this**: You need to understand the problem space before touching code
 - **Key sections**: "Core Features", "Architecture Overview"
 
-#### 1.2: Working Methodology
+#### 1.3: Working Methodology
 **File**: [`AGENTS.md`](./AGENTS.md)
 - **What to learn**: Repository guidelines, coding style, testing standards, **Operator Workflow**
 - **Why read this**: This defines HOW we work - required for all contributors
   - **Key sections**:
     - "Operator Workflow" (lines 53-62) - **CRITICAL**: The plan -> implement -> document -> test loop
     - "AI Agent Workflows" - Critical Reviewer methodology
-    - "Character Encoding: cp1252-compatible" - Avoid non-cp1252 characters to ensure broad compatibility across systems and editors. Note: This is a broader set than strict ASCII.
+    - "Character Encoding: ASCII-only" - Use only ASCII characters in all files to prevent encoding issues across different systems and editors
     - "Prompt & Changelog Formatting" - **NEW REQUIREMENT**: Every update must include a UTC timestamp line plus a dated changelog summary.
 
-#### 1.3: Quick Reference
+#### 1.4: Quick Reference
 **File**: [`docs/QUICKREF.md`](./docs/QUICKREF.md)
 - **What to learn**: Common commands, directory structure, configuration
 - **Why read this**: Practical reference for day-to-day work
 
-#### 1.4: MCP Tools & Diagnostics
+#### 1.5: MCP Tools & Diagnostics
 **File**: [`docs/MCP_SERVERS.md`](./docs/MCP_SERVERS.md)
 - **What to learn**: Available MCP (Model Context Protocol) tools for file operations, diagnostics, and knowledge management
 - **Why read this**: MCP tools provide powerful capabilities for automation, testing, and knowledge graph operations
@@ -144,6 +150,7 @@
 ## [LIST] Quick Start Checklist
 
 ### First 5 Minutes
+- [ ] Read `CLAUDE.md` (comprehensive AI assistant guide - START HERE)
 - [ ] Read `docs/PROJECT_SUMMARY.md`
 - [ ] Read `AGENTS.md` (focus on "Operator Workflow")
 - [ ] Read `docs/QUICKREF.md`
@@ -271,18 +278,19 @@ You're successfully onboarded when you can:
 
 ```
 Essential Context (5 min):
-  1. docs/PROJECT_SUMMARY.md
-  2. AGENTS.md (focus: Operator Workflow, ASCII-only)
-  3. docs/QUICKREF.md
-  4. docs/MCP_SERVERS.md (MCP tools available)
+  1. CLAUDE.md (AI Assistant comprehensive guide - RECOMMENDED START)
+  2. docs/PROJECT_SUMMARY.md
+  3. AGENTS.md (focus: Operator Workflow, ASCII-only)
+  4. docs/QUICKREF.md
+  5. docs/MCP_SERVERS.md (MCP tools available)
 
 Development Standards (15 min):
-  5. docs/CRITICAL_REVIEW_WORKFLOW.md
-  6. .claude/agents/critical-reviewer.md
+  6. docs/CRITICAL_REVIEW_WORKFLOW.md
+  7. .claude/agents/critical-reviewer.md
 
 What to Build (20 min):
-  7. ROADMAP.md
-  8. IMPLEMENTATION_PLANS*.md (if they exist)
+  8. ROADMAP.md
+  9. IMPLEMENTATION_PLANS*.md (if they exist)
 ```
 
 ---

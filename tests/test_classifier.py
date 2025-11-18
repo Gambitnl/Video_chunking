@@ -10,20 +10,26 @@ def patched_config():
         MockConfig.OLLAMA_MODEL = 'test-model'
         MockConfig.OLLAMA_FALLBACK_MODEL = None
         MockConfig.OLLAMA_BASE_URL = 'http://localhost:11434'
+        MockConfig.GROQ_MAX_CALLS_PER_SECOND = 2
+        MockConfig.GROQ_RATE_LIMIT_PERIOD_SECONDS = 1.0
+        MockConfig.GROQ_RATE_LIMIT_BURST = 2
         # Create a dummy prompt file path
         MockConfig.PROJECT_ROOT.return_value = MagicMock()
         type(MockConfig).PROJECT_ROOT = MagicMock()
         yield MockConfig
 
-from src.classifier import ClassifierFactory, OllamaClassifier, ClassificationResult
+from src.classifier import ClassifierFactory, OllamaClassifier, GroqClassifier, ClassificationResult
+from src.constants import Classification, ConfidenceDefaults
 
 @pytest.fixture
 def mock_ollama_client():
-    """Fixture to mock the ollama.Client and its methods."""
-    with patch('ollama.Client') as MockClient:
-        mock_instance = MockClient.return_value
-        mock_instance.list.return_value = True  # Simulate successful connection
-        yield mock_instance
+    """Fixture to mock the OllamaClientFactory and its methods."""
+    with patch('src.classifier.OllamaClientFactory') as MockFactory:
+        mock_factory_instance = MockFactory.return_value
+        mock_client = MagicMock()
+        mock_client.list.return_value = {'models': []}  # Simulate successful connection
+        mock_factory_instance.create_client.return_value = mock_client
+        yield mock_client
 
 @pytest.fixture
 def mock_prompt_file():
@@ -55,8 +61,10 @@ class TestClassifierFactory:
 class TestOllamaClassifier:
 
     def test_init_raises_error_on_connection_failure(self, mock_prompt_file):
-        with patch('ollama.Client') as MockClient:
-            MockClient.return_value.list.side_effect = Exception("Connection failed")
+        with patch('src.classifier.OllamaClientFactory') as MockFactory:
+            from src.llm_factory import OllamaConnectionError
+            mock_factory_instance = MockFactory.return_value
+            mock_factory_instance.create_client.side_effect = OllamaConnectionError("Connection failed")
             with pytest.raises(RuntimeError, match="Could not connect to Ollama"):
                 OllamaClassifier()
 
@@ -201,10 +209,181 @@ class TestOllamaClassifier:
         assert not issues
 
 
+class TestGroqClassifier:
+    """Tests for GroqClassifier (cloud-based IC/OOC classification)."""
+
+    @pytest.fixture
+    def mock_groq_client(self):
+        """Fixture to mock the Groq client."""
+        with patch('src.classifier.Groq') as MockGroq:
+            mock_client = MockGroq.return_value
+            yield mock_client
+
+    @pytest.fixture
+    def mock_groq_prompt_file(self):
+        """Fixture to mock the prompt file reading."""
+        prompt_content = """
+        Characters: {char_list}
+        Players: {player_list}
+        --- Context ---
+        Previous: {prev_text}
+        Current: {current_text}
+        Next: {next_text}
+        """
+        with patch('builtins.open', mock_open(read_data=prompt_content)) as mock_file:
+            yield mock_file
+
+    def test_init_with_api_key(self, mock_groq_client, mock_groq_prompt_file):
+        """Test GroqClassifier initializes correctly with API key."""
+        classifier = GroqClassifier(api_key='test-groq-key')
+        assert classifier.api_key == 'test-groq-key'
+        assert classifier.model == 'llama-3.3-70b-versatile'  # Updated default model
+
+    def test_init_without_api_key_raises_error(self, mock_groq_prompt_file, patched_config):
+        """Test GroqClassifier raises error when no API key provided."""
+        patched_config.GROQ_API_KEY = None
+        with pytest.raises(ValueError, match="Groq API key required"):
+            GroqClassifier()
+
+    def test_init_with_custom_model(self, mock_groq_client, mock_groq_prompt_file):
+        """Test GroqClassifier can use custom model."""
+        classifier = GroqClassifier(api_key='test-key', model='llama-3.1-8b-instant')
+        assert classifier.model == 'llama-3.1-8b-instant'
+
+    def test_init_raises_error_on_prompt_not_found(self, mock_groq_client):
+        """Test GroqClassifier raises error when prompt file missing."""
+        with patch('builtins.open', mock_open()) as mock_file:
+            mock_file.side_effect = FileNotFoundError
+            with pytest.raises(RuntimeError, match="Prompt file not found"):
+                GroqClassifier(api_key='test-key')
+
+    def test_build_prompt(self, mock_groq_client, mock_groq_prompt_file):
+        """Test prompt building with character and player context."""
+        classifier = GroqClassifier(api_key='test-key')
+        prompt = classifier._build_prompt("prev", "current", "next", ["Aragorn", "Gandalf"], ["Player1"])
+        assert "Characters: Aragorn, Gandalf" in prompt
+        assert "Players: Player1" in prompt
+        assert "Current: current" in prompt
+
+    @pytest.mark.parametrize("response_str, expected_class, expected_conf, expected_char", [
+        ("Classificatie: IC\nReden: Character speaking\nVertrouwen: 0.9\nPersonage: Aragorn", "IC", 0.9, "Aragorn"),
+        ("Classificatie: OOC\nReden: Out of character discussion", "OOC", 0.5, None),
+        ("Classificatie: MIXED\nVertrouwen: 0.7", "MIXED", 0.7, None),
+        ("Invalid response", "IC", 0.5, None),  # Fallback
+        ("Classificatie: INVALID\nVertrouwen: 1.5", "IC", 1.0, None),  # Clamp confidence
+    ])
+    def test_parse_response(self, mock_groq_client, mock_groq_prompt_file, response_str, expected_class, expected_conf, expected_char):
+        """Test response parsing with various formats."""
+        classifier = GroqClassifier(api_key='test-key')
+        result = classifier._parse_response(response_str, 0)
+        assert isinstance(result, ClassificationResult)
+        assert result.classification == expected_class
+        assert result.confidence == pytest.approx(expected_conf)
+        assert result.character == expected_char
+
+    def test_classify_segments(self, mock_groq_client, mock_groq_prompt_file):
+        """Test classification of multiple segments."""
+        classifier = GroqClassifier(api_key='test-key')
+
+        # Mock Groq API response
+        mock_response = MagicMock()
+        mock_response.choices = [MagicMock()]
+        mock_response.choices[0].message.content = "Classificatie: IC\nVertrouwen: 0.85\nPersonage: Gandalf"
+        mock_groq_client.chat.completions.create.return_value = mock_response
+
+        segments = [
+            {'text': 'I am Gandalf the Grey'},
+            {'text': 'You shall not pass!'},
+        ]
+
+        results = classifier.classify_segments(segments, ["Gandalf"], ["Player1"])
+
+        assert mock_groq_client.chat.completions.create.call_count == 2
+        assert len(results) == 2
+        assert results[0].classification == "IC"
+        assert results[0].confidence == 0.85
+        assert results[0].character == "Gandalf"
+        assert results[1].segment_index == 1
+
+    def test_classify_handles_api_errors(self, mock_groq_client, mock_groq_prompt_file):
+        """Test classification handles API errors gracefully."""
+        classifier = GroqClassifier(api_key='test-key')
+        mock_groq_client.chat.completions.create.side_effect = Exception("API error")
+
+        segments = [{'text': 'Test segment'}]
+        results = classifier.classify_segments(segments, [], [])
+
+        assert len(results) == 1
+        # Should return default IC with low confidence on error
+        assert results[0].classification == "IC"
+        assert results[0].confidence == 0.5
+
+    def test_preflight_check_no_api_key(self, mock_groq_prompt_file, patched_config):
+        """Test preflight check fails when no API key."""
+        patched_config.GROQ_API_KEY = 'test-key'
+        classifier = GroqClassifier(api_key=None)
+        classifier.api_key = None  # Force no key
+
+        issues = classifier.preflight_check()
+
+        assert len(issues) == 1
+        assert issues[0].severity == "error"
+        assert "API key not configured" in issues[0].message
+
+    def test_preflight_check_api_success(self, mock_groq_client, mock_groq_prompt_file):
+        """Test preflight check passes with valid API."""
+        classifier = GroqClassifier(api_key='test-key')
+
+        # Mock successful API call
+        mock_response = MagicMock()
+        mock_response.choices = [MagicMock()]
+        mock_response.choices[0].message.content = "test"
+        mock_groq_client.chat.completions.create.return_value = mock_response
+
+        issues = classifier.preflight_check()
+
+        assert len(issues) == 0
+
+    def test_preflight_check_api_failure(self, mock_groq_client, mock_groq_prompt_file):
+        """Test preflight check fails with invalid API."""
+        classifier = GroqClassifier(api_key='invalid-key')
+
+        # Mock API error
+        mock_groq_client.chat.completions.create.side_effect = Exception("Invalid API key")
+
+        issues = classifier.preflight_check()
+
+        assert len(issues) == 1
+        assert issues[0].severity == "error"
+        assert "API test failed" in issues[0].message
+
+    def test_make_api_call_penalizes_on_rate_limit(self, mock_groq_client, mock_groq_prompt_file):
+        classifier = GroqClassifier(api_key='test-key')
+        mock_error = Exception("rate_limit_exceeded")
+        mock_groq_client.chat.completions.create.side_effect = mock_error
+        limiter = MagicMock()
+        limiter.period = 1.0
+        classifier.rate_limiter = limiter
+
+        with pytest.raises(Exception):
+            GroqClassifier._make_api_call.__wrapped__(classifier, "prompt")
+
+        limiter.acquire.assert_called_once()
+        limiter.penalize.assert_called_once()
+
+    def test_is_rate_limit_error_detects_status_code(self):
+        class DummyError(Exception):
+            def __init__(self):
+                self.status_code = 429
+
+        assert GroqClassifier._is_rate_limit_error(DummyError())
+        assert GroqClassifier._is_rate_limit_error(Exception("rate_limit_exceeded"))
+
+
 class TestClassificationResult:
     def test_to_dict(self):
         result = ClassificationResult(
-            segment_index=0, classification="IC", confidence=0.9, reasoning="Test reason", character="Aragorn"
+            segment_index=0, classification=Classification.IN_CHARACTER, confidence=0.9, reasoning="Test reason", character="Aragorn"
         )
         expected_dict = {
             "segment_index": 0,
@@ -225,7 +404,7 @@ class TestClassificationResult:
         }
         result = ClassificationResult.from_dict(data)
         assert result.segment_index == 0
-        assert result.classification == "IC"
+        assert result.classification == Classification.IN_CHARACTER
         assert result.confidence == 0.9
         assert result.reasoning == "Test reason"
         assert result.character == "Aragorn"
@@ -239,7 +418,7 @@ class TestClassificationResult:
         }
         result = ClassificationResult.from_dict(data)
         assert result.segment_index == 1
-        assert result.classification == "OOC"
+        assert result.classification == Classification.OUT_OF_CHARACTER
         assert result.confidence == 0.7
         assert result.reasoning == "Test reason OOC"
         assert result.character is None

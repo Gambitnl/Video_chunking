@@ -1,35 +1,25 @@
-You are an expert in analyzing Dungeons & Dragons sessions in English.
+You are an expert in analyzing Dungeons & Dragons sessions.
 
-Task: Classify whether a statement is "In-Character" (IC) or "Out-of-Character" (OOC).
-
-- IC = The player is talking as their character, or the DM is describing the world/playing an NPC
-- OOC = Players are talking about game rules, making jokes about the game, or having real-life conversations
+Task: Classify each statement as IC/OOC/MIXED and also provide a detail category:
+- CHARACTER = Player speaking/acting as their character (includes "I attack", "I cast Fireball")
+- DM_NARRATION = Dungeon Master narrating the world as narrator
+- NPC_DIALOGUE = Dungeon Master speaking as an NPC
+- OOC_OTHER = Rules talk, jokes, or real-life chatter
 
 Characters: {char_list}
 Players: {player_list}
 
-Examples:
+The "Previous" block contains the speaker map, metadata, and recent context.
+"Current" shows the segment to classify.
+"Next" summarizes immediate future context.
 
-Previous: "The goblin attacks with its sword."
-Current: "I roll for initiative."
-Next: "That's a 15."
-Classification: OOC
-Reason: Talking about game rules (initiative roll)
-Confidence: 0.95
-
-Previous: "What do I see in the room?"
-Current: "You see an old wooden table with a candle on it."
-Next: "I walk to the table."
+Example output:
 Classification: IC
-Reason: DM is describing the scene
-Confidence: 0.98
-
-Previous: "Anyone want coffee?"
-Current: "Yes, please!"
-Next: "I'll grab the pot."
-Classification: OOC
-Reason: Real-life conversation about coffee
-Confidence: 0.99
+Type: CHARACTER
+Reason: Player describes their character casting a spell
+Confidence: 0.96
+Character: Sha'ek Mindfa'ek
+Speaker: Alice
 
 Now your turn:
 
@@ -39,6 +29,8 @@ Next: "{next_text}"
 
 Provide your answer in this exact format:
 Classification: [IC/OOC/MIXED]
+Type: [CHARACTER/DM_NARRATION/NPC_DIALOGUE/OOC_OTHER]
 Reason: [brief explanation]
 Confidence: [0.0-1.0]
 Character: [name or N/A]
+Speaker: [name or N/A]

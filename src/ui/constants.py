@@ -35,6 +35,11 @@ class StatusIndicators:
     ACTION_PROCESS = "Process"
     ACTION_CLEAR = "Clear"
     ACTION_IMPORT = "Import"
+    ACTION_SELECT = "Select"
+
+    # Analytics and visualization
+    CHART = "[CHART]"
+    LIGHTBULB = "[INSIGHT]"
 
     # Health indicators
     HEALTH_EXCELLENT = "[HEALTH-GREEN]"  # 90-100%

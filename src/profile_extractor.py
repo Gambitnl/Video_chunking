@@ -8,6 +8,7 @@ from typing import Any, Dict, Iterable, List, Optional, Sequence
 
 from .character_profile import ProfileUpdate, ProfileUpdateBatch
 from .config import Config
+from .exceptions import OllamaConnectionError
 
 LOGGER = logging.getLogger(__name__)
 
@@ -43,8 +44,10 @@ class ProfileExtractor:
                 self.llm_client.list()
                 LOGGER.info("Connected to Ollama at %s", Config.OLLAMA_BASE_URL)
             except Exception as e:
-                LOGGER.warning("Could not initialize Ollama client: %s. Extraction will be limited.", e)
-                self.llm_client = None
+                LOGGER.error("Could not initialize Ollama client: %s.", e)
+                raise OllamaConnectionError(
+                    "Failed to connect to Ollama. Please check that Ollama is running and accessible."
+                ) from e
 
     def extract_profile_updates(
         self,

@@ -268,7 +268,7 @@ def create_characters_tab_modern(
         def _begin_extract_placeholder():
             return StatusMessages.loading("Extracting character data")
 
-        def extract_profiles_ui(transcript_file, party_id, session_id):
+        def extract_profiles_ui(transcript_file, party_id, session_id, campaign_id):
             if transcript_file is None:
                 return StatusMessages.error(
                     "Transcript Required",
@@ -287,9 +287,12 @@ def create_characters_tab_modern(
                     "Provide a session ID so the updates can be tracked."
                 )
 
+            effective_campaign_id = campaign_id or party_id
+
             try:
                 from src.character_profile_extractor import CharacterProfileExtractor
                 from src.party_config import PartyConfigManager
+                from src.exceptions import OllamaConnectionError
 
                 extractor = CharacterProfileExtractor()
                 profile_mgr = CharacterProfileManager()
@@ -301,6 +304,7 @@ def create_characters_tab_modern(
                     session_id=session_id,
                     profile_manager=profile_mgr,
                     party_manager=party_mgr,
+                    campaign_id=effective_campaign_id,
                 )
 
                 if not results:
@@ -314,6 +318,9 @@ def create_characters_tab_modern(
                         "Extraction Complete",
                         f"Updated {len(results)} character profile(s)."
                     ),
+                    f"- **Campaign**: `{effective_campaign_id}`",
+                    f"- **Party**: `{party_id}`",
+                    f"- **Session**: `{session_id}`",
                     "",
                     "### Character Updates",
                 ]
@@ -327,8 +334,15 @@ def create_characters_tab_modern(
                     summary_lines.append(f"- Developments: {len(extracted_data.character_development)}")
                     summary_lines.append("")
 
-                summary_lines.append("Refresh the character list to view the latest changes.")
+                summary_lines.append("Character list refreshed automatically.")
                 return "\n".join(summary_lines)
+            
+            except OllamaConnectionError as exc:
+                return StatusMessages.error(
+                    "Ollama Connection Failed",
+                    str(exc),
+                    "Please ensure the Ollama service is running and accessible before retrying.",
+                )
 
             except Exception as exc:
                 import traceback
@@ -384,9 +398,13 @@ def create_characters_tab_modern(
             queue=True,
         ).then(
             fn=extract_profiles_ui,
-            inputs=[extract_transcript_file, extract_party_dropdown, extract_session_id],
+            inputs=[extract_transcript_file, extract_party_dropdown, extract_session_id, active_state],
             outputs=[extract_status],
             queue=True,
+        ).then(
+            fn=load_character_list,
+            inputs=[active_state],
+            outputs=[char_table, char_select, export_char_dropdown, profiles_md, char_overview_output],
         )
 
         blocks.load(

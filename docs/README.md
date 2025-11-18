@@ -31,6 +31,9 @@ This directory contains all the documentation for the D&D Session Processor. Bel
 - **[SESSION_NOTEBOOK.md](./SESSION_NOTEBOOK.md)**: A guide to the Story Notebooks feature for generating narrative summaries from transcripts.
 - **[STATUS_INDICATORS.md](./STATUS_INDICATORS.md)**: A reference guide for all status indicators, icons, and symbols used throughout the application.
 - **[COLAB_OFFLOAD_PLAN.md](./COLAB_OFFLOAD_PLAN.md)**: Detailed plan for running the heavy GPU stages in Google Colab, including prep scripts, notebook flow, and sync steps.
+- **[INTERMEDIATE_OUTPUTS_GUIDE.md](./INTERMEDIATE_OUTPUTS_GUIDE.md)**: Describes each intermediate JSON artifact (stages 4-6), how to edit them safely, and how resume processing consumes those files.
+- **[SESSION_ARTIFACT_EXPLORER.md](./SESSION_ARTIFACT_EXPLORER.md)**: A guide to the Session Artifact Explorer, a UI for browsing, previewing, and downloading session output files.
+- **[SESSION_ARTIFACT_SERVICE_STATUS.md](./SESSION_ARTIFACT_SERVICE_STATUS.md)**: Implementation status plus API, validation, and testing details for the backend powering the Session Artifact Explorer.
 
 ### Model References
 
@@ -41,13 +44,20 @@ This directory contains all the documentation for the D&D Session Processor. Bel
 - **[TROUBLESHOOTING.md](./TROUBLESHOOTING.md)**: A guide to common problems and their solutions.
 - **[LOGGING_GUIDE.md](./LOGGING_GUIDE.md)**: Reference for runtime logging controls and the audit trail.
 
+- **[CLAUDE.md](../CLAUDE.md)**: (In root) **AI ASSISTANT GUIDE** - Comprehensive reference for AI assistants (Claude, GPT, Gemini) working with this codebase. Covers structure, workflows, conventions, testing, and common tasks.
 - **[AGENT_ONBOARDING.md](../AGENT_ONBOARDING.md)**: (In root) **START HERE** - Comprehensive onboarding guide with structured reading path for new AI agents and contributors. Tells you what to read and in what order.
 - **[DEVELOPMENT.md](./DEVELOPMENT.md)**: A development chronicle logging major implementation and refactoring sessions.
+- **[DIARIZATION_CLASSIFICATION_HISTORY.md](./DIARIZATION_CLASSIFICATION_HISTORY.md)**: Pipeline history focused on Stage 5/6 diarization and IC/OOC classification issues, mitigations, and pending work.
+
+### Analysis & Technical Reviews
+
+- **[IC_OOC_CLASSIFICATION_ANALYSIS.md](./IC_OOC_CLASSIFICATION_ANALYSIS.md)**: **MULTI-AGENT DISCUSSION** - Detailed analysis of IC/OOC classification quality, character attribution issues, and enhancement proposals (P0-P4). Structured for collaborative AI agent review and implementation planning.
 - **[UI_STATUS.md](./UI_STATUS.md)**: A debugging and status guide for the Party Management UI tab.
-- **[OUTSTANDING_TASKS.md](./OUTSTANDING_TASKS.md)**: One-line rollup of every open to-do with pointers to the relevant implementation plan sections.
+- **[MASTER_PLAN.md](./MASTER_PLAN.md)**: The single source of truth for all open work items, sprint planning, and project status.
 - **[CRITICAL_REVIEW_WORKFLOW.md](./CRITICAL_REVIEW_WORKFLOW.md)**: A step-by-step guide to the Critical Reviewer Agent methodology for rigorous code review with documented reasoning.
 - **[CRITICAL_REVIEWER_SETUP_SUMMARY.md](./CRITICAL_REVIEWER_SETUP_SUMMARY.md)**: Summary of the Critical Reviewer Agent integration, including all files created/modified and how to use the system.
 - **[AGENTS.md](../AGENTS.md)**: (In root) Core instructions for AI agents working in this repository, including Critical Reviewer invocation.
+- **[CODEX.md](./CODEX.md)**: Guidance for the ChatGPT (Codex) agent covering identity checks, workflow expectations, and integration focus areas.
 - **Operator Workflow**: See [AGENTS.md#operator-workflow](../AGENTS.md#operator-workflow) for the required plan -> implement -> document -> test loop that keeps implementation plans in sync.
 - **[ROADMAP.md](../ROADMAP.md)**: (In root) Consolidated multi-agent roadmap covering priorities, ownership, and sequencing.
 - **[COLLECTIVE_ROADMAP.md](../COLLECTIVE_ROADMAP.md)**: (In root) The high-level project plan and agent priorities.

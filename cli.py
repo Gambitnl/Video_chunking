@@ -958,6 +958,261 @@ def migrate_narratives_cmd(campaign_id, dry_run, output):
 cli.add_command(campaigns)
 
 
+@click.group()
+def artifacts():
+    """Browse and download session artifacts."""
+    pass
+
+
+@artifacts.command('list')
+@click.option('--limit', '-n', type=int, default=None, help='Maximum number of sessions to show')
+@click.option('--json', 'output_json', is_flag=True, help='Output in JSON format')
+@click.pass_context
+def artifacts_list(ctx, limit, output_json):
+    """List all processed sessions.
+
+    Shows session directories sorted by modification time (most recent first).
+    Displays name, file count, size, and modification date.
+
+    Examples:
+        python cli.py artifacts list
+        python cli.py artifacts list --limit 10
+        python cli.py artifacts list --json
+    """
+    from src.api.session_artifacts import list_sessions_api
+    import json
+
+    response = list_sessions_api()
+
+    if response['status'] != 'success':
+        console.print(f"[red]Error: {response['error']}[/red]")
+        _audit(ctx, "cli.artifacts.list", status="error", error=response['error'])
+        raise click.Abort()
+
+    sessions = response['data']['sessions']
+
+    if limit:
+        sessions = sessions[:limit]
+
+    if output_json:
+        console.print(json.dumps(response, indent=2))
+    else:
+        if not sessions:
+            console.print("[yellow]No sessions found.[/yellow]")
+            return
+
+        table = Table(title=f"Processed Sessions ({len(sessions)} total)")
+        table.add_column("Session", style="cyan")
+        table.add_column("Files", style="green", justify="right")
+        table.add_column("Size", style="yellow", justify="right")
+        table.add_column("Modified", style="dim")
+
+        for session in sessions:
+            # Format size
+            size_bytes = session['total_size_bytes']
+            if size_bytes < 1024:
+                size_str = f"{size_bytes} B"
+            elif size_bytes < 1024 * 1024:
+                size_str = f"{size_bytes / 1024:.1f} KB"
+            elif size_bytes < 1024 * 1024 * 1024:
+                size_str = f"{size_bytes / (1024 * 1024):.1f} MB"
+            else:
+                size_str = f"{size_bytes / (1024 * 1024 * 1024):.1f} GB"
+
+            # Format modified time
+            from datetime import datetime
+            modified = datetime.fromisoformat(session['modified'])
+            modified_str = modified.strftime('%Y-%m-%d %H:%M')
+
+            table.add_row(
+                session['name'],
+                str(session['file_count']),
+                size_str,
+                modified_str
+            )
+
+        console.print(table)
+
+    _audit(ctx, "cli.artifacts.list", status="success", count=len(sessions))
+
+
+@artifacts.command('tree')
+@click.argument('session_path')
+@click.option('--json', 'output_json', is_flag=True, help='Output in JSON format')
+@click.pass_context
+def artifacts_tree(ctx, session_path, output_json):
+    """Show directory tree for a session.
+
+    Lists all files and subdirectories in a session directory.
+
+    Examples:
+        python cli.py artifacts tree 20251115_184757_test_s6_nov15_1847pm
+        python cli.py artifacts tree 20251115_184757_test_s6_nov15_1847pm --json
+    """
+    from src.api.session_artifacts import get_directory_tree_api
+    import json
+
+    response = get_directory_tree_api(session_path)
+
+    if response['status'] != 'success':
+        console.print(f"[red]Error: {response['error']}[/red]")
+        _audit(ctx, "cli.artifacts.tree", status="error", error=response['error'], session_path=session_path)
+        raise click.Abort()
+
+    if output_json:
+        console.print(json.dumps(response, indent=2))
+    else:
+        items = response['data']['items']
+
+        if not items:
+            console.print("[yellow]Directory is empty.[/yellow]")
+            return
+
+        table = Table(title=f"Contents of {session_path}")
+        table.add_column("Name", style="cyan")
+        table.add_column("Type", style="magenta")
+        table.add_column("Size", style="yellow", justify="right")
+        table.add_column("Modified", style="dim")
+
+        for item in items:
+            # Format size
+            size_bytes = item['size_bytes']
+            if item['is_directory']:
+                size_str = "<DIR>"
+            elif size_bytes < 1024:
+                size_str = f"{size_bytes} B"
+            elif size_bytes < 1024 * 1024:
+                size_str = f"{size_bytes / 1024:.1f} KB"
+            elif size_bytes < 1024 * 1024 * 1024:
+                size_str = f"{size_bytes / (1024 * 1024):.1f} MB"
+            else:
+                size_str = f"{size_bytes / (1024 * 1024 * 1024):.1f} GB"
+
+            # Format modified time
+            from datetime import datetime
+            modified = datetime.fromisoformat(item['modified'])
+            modified_str = modified.strftime('%Y-%m-%d %H:%M')
+
+            # Style name based on type
+            name = item['name']
+            if item['is_directory']:
+                name = f"[bold]{name}/[/bold]"
+
+            table.add_row(
+                name,
+                item['artifact_type'],
+                size_str,
+                modified_str
+            )
+
+        console.print(table)
+
+    _audit(ctx, "cli.artifacts.tree", status="success", session_path=session_path, item_count=len(response['data']['items']))
+
+
+@artifacts.command('download')
+@click.argument('session_path')
+@click.option('--file', '-f', help='Specific file to download (relative path within session)')
+@click.option('--output', '-o', type=click.Path(), help='Output path for download')
+@click.pass_context
+def artifacts_download(ctx, session_path, file, output):
+    """Download a session or specific file.
+
+    Downloads either an entire session as a zip file or a specific file within the session.
+
+    Examples:
+        # Download entire session as zip
+        python cli.py artifacts download 20251115_184757_test_s6_nov15_1847pm
+
+        # Download specific file
+        python cli.py artifacts download 20251115_184757_test_s6_nov15_1847pm --file test_s6_nov15_1847pm_full.txt
+
+        # Download to specific location
+        python cli.py artifacts download 20251115_184757_test_s6_nov15_1847pm --output ./my_session.zip
+    """
+    from src.api.session_artifacts import download_session_api, download_file_api
+    import shutil
+
+    if file:
+        # Download specific file
+        file_path = f"{session_path}/{file}"
+        result = download_file_api(file_path)
+
+        if result is None:
+            console.print(f"[red]Error: File not found: {file_path}[/red]")
+            _audit(ctx, "cli.artifacts.download", status="error", session_path=session_path, file=file, error="File not found")
+            raise click.Abort()
+
+        source_path, filename = result
+
+        if output:
+            dest_path = Path(output)
+        else:
+            dest_path = Path.cwd() / filename
+
+        try:
+            shutil.copy2(source_path, dest_path)
+            console.print(f"[green]File downloaded:[/green] {dest_path}")
+            _audit(ctx, "cli.artifacts.download", status="success", session_path=session_path, file=file, output=str(dest_path))
+        except Exception as e:
+            console.print(f"[red]Error copying file: {e}[/red]")
+            _audit(ctx, "cli.artifacts.download", status="error", session_path=session_path, file=file, error=str(e))
+            raise click.Abort()
+    else:
+        # Download entire session as zip
+        result = download_session_api(session_path)
+
+        if result is None:
+            console.print(f"[red]Error: Session not found: {session_path}[/red]")
+            _audit(ctx, "cli.artifacts.download", status="error", session_path=session_path, error="Session not found")
+            raise click.Abort()
+
+        source_path, filename = result
+
+        if output:
+            dest_path = Path(output)
+        else:
+            dest_path = Path.cwd() / filename
+
+        try:
+            shutil.move(str(source_path), str(dest_path))
+            console.print(f"[green]Session downloaded:[/green] {dest_path}")
+            _audit(ctx, "cli.artifacts.download", status="success", session_path=session_path, output=str(dest_path))
+        except Exception as e:
+            console.print(f"[red]Error moving file: {e}[/red]")
+            _audit(ctx, "cli.artifacts.download", status="error", session_path=session_path, error=str(e))
+            raise click.Abort()
+
+
+@artifacts.command('delete')
+@click.argument('target')
+@click.option(
+    '--recursive/--no-recursive',
+    default=False,
+    show_default=True,
+    help='Allow deleting non-empty directories recursively.',
+)
+@click.pass_context
+def artifacts_delete(ctx, target, recursive):
+    """Delete a file or directory from the session outputs."""
+    from src.api.session_artifacts import delete_artifact_api
+
+    response = delete_artifact_api(target, recursive=recursive)
+
+    if response['status'] != 'success':
+        console.print(f"[red]Error:[/red] {response['error']}")
+        _audit(ctx, "cli.artifacts.delete", status="error", target=target, recursive=recursive, error=response['error'])
+        raise click.Abort()
+
+    data = response['data']
+    artifact_kind = "directory" if data["is_directory"] else "file"
+    console.print(f"[yellow]Deleted {artifact_kind}:[/yellow] {data['relative_path']}")
+    _audit(ctx, "cli.artifacts.delete", status="success", target=target, recursive=recursive)
+
+
+cli.add_command(artifacts)
+
+
 @cli.command()
 @click.option(
     '--input-dir',

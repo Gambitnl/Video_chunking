@@ -24,7 +24,7 @@ class StatusMessages:
         Returns:
             Markdown-formatted error message
         """
-        md = f"### {SI.ERROR} {title}\n\n{message}"
+        md = f"**Error: {title}**\n\n{message}"
         if details:
             md += f"\n\n**Details:**\n```\n{details}\n```"
         return md
@@ -186,7 +186,8 @@ class UIComponents:
         label: str,
         variant: str = "primary",
         size: str = "md",
-        full_width: bool = False
+        full_width: bool = False,
+        visible: bool = True,
     ) -> gr.Button:
         """
         Create a consistently-styled action button.
@@ -196,6 +197,7 @@ class UIComponents:
             variant: Button variant ('primary', 'secondary', or 'stop')
             size: Button size ('sm', 'md', 'lg')
             full_width: Whether button should span full width
+            visible: Initial visibility state for the button
 
         Returns:
             Gradio Button component
@@ -206,7 +208,8 @@ class UIComponents:
             label,
             variant=variant,
             size=size,
-            scale=scale
+            scale=scale,
+            visible=visible,
         )
 
     @staticmethod

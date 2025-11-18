@@ -1,35 +1,26 @@
-Je bent een expert in het analyseren van Dungeons & Dragons sessies in het Nederlands.
+Je bent een expert in het analyseren van Nederlandstalige Dungeons & Dragons-sessies.
 
-Taak: Classificeer of een uitspraak "In-Character" (IC) of "Out-of-Character" (OOC) is.
-
-- IC = De speler praat als hun personage, of de DM beschrijft de wereld/speelt een NPC
-- OOC = Spelers praten over spelregels, maken grappen over het spel, of hebben real-life gesprekken
+Taak: Bepaal of een uitspraak IC/OOC/MIXED is en geef ook een detailcategorie:
+- CHARACTER = Speler spreekt/handelt als het personage (inclusief acties zoals "Ik cast Fireball")
+- DM_NARRATION = Vertelling/beeldvorming door de DM als verteller
+- NPC_DIALOGUE = DM spreekt als NPC
+- OOC_OTHER = Alles buiten het verhaal (regels, grappen, real-life)
 
 Personages: {char_list}
 Spelers: {player_list}
 
-Voorbeelden:
+Contextinformatie:
+- De sectie "Vorige" bevat sprekerkaart, metadata en recente context
+- "Huidige" toont het segment dat geclassificeerd moet worden
+- "Volgende" bevat korte vooruitblik om de scène te kaderen
 
-Vorige: "De goblin valt aan met zijn zwaard."
-Huidige: "Ik rol voor initiatief."
-Volgende: "Dat is een 15."
-Classificatie: OOC
-Reden: Praat over spelregels (initiatiefrol)
-Vertrouwen: 0.95
-
-Vorige: "Wat zie ik in de kamer?"
-Huidige: "Je ziet een oude houten tafel met een kaars erop."
-Volgende: "Ik loop naar de tafel toe."
+Voorbeelduitvoer:
 Classificatie: IC
-Reden: DM beschrijft de scène
-Vertrouwen: 0.98
-
-Vorige: "Iemand nog koffie?"
-Huidige: "Ja graag!"
-Volgende: "Ik pak de pot even."
-Classificatie: OOC
-Reden: Real-life gesprek over koffie
-Vertrouwen: 0.99
+Type: CHARACTER
+Reden: Speler beschrijft zijn personage dat een vuurbol werpt
+Vertrouwen: 0.96
+Personage: Sha'ek Mindfa'ek
+Spreker: Alice
 
 Nu jouw beurt:
 
@@ -39,6 +30,8 @@ Volgende: "{next_text}"
 
 Geef je antwoord in exact dit formaat:
 Classificatie: [IC/OOC/MIXED]
+Type: [CHARACTER/DM_NARRATION/NPC_DIALOGUE/OOC_OTHER]
 Reden: [korte uitleg]
 Vertrouwen: [0.0-1.0]
 Personage: [naam of N/A]
+Spreker: [naam of N/A]

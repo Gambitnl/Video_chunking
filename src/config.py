@@ -32,6 +32,23 @@ class Config:
             return default
 
     @staticmethod
+    def get_env_as_float(key: str, default: float) -> float:
+        """Safely get an environment variable as a float."""
+        value = os.getenv(key)
+        if value is None or value.strip() == "":
+            return default
+        try:
+            return float(value)
+        except (ValueError, TypeError):
+            _logger.warning(
+                "Invalid float for %s: %r. Using default %s",
+                key,
+                value,
+                default,
+            )
+            return default
+
+    @staticmethod
     def get_env_as_bool(key: str, default: bool) -> bool:
         """Safely get an environment variable as a boolean."""
         value = os.getenv(key)
@@ -49,7 +66,7 @@ class Config:
     WHISPER_MODEL: str = os.getenv("WHISPER_MODEL", "large-v3")
     WHISPER_BACKEND: str = os.getenv("WHISPER_BACKEND", "local")  # local, groq, openai
     DIARIZATION_BACKEND: str = os.getenv("DIARIZATION_BACKEND", "local") # local, huggingface
-    LLM_BACKEND: str = os.getenv("LLM_BACKEND", "ollama")  # ollama, openai, groq
+    LLM_BACKEND: str = os.getenv("LLM_BACKEND", "colab")  # ollama, openai, groq, colab
     WHISPER_LANGUAGE: str = os.getenv("WHISPER_LANGUAGE", "nl")  # Supported: en, nl
     PYANNOTE_DIARIZATION_MODEL: str = os.getenv(
         "PYANNOTE_DIARIZATION_MODEL",
@@ -65,22 +82,47 @@ class Config:
     CHUNK_OVERLAP_SECONDS: int = get_env_as_int("CHUNK_OVERLAP_SECONDS", 10)
     AUDIO_SAMPLE_RATE: int = get_env_as_int("AUDIO_SAMPLE_RATE", 16000)
     CLEAN_STALE_CLIPS: bool = get_env_as_bool("CLEAN_STALE_CLIPS", True)
+    SAVE_INTERMEDIATE_OUTPUTS: bool = get_env_as_bool("SAVE_INTERMEDIATE_OUTPUTS", True)
     SNIPPET_PLACEHOLDER_MESSAGE: str = os.getenv(
         "SNIPPET_PLACEHOLDER_MESSAGE",
         "No audio snippets were generated for this session."
     )
+    USE_STREAMING_SNIPPET_EXPORT: bool = get_env_as_bool(
+        "USE_STREAMING_SNIPPET_EXPORT",
+        True  # Default to streaming for memory efficiency
+    )
 
     # Ollama Settings
-    OLLAMA_MODEL: str = os.getenv("OLLAMA_MODEL", "gpt-oss:20b")
+    OLLAMA_MODEL: str = os.getenv("OLLAMA_MODEL", "qwen2.5:7b")
     OLLAMA_BASE_URL: str = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
     _fallback_model = os.getenv("OLLAMA_FALLBACK_MODEL", "")
     OLLAMA_FALLBACK_MODEL: Optional[str] = _fallback_model.strip() or None
+    GROQ_MAX_CALLS_PER_SECOND: int = get_env_as_int("GROQ_MAX_CALLS_PER_SECOND", 2)
+    GROQ_RATE_LIMIT_PERIOD_SECONDS: float = get_env_as_float("GROQ_RATE_LIMIT_PERIOD_SECONDS", 1.0)
+    GROQ_RATE_LIMIT_BURST: int = get_env_as_int("GROQ_RATE_LIMIT_BURST", 2)
+    CLASSIFIER_CONTEXT_MAX_SEGMENTS: int = get_env_as_int("CLASSIFIER_CONTEXT_MAX_SEGMENTS", 11)
+    CLASSIFIER_CONTEXT_PAST_SECONDS: float = get_env_as_float("CLASSIFIER_CONTEXT_PAST_SECONDS", 45.0)
+    CLASSIFIER_CONTEXT_FUTURE_SECONDS: float = get_env_as_float("CLASSIFIER_CONTEXT_FUTURE_SECONDS", 30.0)
+    CLASSIFIER_AUDIT_MODE: bool = get_env_as_bool("CLASSIFIER_AUDIT_MODE", False)
+    CLASSIFIER_PROMPT_PREVIEW_CHARS: int = get_env_as_int("CLASSIFIER_PROMPT_PREVIEW_CHARS", 256)
 
     # Paths
     PROJECT_ROOT: Path = Path(__file__).parent.parent
     OUTPUT_DIR: Path = PROJECT_ROOT / "output"
     TEMP_DIR: Path = PROJECT_ROOT / "temp"
     MODELS_DIR: Path = PROJECT_ROOT / "models"
+
+    # Google Drive Integration (for Colab classifier)
+    GDRIVE_CLASSIFICATION_PENDING: str = os.getenv(
+        "GDRIVE_CLASSIFICATION_PENDING",
+        "VideoChunking/classification_pending"
+    )
+    GDRIVE_CLASSIFICATION_COMPLETE: str = os.getenv(
+        "GDRIVE_CLASSIFICATION_COMPLETE",
+        "VideoChunking/classification_complete"
+    )
+    COLAB_POLL_INTERVAL: int = int(os.getenv("COLAB_POLL_INTERVAL", "10"))  # seconds
+    COLAB_TIMEOUT: int = int(os.getenv("COLAB_TIMEOUT", "1800"))  # 30 minutes
 
     # Logging
     LOG_LEVEL_CONSOLE: str = os.getenv("LOG_LEVEL_CONSOLE", "INFO")

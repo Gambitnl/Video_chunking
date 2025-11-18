@@ -7,6 +7,7 @@ from datetime import datetime
 import ollama
 from .config import Config
 from .logger import get_logger
+from .file_lock import get_file_lock
 
 
 logger = get_logger(__name__)
@@ -79,26 +80,126 @@ class Item:
 
 
 class KnowledgeExtractor:
-    """Extract campaign knowledge from IC-only transcripts using LLM"""
+    """Extract campaign knowledge from structured transcript segments using LLM"""
 
     def __init__(self):
         self.client = ollama.Client(host=Config.OLLAMA_BASE_URL)
         self.model = Config.OLLAMA_MODEL
 
-    def extract_knowledge(self, ic_transcript: str, session_id: str, party_context: Optional[Dict] = None) -> Dict[str, List]:
+    def _build_rich_transcript(self, segments: List[Dict[str, Any]]) -> str:
         """
-        Extract quests, NPCs, plot hooks, locations, and items from IC transcript.
+        Build a formatted transcript string from structured segments,
+        including only narratively relevant classifications.
+        """
+        transcript_parts = []
+        narrative_types = {"CHARACTER", "DM_NARRATION", "NPC_DIALOGUE"}
 
-        Returns:
-            Dict with keys: quests, npcs, plot_hooks, locations, items
+        for segment in segments:
+            classification = segment.get("classification", "OOC")
+            classification_type = segment.get("classification_type")
+
+            is_narrative = False
+            if classification_type:
+                is_narrative = classification_type in narrative_types
+            elif classification == "IC":
+                is_narrative = True
+
+            if is_narrative:
+                actor = segment.get("character_name") or segment.get("speaker_name", "Unknown")
+                text = segment.get("text", "")
+                if actor and text:
+                    transcript_parts.append(f"{actor}: {text}")
+        
+        return "\n".join(transcript_parts)
+
+    def _merge_scene_results(self, all_results: List[Dict[str, List]]) -> Dict[str, List]:
         """
-        # Build extraction prompt
+        Merge knowledge extracted from multiple scenes, performing a deep merge
+        to enrich entities with new information found in later scenes.
+        """
+        merged: Dict[str, Dict[str, Any]] = {
+            "quests": {}, "npcs": {}, "plot_hooks": {}, "locations": {}, "items": {}
+        }
+
+        for result in all_results:
+            # --- Deep Merge Quests ---
+            for new_quest in result.get("quests", []):
+                key = new_quest.title.lower()
+                if key in merged["quests"]:
+                    existing = merged["quests"][key]
+                    if new_quest.description and not existing.description:
+                        existing.description = new_quest.description
+                    if new_quest.status != "unknown":
+                        existing.status = new_quest.status
+                else:
+                    merged["quests"][key] = new_quest
+
+            # --- Deep Merge NPCs ---
+            for new_npc in result.get("npcs", []):
+                key = new_npc.name.lower()
+                if key in merged["npcs"]:
+                    existing = merged["npcs"][key]
+                    if new_npc.description and not existing.description:
+                        existing.description = new_npc.description
+                    if new_npc.role and new_npc.role != "unknown":
+                        existing.role = new_npc.role
+                    if new_npc.location and not existing.location:
+                        existing.location = new_npc.location
+                else:
+                    merged["npcs"][key] = new_npc
+
+            # --- Simple Merge for Plot Hooks (avoiding resolved duplicates) ---
+            for new_hook in result.get("plot_hooks", []):
+                key = new_hook.summary.lower()
+                if key not in merged["plot_hooks"]:
+                    merged["plot_hooks"][key] = new_hook
+
+            # --- Deep Merge Locations ---
+            for new_loc in result.get("locations", []):
+                key = new_loc.name.lower()
+                if key in merged["locations"]:
+                    existing = merged["locations"][key]
+                    if new_loc.description and not existing.description:
+                        existing.description = new_loc.description
+                    if new_loc.type and new_loc.type != "unknown":
+                        existing.type = new_loc.type
+                else:
+                    merged["locations"][key] = new_loc
+
+            # --- Deep Merge Items ---
+            for new_item in result.get("items", []):
+                key = new_item.name.lower()
+                if key in merged["items"]:
+                    existing = merged["items"][key]
+                    if new_item.description and not existing.description:
+                        existing.description = new_item.description
+                    if new_item.owner and not existing.owner:
+                        existing.owner = new_item.owner
+                    if new_item.location and not existing.location:
+                        existing.location = new_item.location
+                    if new_item.significance and not existing.significance:
+                        existing.significance = new_item.significance
+                else:
+                    merged["items"][key] = new_item
+
+        return {category: list(items.values()) for category, items in merged.items()}
+
+    def _extract_knowledge_from_segments(
+        self, segments: List[Dict[str, Any]], session_id: str, party_context: Optional[Dict] = None
+    ) -> Dict[str, List]:
+        """
+        Run knowledge extraction on a specific list of segments.
+        """
         party_info = ""
         if party_context:
             party_info = f"""
 Party Characters: {', '.join(party_context.get('character_names', []))}
 Campaign: {party_context.get('campaign', 'Unknown')}
 """
+        
+        rich_transcript = self._build_rich_transcript(segments)
+        if not rich_transcript:
+            return {'quests': [], 'npcs': [], 'plot_hooks': [], 'locations': [], 'items': []}
 
         prompt = f"""You are analyzing a D&D session transcript to extract campaign knowledge.
 
@@ -111,73 +212,36 @@ Campaign: {party_context.get('campaign', 'Unknown')}
 4. **Locations**: Places visited or mentioned
 5. **Items**: Important objects, artifacts, or equipment
 
-**Transcript** (In-Character content only):
-{ic_transcript[:4000]}
+**Transcript**:
+{rich_transcript[:8000]}
 
 **Instructions**:
-- Be specific and extract only concrete information
-- For NPCs: Include name, brief description, role if known
-- For Quests: Include clear objective and current status
-- For Plot Hooks: Identify mysteries or unresolved elements
-- For Locations: Note place names and brief descriptions
-- For Items: Only significant items (not common equipment)
+- Be specific and extract only concrete information from the provided transcript.
+- For NPCs: Include name, brief description, role if known.
+- For Quests: Include clear objective and current status.
+- For Plot Hooks: Identify mysteries or unresolved elements.
+- For Locations: Note place names and brief descriptions.
+- For Items: Only significant items (not common equipment).
 
 **Output format** (JSON):
 ```json
 {{
-  "quests": [
-    {{
-      "title": "Quest name",
-      "description": "What needs to be done",
-      "status": "active/completed/failed/unknown"
-    }}
-  ],
-  "npcs": [
-    {{
-      "name": "NPC name",
-      "description": "Brief description",
-      "role": "quest_giver/merchant/enemy/ally/unknown",
-      "location": "Where they were encountered or null"
-    }}
-  ],
-  "plot_hooks": [
-    {{
-      "summary": "Brief mystery or hook",
-      "details": "More context"
-    }}
-  ],
-  "locations": [
-    {{
-      "name": "Location name",
-      "description": "Brief description",
-      "type": "city/dungeon/wilderness/building/unknown"
-    }}
-  ],
-  "items": [
-    {{
-      "name": "Item name",
-      "description": "What it is/does",
-      "owner": "Who has it or null"
-    }}
-  ]
+  "quests": [],
+  "npcs": [],
+  "plot_hooks": [],
+  "locations": [],
+  "items": []
 }}
 ```
 
-Extract only what is explicitly mentioned. If nothing found in a category, use empty array.
-Return ONLY the JSON, no other text."""
-
+Extract only what is explicitly mentioned. If nothing found, use empty array. Return ONLY the JSON.
+"""
         try:
             response = self.client.chat(
-                model=self.model,
-                messages=[
-                    {'role': 'user', 'content': prompt}
-                ]
+                model=self.model, messages=[{'role': 'user', 'content': prompt}]
             )
-
-            # Parse JSON from response
             response_text = response['message']['content'].strip()
 
-            # Extract JSON from markdown code blocks if present
             if '```json' in response_text:
                 start = response_text.find('```json') + 7
                 end = response_text.find('```', start)
@@ -189,73 +253,53 @@ Return ONLY the JSON, no other text."""
 
             extracted = json.loads(response_text)
 
-            # Convert to dataclass instances
-            result = {
-                'quests': [
-                    Quest(
-                        title=q['title'],
-                        description=q['description'],
-                        status=q.get('status', 'unknown'),
-                        first_mentioned=session_id,
-                        last_updated=session_id
-                    )
-                    for q in extracted.get('quests', [])
-                ],
-                'npcs': [
-                    NPC(
-                        name=n['name'],
-                        description=n['description'],
-                        role=n.get('role'),
-                        location=n.get('location'),
-                        first_mentioned=session_id,
-                        last_updated=session_id,
-                        appearances=[session_id]
-                    )
-                    for n in extracted.get('npcs', [])
-                ],
-                'plot_hooks': [
-                    PlotHook(
-                        summary=p['summary'],
-                        details=p['details'],
-                        first_mentioned=session_id,
-                        last_updated=session_id
-                    )
-                    for p in extracted.get('plot_hooks', [])
-                ],
-                'locations': [
-                    Location(
-                        name=l['name'],
-                        description=l['description'],
-                        type=l.get('type'),
-                        first_mentioned=session_id,
-                        last_updated=session_id,
-                        visits=[session_id]
-                    )
-                    for l in extracted.get('locations', [])
-                ],
-                'items': [
-                    Item(
-                        name=i['name'],
-                        description=i['description'],
-                        owner=i.get('owner'),
-                        first_mentioned=session_id,
-                        last_updated=session_id
-                    )
-                    for i in extracted.get('items', [])
-                ]
+            return {
+                'quests': [Quest(title=q['title'], description=q['description'], status=q.get('status', 'unknown'), first_mentioned=session_id, last_updated=session_id) for q in extracted.get('quests', [])],
+                'npcs': [NPC(name=n['name'], description=n['description'], role=n.get('role'), location=n.get('location'), first_mentioned=session_id, last_updated=session_id, appearances=[session_id]) for n in extracted.get('npcs', [])],
+                'plot_hooks': [PlotHook(summary=p['summary'], details=p['details'], first_mentioned=session_id, last_updated=session_id) for p in extracted.get('plot_hooks', [])],
+                'locations': [Location(name=l['name'], description=l['description'], type=l.get('type'), first_mentioned=session_id, last_updated=session_id, visits=[session_id]) for l in extracted.get('locations', [])],
+                'items': [Item(name=i['name'], description=i['description'], owner=i.get('owner'), first_mentioned=session_id, last_updated=session_id) for i in extracted.get('items', [])]
             }
-
-            return result
-
         except Exception as e:
             logger.error(f"Knowledge extraction error: {e}", exc_info=True)
-            return {
-                'quests': [],
-                'npcs': [],
-                'plot_hooks': [],
-                'locations': [],
-                'items': []
-            }
+            return {'quests': [], 'npcs': [], 'plot_hooks': [], 'locations': [], 'items': []}
+
+    def extract_knowledge_from_session(
+        self, session_path: Path, session_id: str, party_context: Optional[Dict] = None
+    ) -> Dict[str, List]:
+        """
+        Extracts knowledge from a session, processing scene-by-scene if available.
+        """
+        classification_file = session_path / "intermediates" / "stage_6_classification.json"
+        scenes_file = session_path / "intermediates" / "stage_6_scenes.json"
+
+        if not classification_file.exists():
+            logger.error(f"Classification file not found: {classification_file}")
+            return {'quests': [], 'npcs': [], 'plot_hooks': [], 'locations': [], 'items': []}
+
+        with open(classification_file, 'r', encoding='utf-8') as f:
+            all_segments = json.load(f)
+        
+        segments_by_id = {seg['segment_index']: seg for seg in all_segments}
+
+        if scenes_file.exists():
+            logger.info("Scenes file found, processing scene-by-scene.")
+            with open(scenes_file, 'r', encoding='utf-8') as f:
+                scenes = json.load(f)
+            
+            all_results = []
+            for i, scene in enumerate(scenes):
+                logger.info(f"Extracting knowledge from scene {i+1}/{len(scenes)}...")
+                scene_segments = [segments_by_id[seg_id] for seg_id in scene.get("segment_ids", []) if seg_id in segments_by_id]
+                if scene_segments:
+                    scene_result = self._extract_knowledge_from_segments(scene_segments, session_id, party_context)
+                    all_results.append(scene_result)
+            
+            logger.info("Merging results from all scenes.")
+            return self._merge_scene_results(all_results)
+        else:
+            logger.info("No scenes file found, processing all segments at once.")
+            return self._extract_knowledge_from_segments(all_segments, session_id, party_context)
 
 
 class CampaignKnowledgeBase:
@@ -299,21 +343,24 @@ class CampaignKnowledgeBase:
             return self._load_knowledge.__wrapped__(self)
 
     def _save_knowledge(self):
-        """Save knowledge base to disk"""
-        # Convert dataclasses to dicts
-        data = {
-            'campaign_id': self.knowledge['campaign_id'],
-            'last_updated': datetime.now().isoformat(),
-            'sessions_processed': self.knowledge['sessions_processed'],
-            'quests': [asdict(q) for q in self.knowledge['quests']],
-            'npcs': [asdict(n) for n in self.knowledge['npcs']],
-            'plot_hooks': [asdict(p) for p in self.knowledge['plot_hooks']],
-            'locations': [asdict(l) for l in self.knowledge['locations']],
-            'items': [asdict(i) for i in self.knowledge['items']]
-        }
+        """Save knowledge base to disk with file locking to prevent concurrent write conflicts."""
+        # Use file lock to prevent race conditions
+        lock = get_file_lock(self.knowledge_file)
+        with lock:
+            # Convert dataclasses to dicts
+            data = {
+                'campaign_id': self.knowledge['campaign_id'],
+                'last_updated': datetime.now().isoformat(),
+                'sessions_processed': self.knowledge['sessions_processed'],
+                'quests': [asdict(q) for q in self.knowledge['quests']],
+                'npcs': [asdict(n) for n in self.knowledge['npcs']],
+                'plot_hooks': [asdict(p) for p in self.knowledge['plot_hooks']],
+                'locations': [asdict(l) for l in self.knowledge['locations']],
+                'items': [asdict(i) for i in self.knowledge['items']]
+            }
 
-        with open(self.knowledge_file, 'w', encoding='utf-8') as f:
-            json.dump(data, f, indent=2, ensure_ascii=False)
+            with open(self.knowledge_file, 'w', encoding='utf-8') as f:
+                json.dump(data, f, indent=2, ensure_ascii=False)
 
     def merge_new_knowledge(self, new_knowledge: Dict, session_id: str):
         """Merge newly extracted knowledge into the knowledge base"""

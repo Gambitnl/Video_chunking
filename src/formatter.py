@@ -1,4 +1,28 @@
-"""Output formatters for different transcript formats"""
+"""
+Output formatters for different transcript formats.
+
+This module provides the TranscriptFormatter class for converting transcribed
+and classified D&D session segments into various output formats.
+
+Recent Changes (Refactor #5):
+    - Added format_filtered() method using Strategy pattern for filtering
+    - Consolidated duplicate format_ic_only() and format_ooc_only() logic
+    - Added TranscriptFilter enum for type-safe filtering options
+    - Maintained backward compatibility with existing methods
+
+Example:
+    >>> from src.formatter import TranscriptFormatter
+    >>> from src.constants import TranscriptFilter
+    >>> formatter = TranscriptFormatter()
+    >>>
+    >>> # New recommended approach
+    >>> ic_only = formatter.format_filtered(
+    ...     segments, classifications, TranscriptFilter.IN_CHARACTER_ONLY
+    ... )
+    >>>
+    >>> # Old approach (still works, delegates to new method)
+    >>> ic_only = formatter.format_ic_only(segments, classifications)
+"""
 import json
 import re
 from pathlib import Path
@@ -6,6 +30,7 @@ from typing import List, Dict, Optional
 from datetime import timedelta
 from .classifier import ClassificationResult
 from .logger import get_logger
+from .constants import Classification, TranscriptFilter, OutputFormat
 
 
 logger = get_logger(__name__)
@@ -69,7 +94,7 @@ class TranscriptFormatter:
             # Build speaker label
             speaker_label = speaker
 
-            if classif.character and classif.classification == "IC":
+            if classif.character and classif.classification == Classification.IN_CHARACTER:
                 speaker_label = f"{speaker} as {classif.character}"
 
             # Add classification marker
@@ -77,6 +102,74 @@ class TranscriptFormatter:
 
             # Format line
             line = f"[{timestamp}] {speaker_label} ({marker}): {seg['text']}"
+            lines.append(line)
+
+        return "\n".join(lines)
+
+    def format_filtered(
+        self,
+        segments: List[Dict],
+        classifications: List[ClassificationResult],
+        filter_type: TranscriptFilter = TranscriptFilter.ALL,
+        speaker_profiles: Optional[Dict[str, str]] = None
+    ) -> str:
+        """
+        Format transcript with optional filtering by classification.
+
+        This method consolidates format_ic_only() and format_ooc_only() using
+        the Strategy pattern for filtering.
+
+        Args:
+            segments: List of transcribed segments with timing and text
+            classifications: List of IC/OOC classification results
+            filter_type: Type of filtering to apply (default: ALL)
+            speaker_profiles: Optional speaker ID to name mapping
+
+        Returns:
+            Formatted transcript string
+
+        Raises:
+            ValueError: If filter_type is not a valid TranscriptFilter enum member
+
+        Example:
+            >>> formatter = TranscriptFormatter()
+            >>> ic_only = formatter.format_filtered(
+            ...     segments, classifications, TranscriptFilter.IN_CHARACTER_ONLY
+            ... )
+        """
+        # Validate filter_type is a TranscriptFilter enum member
+        if not isinstance(filter_type, TranscriptFilter):
+            raise ValueError(
+                f"filter_type must be a TranscriptFilter enum member, got {type(filter_type).__name__}: {filter_type}"
+            )
+
+        # Build header using the enum's get_title() method
+        lines = []
+        lines.append("=" * 80)
+        lines.append(filter_type.get_title())
+        lines.append("=" * 80)
+        lines.append("")
+
+        for seg, classif in zip(segments, classifications):
+            # Apply filter using the enum's should_include() method
+            if not filter_type.should_include(classif.classification):
+                continue
+
+            timestamp = self.format_timestamp(seg['start_time'])
+            speaker = seg.get('speaker', 'UNKNOWN')
+
+            # Map to person name if available
+            if speaker_profiles and speaker in speaker_profiles:
+                speaker = speaker_profiles[speaker]
+
+            # For IC-only, use character name if available
+            # For OOC and ALL, use speaker name
+            if filter_type == TranscriptFilter.IN_CHARACTER_ONLY:
+                display_name = classif.character or speaker
+            else:
+                display_name = speaker
+
+            line = f"[{timestamp}] {display_name}: {seg['text']}"
             lines.append(line)
 
         return "\n".join(lines)
@@ -91,32 +184,17 @@ class TranscriptFormatter:
         Format IC-only transcript (game narrative only).
 
         Format shows characters and DM narration, removes OOC banter.
+
+        .. deprecated::
+            Use :func:`format_filtered` with TranscriptFilter.IN_CHARACTER_ONLY instead.
+            This method is maintained for backward compatibility.
         """
-        lines = []
-        lines.append("=" * 80)
-        lines.append("D&D SESSION TRANSCRIPT - IN-CHARACTER ONLY")
-        lines.append("=" * 80)
-        lines.append("")
-
-        for seg, classif in zip(segments, classifications):
-            # Skip OOC content
-            if classif.classification == "OOC":
-                continue
-
-            timestamp = self.format_timestamp(seg['start_time'])
-            speaker = seg.get('speaker', 'UNKNOWN')
-
-            # Map to person name if available
-            if speaker_profiles and speaker in speaker_profiles:
-                speaker = speaker_profiles[speaker]
-
-            # Use character name if available, otherwise speaker
-            display_name = classif.character or speaker
-
-            line = f"[{timestamp}] {display_name}: {seg['text']}"
-            lines.append(line)
-
-        return "\n".join(lines)
+        return self.format_filtered(
+            segments,
+            classifications,
+            TranscriptFilter.IN_CHARACTER_ONLY,
+            speaker_profiles
+        )
 
     def format_ooc_only(
         self,
@@ -128,29 +206,17 @@ class TranscriptFormatter:
         Format OOC-only transcript (banter and meta-discussion).
 
         Useful for remembering jokes or strategy discussions.
+
+        .. deprecated::
+            Use :func:`format_filtered` with TranscriptFilter.OUT_OF_CHARACTER_ONLY instead.
+            This method is maintained for backward compatibility.
         """
-        lines = []
-        lines.append("=" * 80)
-        lines.append("D&D SESSION TRANSCRIPT - OUT-OF-CHARACTER ONLY")
-        lines.append("=" * 80)
-        lines.append("")
-
-        for seg, classif in zip(segments, classifications):
-            # Skip IC content
-            if classif.classification == "IC":
-                continue
-
-            timestamp = self.format_timestamp(seg['start_time'])
-            speaker = seg.get('speaker', 'UNKNOWN')
-
-            # Map to person name if available
-            if speaker_profiles and speaker in speaker_profiles:
-                speaker = speaker_profiles[speaker]
-
-            line = f"[{timestamp}] {speaker}: {seg['text']}"
-            lines.append(line)
-
-        return "\n".join(lines)
+        return self.format_filtered(
+            segments,
+            classifications,
+            TranscriptFilter.OUT_OF_CHARACTER_ONLY,
+            speaker_profiles
+        )
 
     def format_json(
         self,
@@ -280,13 +346,13 @@ class TranscriptFormatter:
             logger.warning(f"SRT export failed: {e}")
 
         return {
-            'full': output_dir / f"{session_name}_full.txt",
-            'ic_only': output_dir / f"{session_name}_ic_only.txt",
-            'ooc_only': output_dir / f"{session_name}_ooc_only.txt",
-            'json': json_path,
-            'srt_full': output_dir / f"{session_name}_full.srt",
-            'srt_ic': output_dir / f"{session_name}_ic_only.srt",
-            'srt_ooc': output_dir / f"{session_name}_ooc_only.srt"
+            OutputFormat.FULL: output_dir / f"{session_name}_full.txt",
+            OutputFormat.IC_ONLY: output_dir / f"{session_name}_ic_only.txt",
+            OutputFormat.OOC_ONLY: output_dir / f"{session_name}_ooc_only.txt",
+            OutputFormat.JSON: json_path,
+            OutputFormat.SRT_FULL: output_dir / f"{session_name}_full.srt",
+            OutputFormat.SRT_IC: output_dir / f"{session_name}_ic_only.srt",
+            OutputFormat.SRT_OOC: output_dir / f"{session_name}_ooc_only.srt"
         }
 
 
@@ -305,16 +371,16 @@ class StatisticsGenerator:
             Dictionary of statistics
         """
         total_segments = len(segments)
-        ic_segments = sum(1 for c in classifications if c.classification == "IC")
-        ooc_segments = sum(1 for c in classifications if c.classification == "OOC")
-        mixed_segments = sum(1 for c in classifications if c.classification == "MIXED")
+        ic_segments = sum(1 for c in classifications if c.classification == Classification.IN_CHARACTER)
+        ooc_segments = sum(1 for c in classifications if c.classification == Classification.OUT_OF_CHARACTER)
+        mixed_segments = sum(1 for c in classifications if c.classification == Classification.MIXED)
 
         # Duration
         total_duration = segments[-1]['end_time'] if segments else 0
         ic_duration = sum(
             seg['end_time'] - seg['start_time']
             for seg, c in zip(segments, classifications)
-            if c.classification == "IC"
+            if c.classification == Classification.IN_CHARACTER
         )
 
         # Speaker distribution

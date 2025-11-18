@@ -297,3 +297,166 @@ def test_campaign_chat_chain_ask_handles_error(mock_memory, mock_chain_class):
     result = chain.ask(question)
 
     assert "Error: Chain failed" in result["answer"]
+
+
+# --- Integration Tests for RAG Pipeline ---
+
+@patch('src.langchain.campaign_chat.sanitize_input', return_value="Who is the Shadow Lord?")
+def test_rag_integration_retriever_to_llm_flow(mock_sanitize_input, tmp_path):
+    """
+    Integration test: Verify retriever results are passed to LLM correctly.
+
+    This test verifies that:
+    1. Retriever is called with the sanitized question
+    2. Retrieved documents are formatted into the LLM prompt
+    3. LLM receives the context from retriever
+    4. Sources are correctly returned in the response
+    """
+    with patch.object(CampaignChatClient, '_initialize_memory', return_value=Mock()):
+        with patch.object(CampaignChatClient, '_load_system_prompt', return_value='You are a D&D assistant.'):
+            # Create a mock LLM that records what it was called with
+            mock_llm = Mock(return_value="The Shadow Lord is a mysterious villain.")
+
+            with patch.object(CampaignChatClient, '_initialize_llm', return_value=mock_llm):
+                # Create client with mock retriever
+                mock_retriever = Mock()
+                mock_doc1 = Document(
+                    page_content="The Shadow Lord appeared in Session 5 as the main antagonist.",
+                    metadata={"session_id": "Session_005", "type": "transcript"}
+                )
+                mock_doc2 = Document(
+                    page_content="The Shadow Lord commands an army of undead.",
+                    metadata={"session_id": "Session_007", "type": "knowledge"}
+                )
+                mock_retriever.retrieve.return_value = [mock_doc1, mock_doc2]
+
+                client = CampaignChatClient(retriever=mock_retriever)
+                client.memory = Mock()  # Override memory
+
+                # Ask a question
+                result = client.ask("Who is the Shadow Lord?")
+
+                # Verify retriever was called correctly
+                mock_retriever.retrieve.assert_called_once_with("Who is the Shadow Lord?", top_k=5)
+
+                # Verify LLM was called with context from retriever
+                mock_llm.assert_called_once()
+                llm_call_args = mock_llm.call_args[0][0]
+
+                # Verify retrieved content is in the LLM prompt
+                assert "Shadow Lord appeared in Session 5" in llm_call_args
+                assert "commands an army of undead" in llm_call_args
+
+                # Verify response structure
+                assert result["answer"] == "The Shadow Lord is a mysterious villain."
+                assert len(result["sources"]) == 2
+                assert result["sources"][0]['content'] == mock_doc1.page_content
+                assert result["sources"][1]['content'] == mock_doc2.page_content
+
+
+@patch('src.langchain.campaign_chat.sanitize_input', return_value="test question")
+def test_rag_integration_with_empty_retrieval_results(mock_sanitize_input):
+    """
+    Integration test: Verify RAG pipeline handles empty retrieval gracefully.
+
+    When no relevant documents are found, the LLM should still be called
+    but with an empty context section.
+    """
+    with patch.object(CampaignChatClient, '_initialize_memory', return_value=Mock()):
+        with patch.object(CampaignChatClient, '_load_system_prompt', return_value='You are helpful.'):
+            mock_llm = Mock(return_value="I don't have information about that.")
+
+            with patch.object(CampaignChatClient, '_initialize_llm', return_value=mock_llm):
+                mock_retriever = Mock()
+                mock_retriever.retrieve.return_value = []  # No documents found
+
+                client = CampaignChatClient(retriever=mock_retriever)
+                client.memory = Mock()
+
+                result = client.ask("test question")
+
+                # Verify retriever was called
+                mock_retriever.retrieve.assert_called_once()
+
+                # Verify LLM was still called (without context)
+                mock_llm.assert_called_once()
+                llm_prompt = mock_llm.call_args[0][0]
+                assert "No relevant context found" in llm_prompt or "Context:" in llm_prompt
+
+                # Verify response
+                assert result["answer"] == "I don't have information about that."
+                assert len(result["sources"]) == 0
+
+
+@patch('src.langchain.campaign_chat.sanitize_input', return_value="test question")
+def test_rag_integration_context_length_truncation(mock_sanitize_input):
+    """
+    Integration test: Verify long retrieval results are handled correctly.
+
+    When retrieved documents exceed MAX_CONTEXT_DOCS_LENGTH, they should
+    be truncated to prevent prompt overflow.
+    """
+    with patch.object(CampaignChatClient, '_initialize_memory', return_value=Mock()):
+        with patch.object(CampaignChatClient, '_load_system_prompt', return_value='System prompt'):
+            mock_llm = Mock(return_value="Response based on truncated context.")
+
+            with patch.object(CampaignChatClient, '_initialize_llm', return_value=mock_llm):
+                mock_retriever = Mock()
+                # Create a very long document
+                long_content = "x" * (MAX_CONTEXT_DOCS_LENGTH + 1000)
+                mock_doc = Document(page_content=long_content, metadata={"session": "test"})
+                mock_retriever.retrieve.return_value = [mock_doc]
+
+                client = CampaignChatClient(retriever=mock_retriever)
+                client.memory = Mock()
+
+                result = client.ask("test question")
+
+                # Verify LLM was called
+                mock_llm.assert_called_once()
+                llm_prompt = mock_llm.call_args[0][0]
+
+                # Verify context was truncated and truncation marker is present
+                assert len(llm_prompt) < MAX_CONTEXT_DOCS_LENGTH + 1000
+                assert "... [truncated]" in llm_prompt
+
+                assert result["answer"] == "Response based on truncated context."
+
+
+@patch('src.langchain.campaign_chat.sanitize_input', return_value="What happened in Session 5?")
+def test_rag_integration_with_various_context_inputs(mock_sanitize_input):
+    """
+    Integration test: Verify the context parameter flows through the pipeline.
+
+    Tests BUG-20251102-02: context parameter should be handled gracefully
+    even if not currently used by the implementation.
+    """
+    with patch.object(CampaignChatClient, '_initialize_memory', return_value=Mock()):
+        with patch.object(CampaignChatClient, '_load_system_prompt', return_value='System'):
+            mock_llm = Mock(return_value="Session 5 was about the haunted castle.")
+
+            with patch.object(CampaignChatClient, '_initialize_llm', return_value=mock_llm):
+                mock_retriever = Mock()
+                mock_retriever.retrieve.return_value = [
+                    Document(page_content="Session 5 notes", metadata={"session": "5"})
+                ]
+
+                client = CampaignChatClient(retriever=mock_retriever)
+                client.memory = Mock()
+
+                # Test with various context inputs
+                test_contexts = [
+                    None,
+                    {},
+                    {"campaign_id": "campaign_001"},
+                    {"session_filter": ["Session_005"]},
+                    {"campaign_id": "campaign_001", "user_preferences": {"verbose": True}},
+                ]
+
+                for context in test_contexts:
+                    result = client.ask("What happened in Session 5?", context=context)
+
+                    # Should complete without errors regardless of context
+                    assert "answer" in result
+                    assert "sources" in result
+                    assert result["answer"] == "Session 5 was about the haunted castle."

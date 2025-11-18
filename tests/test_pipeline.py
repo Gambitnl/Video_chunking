@@ -12,10 +12,12 @@ import pytest
 import numpy as np
 from src.config import Config
 from pathlib import Path
+from typing import Dict, Optional
 from unittest.mock import Mock, patch, MagicMock
-from src.pipeline import DDSessionProcessor, create_session_output_dir
+from src.pipeline import DDSessionProcessor, create_session_output_dir, ProcessingStatus
 from src.chunker import AudioChunk
 from src.transcriber import ChunkTranscription, TranscriptionSegment
+from src.intermediate_output import IntermediateOutputManager
 
 
 # ============================================================================
@@ -129,6 +131,112 @@ class TestDDSessionProcessorInit:
         pass
 
 
+@patch('src.pipeline.TranscriberFactory')
+@patch('src.pipeline.DiarizerFactory')
+@patch('src.pipeline.ClassifierFactory')
+def test_load_input_file_metadata_uses_utf8(
+    MockClassifierFactory,
+    MockDiarizerFactory,
+    MockTranscriberFactory,
+    tmp_path
+):
+    """Ensure metadata JSON is read with UTF-8 so Unicode paths do not break resume."""
+    session_dir = tmp_path / "session_unicode"
+    session_dir.mkdir()
+
+    processor = DDSessionProcessor("unicode_session")
+    metadata_path = session_dir / f"{processor.session_id}_data.json"
+    input_path = "C:/Sessions/Ёpisode_音声.mp4"
+    metadata_payload = {"metadata": {"input_file": input_path}}
+    metadata_path.write_text(json.dumps(metadata_payload, ensure_ascii=False), encoding="utf-8")
+
+    original_open = Path.open
+    captured_encoding: Dict[str, Optional[str]] = {}
+
+    def fake_open(self, mode='r', buffering=-1, encoding=None, errors=None, newline=None):
+        if self == metadata_path and 'r' in mode:
+            captured_encoding['value'] = encoding
+        return original_open(self, mode, buffering, encoding, errors, newline)
+
+    with patch.object(Path, "open", new=fake_open):
+        result = processor._load_input_file_from_metadata(session_dir)
+
+    assert captured_encoding.get('value') == "utf-8"
+    assert result == input_path
+
+
+@patch('src.pipeline.TranscriberFactory')
+@patch('src.pipeline.DiarizerFactory')
+@patch('src.pipeline.ClassifierFactory')
+def test_process_from_intermediate_calls_knowledge_stage(
+    MockClassifierFactory,
+    MockDiarizerFactory,
+    MockTranscriberFactory,
+    tmp_path
+):
+    """Resume from stage 6 should route through stage helpers for knowledge extraction."""
+    session_dir = tmp_path / "20250101_000000_resume_test"
+    session_dir.mkdir()
+    manager = IntermediateOutputManager(session_dir)
+
+    segments = [
+        {"text": "Hello world", "start_time": 0.0, "end_time": 2.0, "speaker": "SPEAKER_00"}
+    ]
+    classifications = [
+        {
+            "segment_index": 0,
+            "classification": "IC",
+            "confidence": 0.95,
+            "reasoning": "Greeting"
+        }
+    ]
+    manager.save_classification(segments, classifications)
+
+    processor = DDSessionProcessor("resume_test")
+
+    mock_output_result = MagicMock()
+    mock_output_result.success = True
+    mock_output_result.data = {
+        "output_files": {"json": str(session_dir / "transcript.json")},
+        "statistics": {
+            "total_segments": 1,
+            "ic_segments": 1,
+            "ooc_segments": 0,
+            "ic_percentage": 100.0,
+            "ic_duration_formatted": "00:00:02",
+            "total_duration_formatted": "00:00:02",
+            "character_appearances": {}
+        },
+        "speaker_profiles": {"SPEAKER_00": "DM"}
+    }
+
+    mock_knowledge_result = MagicMock()
+    mock_knowledge_result.success = True
+    mock_knowledge_result.status = ProcessingStatus.COMPLETED
+    mock_knowledge_result.data = {"knowledge_data": {"extracted": {"quests": 1}}}
+
+    processor._stage_outputs_generation = MagicMock(return_value=mock_output_result)
+    processor._stage_audio_segments_export = MagicMock()
+    processor._stage_knowledge_extraction = MagicMock(return_value=mock_knowledge_result)
+
+    result = processor.process_from_intermediate(
+        session_dir=session_dir,
+        from_stage=6,
+        skip_snippets=True,
+        skip_knowledge=False
+    )
+
+    processor._stage_outputs_generation.assert_called_once()
+    processor._stage_knowledge_extraction.assert_called_once()
+    called_args = processor._stage_knowledge_extraction.call_args[0]
+    assert len(called_args) == 4
+    assert isinstance(called_args[0], list)
+    assert isinstance(called_args[1], list)
+    assert called_args[2] == {"SPEAKER_00": "DM"}
+    assert called_args[3] is False
+    assert result["knowledge_extraction"] == {"extracted": {"quests": 1}}
+
+
 # ============================================================================
 # Stage Execution Tests (Mocked)
 # ============================================================================
@@ -185,29 +293,199 @@ class TestPipelineStageExecution:
             mock_audio_processor.convert_to_wav.assert_called_once_with(input_file)
             mock_audio_processor.get_duration.assert_called_once_with(wav_file)
 
-    @pytest.mark.skip(reason="Template - not implemented")
     def test_process_stage_chunking(self, monkeypatch, tmp_path):
         """Test chunking stage execution."""
-        # TODO: Mock HybridChunker
-        # TODO: Verify chunk_audio called
-        # TODO: Verify chunks passed to next stage
-        pass
+        # Create test input file
+        input_file = tmp_path / "test.m4a"
+        input_file.touch()
+        wav_file = tmp_path / "test.wav"
+        wav_file.touch()
 
-    @pytest.mark.skip(reason="Template - not implemented")
-    def test_process_stage_transcription(self, monkeypatch):
+        # Mock all components
+        with patch('src.pipeline.AudioProcessor') as mock_audio_cls, \
+             patch('src.pipeline.HybridChunker') as mock_chunker_cls, \
+             patch('src.pipeline.TranscriberFactory'), \
+             patch('src.pipeline.TranscriptionMerger'), \
+             patch('src.pipeline.TranscriptFormatter'), \
+             patch('src.pipeline.AudioSnipper'), \
+             patch('src.pipeline.CheckpointManager'), \
+             patch('src.pipeline.StatusTracker'), \
+             patch('src.pipeline.DiarizerFactory'), \
+             patch('src.pipeline.ClassifierFactory'):
+
+            # Set up audio processor mock
+            mock_audio = mock_audio_cls.return_value
+            mock_audio.convert_to_wav.return_value = wav_file
+            mock_audio.get_duration.return_value = 120.0
+
+            # Set up chunker mock to return test chunks
+            mock_chunker = mock_chunker_cls.return_value
+            test_chunks = [
+                Mock(start_time=0.0, end_time=60.0, path=tmp_path / "chunk_0.wav"),
+                Mock(start_time=50.0, end_time=110.0, path=tmp_path / "chunk_1.wav"),
+            ]
+            mock_chunker.chunk_audio.return_value = test_chunks
+
+            processor = DDSessionProcessor("test", resume=False)
+            processor.transcriber.transcribe_chunk = MagicMock(return_value=Mock(
+                text='test chunk', start_time=0, end_time=60, confidence=0.9, words=[]
+            ))
+            processor.merger.merge_transcriptions = MagicMock(return_value=[
+                Mock(text='merged', start_time=0, end_time=120, confidence=0.9, words=[])
+            ])
+            processor.formatter.save_all_formats = MagicMock(return_value={})
+            processor.snipper.export_segments = MagicMock(return_value={'segments_dir': None, 'manifest': None})
+
+            # Process
+            result = processor.process(
+                input_file=input_file,
+                output_dir=tmp_path,
+                skip_diarization=True,
+                skip_classification=True,
+                skip_snippets=True,
+                skip_knowledge=True,
+                is_test_run=True
+            )
+
+            # Verify chunker was called with correct audio file
+            mock_chunker.chunk_audio.assert_called_once_with(wav_file)
+
+            # Verify transcriber was called for each chunk
+            assert processor.transcriber.transcribe_chunk.call_count == len(test_chunks)
+
+    def test_process_stage_transcription(self, monkeypatch, tmp_path):
         """Test transcription stage with mocked transcriber."""
-        # TODO: Mock TranscriberFactory.create()
-        # TODO: Verify correct backend selected
-        # TODO: Verify all chunks transcribed
-        pass
+        # Create test input file
+        input_file = tmp_path / "test.m4a"
+        input_file.touch()
+        wav_file = tmp_path / "test.wav"
+        wav_file.touch()
 
-    @pytest.mark.skip(reason="Template - not implemented")
-    def test_process_stage_merging(self, monkeypatch):
+        # Mock all components
+        with patch('src.pipeline.AudioProcessor') as mock_audio_cls, \
+             patch('src.pipeline.HybridChunker') as mock_chunker_cls, \
+             patch('src.pipeline.TranscriberFactory') as mock_transcriber_factory, \
+             patch('src.pipeline.TranscriptionMerger'), \
+             patch('src.pipeline.TranscriptFormatter'), \
+             patch('src.pipeline.AudioSnipper'), \
+             patch('src.pipeline.CheckpointManager'), \
+             patch('src.pipeline.StatusTracker'), \
+             patch('src.pipeline.DiarizerFactory'), \
+             patch('src.pipeline.ClassifierFactory'):
+
+            # Set up audio processor mock
+            mock_audio = mock_audio_cls.return_value
+            mock_audio.convert_to_wav.return_value = wav_file
+            mock_audio.get_duration.return_value = 120.0
+
+            # Set up chunker mock
+            test_chunks = [
+                Mock(start_time=0.0, end_time=60.0, path=tmp_path / "chunk_0.wav"),
+                Mock(start_time=50.0, end_time=110.0, path=tmp_path / "chunk_1.wav"),
+            ]
+            mock_chunker = mock_chunker_cls.return_value
+            mock_chunker.chunk_audio.return_value = test_chunks
+
+            # Set up transcriber factory mock
+            mock_transcriber = MagicMock()
+            mock_transcriber.transcribe_chunk.return_value = Mock(
+                text='transcribed text', start_time=0, end_time=60, confidence=0.95, words=[]
+            )
+            mock_transcriber_factory.create.return_value = mock_transcriber
+
+            processor = DDSessionProcessor("test", resume=False)
+            processor.merger.merge_transcriptions = MagicMock(return_value=[
+                Mock(text='merged', start_time=0, end_time=120, confidence=0.95, words=[])
+            ])
+            processor.formatter.save_all_formats = MagicMock(return_value={})
+            processor.snipper.export_segments = MagicMock(return_value={'segments_dir': None, 'manifest': None})
+
+            # Process
+            result = processor.process(
+                input_file=input_file,
+                output_dir=tmp_path,
+                skip_diarization=True,
+                skip_classification=True,
+                skip_snippets=True,
+                skip_knowledge=True,
+                is_test_run=True
+            )
+
+            # Verify transcriber factory was called to create transcriber
+            mock_transcriber_factory.create.assert_called_once()
+
+            # Verify transcriber was called for each chunk
+            assert mock_transcriber.transcribe_chunk.call_count == len(test_chunks)
+
+    def test_process_stage_merging(self, monkeypatch, tmp_path):
         """Test overlap merging stage."""
-        # TODO: Mock TranscriptionMerger
-        # TODO: Verify merge_transcriptions called
-        # TODO: Verify overlaps removed
-        pass
+        # Create test input file
+        input_file = tmp_path / "test.m4a"
+        input_file.touch()
+        wav_file = tmp_path / "test.wav"
+        wav_file.touch()
+
+        # Mock all components
+        with patch('src.pipeline.AudioProcessor') as mock_audio_cls, \
+             patch('src.pipeline.HybridChunker') as mock_chunker_cls, \
+             patch('src.pipeline.TranscriberFactory') as mock_transcriber_factory, \
+             patch('src.pipeline.TranscriptionMerger') as mock_merger_cls, \
+             patch('src.pipeline.TranscriptFormatter'), \
+             patch('src.pipeline.AudioSnipper'), \
+             patch('src.pipeline.CheckpointManager'), \
+             patch('src.pipeline.StatusTracker'), \
+             patch('src.pipeline.DiarizerFactory'), \
+             patch('src.pipeline.ClassifierFactory'):
+
+            # Set up audio processor mock
+            mock_audio = mock_audio_cls.return_value
+            mock_audio.convert_to_wav.return_value = wav_file
+            mock_audio.get_duration.return_value = 120.0
+
+            # Set up chunker mock
+            test_chunks = [
+                Mock(start_time=0.0, end_time=60.0, path=tmp_path / "chunk_0.wav"),
+                Mock(start_time=50.0, end_time=110.0, path=tmp_path / "chunk_1.wav"),
+            ]
+            mock_chunker = mock_chunker_cls.return_value
+            mock_chunker.chunk_audio.return_value = test_chunks
+
+            # Set up transcriber mock
+            mock_transcriber = MagicMock()
+            mock_transcriber.transcribe_chunk.return_value = Mock(
+                text='chunk text', start_time=0, end_time=60, confidence=0.95, words=[]
+            )
+            mock_transcriber_factory.create.return_value = mock_transcriber
+
+            # Set up merger mock
+            mock_merger = mock_merger_cls.return_value
+            merged_result = [
+                Mock(text='merged segment 1', start_time=0, end_time=50, confidence=0.95, words=[]),
+                Mock(text='merged segment 2', start_time=50, end_time=120, confidence=0.93, words=[])
+            ]
+            mock_merger.merge_transcriptions.return_value = merged_result
+
+            processor = DDSessionProcessor("test", resume=False)
+            processor.formatter.save_all_formats = MagicMock(return_value={})
+            processor.snipper.export_segments = MagicMock(return_value={'segments_dir': None, 'manifest': None})
+
+            # Process
+            result = processor.process(
+                input_file=input_file,
+                output_dir=tmp_path,
+                skip_diarization=True,
+                skip_classification=True,
+                skip_snippets=True,
+                skip_knowledge=True,
+                is_test_run=True
+            )
+
+            # Verify merger was called
+            mock_merger.merge_transcriptions.assert_called_once()
+
+            # Verify merge was called with the transcription results
+            call_args = mock_merger.merge_transcriptions.call_args
+            assert call_args is not None  # Confirm it was called with arguments
 
     def test_process_stage_diarization_when_enabled(self, monkeypatch, tmp_path):
         """Test diarization runs when skip_diarization=False."""
@@ -1700,35 +1978,44 @@ class TestPipelineResume:
 # ============================================================================
 
 @pytest.mark.slow
-@pytest.mark.skip(reason="Template - not implemented - requires real audio file")
+@pytest.mark.skip(reason="Integration test - requires real audio fixtures (tests/fixtures/sample_30s.wav)")
 def test_pipeline_end_to_end_minimal(tmp_path):
     """
-    Test complete pipeline with minimal options (no diarization/classification).
+    Integration test: End-to-end pipeline with minimal processing options.
 
-    Duration: ~2-3 minutes
-    Requires: tests/fixtures/sample_30s.wav
+    This test is skipped by default as it requires:
+    - Real audio file (~30 seconds)
+    - Path: tests/fixtures/sample_30s.wav
+    - Duration: ~2-3 minutes to run
+
+    When implemented, this test should:
+    - Run pipeline with skip_diarization=True, skip_classification=True
+    - Verify all expected output files are created (_data.json, transcript files)
+    - Verify transcript content is reasonable (non-empty, correct structure)
+    - Verify processing completes without errors
     """
-    # TODO: Use small test audio file (~30s)
-    # TODO: Run with skip_diarization=True, skip_classification=True
-    # TODO: Verify all outputs created
-    # TODO: Verify transcript content is reasonable
     pass
 
 
 @pytest.mark.slow
-@pytest.mark.skip(reason="Template - not implemented - requires real audio file")
+@pytest.mark.skip(reason="Integration test - requires real audio fixtures (tests/fixtures/sample_5min.wav)")
 def test_pipeline_end_to_end_full_features(tmp_path):
     """
-    Test complete pipeline with all features enabled.
+    Integration test: End-to-end pipeline with all features enabled.
 
-    Duration: ~10-15 minutes
-    Requires: tests/fixtures/sample_5min.wav
+    This test is skipped by default as it requires:
+    - Real audio file (~5 minutes)
+    - Path: tests/fixtures/sample_5min.wav
+    - Duration: ~10-15 minutes to run
+
+    When implemented, this test should:
+    - Run pipeline with all features enabled (diarization, classification, knowledge extraction)
+    - Verify speaker labels are present in output
+    - Verify IC/OOC classification labels are present
+    - Verify knowledge base entities are extracted
+    - Verify all intermediate outputs are created
+    - Verify processing completes successfully
     """
-    # TODO: Use larger test file (~5 min)
-    # TODO: Run with all features enabled
-    # TODO: Verify speaker labels present
-    # TODO: Verify IC/OOC labels present
-    # TODO: Verify knowledge extracted
     pass
 
 
@@ -1745,18 +2032,39 @@ def create_mock_audio(path: Path, duration: int, sample_rate: int = 16000):
         duration: Duration in seconds
         sample_rate: Sample rate in Hz
 
-    TODO: Implement actual WAV file creation
+    Note: This is a placeholder. For actual testing, use real audio fixtures
+    or implement WAV file generation using libraries like scipy.io.wavfile
+    or pydub to create valid audio data.
+
+    Example implementation:
+        import numpy as np
+        from scipy.io import wavfile
+        # Generate silent audio
+        samples = np.zeros(duration * sample_rate, dtype=np.int16)
+        wavfile.write(str(path), sample_rate, samples)
     """
-    raise NotImplementedError("Mock audio creation not implemented")
+    raise NotImplementedError("Mock audio creation not implemented. Use real audio fixtures or implement with scipy/pydub.")
 
 
 def create_mock_transcription(num_segments: int = 5):
     """
-    Create mock transcription data.
+    Create mock transcription data for testing.
+
+    Args:
+        num_segments: Number of transcription segments to create
 
     Returns:
         List of mock transcription segments
 
-    TODO: Implement
+    Note: This is a placeholder. When implemented, should return a list
+    of Mock objects or dictionaries with fields: text, start_time, end_time,
+    confidence, words, speaker (optional).
+
+    Example implementation:
+        return [
+            Mock(text=f"Segment {i}", start_time=i*10.0, end_time=(i+1)*10.0,
+                 confidence=0.9, words=[], speaker=f"SPEAKER_{i%2}")
+            for i in range(num_segments)
+        ]
     """
-    raise NotImplementedError("Mock transcription creation not implemented")
+    raise NotImplementedError("Mock transcription creation not implemented. See docstring for example.")

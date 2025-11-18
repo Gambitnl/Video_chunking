@@ -23,6 +23,59 @@ PROFILE_CATEGORY_ALIASES = {
 }
 
 
+def _format_seconds_to_timestamp(seconds: float) -> str:
+    """Convert seconds to HH:MM:SS (or MM:SS when under an hour)."""
+    total_seconds = max(0, int(round(float(seconds))))
+    hours, remainder = divmod(total_seconds, 3600)
+    minutes, secs = divmod(remainder, 60)
+    if hours > 0:
+        return f"{hours:02d}:{minutes:02d}:{secs:02d}"
+    return f"{minutes:02d}:{secs:02d}"
+
+
+def _normalize_timestamp_value(
+    raw_value: Optional[str],
+    segment_start: Optional[float],
+) -> Optional[str]:
+    """Normalize timestamps that may contain ranges or decimal seconds."""
+    if raw_value is None or str(raw_value).strip() == "":
+        if segment_start is not None:
+            return _format_seconds_to_timestamp(segment_start)
+        return None
+
+    normalized = str(raw_value).strip()
+    normalized = normalized.replace("\u2013", "-").replace("\u2014", "-")
+
+    if "-" in normalized:
+        normalized = normalized.split("-", 1)[0].strip()
+
+    normalized = normalized.strip()
+    if not normalized:
+        if segment_start is not None:
+            return _format_seconds_to_timestamp(segment_start)
+        return None
+
+    parts = normalized.split(":")
+    if len(parts) in (2, 3):
+        try:
+            values = [int(float(part.strip())) for part in parts]
+            if len(values) == 2:
+                minutes, seconds = values
+                return f"{minutes:02d}:{seconds:02d}"
+            hours, minutes, seconds = values
+            return f"{hours:02d}:{minutes:02d}:{seconds:02d}"
+        except ValueError:
+            pass
+
+    try:
+        seconds = float(normalized)
+        return _format_seconds_to_timestamp(seconds)
+    except ValueError:
+        if segment_start is not None:
+            return _format_seconds_to_timestamp(segment_start)
+        return None
+
+
 @dataclass
 class ProfileUpdate:
     """A suggested update to a character profile."""
@@ -42,6 +95,7 @@ class ProfileUpdate:
     metadata: Dict[str, Any] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
+        self.timestamp = _normalize_timestamp_value(self.timestamp, self.segment_start)
         normalized = (self.category or "").strip().lower().replace(" ", "_")
         normalized = PROFILE_CATEGORY_ALIASES.get(normalized, normalized)
         if normalized in PROFILE_UPDATE_CATEGORIES:

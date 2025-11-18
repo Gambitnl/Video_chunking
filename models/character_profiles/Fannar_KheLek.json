@@ -12,10 +12,10 @@
     "Pas'Ta",
     "Fan'nar"
   ],
-  "campaign_id": null,
+  "campaign_id": "team_op",
   "campaign_name": "Gaia Adventures - Culdor Academy",
   "first_session": "Session 1 (29-Nov-2024)",
-  "last_updated": "2025-11-01T20:59:46.563600",
+  "last_updated": "2025-11-17T16:47:37.328123",
   "notable_actions": [
     {
       "session": "Session 1",
@@ -34,6 +34,12 @@
       "timestamp": null,
       "description": "Failed DEX save and got trapped in spider webs at the farmhouse",
       "type": "combat"
+    },
+    {
+      "session": "Session6_test_16nov_0315am",
+      "timestamp": null,
+      "description": "Fan'nar suggests asking questions and researching the creatures further.",
+      "type": "general"
     }
   ],
   "inventory": [
@@ -66,6 +72,12 @@
       "description": "Made from various types of fur",
       "session_acquired": null,
       "category": "armor"
+    },
+    {
+      "name": "Possibly gaining new items or abilities during the mission.",
+      "description": "The party is in a situation where they might gain new equipment or powers, though not directly mentioned.",
+      "session_acquired": "Session6_test_16nov_0315am",
+      "category": "general"
     }
   ],
   "relationships": [
@@ -80,20 +92,136 @@
       "relationship_type": "employer",
       "description": "Academy professor who assigned the investigation",
       "first_met": "Session 1"
+    },
+    {
+      "name": "Indicates a collaborative and supportive relationship with Furnax.",
+      "relationship_type": "ally",
+      "description": null,
+      "first_met": "Session6_test_16nov_0315am"
+    },
+    {
+      "name": "Seeks knowledge from Furnax",
+      "relationship_type": "ally",
+      "description": null,
+      "first_met": "Session6_test_16nov_0315am"
+    },
+    {
+      "name": "Confirms the relationship with Remi (SPEAKER_16) by acknowledging a tip.",
+      "relationship_type": "general",
+      "description": null,
+      "first_met": "Session6_test_16nov_0315am"
+    },
+    {
+      "name": "Showed willingness to assist a teammate in their plan.",
+      "relationship_type": "ally",
+      "description": null,
+      "first_met": "Session6_test_16nov_0315am"
+    },
+    {
+      "name": "Conflicts with Pipira over the actions taken against the guards.",
+      "relationship_type": "ally",
+      "description": null,
+      "first_met": "Session6_test_16nov_0315am"
+    },
+    {
+      "name": "Fan'nar seems to be working alongside Sha'ek and others in a cooperative manner.",
+      "relationship_type": "general",
+      "description": null,
+      "first_met": "test_s6_17nov_0901am"
     }
   ],
-  "development_notes": [],
-  "memorable_quotes": [],
+  "development_notes": [
+    {
+      "session": "Session6_test_16nov_0315am",
+      "note": "Suggests a longer rotation period of four hours for the watch duty.",
+      "category": "general"
+    },
+    {
+      "session": "Session6_test_16nov_0315am",
+      "note": "Considers learning from other wizards, indicating a desire for knowledge and growth.",
+      "category": "social"
+    },
+    {
+      "session": "Session6_test_16nov_0315am",
+      "note": "Suggests the group is having trouble with someone or something.",
+      "category": "social"
+    },
+    {
+      "session": "Session6_test_16nov_0315am",
+      "note": "Acknowledges the importance of having specialized knowledge in his own magic school.",
+      "category": "general"
+    },
+    {
+      "session": "Session6_test_16nov_0315am",
+      "note": "Fan'nar seems to be knowledgeable about the game's mechanics but also shows a bit of reluctance in following formal procedures, which could indicate a character's internal conflict or a more relaxed attitude towards rules.",
+      "category": "social"
+    },
+    {
+      "session": "Session6_test_16nov_0315am",
+      "note": "Appears to be involved in a discussion about interviews and possibly feeling out of place.",
+      "category": "social"
+    },
+    {
+      "session": "Session6_test_16nov_0315am",
+      "note": "Fan'nar shows a practical and inquisitive approach to dealing with the unknown.",
+      "category": "general"
+    },
+    {
+      "session": "Session6_test_16nov_0315am",
+      "note": "Expressed his desire to assist a teammate, highlighting teamwork skills.",
+      "category": "social"
+    },
+    {
+      "session": "Session6_test_16nov_0315am",
+      "note": "Showing concern for Furnax's well-being during the encounter.",
+      "category": "ally"
+    },
+    {
+      "session": "test_s6_17nov_0901am",
+      "note": "Used Mindlink to communicate with Pipira Shimmerlock.",
+      "category": "social"
+    }
+  ],
+  "memorable_quotes": [
+    {
+      "session": "Session6_test_16nov_0315am",
+      "quote": "Maar in plaats van Huckleberry Finn, dan is het Fuckelbergin.",
+      "context": "Fan'nar Khe'Lek jokingly mentions Mark Twain's books and the Adventures of Huckleberry Finn, showing a playful side."
+    },
+    {
+      "session": "Session6_test_16nov_0315am",
+      "quote": "Ik heb ook maar vier uur rust nodig, hè.",
+      "context": "Fan'nar Khe'Lek is discussing with others about taking a break and getting some rest, even though he feels like he has had enough sleep."
+    },
+    {
+      "session": "Session6_test_16nov_0315am",
+      "quote": "Ik ben geen vrouwtje.",
+      "context": "Pipira Shimmerlock is asserting her identity and possibly dealing with a misunderstanding or insult, repeated by Fan'nar Khe'Lek."
+    },
+    {
+      "session": "Session6_test_16nov_0315am",
+      "quote": "Misschien hebben we een jubbel.",
+      "context": "Fan'nar Khe'Lek asks to see the other character's belongings in hopes of finding useful information."
+    },
+    {
+      "session": "Session6_test_16nov_0315am",
+      "quote": "Die spels krijg je ook half. Weet je wat dat betekent?",
+      "context": "Fan'nar discusses the advantages of being an illusionist at Culdor Academy, allowing him to learn spells from scrolls more efficiently."
+    }
+  ],
   "sessions_appeared": [
     "Session 1",
     "Session 2",
-    "Session 3"
+    "Session 3",
+    "Session6_test_16nov_0315am",
+    "test_s6_17nov_0901am"
   ],
-  "total_sessions": 3,
+  "total_sessions": 5,
   "current_goals": [
     "Investigate the disappearances",
     "Support the party despite preferring to work alone",
-    "Uncover the cult's plans"
+    "Uncover the cult's plans",
+    "Suggests the group should wait for others to act first."
   ],
   "completed_goals": [],
   "dm_notes": "",

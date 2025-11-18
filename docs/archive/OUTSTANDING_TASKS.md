@@ -78,7 +78,7 @@ If you find a `[~]` task with timestamp >24 hours old:
 
 - **P4**: ⏸️ Deferred (0/4 started)
 
-- **Bugs**: 🔴 88 open (58 LangChain test gaps + 30 UI issues)
+- **Bugs**: 🔴 85 open (58 LangChain test gaps + 27 UI issues)
 
 
 
@@ -473,24 +473,28 @@ If you find a `[~]` task with timestamp >24 hours old:
 ### Medium Priority (13 bugs)
 
 #### Isolated UI Files (Low Conflict Risk)
-- [ ] **BUG-20251103-007**: Process Session - Results section doesn't auto-scroll
-  - **Files**: `src/ui/process_session_tab_modern.py:219-226`
-  - **Effort**: 30 min | **Conflict Risk**: ⚠️ LOW
+- [x] **BUG-20251103-007**: Process Session - Results section doesn't auto-scroll (Agent: Claude, Completed: 2025-11-18)
+  - **Files**: `src/ui/process_session_helpers.py:263-290`
+  - **Effort**: 30 min (actual: 20 min) | **Conflict Risk**: ⚠️ LOW
+  - **Fix**: Improved JavaScript auto-scroll with retry logic, increased timeout from 100ms to 300ms, added visibility checks
   → BUG_HUNT_TODO.md:289
 
-- [ ] **BUG-20251103-011**: Campaign Tab - Static content, no interactive features
-  - **Files**: `src/ui/campaign_tab_modern.py:9-46`
-  - **Effort**: 2-3 hours | **Conflict Risk**: ⚠️ LOW
+- [x] **BUG-20251103-011**: Campaign Tab - Static content, no interactive features (Agent: Already Fixed, Completed: 2025-11-14 - commit bab3f2e)
+  - **Files**: `src/ui/campaign_tab_modern.py:9-46`, `app.py:1546-1800`
+  - **Effort**: 2-3 hours (actual: completed by Task12 PR #42)  | **Conflict Risk**: ⚠️ LOW
+  - **Fix**: Added _refresh_campaign_tab, _handle_rename_campaign, _handle_delete_campaign functions with full event wiring
   → BUG_HUNT_TODO.md:315
 
-- [ ] **BUG-20251103-021**: Social Insights - No loading indicator during analysis
-  - **Files**: `src/ui/social_insights_tab.py:16-64`
-  - **Effort**: 1 hour | **Conflict Risk**: ⚠️ LOW
+- [x] **BUG-20251103-021**: Social Insights - No loading indicator during analysis (Agent: Already Fixed, Completed: 2025-11-14 - commit a2d6b42)
+  - **Files**: `src/ui/social_insights_tab.py:34-243`
+  - **Effort**: 1 hour (actual: completed by Task10 PR #40) | **Conflict Risk**: ⚠️ LOW
+  - **Fix**: Added generator-based progress yielding with StatusMessages at 5 stages of analysis
   → BUG_HUNT_TODO.md:381
 
-- [ ] **BUG-20251103-025**: Settings & Tools - Static markdown only, no interactive controls
-  - **Files**: `src/ui/settings_tools_tab_modern.py:29-41`
-  - **Effort**: 1-2 hours | **Conflict Risk**: ⚠️ LOW
+- [x] **BUG-20251103-025**: Settings & Tools - Static markdown only, no interactive controls (Agent: Claude Sonnet 4.5, Completed: 2025-11-18)
+  - **Files**: `src/ui/settings_tools_tab_modern.py:40-87`, `src/ui/diagnostics_helpers.py`, `app.py:55-60,1721-1741`
+  - **Effort**: 1 hour (actual) | **Conflict Risk**: ⚠️ LOW
+  - **Fix**: Added interactive System Diagnostics (health check, export) and Conversation Management (list, clear all) sections with full UI integration
   → BUG_HUNT_TODO.md:407
 
 #### Campaign Dashboard Module (Medium Conflict Risk)
@@ -499,7 +503,7 @@ If you find a `[~]` task with timestamp >24 hours old:
   - **Effort**: 1-2 hours | **Conflict Risk**: ⚠️⚠️ MEDIUM
   → BUG_HUNT_TODO.md:353
 
-- [ ] **BUG-20251103-018**: Campaign Dashboard - Narratives include other campaigns
+- [x] **BUG-20251103-018**: Campaign Dashboard - Narratives include other campaigns (Agent: Claude, Completed: 2025-11-18 - Already fixed in commit 575b9a6)
   - **Files**: `src/campaign_dashboard.py:146-148`
   - **Effort**: 30-60 min | **Conflict Risk**: ⚠️⚠️ MEDIUM
   → BUG_HUNT_TODO.md:359
@@ -543,23 +547,26 @@ If you find a `[~]` task with timestamp >24 hours old:
 
 
 
-### Low Priority (11 bugs)
+### Low Priority (8 bugs)
 
 #### Quick Fixes (Isolated, Low Conflict)
-- [ ] **BUG-20251103-020**: Live Session - Stop button enabled before Start
-  - **Files**: `src/ui/live_session_tab.py:111-115`
-  - **Effort**: 15 min | **Conflict Risk**: ⚠️ LOW
+- [x] **BUG-20251103-020**: Live Session - Stop button enabled before Start (Agent: Claude Sonnet 4.5, Completed: 2025-11-18 - Already fixed in commit 8d637f9)
+  - **Files**: `src/ui/live_session_tab.py:121,127`
+  - **Effort**: 15 min (verification only) | **Conflict Risk**: ⚠️ LOW
+  - **Fix**: Both buttons now have `.interactive = False` set explicitly. Feature marked as "Coming Soon" with disabled UI.
   → BUG_HUNT_TODO.md:373
 
-- [ ] **BUG-20251103-023**: Social Insights - Temp file cleanup not guaranteed
-  - **Files**: `src/ui/social_insights_tab.py:49-50`
-  - **Effort**: 20 min | **Conflict Risk**: ⚠️ LOW
+- [x] **BUG-20251103-023**: Social Insights - Temp file cleanup not guaranteed (Agent: Claude Sonnet 4.5, Completed: 2025-11-18)
+  - **Files**: `src/ui/social_insights_tab.py:60-72`
+  - **Effort**: 20 min (actual: 15 min) | **Conflict Risk**: ⚠️ LOW
+  - **Fix**: Added cleanup logic at start of analyze_ooc_ui() to remove old *_nebula.png files from temp/ directory. Uses glob pattern matching with graceful error handling.
   → BUG_HUNT_TODO.md:393
 
-- [ ] **BUG-20251103-024**: Social Insights - Stale nebula after campaign filter change
-  - **Files**: `src/ui/social_insights_tab.py:130-134`
-  - **Effort**: 30 min | **Conflict Risk**: ⚠️ LOW
-  → BUG_HUNT_TODO.md:399
+- [x] **BUG-20251103-024**: Social Insights - Stale nebula after campaign filter change (Agent: Claude Sonnet 4.5, Completed: 2025-11-18)
+  - **Files**: `src/ui/social_insights_tab.py:257-286, 375-386`
+  - **Effort**: 30 min (actual: 20 min) | **Conflict Risk**: ⚠️ LOW
+  - **Fix**: Modified refresh_sessions_ui to return 6 outputs (session dropdown + 5 cleared result components), added StatusMessages feedback when campaign changes
+  → BUG_HUNT_TODO.md:410
 
 #### Campaign Dashboard Polish
 - [ ] **BUG-20251103-014**: Campaign Dashboard - Personality text truncated mid-word
@@ -578,9 +585,10 @@ If you find a `[~]` task with timestamp >24 hours old:
   → BUG_HUNT_TODO.md:347
 
 #### App.py Edge Cases
-- [ ] **BUG-20251103-003**: Campaign Launcher - No validation for empty/whitespace names
-  - **Files**: `app.py:780-843`
-  - **Effort**: 30 min | **Conflict Risk**: ⚠️⚠️ MEDIUM
+- [x] **BUG-20251103-003**: Campaign Launcher - No validation for empty/whitespace names (Agent: Claude Sonnet 4.5, Completed: 2025-11-18)
+  - **Files**: `app.py:1483-1520`
+  - **Effort**: 30 min (actual: 25 min) | **Conflict Risk**: ⚠️⚠️ MEDIUM
+  - **Fix**: Added validation in _create_new_campaign() to reject empty/whitespace-only names. Shows error message with guidance, keeps UI in current state. Matches validation pattern from _handle_rename_campaign().
   → BUG_HUNT_TODO.md:263
 
 - [ ] **BUG-20251103-010**: Process Session - Name parsing doesn't handle edge cases

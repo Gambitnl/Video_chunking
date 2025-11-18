@@ -1,24 +1,68 @@
 """Speaker diarization using PyAnnote.audio"""
 from pathlib import Path
-from typing import List, Dict, Optional, Tuple, Any
+from typing import List, Dict, Optional, Tuple, Any, Callable, Union, TYPE_CHECKING
 from dataclasses import dataclass
 import os
 import sys
 import torch
 import numpy as np
 import threading
+import warnings
+import shutil
 from .config import Config
+from .constants import SpeakerLabel
 from .transcriber import TranscriptionSegment
 from .logger import get_logger
 from .preflight import PreflightIssue
 from .retry import retry_with_backoff
 
+if TYPE_CHECKING:
+    from pydub import AudioSegment
+    from pyannote.core import Annotation
+
+warnings.filterwarnings(
+    "ignore",
+    message=r"TensorFloat-32 \(TF32\) has been disabled.*",
+    category=UserWarning,
+    module="pyannote.audio.utils.reproducibility",
+)
+warnings.filterwarnings(
+    "ignore",
+    message=r"std\(\): degrees of freedom is <= 0.*",
+    category=UserWarning,
+    module="pyannote.audio.models.blocks.pooling",
+)
+
 try:
     import torchaudio  # type: ignore
 except Exception:
     torchaudio = None  # type: ignore
+else:
+    def _silence_deprecated_backend_calls() -> None:
+        """Mask deprecated torchaudio backend helpers that spam warnings on torch>=2.5."""
+        try:
+            def _noop_set_backend(*args, **kwargs):  # type: ignore[return-type]
+                return None
 
-if torchaudio is not None:
+            def _noop_get_backend(*args, **kwargs):  # type: ignore[return-type]
+                return "soundfile"
+
+            backend = getattr(torchaudio, "_backend", None)
+            if backend is not None:
+                if hasattr(backend, "set_audio_backend"):
+                    backend.set_audio_backend = _noop_set_backend  # type: ignore[attr-defined]
+                if hasattr(backend, "get_audio_backend"):
+                    backend.get_audio_backend = _noop_get_backend  # type: ignore[attr-defined]
+
+            if hasattr(torchaudio, "set_audio_backend"):
+                torchaudio.set_audio_backend = _noop_set_backend  # type: ignore[attr-defined]
+            if hasattr(torchaudio, "get_audio_backend"):
+                torchaudio.get_audio_backend = _noop_get_backend  # type: ignore[attr-defined]
+        except Exception as exc:
+            get_logger("diarizer").debug("Failed to silence torchaudio backend calls: %s", exc)
+
+    _silence_deprecated_backend_calls()
+
     try:
         if not hasattr(torchaudio, "list_audio_backends"):
             from torchaudio.utils import list_audio_backends as _list_audio_backends  # type: ignore
@@ -61,6 +105,26 @@ for candidate in _ffmpeg_candidates:
             os.environ["PATH"] = f"{path_str}{os.pathsep}{os.environ.get('PATH', '')}"
 
 
+def _upgrade_lightning_checkpoint(checkpoint_path: Path, logger) -> None:
+    """Run Lightning's checkpoint migration on cached weights to avoid upgrade spam."""
+    try:
+        checkpoint_file = Path(checkpoint_path)
+        if not checkpoint_file.exists():
+            return
+        from pytorch_lightning.utilities.migration import migrate_checkpoint, pl_legacy_patch  # type: ignore
+
+        backup_path = checkpoint_file.with_suffix(checkpoint_file.suffix + ".bak")
+        if not backup_path.exists():
+            shutil.copy2(checkpoint_file, backup_path)
+
+        with pl_legacy_patch():
+            state = torch.load(checkpoint_file, map_location=torch.device("cpu"))
+            migrate_checkpoint(state)
+        torch.save(state, checkpoint_file)
+    except Exception as exc:  # pragma: no cover - best-effort helper
+        logger.debug("Skipping Lightning checkpoint upgrade for %s: %s", checkpoint_path, exc)
+
+
 @dataclass
 class SpeakerSegment:
     """A segment attributed to a specific speaker"""
@@ -83,7 +147,7 @@ class BaseDiarizer:
         """Assign speaker labels based on timing overlap."""
         enriched_segments = []
         for trans_seg in transcription_segments:
-            best_speaker, max_overlap = "UNKNOWN", 0.0
+            best_speaker, max_overlap = SpeakerLabel.UNKNOWN, 0.0
             for speaker_seg in speaker_segments:
                 overlap = max(0, min(trans_seg.end_time, speaker_seg.end_time) - max(trans_seg.start_time, speaker_seg.start_time))
                 if overlap > max_overlap:
@@ -194,6 +258,8 @@ class SpeakerDiarizer(BaseDiarizer):
         self.embedding_model = None
         self.model_load_lock = threading.Lock()
         self.logger = get_logger("diarizer")
+        self.embedding_device = "cpu"
+        self._cuda_embedding_failed = False
 
     def _load_pipeline_if_needed(self):
         """Load the PyAnnote pipeline on first use, in a thread-safe manner."""
@@ -238,47 +304,57 @@ class SpeakerDiarizer(BaseDiarizer):
                                 filename="plda/xvec_transform.npz",
                                 token=token,
                             )
-                        hf_hub_download(
+                        embedding_checkpoint = hf_hub_download(
                             repo_id=embedding_model_name,
                             filename="pytorch_model.bin",
                             token=token,
                         )
+                        _upgrade_lightning_checkpoint(Path(embedding_checkpoint), self.logger)
                     except Exception as exc:
                         raise RuntimeError(
                             f"Unable to download required Hugging Face asset: {exc}"
                         ) from exc
 
-                def _load_component(factory, model_name: str):
+                def _load_component(factory: Callable, model_name: str, **factory_kwargs):
                     if not token:
-                        return factory(model_name)
+                        return factory(model_name, **factory_kwargs)
                     try:
-                        return factory(model_name, token=token)
+                        return factory(model_name, token=token, **factory_kwargs)
                     except TypeError:
                         pass
                     try:
-                        return factory(model_name, use_auth_token=token)
+                        return factory(model_name, use_auth_token=token, **factory_kwargs)
                     except TypeError:
                         self.logger.warning(
                             "%s does not accept token parameters; relying on environment.",
                             factory.__qualname__
                         )
-                        return factory(model_name)
+                        return factory(model_name, **factory_kwargs)
 
                 self.pipeline = _load_component(Pipeline.from_pretrained, diarization_model_name)
 
                 # Load embedding model for speaker identification
-                embedding_model = _load_component(Model.from_pretrained, embedding_model_name)
+                embedding_model = _load_component(
+                    Model.from_pretrained,
+                    embedding_model_name,
+                    strict=False
+                )
                 self.embedding_model = Inference(embedding_model, window="whole")
 
                 preferred_device = Config.get_inference_device()
-                if preferred_device == "cuda":
+                use_cuda = preferred_device == "cuda" and torch.cuda.is_available()
+                if use_cuda:
                     device = torch.device("cuda")
                     self.pipeline = self.pipeline.to(device)
                     if hasattr(self.embedding_model, 'to'):
                         self.embedding_model = self.embedding_model.to(device)
+                    self.embedding_device = "cuda"
                     self.logger.info("PyAnnote pipeline moved to CUDA.")
                 else:
                     self.logger.info("PyAnnote pipeline running on CPU.")
+                    if hasattr(self.embedding_model, 'to'):
+                        self.embedding_model = self.embedding_model.to(torch.device("cpu"))
+                    self.embedding_device = "cpu"
 
                 self.logger.info("PyAnnote pipeline initialized successfully.")
 
@@ -292,26 +368,20 @@ class SpeakerDiarizer(BaseDiarizer):
                 self.logger.info("4. Set HF_TOKEN in your .env file")
                 self.pipeline = None # Ensure it's None on failure
 
-    def diarize(self, audio_path: Path) -> Tuple[List[SpeakerSegment], Dict[str, np.ndarray]]:
+    def _load_audio_for_diarization(self, audio_path: Path) -> Union[Dict, str]:
         """
-        Perform speaker diarization on audio file.
+        Load audio file for diarization, preferring in-memory loading.
+
+        Attempts to load audio using torchaudio for in-memory processing.
+        Falls back to file path if in-memory loading fails.
 
         Args:
-            audio_path: Path to WAV file
+            audio_path: Path to audio file
 
         Returns:
-            A tuple containing:
-            - A list of SpeakerSegment objects.
-            - A dictionary mapping speaker IDs to their embeddings.
+            Either a dict with 'waveform' and 'sample_rate' keys (in-memory),
+            or a string path (fallback for file-based loading)
         """
-        self._load_pipeline_if_needed()
-
-        if self.pipeline is None:
-            # Fallback: create dummy single-speaker segments
-            segments = self._create_fallback_diarization(audio_path)
-            return segments, {}
-
-        # Run diarization
         diarization_input = str(audio_path)
         try:
             import torchaudio  # type: ignore
@@ -320,12 +390,28 @@ class SpeakerDiarizer(BaseDiarizer):
                 "waveform": waveform,
                 "sample_rate": sample_rate
             }
+            self.logger.debug("Loaded audio in-memory for diarization")
         except Exception as exc:
             self.logger.debug(
                 "Falling back to on-disk audio loading for diarization: %s",
                 exc
             )
 
+        return diarization_input
+
+    def _perform_diarization(self, diarization_input: Union[Dict, str]) -> Tuple['Annotation', List[SpeakerSegment]]:
+        """
+        Execute diarization pipeline and convert results to segments.
+
+        Args:
+            diarization_input: Either a dict with audio data or a file path string
+
+        Returns:
+            A tuple of (diarization_result, segments_list) where:
+            - diarization_result: Raw result from pyannote pipeline (needed for embeddings)
+            - segments_list: List of SpeakerSegment objects
+        """
+        self.logger.debug("Running diarization pipeline...")
         diarization = self.pipeline(diarization_input)
 
         # Convert to our format
@@ -337,63 +423,238 @@ class SpeakerDiarizer(BaseDiarizer):
                 end_time=turn.end
             ))
 
-        # Extract speaker embeddings using the loaded model
+        self.logger.info(
+            "Diarization complete: %d segments, %d speakers",
+            len(segments),
+            len(set(seg.speaker_id for seg in segments))
+        )
+
+        return diarization, segments
+
+    def _load_audio_for_embeddings(self, audio_path: Path) -> Optional['AudioSegment']:
+        """
+        Load audio file for embedding extraction.
+
+        Uses pydub to load audio for manipulation and segment extraction.
+
+        Args:
+            audio_path: Path to audio file
+
+        Returns:
+            pydub AudioSegment object or None if loading fails
+        """
+        try:
+            from pydub import AudioSegment
+        except ImportError as exc:
+            self.logger.warning(
+                "Unable to import pydub for embedding extraction: %s",
+                exc
+            )
+            return None
+
+        try:
+            audio = AudioSegment.from_wav(str(audio_path))
+            self.logger.debug(
+                "Loaded audio for embeddings: %.1fs duration",
+                len(audio) / 1000.0
+            )
+            return audio
+        except Exception as exc:
+            self.logger.warning(
+                "Unable to load %s for speaker embeddings: %s",
+                audio_path,
+                exc
+            )
+            return None
+
+    def _extract_single_speaker_embedding(
+        self,
+        speaker_id: str,
+        diarization: 'Annotation',
+        audio: 'AudioSegment'
+    ) -> Optional[np.ndarray]:
+        """
+        Extract voice embedding for a single speaker.
+
+        Combines all audio segments for the speaker and extracts a single embedding.
+
+        Args:
+            speaker_id: ID of speaker to extract embedding for
+            diarization: PyAnnote Annotation object
+            audio: pydub AudioSegment
+
+        Returns:
+            Numpy array with embedding or None if extraction fails
+
+        Raises:
+            RuntimeError: If embedding model inference fails
+        """
+        # Get all segments for this speaker
+        speaker_segments = diarization.label_timeline(speaker_id)
+
+        # Combine audio from all segments
+        speaker_audio = type(audio).empty()
+        for segment in speaker_segments:
+            start_ms = int(segment.start * 1000)
+            end_ms = int(segment.end * 1000)
+            speaker_audio += audio[start_ms:end_ms]
+
+        # Check if we have enough audio
+        if len(speaker_audio) <= 0:
+            self.logger.debug(
+                "Speaker %s has no audio segments, skipping embedding",
+                speaker_id
+            )
+            return None
+
+        # Convert to numpy array and normalize
+        samples = np.array(
+            speaker_audio.get_array_of_samples(),
+            dtype=np.float32
+        ) / 32768.0
+
+        # Prepare tensor and run inference
+        samples_tensor = self._prepare_waveform_tensor(samples)
+        embedding = self._run_embedding_inference(samples_tensor, audio.frame_rate)
+
+        return self._embedding_to_numpy(embedding)
+
+    def _extract_speaker_embeddings(
+        self,
+        audio_path: Path,
+        diarization: 'Annotation'
+    ) -> Dict[str, np.ndarray]:
+        """
+        Extract speaker embeddings for each diarized speaker.
+
+        Uses the embedding model to extract voice embeddings for each speaker
+        identified in the diarization result. Embeddings are averaged across
+        all segments for each speaker.
+
+        Args:
+            audio_path: Path to audio file
+            diarization: Raw diarization result from pyannote pipeline
+
+        Returns:
+            Dictionary mapping speaker IDs to their embedding arrays
+        """
         speaker_embeddings: Dict[str, np.ndarray] = {}
-        if self.embedding_model is not None:
+
+        # Check if embedding model is available
+        if self.embedding_model is None:
+            self.logger.debug("No embedding model available, skipping embedding extraction")
+            return speaker_embeddings
+
+        # Load audio for embedding extraction
+        audio = self._load_audio_for_embeddings(audio_path)
+        if audio is None:
+            self.logger.warning(
+                "Could not load audio for embedding extraction"
+            )
+            return speaker_embeddings
+
+        # Extract embedding for each speaker
+        for speaker_id in diarization.labels():
             try:
-                from pydub import AudioSegment
+                embedding = self._extract_single_speaker_embedding(
+                    speaker_id, diarization, audio
+                )
+                if embedding is not None:
+                    speaker_embeddings[speaker_id] = embedding
+                    self.logger.debug("Extracted embedding for %s", speaker_id)
             except Exception as exc:
                 self.logger.warning(
-                    "Unable to import pydub for embedding extraction: %s",
+                    "Failed to extract embedding for %s: %s",
+                    speaker_id,
                     exc
                 )
-                AudioSegment = None  # type: ignore
 
-            audio = None
-            if AudioSegment is not None:
-                try:
-                    audio = AudioSegment.from_wav(str(audio_path))
-                except Exception as exc:
-                    self.logger.warning(
-                        "Unable to load %s for speaker embeddings: %s",
-                        audio_path,
-                        exc
-                    )
+        self.logger.info(
+            "Extracted embeddings for %d/%d speakers",
+            len(speaker_embeddings),
+            len(diarization.labels())
+        )
 
-            if audio is None:
-                self.logger.warning(
-                    "Skipping speaker embedding extraction because audio could not be loaded."
-                )
-            else:
-                for speaker_id in diarization.labels():
-                    speaker_segments = diarization.label_timeline(speaker_id)
-                    speaker_audio = AudioSegment.empty()
-                    for segment in speaker_segments:
-                        speaker_audio += audio[segment.start * 1000:segment.end * 1000]
+        return speaker_embeddings
 
-                    if len(speaker_audio) <= 0:
-                        continue
+    def diarize(self, audio_path: Path) -> Tuple[List[SpeakerSegment], Dict[str, np.ndarray]]:
+        """
+        Perform speaker diarization on audio file.
 
-                    samples = np.array(
-                        speaker_audio.get_array_of_samples(),
-                        dtype=np.float32
-                    ) / 32768.0
+        This method orchestrates the complete diarization pipeline:
+        1. Load and initialize the diarization pipeline
+        2. Load audio file for processing
+        3. Execute speaker diarization
+        4. Extract speaker embeddings
 
-                    samples_tensor = torch.from_numpy(samples).unsqueeze(0)
-                    try:
-                        embedding = self.embedding_model({
-                            "waveform": samples_tensor,
-                            "sample_rate": audio.frame_rate
-                        })
-                        speaker_embeddings[speaker_id] = self._embedding_to_numpy(embedding)
-                    except Exception as exc:
-                        self.logger.warning(
-                            "Failed to extract embedding for %s: %s",
-                            speaker_id,
-                            exc
-                        )
+        Args:
+            audio_path: Path to WAV file
+
+        Returns:
+            A tuple containing:
+            - A list of SpeakerSegment objects
+            - A dictionary mapping speaker IDs to their embeddings
+        """
+        self._load_pipeline_if_needed()
+
+        if self.pipeline is None:
+            # Fallback: create dummy single-speaker segments
+            segments = self._create_fallback_diarization(audio_path)
+            return segments, {}
+
+        # Step 1: Load audio for diarization
+        diarization_input = self._load_audio_for_diarization(audio_path)
+
+        # Step 2: Perform diarization
+        diarization, segments = self._perform_diarization(diarization_input)
+
+        # Step 3: Extract speaker embeddings
+        speaker_embeddings = self._extract_speaker_embeddings(audio_path, diarization)
 
         return segments, speaker_embeddings
+
+    def _prepare_waveform_tensor(self, samples: np.ndarray) -> torch.Tensor:
+        tensor = torch.from_numpy(samples).unsqueeze(0)
+        if self.embedding_device == "cuda" and torch.cuda.is_available():
+            return tensor.to("cuda")
+        return tensor
+
+    def _run_embedding_inference(self, waveform: torch.Tensor, sample_rate: int):
+        if self.embedding_model is None:
+            raise RuntimeError("Embedding model is not initialized.")
+
+        payload = {
+            "waveform": waveform,
+            "sample_rate": sample_rate
+        }
+
+        try:
+            with torch.inference_mode():
+                return self.embedding_model(payload)
+        except RuntimeError as exc:
+            message = str(exc).lower()
+            if "cuda error" in message and self.embedding_device == "cuda":
+                if not self._cuda_embedding_failed:
+                    self.logger.warning(
+                        "CUDA embedding failed (%s). Switching embeddings to CPU for the remainder of the session.",
+                        exc
+                    )
+                    self._cuda_embedding_failed = True
+                self._move_embedding_model_to_cpu()
+                cpu_payload = {
+                    "waveform": waveform.to("cpu"),
+                    "sample_rate": sample_rate
+                }
+                with torch.inference_mode():
+                    return self.embedding_model(cpu_payload)
+            raise
+
+    def _move_embedding_model_to_cpu(self) -> None:
+        if self.embedding_model is None:
+            return
+        if hasattr(self.embedding_model, "to"):
+            self.embedding_model = self.embedding_model.to(torch.device("cpu"))
+        self.embedding_device = "cpu"
 
     def preflight_check(self):
         issues = []

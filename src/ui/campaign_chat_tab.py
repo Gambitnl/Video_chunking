@@ -13,6 +13,9 @@ from src.ui.constants import StatusIndicators as SI
 
 logger = logging.getLogger("DDSessionProcessor.campaign_chat_tab")
 
+# Generic error detail message (prevents information disclosure)
+_GENERIC_ERROR_DETAIL = "Error details have been logged for troubleshooting."
+
 
 def create_campaign_chat_tab(project_root: Path) -> None:
     """Create the Campaign Chat tab for conversational campaign queries."""
@@ -84,7 +87,7 @@ def create_campaign_chat_tab(project_root: Path) -> None:
             error_msg = StatusMessages.error(
                 "Conversation Creation Failed",
                 "Unable to create a new conversation.",
-                str(e)
+                _GENERIC_ERROR_DETAIL
             )
             return [], "", gr.update(), error_msg
 
@@ -114,7 +117,7 @@ def create_campaign_chat_tab(project_root: Path) -> None:
             error_msg = StatusMessages.error(
                 "Load Failed",
                 "Unable to load the selected conversation.",
-                str(e)
+                _GENERIC_ERROR_DETAIL
             )
             return [], "", error_msg
 
@@ -139,7 +142,7 @@ def create_campaign_chat_tab(project_root: Path) -> None:
             )
 
             # Show loading indicator with better UX
-            loading_msg = f"{SI.LOADING} 🤔 Thinking... (querying campaign data)"
+            loading_msg = f"{SI.LOADING} Thinking... (querying campaign data)"
 
             return chat_history, "", gr.update(), loading_msg
 
@@ -148,7 +151,7 @@ def create_campaign_chat_tab(project_root: Path) -> None:
             error_msg = StatusMessages.error(
                 "Message Setup Failed",
                 "Unable to send your message. Please try again.",
-                "Error details have been logged for troubleshooting."
+                _GENERIC_ERROR_DETAIL
             )
             return chat_history, "", gr.update(), error_msg
 
@@ -220,7 +223,7 @@ def create_campaign_chat_tab(project_root: Path) -> None:
             error_msg = StatusMessages.error(
                 "Message Send Failed",
                 "Unable to process your message.",
-                str(e)
+                _GENERIC_ERROR_DETAIL
             )
             chat_history.append({"role": "assistant", "content": error_msg})
             conv_store.add_message(
@@ -248,6 +251,108 @@ def create_campaign_chat_tab(project_root: Path) -> None:
         except Exception as e:
             logger.error(f"Error updating conversation dropdown: {e}", exc_info=True)
             return gr.update(choices=["Error loading conversations"], value=None)
+
+    def extract_conversation_id(dropdown_val: str) -> str:
+        """
+        Extract conversation ID from dropdown value.
+
+        The dropdown format is: "conv_12345678 (N msgs) - Campaign Name"
+        This helper extracts just the conversation ID part.
+
+        Args:
+            dropdown_val: Dropdown selection value
+
+        Returns:
+            Conversation ID or None if invalid
+        """
+        if not dropdown_val or dropdown_val == "No conversations yet":
+            return None
+        return dropdown_val.split(" ")[0]
+
+    def delete_conversation(dropdown_val: str):
+        """Delete the selected conversation."""
+        nonlocal current_conversation_id
+
+        conversation_id = extract_conversation_id(dropdown_val)
+        if not conversation_id:
+            return [], "", gr.update(), f"{SI.WARNING} No conversation selected"
+
+        try:
+            success = conv_store.delete_conversation(conversation_id)
+            if success:
+                logger.info(f"Deleted conversation: {conversation_id}")
+
+                # Reset active conversation if it was the one deleted
+                if current_conversation_id == conversation_id:
+                    current_conversation_id = None
+                    if chat_client:
+                        chat_client.clear_memory()
+                    logger.info("Active conversation was deleted, state reset")
+
+                return (
+                    [],
+                    "",
+                    update_conversation_dropdown(),
+                    f"{SI.SUCCESS} Conversation deleted successfully"
+                )
+            else:
+                return (
+                    gr.update(),
+                    "",
+                    gr.update(),
+                    StatusMessages.error(
+                        "Delete Failed",
+                        f"Unable to delete conversation {conversation_id}"
+                    )
+                )
+        except Exception as e:
+            logger.error(f"Error deleting conversation: {e}", exc_info=True)
+            return (
+                gr.update(),
+                "",
+                gr.update(),
+                StatusMessages.error(
+                    "Delete Failed",
+                    "An error occurred while deleting the conversation.",
+                    _GENERIC_ERROR_DETAIL
+                )
+            )
+
+    def rename_conversation(dropdown_val: str, new_name: str):
+        """Rename the selected conversation."""
+        conversation_id = extract_conversation_id(dropdown_val)
+        if not conversation_id:
+            return gr.update(), f"{SI.WARNING} No conversation selected"
+
+        if not new_name or not new_name.strip():
+            return gr.update(), f"{SI.WARNING} Please enter a new campaign name"
+
+        try:
+            success = conv_store.rename_conversation(conversation_id, new_name.strip())
+            if success:
+                logger.info(f"Renamed conversation {conversation_id} to '{new_name}'")
+                return (
+                    update_conversation_dropdown(),
+                    f"{SI.SUCCESS} Conversation renamed to '{new_name}'"
+                )
+            else:
+                return (
+                    gr.update(),
+                    StatusMessages.error(
+                        "Rename Failed",
+                        f"Unable to rename conversation {conversation_id}"
+                    )
+                )
+        except Exception as e:
+            logger.error(f"Error renaming conversation: {e}", exc_info=True)
+            return (
+                gr.update(),
+                StatusMessages.error(
+                    "Rename Failed",
+                    "An error occurred while renaming the conversation.",
+                    _GENERIC_ERROR_DETAIL
+                )
+            )
 
     def format_sources_display(chat_history: List[Dict]) -> str:
         """Format sources from the last assistant message."""
@@ -295,8 +400,16 @@ def create_campaign_chat_tab(project_root: Path) -> None:
             if not sources:
                 return f"{SI.INFO} No sources cited for this answer"
 
-            # Format sources
-            sources_md = "### Sources\n\n"
+            # Format sources with context
+            # Add excerpt from the answer to show which message these sources belong to
+            answer_excerpt = last_assistant_msg["content"][:150]
+            if len(last_assistant_msg["content"]) > 150:
+                answer_excerpt += "..."
+
+            sources_md = f"### {SI.INFO} Sources for Latest Response\n\n"
+            sources_md += f"**Answer:** _{answer_excerpt}_\n\n"
+            sources_md += "---\n\n"
+
             for i, source in enumerate(sources, 1):
                 content = source.get("content", "")
                 metadata = source.get("metadata", {})
@@ -306,11 +419,11 @@ def create_campaign_chat_tab(project_root: Path) -> None:
                     session_id = metadata.get("session_id", "Unknown")
                     timestamp = metadata.get("timestamp", "??:??:??")
                     speaker = metadata.get("speaker", "Unknown")
-                    sources_md += f"**{i}. Transcript [{session_id}, {timestamp}]**\n"
+                    sources_md += f"**{i}. {SI.ACTION_SEND} Transcript [{session_id}, {timestamp}]**\n"
                     sources_md += f"*{speaker}:* {content}\n\n"
                 else:
                     name = metadata.get("name", "Unknown")
-                    sources_md += f"**{i}. {source_type.title()}: {name}**\n"
+                    sources_md += f"**{i}. {SI.ACTION_LOAD} {source_type.title()}: {name}**\n"
                     sources_md += f"{content}\n\n"
 
             return sources_md
@@ -321,6 +434,19 @@ def create_campaign_chat_tab(project_root: Path) -> None:
 
     # Create the UI
     with gr.Tab("Campaign Chat"):
+        # Show dependency warning at top if LangChain not available
+        if not chat_client:
+            gr.Markdown("""
+            ### [WARNING] LangChain Dependencies Required
+
+            To use the Campaign Chat feature, install the required dependencies:
+            ```bash
+            pip install langchain langchain-community sentence-transformers chromadb
+            ```
+
+            The chat interface will not be functional until these dependencies are installed.
+            """)
+
         gr.Markdown("""
         ### [CHAT] Campaign Assistant
 
@@ -346,6 +472,7 @@ def create_campaign_chat_tab(project_root: Path) -> None:
                     msg_input = gr.Textbox(
                         label="Ask a question",
                         placeholder=Placeholders.CAMPAIGN_QUESTION,
+                        info="Ask about NPCs, quests, locations, or session events",
                         scale=4,
                         lines=2
                     )
@@ -354,8 +481,19 @@ def create_campaign_chat_tab(project_root: Path) -> None:
         with gr.Row():
             clear_btn = gr.Button(f"{SI.ACTION_CLEAR} Chat", size="sm")
             new_conv_btn = gr.Button(f"{SI.ACTION_NEW} Conversation", size="sm", variant="primary")
-            delete_btn = gr.Button(f"{SI.ACTION_DELETE} Selected", size="sm", variant="secondary")
-            rename_btn = gr.Button(f"{SI.ACTION_EDIT} Rename", size="sm", variant="secondary")
+
+        with gr.Row():
+            with gr.Column(scale=3):
+                gr.Markdown("### Manage Conversations")
+                with gr.Row():
+                    delete_btn = gr.Button(f"{SI.ACTION_DELETE} Delete Selected", size="sm", variant="stop")
+                    rename_name_input = gr.Textbox(
+                        label="New Campaign Name",
+                        placeholder="Enter new name...",
+                        info="Rename this conversation to better identify it later",
+                        scale=2
+                    )
+                    rename_btn = gr.Button(f"{SI.ACTION_EDIT} Rename", size="sm", variant="secondary")
 
             with gr.Column(scale=1):
                 gr.Markdown("### Conversations")
@@ -415,20 +553,19 @@ def create_campaign_chat_tab(project_root: Path) -> None:
         )
 
         load_conv_btn.click(
-            fn=lambda dropdown_val: load_conversation(
-                dropdown_val.split(" ")[0] if dropdown_val else None
-            ),
+            fn=lambda dropdown_val: load_conversation(extract_conversation_id(dropdown_val)),
             inputs=[conversation_dropdown],
             outputs=[chatbot, msg_input, sources_display]
         )
 
-        # Initialize
-        if not chat_client:
-            gr.Markdown("""
-            [WARNING] **Warning:** LangChain dependencies not installed.
+        delete_btn.click(
+            fn=delete_conversation,
+            inputs=[conversation_dropdown],
+            outputs=[chatbot, msg_input, conversation_dropdown, sources_display]
+        )
 
-            To use this feature, install:
-            ```bash
-            pip install langchain langchain-community sentence-transformers chromadb
-            ```
-            """)
+        rename_btn.click(
+            fn=rename_conversation,
+            inputs=[conversation_dropdown, rename_name_input],
+            outputs=[conversation_dropdown, sources_display]
+        )

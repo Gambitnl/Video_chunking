@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import json
 import logging
+import re
 from collections import defaultdict
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -13,10 +14,12 @@ from .character_profile import (
     CharacterProfileManager,
     ProfileUpdate,
 )
+from .diarizer import SpeakerProfileManager
 from .party_config import Character, PartyConfigManager
 from .profile_extractor import ProfileExtractor
 
 LOGGER = logging.getLogger(__name__)
+NAME_SPLIT_PATTERN = re.compile(r"\s*(?:,|&|/|\+|;|\band\b)\s*", re.IGNORECASE)
 
 
 @dataclass
@@ -34,88 +37,138 @@ class ExtractedCharacterData:
 
 
 class CharacterProfileExtractor:
-    """High-level workflow for extracting and updating character profiles from transcripts."""
+    """High-level workflow for extracting and updating character profiles from structured segments."""
 
     def __init__(self, profile_extractor: Optional[ProfileExtractor] = None):
         self.extractor = profile_extractor or ProfileExtractor()
         LOGGER.info("CharacterProfileExtractor initialized")
 
-    def batch_extract_and_update(
+    def _extract_updates_from_segments(
         self,
         *,
-        transcript_path: Path,
+        segments: List[Dict[str, Any]],
+        party_id: str,
+        session_id: str,
+        character_names: List[str],
+        campaign_context: str,
+        campaign_id: Optional[str] = None,
+    ) -> List[ProfileUpdate]:
+        """Run profile extraction on a specific list of segments."""
+        if not segments:
+            return []
+
+        batch = self.extractor.extract_profile_updates(
+            session_id=session_id,
+            transcript_segments=segments,
+            character_names=character_names,
+            campaign_id=campaign_id or party_id,
+            campaign_context=campaign_context,
+        )
+        return batch.updates
+
+    def extract_profiles_from_session(
+        self,
+        *,
+        session_path: Path,
         party_id: str,
         session_id: str,
         profile_manager: CharacterProfileManager,
         party_manager: PartyConfigManager,
+        campaign_id: Optional[str] = None,
     ) -> Dict[str, ExtractedCharacterData]:
-        """Extract character data from transcript and update profiles.
-
-        Args:
-            transcript_path: Path to IC-only transcript text file
-            party_id: Party configuration ID
-            session_id: Session identifier for tracking
-            profile_manager: Manager for character profiles
-            party_manager: Manager for party configurations
-
-        Returns:
-            Dictionary mapping character names to extracted data
         """
-        LOGGER.info("Starting batch extraction for party '%s', session '%s'", party_id, session_id)
+        Extracts character profiles from a session, processing scene-by-scene if available.
+        """
+        LOGGER.info("Starting profile extraction for party '%s', session '%s'", party_id, session_id)
 
         party = party_manager.get_party(party_id)
         if not party:
             raise ValueError(f"Party configuration '{party_id}' not found")
 
-        if not party.characters:
-            raise ValueError(f"No characters defined in party '{party_id}'")
-
-        character_lookup: Dict[str, Character] = {char.name: char for char in party.characters}
+        character_lookup = {char.name: char for char in (party.characters or [])}
         character_names = list(character_lookup.keys())
 
-        transcript_text = transcript_path.read_text(encoding="utf-8")
-        transcript_segments = self._parse_transcript(transcript_text)
-        if not transcript_segments:
-            raise ValueError("Transcript file is empty or could not be parsed")
+        classification_file = session_path / "intermediates" / "stage_6_classification.json"
+        scenes_file = session_path / "intermediates" / "stage_6_scenes.json"
 
-        LOGGER.info("Loaded %d transcript segments", len(transcript_segments))
+        if not classification_file.exists():
+            LOGGER.error(f"Classification file not found: {classification_file}")
+            return {}
 
-        campaign_context_parts: List[str] = []
-        if getattr(party, "campaign", None):
-            campaign_context_parts.append(party.campaign)
-        if getattr(party, "notes", None):
-            campaign_context_parts.append(party.notes)
-        campaign_context = " | ".join(filter(None, campaign_context_parts)) or "Unknown campaign"
+        with open(classification_file, 'r', encoding='utf-8') as f:
+            all_segments = json.load(f)
 
-        batch = self.extractor.extract_profile_updates(
-            session_id=session_id,
-            transcript_segments=transcript_segments,
-            character_names=character_names,
-            campaign_id=party_id,
-            campaign_context=campaign_context,
-        )
+        character_segments = [s for s in all_segments if s.get("classification_type") == "CHARACTER"]
+        if not character_segments:
+            LOGGER.info("No 'CHARACTER' type segments found. No profiles to update.")
+            return {}
+        
+        LOGGER.info("Found %d 'CHARACTER' segments for profile extraction.", len(character_segments))
 
-        LOGGER.info("Extracted %d profile updates", len(batch.updates))
+        base_campaign_context = " | ".join(filter(None, [getattr(party, "campaign", ""), getattr(party, "notes", "")])) or "Unknown campaign"
+        
+        all_updates: List[ProfileUpdate] = []
 
+        if scenes_file.exists():
+            LOGGER.info("Scenes file found, processing scene-by-scene.")
+            with open(scenes_file, 'r', encoding='utf-8') as f:
+                scenes = json.load(f)
+            
+            character_segments_by_id = {seg['segment_index']: seg for seg in character_segments}
+            
+            for i, scene in enumerate(scenes):
+                scene_segment_ids = set(scene.get("segment_ids", []))
+                scene_character_segments = [
+                    character_segments_by_id[seg_id] 
+                    for seg_id in scene_segment_ids 
+                    if seg_id in character_segments_by_id
+                ]
+                
+                if scene_character_segments:
+                    # IMPROVEMENT: Add scene-level context to the prompt
+                    dominant_type = scene.get("dominant_type", "UNKNOWN")
+                    speakers = ", ".join(scene.get("speaker_list", []))
+                    scene_context_str = f"Scene Context: This scene is primarily {dominant_type} and involves: {speakers}."
+                    enriched_campaign_context = f"{scene_context_str}\n{base_campaign_context}"
+
+                    LOGGER.info(f"Extracting profiles from scene {i+1}/{len(scenes)} with {len(scene_character_segments)} character segments.")
+                    scene_updates = self._extract_updates_from_segments(
+                        segments=scene_character_segments,
+                        party_id=party_id,
+                        session_id=session_id,
+                        character_names=character_names,
+                        campaign_context=enriched_campaign_context,
+                        campaign_id=campaign_id,
+                    )
+                    all_updates.extend(scene_updates)
+        else:
+            LOGGER.info("No scenes file found, processing all character segments at once.")
+            all_updates = self._extract_updates_from_segments(
+                segments=character_segments,
+                party_id=party_id,
+                session_id=session_id,
+                character_names=character_names,
+                campaign_context=base_campaign_context,
+                campaign_id=campaign_id,
+            )
+
+        LOGGER.info("Extracted a total of %d profile updates from LLM.", len(all_updates))
+        if not all_updates:
+            return {}
+
+        # --- Merge all collected updates into profiles ---
         results: Dict[str, ExtractedCharacterData] = {
             name: ExtractedCharacterData(character_name=name) for name in character_names
         }
         updates_by_character: Dict[str, Dict[str, List[ProfileUpdate]]] = defaultdict(lambda: defaultdict(list))
 
-        for update in batch.updates:
-            resolved_name = self._resolve_character_name(
-                update.character,
-                party.characters,
-                profile_manager,
-            )
-            if not resolved_name:
-                LOGGER.warning("Skipping update for unknown character '%s'", update.character)
+        for update in all_updates:
+            resolved_name = update.character
+            if not resolved_name or resolved_name not in character_lookup:
+                LOGGER.warning("Skipping update for unknown or unmapped character '%s'", update.character)
                 continue
 
-            update.character = resolved_name
-            if not update.session_id:
-                update.session_id = session_id
-
+            update.session_id = update.session_id or session_id
             extracted = results.setdefault(resolved_name, ExtractedCharacterData(character_name=resolved_name))
             self._accumulate_formatted_update(extracted, update)
             updates_by_character[resolved_name][update.category].append(update)
@@ -126,72 +179,15 @@ class CharacterProfileExtractor:
                 character_lookup.get(character_name),
                 character_name,
                 party,
-                party_id,
+                campaign_id or party_id,
             )
             profile_manager.merge_updates(character_name, category_map)
 
         updated_characters = {
             name: data for name, data in results.items() if self._has_updates(data)
         }
-        LOGGER.info("Updated %d character profiles", len(updated_characters))
+        LOGGER.info("Updated %d character profiles.", len(updated_characters))
         return updated_characters
-
-    def _parse_transcript(self, transcript_text: str) -> List[Dict[str, Any]]:
-        """Parse transcript text into segments.
-
-        Expected format:
-        [00:12:34] Speaker 1: Dialogue text
-        [01:23:45] Speaker 2: More dialogue
-        """
-        segments = []
-        for line in transcript_text.split("\n"):
-            line = line.strip()
-            if not line:
-                continue
-
-            # Try to parse [HH:MM:SS] or [MM:SS] format
-            if line.startswith("["):
-                try:
-                    end_bracket = line.index("]")
-                    timestamp_str = line[1:end_bracket]
-                    rest = line[end_bracket + 1:].strip()
-
-                    # Parse timestamp
-                    parts = timestamp_str.split(":")
-                    if len(parts) == 2:  # MM:SS
-                        start_seconds = int(parts[0]) * 60 + int(parts[1])
-                    elif len(parts) == 3:  # HH:MM:SS
-                        start_seconds = int(parts[0]) * 3600 + int(parts[1]) * 60 + int(parts[2])
-                    else:
-                        start_seconds = 0.0
-
-                    # Parse speaker and text
-                    if ":" in rest:
-                        speaker, text = rest.split(":", 1)
-                        segments.append({
-                            "text": text.strip(),
-                            "speaker": speaker.strip(),
-                            "start": float(start_seconds),
-                            "end": float(start_seconds) + 5.0,  # Estimate 5 seconds per segment
-                        })
-                except (ValueError, IndexError):
-                    # Couldn't parse, treat as plain text
-                    segments.append({
-                        "text": line,
-                        "speaker": "Unknown",
-                        "start": 0.0,
-                        "end": 0.0,
-                    })
-            else:
-                # Plain text line
-                segments.append({
-                    "text": line,
-                    "speaker": "Unknown",
-                    "start": 0.0,
-                    "end": 0.0,
-                })
-
-        return segments
 
     def _format_action(self, update: ProfileUpdate) -> str:
         """Format a notable action update."""
@@ -278,42 +274,18 @@ class CharacterProfileExtractor:
         else:
             LOGGER.debug("Unhandled update category '%s' while formatting", category)
 
-    def _resolve_character_name(
-        self,
-        raw_name: Optional[str],
-        party_characters: List[Character],
-        profile_manager: CharacterProfileManager,
-    ) -> Optional[str]:
-        """Find the canonical character name for an update."""
-        if not raw_name:
-            return None
-
-        normalized = raw_name.strip().lower()
-        for character in party_characters:
-            if character.name.lower() == normalized:
-                return character.name
-            if character.aliases:
-                for alias in character.aliases:
-                    if alias.lower() == normalized:
-                        return character.name
-
-        for existing in profile_manager.list_characters():
-            if existing.lower() == normalized:
-                return existing
-
-        return None
-
     def _ensure_profile(
         self,
         profile_manager: CharacterProfileManager,
         party_character: Optional[Character],
         character_name: str,
-        party,
+        party: Any,
         campaign_id: str,
     ) -> CharacterProfile:
         """Ensure a CharacterProfile exists for the given character name."""
         profile = profile_manager.get_profile(character_name)
         if profile:
+            profile.campaign_id = campaign_id
             return profile
 
         if party_character:
@@ -351,4 +323,173 @@ class CharacterProfileExtractor:
             or extracted.goal_progress
             or extracted.background_revelations
         )
+
+    def batch_extract_and_update(
+        self,
+        *,
+        transcript_path: Path,
+        party_id: str,
+        session_id: str,
+        profile_manager: CharacterProfileManager,
+        party_manager: PartyConfigManager,
+        campaign_id: Optional[str] = None,
+    ) -> Dict[str, ExtractedCharacterData]:
+        """
+        Extract character profile updates directly from a plaintext transcript.
+
+        This is the workflow used by the Gradio Characters tab when a user uploads
+        an IC-only transcript and expects character profiles to be updated.
+        """
+        if not transcript_path:
+            raise ValueError("transcript_path is required for profile extraction.")
+        if not transcript_path.exists():
+            raise FileNotFoundError(f"Transcript file not found: {transcript_path}")
+
+        party = party_manager.get_party(party_id)
+        if not party:
+            raise ValueError(f"Party configuration '{party_id}' not found")
+        if not party.characters:
+            raise ValueError(f"Party '{party_id}' does not have any characters configured.")
+
+        segments = self._parse_plaintext_transcript(transcript_path)
+        if not segments:
+            LOGGER.warning("Transcript %s did not contain any usable segments.", transcript_path)
+            return {}
+
+        character_lookup = {char.name: char for char in party.characters}
+        campaign_context = " | ".join(
+            filter(None, [getattr(party, "campaign", "") or "", getattr(party, "notes", "") or ""])
+        ) or "Unknown campaign"
+
+        batch = self.extractor.extract_profile_updates(
+            session_id=session_id,
+            transcript_segments=segments,
+            character_names=list(character_lookup.keys()),
+            campaign_id=campaign_id or party_id,
+            campaign_context=campaign_context,
+            metadata={"source": "characters_tab_upload"},
+        )
+
+        updates = batch.updates or []
+        if not updates:
+            LOGGER.info(
+                "Profile extraction returned no updates for session '%s' using transcript '%s'.",
+                session_id,
+                transcript_path,
+            )
+            return {}
+
+        results: Dict[str, ExtractedCharacterData] = {}
+        updates_by_character: Dict[str, Dict[str, List[ProfileUpdate]]] = defaultdict(lambda: defaultdict(list))
+
+        for update in updates:
+            resolved_name = self._resolve_character_name(update.character, character_lookup)
+            if not resolved_name:
+                LOGGER.warning("Skipping update for unknown or unmapped character '%s'", update.character)
+                continue
+
+            update.session_id = update.session_id or session_id
+            extracted = results.setdefault(resolved_name, ExtractedCharacterData(character_name=resolved_name))
+            self._accumulate_formatted_update(extracted, update)
+            updates_by_character[resolved_name][update.category].append(update)
+
+        for character_name, category_map in updates_by_character.items():
+            self._ensure_profile(
+                profile_manager,
+                character_lookup.get(character_name),
+                character_name,
+                party,
+                campaign_id or party_id,
+            )
+            profile_manager.merge_updates(character_name, category_map)
+
+        updated_characters = {
+            name: data for name, data in results.items() if self._has_updates(data)
+        }
+        LOGGER.info(
+            "Updated %d character profiles via transcript upload workflow.",
+            len(updated_characters),
+        )
+        return updated_characters
+
+    def _parse_plaintext_transcript(self, transcript_path: Path) -> List[Dict[str, Any]]:
+        """Convert a plaintext transcript into structured segments for extraction."""
+        segments: List[Dict[str, Any]] = []
+        with open(transcript_path, 'r', encoding='utf-8') as handle:
+            for idx, raw_line in enumerate(handle):
+                line = raw_line.strip()
+                if not line:
+                    continue
+
+                timestamp = None
+                speaker = "Unknown"
+                text = line
+
+                if line.startswith("[") and "]" in line:
+                    closing = line.find("]")
+                    ts_raw = line[1:closing].strip()
+                    timestamp = self._timestamp_to_seconds(ts_raw)
+                    text = line[closing + 1 :].strip()
+
+                if ":" in text:
+                    speaker_part, message = text.split(":", 1)
+                    if speaker_part.strip():
+                        speaker = speaker_part.strip()
+                    text = message.strip()
+
+                segments.append(
+                    {
+                        "segment_index": idx,
+                        "speaker": speaker or "Unknown",
+                        "text": text,
+                        "start": timestamp if timestamp is not None else float(idx),
+                    }
+                )
+
+        return segments
+
+    def _timestamp_to_seconds(self, raw_value: Optional[str]) -> Optional[float]:
+        """Convert HH:MM:SS or MM:SS strings into seconds."""
+        if not raw_value:
+            return None
+
+        value = raw_value.strip()
+        if not value:
+            return None
+
+        try:
+            parts = value.split(":")
+            if len(parts) == 3:
+                hours, minutes, seconds = parts
+                total = (int(hours) * 3600) + (int(minutes) * 60) + float(seconds)
+                return float(total)
+            if len(parts) == 2:
+                minutes, seconds = parts
+                return float((int(minutes) * 60) + float(seconds))
+            return float(value)
+        except ValueError:
+            return None
+
+    def _resolve_character_name(
+        self,
+        candidate: Optional[str],
+        character_lookup: Dict[str, Character],
+    ) -> Optional[str]:
+        """Resolve a possibly aliased character name to the canonical party character."""
+        if not candidate:
+            return None
+
+        normalized = candidate.strip().lower()
+        if not normalized:
+            return None
+
+        for canonical_name, character in character_lookup.items():
+            if normalized == canonical_name.lower():
+                return canonical_name
+
+            aliases = character.aliases or []
+            if any(normalized == alias.lower() for alias in aliases):
+                return canonical_name
+
+        return None
 

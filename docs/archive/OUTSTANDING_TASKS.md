@@ -519,8 +519,8 @@ If you find a `[~]` task with timestamp >24 hours old:
   - **Effort**: 1 hour | **Conflict Risk**: ⚠️⚠️ MEDIUM
   → BUG_HUNT_TODO.md:269
 
-- [ ] **BUG-20251103-009**: Process Session - Audio path resolution inconsistent
-  - **Files**: `app.py:499-507`
+- [~] **BUG-20251103-009**: Process Session - Audio path resolution inconsistent (Agent: Claude Sonnet 4.5, Started: 2025-11-18 17:30 UTC)
+  - **Files**: `app.py:757-764`
   - **Effort**: 1 hour | **Conflict Risk**: ⚠️⚠️ MEDIUM
   → BUG_HUNT_TODO.md:301
 

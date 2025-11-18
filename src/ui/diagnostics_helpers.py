@@ -62,23 +62,17 @@ def run_health_check() -> str:
         error_msg = str(e)[:50]
         checks.append(("Ollama", False, f"Not running - {error_msg}"))
 
-    # Check Groq API (if configured)
-    if Config.GROQ_API_KEY:
-        checks.append(("Groq API Key", True, "Configured"))
-    else:
-        checks.append(("Groq API Key", False, "Not configured"))
-
-    # Check OpenAI API (if configured)
-    if Config.OPENAI_API_KEY:
-        checks.append(("OpenAI API Key", True, "Configured"))
-    else:
-        checks.append(("OpenAI API Key", False, "Not configured"))
-
-    # Check HuggingFace Token (if configured)
-    if Config.HF_TOKEN:
-        checks.append(("HuggingFace Token", True, "Configured"))
-    else:
-        checks.append(("HuggingFace Token", False, "Not configured"))
+    # Check API keys
+    api_keys_to_check = {
+        "Groq API Key": Config.GROQ_API_KEY,
+        "OpenAI API Key": Config.OPENAI_API_KEY,
+        "HuggingFace Token": Config.HF_TOKEN,
+    }
+    for name, key in api_keys_to_check.items():
+        if key:
+            checks.append((name, True, "Configured"))
+        else:
+            checks.append((name, False, "Not configured"))
 
     # Build markdown output
     all_ok = all(check[1] for check in checks)
@@ -120,9 +114,12 @@ def export_diagnostics() -> Tuple[str, str]:
     Returns:
         Tuple of (markdown_message, json_data)
     """
+    # Capture timestamp once for consistency
+    now = datetime.now()
+
     # Gather system info
     diagnostics = {
-        "timestamp": datetime.now().isoformat(),
+        "timestamp": now.isoformat(),
         "config": {
             "whisper_backend": Config.WHISPER_BACKEND,
             "whisper_model": Config.WHISPER_MODEL,
@@ -146,7 +143,7 @@ def export_diagnostics() -> Tuple[str, str]:
     output_dir = Path("output/diagnostics")
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    timestamp = now.strftime("%Y%m%d_%H%M%S")
     json_path = output_dir / f"diagnostics_{timestamp}.json"
 
     with open(json_path, 'w', encoding='utf-8') as f:
@@ -170,7 +167,7 @@ def list_conversations() -> str:
     try:
         from src.langchain.conversation_store import ConversationStore
 
-        conversations_dir = Path("models/conversations")
+        conversations_dir = Config.MODELS_DIR / "conversations"
         if not conversations_dir.exists():
             return StatusMessages.info(
                 "Conversations",
@@ -229,7 +226,7 @@ def clear_all_conversations() -> str:
         Markdown-formatted confirmation message
     """
     try:
-        conversations_dir = Path("models/conversations")
+        conversations_dir = Config.MODELS_DIR / "conversations"
         if not conversations_dir.exists():
             return StatusMessages.info(
                 "Conversations",

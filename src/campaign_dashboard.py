@@ -98,7 +98,18 @@ class CampaignDashboard:
                 details = f"{StatusIndicators.SUCCESS} **Status**: Complete ({len(profiles_for_party)}/{len(party_char_names)} characters)\n\n"
                 for name in profiles_for_party:
                     profile = char_mgr.get_profile(name)
-                    details += f"- **{name}**: {profile.personality[:50] if profile.personality else 'No personality set'}...\n"
+                    # Truncate personality at word boundaries to avoid mid-word cuts
+                    personality_text = profile.personality if profile.personality else 'No personality set'
+                    if len(personality_text) > 50:
+                        # Find last space before 50 chars to avoid breaking words
+                        truncate_pos = personality_text.rfind(' ', 0, 50)
+                        if truncate_pos > 0:  # Found a space
+                            personality_preview = personality_text[:truncate_pos] + "..."
+                        else:  # No space found, hard truncate at 50
+                            personality_preview = personality_text[:50] + "..."
+                    else:
+                        personality_preview = personality_text
+                    details += f"- **{name}**: {personality_preview}\n"
                 return ComponentStatus(True, "Character Profiles", details)
             elif len(profiles_for_party) > 0:
                 details = f"{StatusIndicators.WARNING} **Status**: Partial ({len(profiles_for_party)}/{len(party_char_names)} characters)\n\n"

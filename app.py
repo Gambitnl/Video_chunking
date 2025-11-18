@@ -575,12 +575,23 @@ def _knowledge_summary_markdown(campaign_id: Optional[str]) -> str:
                 names.append(value)
         return ", ".join(names) if names else "None captured"
 
+    def _format_sample(entries, attr, label):
+        """Format a sample with total count indication if truncated."""
+        sample = _sample(entries, attr)
+        total = len(entries)
+        if total > 3:
+            return f"- {label}: {sample} (showing 3 of {total})"
+        elif total > 0:
+            return f"- {label}: {sample}"
+        else:
+            return f"- {label}: None captured"
+
     lines = [
         "### Knowledge Highlights",
-        f"- Sample quests: {_sample(quests, 'title')}",
-        f"- Sample NPCs: {_sample(npcs, 'name')}",
-        f"- Sample locations: {_sample(locations, 'name')}",
-        f"- Sample items: {_sample(items, 'name')}",
+        _format_sample(quests, 'title', 'Sample quests'),
+        _format_sample(npcs, 'name', 'Sample NPCs'),
+        _format_sample(locations, 'name', 'Sample locations'),
+        _format_sample(items, 'name', 'Sample items'),
     ]
     return "\n".join(lines)
 
@@ -846,11 +857,22 @@ def _create_processor_for_context(
     if party_selection and party_selection != "Manual Entry":
         kwargs["party_id"] = party_selection
     else:
+        # Parse and validate character/player names with better edge case handling
         chars = [c.strip() for c in (character_names or "").split(',') if c.strip()]
         players = [p.strip() for p in (player_names or "").split(',') if p.strip()]
 
+        # Remove duplicates while preserving order
+        chars = list(dict.fromkeys(chars))
+        players = list(dict.fromkeys(players))
+
+        # Validate character names if required
         if not chars and not allow_empty_names:
             raise ValueError("Character names are required when using Manual Entry")
+
+        # Warn about potentially problematic characters (logged, not blocking)
+        for name in chars + players:
+            if ',' in name:
+                logger.warning(f"Name contains comma which may cause parsing issues: '{name}'. Consider removing commas from names.")
 
         if chars:
             kwargs["character_names"] = chars
@@ -911,8 +933,9 @@ def process_session(
     redact_prompts: bool = False,
     generate_scenes: bool = True,
     scene_summary_mode: str = "template",
+    progress=gr.Progress(),
 ) -> Dict:
-    """Main session processing function."""
+    """Main session processing function with progress tracking."""
     try:
         if audio_file is None:
             return {"status": "error", "message": "Please upload an audio file."}
@@ -965,6 +988,11 @@ def process_session(
         cancel_event = Event()
         _active_cancel_events[resolved_session_id] = cancel_event
 
+        # Create progress callback for Gradio progress tracker
+        def progress_callback(progress_value: float, message: str):
+            """Update Gradio progress bar."""
+            progress(progress_value, desc=message)
+
         try:
             pipeline_result = processor.process(
                 input_file=_resolve_audio_path(audio_file),
@@ -972,7 +1000,8 @@ def process_session(
                 skip_classification=skip_classification,
                 skip_snippets=skip_snippets,
                 skip_knowledge=skip_knowledge,
-                cancel_event=cancel_event
+                cancel_event=cancel_event,
+                progress_callback=progress_callback
             )
         finally:
             # Clean up cancel event regardless of outcome

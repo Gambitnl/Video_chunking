@@ -13,6 +13,9 @@ from src.ui.constants import StatusIndicators as SI
 
 logger = logging.getLogger("DDSessionProcessor.campaign_chat_tab")
 
+# Generic error detail message (prevents information disclosure)
+_GENERIC_ERROR_DETAIL = "Error details have been logged for troubleshooting."
+
 
 def create_campaign_chat_tab(project_root: Path) -> None:
     """Create the Campaign Chat tab for conversational campaign queries."""
@@ -84,7 +87,7 @@ def create_campaign_chat_tab(project_root: Path) -> None:
             error_msg = StatusMessages.error(
                 "Conversation Creation Failed",
                 "Unable to create a new conversation.",
-                str(e)
+                _GENERIC_ERROR_DETAIL
             )
             return [], "", gr.update(), error_msg
 
@@ -114,7 +117,7 @@ def create_campaign_chat_tab(project_root: Path) -> None:
             error_msg = StatusMessages.error(
                 "Load Failed",
                 "Unable to load the selected conversation.",
-                str(e)
+                _GENERIC_ERROR_DETAIL
             )
             return [], "", error_msg
 
@@ -139,7 +142,7 @@ def create_campaign_chat_tab(project_root: Path) -> None:
             )
 
             # Show loading indicator with better UX
-            loading_msg = f"{SI.LOADING} 🤔 Thinking... (querying campaign data)"
+            loading_msg = f"{SI.LOADING} Thinking... (querying campaign data)"
 
             return chat_history, "", gr.update(), loading_msg
 
@@ -148,7 +151,7 @@ def create_campaign_chat_tab(project_root: Path) -> None:
             error_msg = StatusMessages.error(
                 "Message Setup Failed",
                 "Unable to send your message. Please try again.",
-                "Error details have been logged for troubleshooting."
+                _GENERIC_ERROR_DETAIL
             )
             return chat_history, "", gr.update(), error_msg
 
@@ -220,7 +223,7 @@ def create_campaign_chat_tab(project_root: Path) -> None:
             error_msg = StatusMessages.error(
                 "Message Send Failed",
                 "Unable to process your message.",
-                str(e)
+                _GENERIC_ERROR_DETAIL
             )
             chat_history.append({"role": "assistant", "content": error_msg})
             conv_store.add_message(
@@ -311,7 +314,7 @@ def create_campaign_chat_tab(project_root: Path) -> None:
                 StatusMessages.error(
                     "Delete Failed",
                     "An error occurred while deleting the conversation.",
-                    "Error details have been logged for troubleshooting."
+                    _GENERIC_ERROR_DETAIL
                 )
             )
 
@@ -347,7 +350,7 @@ def create_campaign_chat_tab(project_root: Path) -> None:
                 StatusMessages.error(
                     "Rename Failed",
                     "An error occurred while renaming the conversation.",
-                    "Error details have been logged for troubleshooting."
+                    _GENERIC_ERROR_DETAIL
                 )
             )
 
@@ -431,6 +434,19 @@ def create_campaign_chat_tab(project_root: Path) -> None:
 
     # Create the UI
     with gr.Tab("Campaign Chat"):
+        # Show dependency warning at top if LangChain not available
+        if not chat_client:
+            gr.Markdown("""
+            ### [WARNING] LangChain Dependencies Required
+
+            To use the Campaign Chat feature, install the required dependencies:
+            ```bash
+            pip install langchain langchain-community sentence-transformers chromadb
+            ```
+
+            The chat interface will not be functional until these dependencies are installed.
+            """)
+
         gr.Markdown("""
         ### [CHAT] Campaign Assistant
 
@@ -456,6 +472,7 @@ def create_campaign_chat_tab(project_root: Path) -> None:
                     msg_input = gr.Textbox(
                         label="Ask a question",
                         placeholder=Placeholders.CAMPAIGN_QUESTION,
+                        info="Ask about NPCs, quests, locations, or session events",
                         scale=4,
                         lines=2
                     )
@@ -473,6 +490,7 @@ def create_campaign_chat_tab(project_root: Path) -> None:
                     rename_name_input = gr.Textbox(
                         label="New Campaign Name",
                         placeholder="Enter new name...",
+                        info="Rename this conversation to better identify it later",
                         scale=2
                     )
                     rename_btn = gr.Button(f"{SI.ACTION_EDIT} Rename", size="sm", variant="secondary")
@@ -551,14 +569,3 @@ def create_campaign_chat_tab(project_root: Path) -> None:
             inputs=[conversation_dropdown, rename_name_input],
             outputs=[conversation_dropdown, sources_display]
         )
-
-        # Initialize
-        if not chat_client:
-            gr.Markdown("""
-            [WARNING] **Warning:** LangChain dependencies not installed.
-
-            To use this feature, install:
-            ```bash
-            pip install langchain langchain-community sentence-transformers chromadb
-            ```
-            """)

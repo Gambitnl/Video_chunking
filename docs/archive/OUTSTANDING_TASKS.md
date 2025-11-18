@@ -556,7 +556,7 @@ If you find a `[~]` task with timestamp >24 hours old:
   - **Fix**: Both buttons now have `.interactive = False` set explicitly. Feature marked as "Coming Soon" with disabled UI.
   → BUG_HUNT_TODO.md:373
 
-- [ ] **BUG-20251103-023**: Social Insights - Temp file cleanup not guaranteed
+- [~] **BUG-20251103-023**: Social Insights - Temp file cleanup not guaranteed (Agent: Claude Sonnet 4.5, Started: 2025-11-18 10:15 UTC)
   - **Files**: `src/ui/social_insights_tab.py:49-50`
   - **Effort**: 20 min | **Conflict Risk**: ⚠️ LOW
   → BUG_HUNT_TODO.md:393

@@ -1,7 +1,7 @@
 # CLAUDE.md - AI Assistant Guide
 
 > **Purpose**: Comprehensive guide for AI assistants (Claude, GPT, Gemini) working with this repository
-> **Last Updated**: 2025-11-15
+> **Last Updated**: 2025-11-18
 > **Repository**: D&D Session Transcription & Diarization System
 
 ---
@@ -22,6 +22,134 @@
 - **Main Interfaces**: CLI (`cli.py`) and Web UI (`app.py`)
 - **Core Pipeline**: Audio -> Chunking -> Transcription -> Diarization -> Classification -> Output
 - **Status**: Production-ready core pipeline, active feature development
+
+---
+
+## Available Tasks & Work Items
+
+**Looking for work?** This repository contains multiple markdown files with tracked tasks and implementation plans. Below is a comprehensive index of files containing unresolved tasks, organized by priority and type.
+
+### High-Priority Active Tasks
+
+**Core Planning & Roadmap:**
+- **[ROADMAP.md](ROADMAP.md)** (11 active tasks)
+  Main project roadmap with P0-P4 prioritized features and current status
+
+- **[docs/archive/OUTSTANDING_TASKS.md](docs/archive/OUTSTANDING_TASKS.md)** (83 active tasks)
+  Comprehensive task backlog with detailed task descriptions and priorities
+
+**Active Implementation Plans:**
+- **[IMPLEMENTATION_PLANS_INTERACTIVE_CLARIFICATION.md](IMPLEMENTATION_PLANS_INTERACTIVE_CLARIFICATION.md)** (48 tasks)
+  P2 feature: Interactive clarification system for ambiguous pipeline decisions
+
+- **[IMPLEMENTATION_PLAN_SESSION_ANALYTICS.md](IMPLEMENTATION_PLAN_SESSION_ANALYTICS.md)** (93 tasks)
+  P2 feature: Session analytics dashboard and comparison tools
+
+- **[IMPLEMENTATION_PLAN_SESSION_SEARCH.md](IMPLEMENTATION_PLAN_SESSION_SEARCH.md)** (30 tasks)
+  P2 feature: Full-text search across session transcripts
+
+- **[IMPLEMENTATION_PLAN_LANGCHAIN_UX_POLISH.md](IMPLEMENTATION_PLAN_LANGCHAIN_UX_POLISH.md)** (36 tasks)
+  P2 feature: Campaign Chat UI improvements and UX polish
+
+- **[IMPLEMENTATION_PLAN_CHARACTER_ANALYTICS.md](IMPLEMENTATION_PLAN_CHARACTER_ANALYTICS.md)** (24 tasks)
+  P2 feature: Character analytics, filtering, and progression tracking
+
+- **[IMPLEMENTATION_PLAN_OOC_TOPIC_ANALYSIS.md](IMPLEMENTATION_PLAN_OOC_TOPIC_ANALYSIS.md)** (17 tasks)
+  P2 feature: OOC keyword and topic analysis
+
+**Foundational Plans:**
+- **[IMPLEMENTATION_PLANS.md](IMPLEMENTATION_PLANS.md)** (15 tasks)
+  Core implementation plans for P0-P1 features (checkpoint system, resumable processing)
+
+### Documentation & Guide Tasks
+
+**Workflow & Process:**
+- **[WORK_INITIATION_PROMPT.md](WORK_INITIATION_PROMPT.md)** (82 tasks)
+  Operator workflow guide with task locking and coordination procedures
+
+- **[CLAUDE.md](CLAUDE.md)** (12 tasks)
+  This file - AI assistant guide with success checklist
+
+- **[AGENT_ONBOARDING.md](AGENT_ONBOARDING.md)** (11 tasks)
+  Structured onboarding path for new AI agents
+
+**Implementation Guidance:**
+- **[docs/CRITICAL_REVIEW_WORKFLOW.md](docs/CRITICAL_REVIEW_WORKFLOW.md)** (5 tasks)
+  Critical review methodology and best practices
+
+- **[docs/IMPLEMENTATION_REVIEW_IMPROVEMENTS.md](docs/IMPLEMENTATION_REVIEW_IMPROVEMENTS.md)** (13 tasks)
+  Review process improvements and standards
+
+### Infrastructure & Testing
+
+- **[docs/TEST_PLANS.md](docs/TEST_PLANS.md)** (6 tasks)
+  Testing strategy and coverage goals
+
+- **[tests/ui/MANUAL_TESTING_CHECKLIST.md](tests/ui/MANUAL_TESTING_CHECKLIST.md)** (339 tasks)
+  Comprehensive manual UI testing checklist
+
+### UI/UX Improvements
+
+- **[UI_IMPROVEMENTS.md](UI_IMPROVEMENTS.md)** (8 tasks)
+  UI enhancement proposals and tracking
+
+- **[UX_IMPROVEMENTS.md](UX_IMPROVEMENTS.md)** (6 tasks)
+  UX improvement proposals
+
+- **[UX_QUICK_REFERENCE.md](UX_QUICK_REFERENCE.md)** (15 tasks)
+  UX quick reference and best practices
+
+- **[docs/UI_UX_IMPROVEMENT_PLAN.md](docs/UI_UX_IMPROVEMENT_PLAN.md)** (24 tasks)
+  Detailed UI/UX improvement plan
+
+- **[docs/UI_UX_NEXT_SESSION_GUIDE.md](docs/UI_UX_NEXT_SESSION_GUIDE.md)** (8 tasks)
+  Next session UI/UX work items
+
+### Feature-Specific Plans
+
+- **[docs/CAMPAIGN_LIFECYCLE_IMPLEMENTATION.md](docs/CAMPAIGN_LIFECYCLE_IMPLEMENTATION.md)** (18 tasks)
+  Campaign lifecycle management implementation
+
+- **[docs/CAMPAIGN_MIGRATION_GUIDE.md](docs/CAMPAIGN_MIGRATION_GUIDE.md)** (11 tasks)
+  Campaign data migration procedures
+
+- **[docs/CLM-05_TAB_FILTERING_IMPLEMENTATION.md](docs/CLM-05_TAB_FILTERING_IMPLEMENTATION.md)** (13 tasks)
+  Tab filtering feature implementation
+
+- **[docs/LANGCHAIN_FEATURES.md](docs/LANGCHAIN_FEATURES.md)** (6 tasks)
+  LangChain integration features and improvements
+
+### Setup & Configuration
+
+- **[CLOUD_INFERENCE_OPTIONS.md](CLOUD_INFERENCE_OPTIONS.md)** (5 tasks)
+  Cloud inference backend options (Groq, OpenAI, etc.)
+
+- **[COLAB_SETUP.md](COLAB_SETUP.md)** (4 tasks)
+  Google Colab setup for classification offloading
+
+### How to Use This Index
+
+1. **Starting New Work:**
+   - Check [ROADMAP.md](ROADMAP.md) for current priorities (P0 > P1 > P2 > P3 > P4)
+   - Review [docs/archive/OUTSTANDING_TASKS.md](docs/archive/OUTSTANDING_TASKS.md) for available tasks
+   - Lock tasks in OUTSTANDING_TASKS.md using `[~]` marker before starting
+
+2. **Implementation Work:**
+   - Read the relevant IMPLEMENTATION_PLAN_*.md file thoroughly before coding
+   - Follow the Operator Workflow (see below) for all implementations
+   - Update task status in the plan as you progress
+
+3. **Avoiding Conflicts:**
+   - Check if another agent is working on the same file/task
+   - Use `[~]` markers in OUTSTANDING_TASKS.md to signal active work
+   - Commit lock markers before beginning implementation
+
+4. **Completion:**
+   - Mark tasks as `[x]` (checked) or `[DONE]` when complete
+   - Update ROADMAP.md with completion status
+   - Document implementation notes and findings
+
+**Note:** Files in `docs/archive/` may contain historical or deprecated tasks. Always verify with ROADMAP.md for current priorities.
 
 ---
 

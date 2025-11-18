@@ -292,6 +292,7 @@ def create_characters_tab_modern(
             try:
                 from src.character_profile_extractor import CharacterProfileExtractor
                 from src.party_config import PartyConfigManager
+                from src.exceptions import OllamaConnectionError
 
                 extractor = CharacterProfileExtractor()
                 profile_mgr = CharacterProfileManager()
@@ -335,6 +336,13 @@ def create_characters_tab_modern(
 
                 summary_lines.append("Character list refreshed automatically.")
                 return "\n".join(summary_lines)
+            
+            except OllamaConnectionError as exc:
+                return StatusMessages.error(
+                    "Ollama Connection Failed",
+                    str(exc),
+                    "Please ensure the Ollama service is running and accessible before retrying.",
+                )
 
             except Exception as exc:
                 import traceback

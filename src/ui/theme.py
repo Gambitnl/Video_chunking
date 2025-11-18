@@ -71,31 +71,34 @@ MODERN_CSS = """
     background: transparent;
 }
 
-/* Fix tab content width consistency - prevents tabs from resizing */
-.tab-content {
-    min-width: 100%;
-    max-width: 100%;
+/* Fix tab content width consistency - force all tabs to expand to full width */
+.gradio-container {
+    min-width: 1200px !important;
 }
 
-/* Ensure all tab panels have consistent width */
+/* Ensure all tab panels take full width of container */
 .tabitem {
     min-width: 100% !important;
     width: 100% !important;
 }
 
-/* Additional Gradio-specific tab fixes */
-.tabs > .tab-nav + div {
+/* Force tab content to expand */
+.tabitem > div {
     min-width: 100% !important;
 }
 
-/* Fix for individual tab items */
-div[id^="component-"] {
-    box-sizing: border-box;
+/* Prevent container from collapsing based on content */
+.tabs {
+    width: 100% !important;
+    min-width: 100% !important;
 }
 
-/* Prevent tab container from shrinking */
-.gradio-container .tabs {
-    width: 100%;
+/* Ensure markdown and other components expand to fill tab */
+.tabitem .markdown,
+.tabitem .block,
+.tabitem > div > div {
+    width: 100% !important;
+    box-sizing: border-box;
 }
 
 /* Card styling for sections */

@@ -25,4 +25,5 @@ class CancelledError(Exception):
             message: Custom cancellation message (default: "Processing was cancelled by user")
         """
         super().__init__(message)
-        self.message = message
+class OllamaConnectionError(Exception):
+    """Exception raised when the Ollama client fails to connect."""

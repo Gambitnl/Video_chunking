@@ -13,6 +13,9 @@ from src.ui.constants import StatusIndicators as SI
 
 logger = logging.getLogger("DDSessionProcessor.campaign_chat_tab")
 
+# Generic error detail message (prevents information disclosure)
+_GENERIC_ERROR_DETAIL = "Error details have been logged for troubleshooting."
+
 
 def create_campaign_chat_tab(project_root: Path) -> None:
     """Create the Campaign Chat tab for conversational campaign queries."""
@@ -84,7 +87,7 @@ def create_campaign_chat_tab(project_root: Path) -> None:
             error_msg = StatusMessages.error(
                 "Conversation Creation Failed",
                 "Unable to create a new conversation.",
-                "Error details have been logged for troubleshooting."
+                _GENERIC_ERROR_DETAIL
             )
             return [], "", gr.update(), error_msg
 
@@ -114,7 +117,7 @@ def create_campaign_chat_tab(project_root: Path) -> None:
             error_msg = StatusMessages.error(
                 "Load Failed",
                 "Unable to load the selected conversation.",
-                "Error details have been logged for troubleshooting."
+                _GENERIC_ERROR_DETAIL
             )
             return [], "", error_msg
 
@@ -148,7 +151,7 @@ def create_campaign_chat_tab(project_root: Path) -> None:
             error_msg = StatusMessages.error(
                 "Message Setup Failed",
                 "Unable to send your message. Please try again.",
-                "Error details have been logged for troubleshooting."
+                _GENERIC_ERROR_DETAIL
             )
             return chat_history, "", gr.update(), error_msg
 
@@ -220,7 +223,7 @@ def create_campaign_chat_tab(project_root: Path) -> None:
             error_msg = StatusMessages.error(
                 "Message Send Failed",
                 "Unable to process your message.",
-                "Error details have been logged for troubleshooting."
+                _GENERIC_ERROR_DETAIL
             )
             chat_history.append({"role": "assistant", "content": error_msg})
             conv_store.add_message(
@@ -311,7 +314,7 @@ def create_campaign_chat_tab(project_root: Path) -> None:
                 StatusMessages.error(
                     "Delete Failed",
                     "An error occurred while deleting the conversation.",
-                    "Error details have been logged for troubleshooting."
+                    _GENERIC_ERROR_DETAIL
                 )
             )
 
@@ -347,7 +350,7 @@ def create_campaign_chat_tab(project_root: Path) -> None:
                 StatusMessages.error(
                     "Rename Failed",
                     "An error occurred while renaming the conversation.",
-                    "Error details have been logged for troubleshooting."
+                    _GENERIC_ERROR_DETAIL
                 )
             )
 

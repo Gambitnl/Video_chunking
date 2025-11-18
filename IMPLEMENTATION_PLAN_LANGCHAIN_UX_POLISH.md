@@ -458,6 +458,32 @@ All changes successfully implemented in `src/ui/campaign_chat_tab.py`. Implement
 
 **Merge Recommendation**: **APPROVED** - Ready for commit and push
 
+### Post-Review Improvement (2025-11-18 16:30 UTC)
+
+**Code Review Feedback**: gemini-code-assist bot identified repeated error message string
+
+**Issue**: The error detail message "Error details have been logged for troubleshooting." was repeated in 6 locations, violating DRY (Don't Repeat Yourself) principle.
+
+**Improvement Applied**:
+- Added module-level constant `_GENERIC_ERROR_DETAIL` at line 17
+- Replaced all 6 hardcoded strings with constant reference:
+  1. Line 90: `new_conversation()` error handler
+  2. Line 120: `load_conversation()` error handler
+  3. Line 154: `send_message_show_loading()` error handler
+  4. Line 226: `send_message_get_response()` error handler
+  5. Line 317: `delete_conversation()` error handler
+  6. Line 353: `rename_conversation()` error handler
+
+**Benefits**:
+- Single source of truth for error message text
+- Easier to update message in future (change in one place)
+- Improved maintainability and code quality
+- Follows DRY principle
+
+**Validation**:
+- Python syntax check: PASSED
+- Grep verification: Only 1 instance remains (the constant definition)
+
 ---
 
 ## Changelog
@@ -470,4 +496,6 @@ All changes successfully implemented in `src/ui/campaign_chat_tab.py`. Implement
 - **2025-11-18 15:15 UTC**: Phase 4 complete - Info text added to inputs
 - **2025-11-18 15:30 UTC**: Phase 5 complete - Validation passed
 - **2025-11-18 15:45 UTC**: Implementation notes and code review findings documented
-- **2025-11-18 16:00 UTC**: Ready for commit and push
+- **2025-11-18 16:00 UTC**: Committed and pushed to feature branch
+- **2025-11-18 16:15 UTC**: Code review feedback received - DRY improvement suggested
+- **2025-11-18 16:30 UTC**: Implemented DRY improvement - Extracted error message constant (6 locations)

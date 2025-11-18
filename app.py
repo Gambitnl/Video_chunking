@@ -754,7 +754,7 @@ def _chat_status_markdown(campaign_id: Optional[str]) -> str:
     )
 
 
-def _resolve_audio_path(audio_file) -> Path:
+def _resolve_audio_path(audio_file: Any) -> Path:
     """
     Normalize Gradio file input into a filesystem path with validation.
 

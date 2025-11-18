@@ -491,9 +491,10 @@ If you find a `[~]` task with timestamp >24 hours old:
   - **Fix**: Added generator-based progress yielding with StatusMessages at 5 stages of analysis
   → BUG_HUNT_TODO.md:381
 
-- [~] **BUG-20251103-025**: Settings & Tools - Static markdown only, no interactive controls (Agent: Claude Sonnet 4.5, Started: 2025-11-18 14:00 UTC)
-  - **Files**: `src/ui/settings_tools_tab_modern.py:29-41`
-  - **Effort**: 1-2 hours | **Conflict Risk**: ⚠️ LOW
+- [x] **BUG-20251103-025**: Settings & Tools - Static markdown only, no interactive controls (Agent: Claude Sonnet 4.5, Completed: 2025-11-18)
+  - **Files**: `src/ui/settings_tools_tab_modern.py:40-87`, `src/ui/diagnostics_helpers.py`, `app.py:55-60,1721-1741`
+  - **Effort**: 1 hour (actual) | **Conflict Risk**: ⚠️ LOW
+  - **Fix**: Added interactive System Diagnostics (health check, export) and Conversation Management (list, clear all) sections with full UI integration
   → BUG_HUNT_TODO.md:407
 
 #### Campaign Dashboard Module (Medium Conflict Risk)

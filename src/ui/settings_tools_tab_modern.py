@@ -37,19 +37,54 @@ def create_settings_tools_tab_modern(
             """
         )
 
-        diagnostics_md = gr.Markdown(
-            value=StatusMessages.info(
-                "Diagnostics",
-                "Run a session for the active campaign to see status tracker updates here."
+        # Diagnostics Section - Interactive Health Check
+        with gr.Accordion("System Diagnostics", open=False):
+            gr.Markdown(
+                """
+                Check system dependencies, model availability, and API connectivity.
+                """
             )
-        )
+            run_health_check_btn = UIComponents.create_action_button(
+                "Run Health Check",
+                variant="primary",
+                size="sm",
+            )
+            export_diagnostics_btn = UIComponents.create_action_button(
+                "Export Diagnostics",
+                variant="secondary",
+                size="sm",
+            )
+            diagnostics_output = gr.Markdown(
+                value=StatusMessages.info(
+                    "Diagnostics",
+                    "Click 'Run Health Check' to verify system dependencies and configuration."
+                )
+            )
 
-        chat_md = gr.Markdown(
-            value=StatusMessages.info(
-                "LLM Chat",
-                "Load a campaign to initialise chat context for that campaign."
+        # Chat Management Section - Conversation History
+        with gr.Accordion("Conversation Management", open=False):
+            gr.Markdown(
+                """
+                Manage campaign chat conversation history. View and delete saved conversations.
+                """
             )
-        )
+            with gr.Row():
+                list_conversations_btn = UIComponents.create_action_button(
+                    "List Conversations",
+                    variant="secondary",
+                    size="sm",
+                )
+                clear_all_conversations_btn = UIComponents.create_action_button(
+                    "Clear All Conversations",
+                    variant="stop",
+                    size="sm",
+                )
+            chat_output = gr.Markdown(
+                value=StatusMessages.info(
+                    "Conversation History",
+                    "Click 'List Conversations' to see saved campaign chat conversations."
+                )
+            )
 
         social_refs = create_social_insights_tab(
             story_manager=story_manager,
@@ -397,8 +432,15 @@ def create_settings_tools_tab_modern(
             )
 
     return {
-        "diagnostics": diagnostics_md,
-        "chat": chat_md,
+        # Diagnostics controls
+        "run_health_check_btn": run_health_check_btn,
+        "export_diagnostics_btn": export_diagnostics_btn,
+        "diagnostics_output": diagnostics_output,
+        # Chat/Conversation controls
+        "list_conversations_btn": list_conversations_btn,
+        "clear_all_conversations_btn": clear_all_conversations_btn,
+        "chat_output": chat_output,
+        # Social Insights
         "social_campaign_selector": social_refs["campaign_selector"],
         "social_session_dropdown": social_refs["session_dropdown"],
         "social_keyword_output": social_refs["keyword_output"],

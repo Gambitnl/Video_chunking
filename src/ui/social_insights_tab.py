@@ -260,6 +260,10 @@ def create_social_insights_tab(
 
         Also clears previous analysis results to avoid showing stale data
         from a different campaign.
+
+        Returns:
+            Dictionary mapping component references to their new values.
+            This approach is more maintainable than positional tuples.
         """
         campaign_id = None
         if campaign_name != "All Campaigns":
@@ -276,14 +280,15 @@ def create_social_insights_tab(
             f"Switched to {campaign_name}. Select a session and click Analyze Banter to view insights."
         )
 
-        return (
-            gr.update(choices=sessions, value=sessions[0] if sessions else None),  # session dropdown
-            None,  # Clear keyword_output
-            None,  # Clear topics_output
-            None,  # Clear nebula_output
-            None,  # Clear insights_output
-            clear_message,  # Update status with campaign change message
-        )
+        # Return dictionary with explicit component mappings (more maintainable than tuples)
+        return {
+            insight_session_id: gr.update(choices=sessions, value=sessions[0] if sessions else None),
+            keyword_output: None,
+            topics_output: None,
+            nebula_output: None,
+            insights_output: None,
+            status_output: clear_message,
+        }
 
     # UI Layout
     with gr.Tab("Social Insights"):

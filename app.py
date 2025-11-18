@@ -52,6 +52,12 @@ from src.ui.session_artifacts_tab import create_session_artifacts_tab, refresh_s
 from src.ui.search_tab import create_search_tab
 from src.ui.analytics_tab import create_analytics_tab
 from src.ui.character_analytics_tab import create_character_analytics_tab
+from src.ui.diagnostics_helpers import (
+    run_health_check,
+    export_diagnostics,
+    list_conversations,
+    clear_all_conversations,
+)
 
 from src.google_drive_auth import (
     get_auth_url,
@@ -1595,8 +1601,8 @@ with gr.Blocks(
         characters_tab_refs["extract_party_dropdown"],
         stories_tab_refs["session_list"],
         stories_tab_refs["narrative_hint"],
-        settings_tab_refs["diagnostics"],
-        settings_tab_refs["chat"],
+        settings_tab_refs["diagnostics_output"],
+        settings_tab_refs["chat_output"],
         settings_tab_refs["social_campaign_selector"],
         settings_tab_refs["social_session_dropdown"],
         settings_tab_refs["social_keyword_output"],
@@ -1710,6 +1716,28 @@ with gr.Blocks(
     settings_tab_refs["restart_app_btn"].click(
         fn=ui_restart_application,
         outputs=settings_tab_refs["restart_status"],
+    )
+
+    # Diagnostics event handlers
+    settings_tab_refs["run_health_check_btn"].click(
+        fn=run_health_check,
+        outputs=settings_tab_refs["diagnostics_output"],
+    )
+
+    settings_tab_refs["export_diagnostics_btn"].click(
+        fn=lambda: export_diagnostics()[0],  # Return only the message
+        outputs=settings_tab_refs["diagnostics_output"],
+    )
+
+    # Conversation management event handlers
+    settings_tab_refs["list_conversations_btn"].click(
+        fn=list_conversations,
+        outputs=settings_tab_refs["chat_output"],
+    )
+
+    settings_tab_refs["clear_all_conversations_btn"].click(
+        fn=clear_all_conversations,
+        outputs=settings_tab_refs["chat_output"],
     )
 
     demo.load(

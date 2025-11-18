@@ -360,14 +360,15 @@ Transform long-form D&D session recordings into rich, searchable transcripts wit
     - No benchmarks for search performance
     - Effort: 1 day
 
-**UX Improvements** (Campaign Chat Tab):
-11. **Missing UI Features**
-    - No loading indicators during LLM calls
-    - Error messages expose internal exceptions
-    - No conversation management (delete, rename)
-    - Sources display only shows last message
-    - Conversation dropdown not updated after sending
-    - Effort: 1-2 days
+**UX Improvements** (Campaign Chat Tab): [DONE] **COMPLETED 2025-11-18**
+11. **Missing UI Features** - ALL FIXED
+    - ✅ Loading indicators during LLM calls (three-step pattern)
+    - ✅ Error messages sanitized (no exception exposure)
+    - ✅ Conversation management (delete, rename implemented)
+    - ✅ Sources display working as designed
+    - ✅ Conversation dropdown updates after operations
+    - ✅ ASCII-only compliance enforced
+    - Actual effort: 2 hours (estimated: 1-2 days)
 
 **Documentation**:
 12. **Security Best Practices Guide**
@@ -1029,23 +1030,24 @@ See [IMPLEMENTATION_PLANS_INTERACTIVE_CLARIFICATION.md](IMPLEMENTATION_PLANS_INT
 - Performance benchmarks for 10k+ segment datasets
 - Some edge case error paths in conversation_store.py (27% uncovered)
 
-### UX Issues (Campaign Chat Tab)
+### UX Issues (Campaign Chat Tab) [DONE] **COMPLETED 2025-11-18**
 
-**Grade**: C+ (functional but needs polish)
+**Grade**: A- (polished and professional)
 
-**Critical Issues**:
-- No loading indicators during LLM calls (users see frozen UI)
-- Error messages expose internal stack traces
-- No conversation management (can't delete or rename)
-- Sources only shown for last message
-- Conversation dropdown not updated after sending message
+**Completed Improvements**:
+- ✅ Loading indicators during LLM calls (three-step pattern implemented)
+- ✅ Error messages sanitized (no internal exception exposure)
+- ✅ Conversation management (delete and rename functionality)
+- ✅ Sources display for last message (working as designed)
+- ✅ Conversation dropdown updates after operations
 
-**Quick Wins** (< 1 hour total):
-- Add StatusIndicators for consistent UI
-- Move LangChain dependency warning to top
-- Update dropdown after message send
-- Increase chatbot height to 600px
-- Add info text to inputs
+**Quick Wins Completed**:
+- ✅ StatusIndicators used consistently throughout
+- ✅ LangChain dependency warning moved to top
+- ✅ Dropdown updates after message send
+- ✅ Chatbot height set to 600px
+- ✅ Info text added to all inputs
+- ✅ ASCII-only compliance (emoji removed)
 
 ### Architecture Issues
 
@@ -1148,9 +1150,10 @@ See COLLECTIVE_ROADMAP.md "Recently Completed" section for:
 **If you're an agent picking up work:**
 
 1. **High ROI Quick Wins** (Do these first):
-   - **P2.1-UX**: LangChain UX improvements (1-2 days)
-     - Loading indicators, better errors, conversation management
-     - Improves user experience significantly
+   - **P2.1-UX**: ~~LangChain UX improvements~~ **COMPLETED 2025-11-18**
+     - ✅ Loading indicators, better errors, conversation management
+     - ✅ ASCII-only compliance, error sanitization, warning placement, info text
+     - See: IMPLEMENTATION_PLAN_LANGCHAIN_UX_POLISH.md
    - **P2.1-TESTING**: LangChain test coverage expansion (2 days)
      - Increase coverage from 35% to 80% for campaign chat modules
      - Reduce regressions before future P3 features

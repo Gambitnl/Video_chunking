@@ -78,7 +78,7 @@ If you find a `[~]` task with timestamp >24 hours old:
 
 - **P4**: ⏸️ Deferred (0/4 started)
 
-- **Bugs**: 🔴 88 open (58 LangChain test gaps + 30 UI issues)
+- **Bugs**: 🔴 85 open (58 LangChain test gaps + 27 UI issues)
 
 
 
@@ -547,17 +547,19 @@ If you find a `[~]` task with timestamp >24 hours old:
 
 
 
-### Low Priority (11 bugs)
+### Low Priority (8 bugs)
 
 #### Quick Fixes (Isolated, Low Conflict)
-- [ ] **BUG-20251103-020**: Live Session - Stop button enabled before Start
-  - **Files**: `src/ui/live_session_tab.py:111-115`
-  - **Effort**: 15 min | **Conflict Risk**: ⚠️ LOW
+- [x] **BUG-20251103-020**: Live Session - Stop button enabled before Start (Agent: Claude Sonnet 4.5, Completed: 2025-11-18 - Already fixed in commit 8d637f9)
+  - **Files**: `src/ui/live_session_tab.py:121,127`
+  - **Effort**: 15 min (verification only) | **Conflict Risk**: ⚠️ LOW
+  - **Fix**: Both buttons now have `.interactive = False` set explicitly. Feature marked as "Coming Soon" with disabled UI.
   → BUG_HUNT_TODO.md:373
 
-- [ ] **BUG-20251103-023**: Social Insights - Temp file cleanup not guaranteed
-  - **Files**: `src/ui/social_insights_tab.py:49-50`
-  - **Effort**: 20 min | **Conflict Risk**: ⚠️ LOW
+- [x] **BUG-20251103-023**: Social Insights - Temp file cleanup not guaranteed (Agent: Claude Sonnet 4.5, Completed: 2025-11-18)
+  - **Files**: `src/ui/social_insights_tab.py:60-72`
+  - **Effort**: 20 min (actual: 15 min) | **Conflict Risk**: ⚠️ LOW
+  - **Fix**: Added cleanup logic at start of analyze_ooc_ui() to remove old *_nebula.png files from temp/ directory. Uses glob pattern matching with graceful error handling.
   → BUG_HUNT_TODO.md:393
 
 - [x] **BUG-20251103-024**: Social Insights - Stale nebula after campaign filter change (Agent: Claude Sonnet 4.5, Completed: 2025-11-18)
@@ -583,9 +585,10 @@ If you find a `[~]` task with timestamp >24 hours old:
   → BUG_HUNT_TODO.md:347
 
 #### App.py Edge Cases
-- [ ] **BUG-20251103-003**: Campaign Launcher - No validation for empty/whitespace names
-  - **Files**: `app.py:780-843`
-  - **Effort**: 30 min | **Conflict Risk**: ⚠️⚠️ MEDIUM
+- [x] **BUG-20251103-003**: Campaign Launcher - No validation for empty/whitespace names (Agent: Claude Sonnet 4.5, Completed: 2025-11-18)
+  - **Files**: `app.py:1483-1520`
+  - **Effort**: 30 min (actual: 25 min) | **Conflict Risk**: ⚠️⚠️ MEDIUM
+  - **Fix**: Added validation in _create_new_campaign() to reject empty/whitespace-only names. Shows error message with guidance, keeps UI in current state. Matches validation pattern from _handle_rename_campaign().
   → BUG_HUNT_TODO.md:263
 
 - [ ] **BUG-20251103-010**: Process Session - Name parsing doesn't handle edge cases

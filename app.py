@@ -1482,7 +1482,24 @@ with gr.Blocks(
 
     def _create_new_campaign(name: str):
         proposed_name = name.strip() if name else ""
-        new_campaign_id, _ = campaign_manager.create_blank_campaign(name=proposed_name or None)
+
+        # Validate that campaign name is not empty/whitespace-only
+        if not proposed_name:
+            error_msg = StatusMessages.error(
+                "Invalid Campaign Name",
+                "Campaign name cannot be empty or contain only whitespace.",
+                "Please provide a valid campaign name."
+            )
+            # Return error message and keep UI in current state
+            return (
+                gr.update(), # Keep current campaign_id
+                error_msg,
+                gr.update(), # Keep current manifest
+                gr.update(value=name), # Keep the input value to show what was invalid
+                *[gr.update()] * 39, # Keep rest of UI unchanged
+            )
+
+        new_campaign_id, _ = campaign_manager.create_blank_campaign(name=proposed_name)
 
         knowledge = CampaignKnowledgeBase(campaign_id=new_campaign_id)
         if not knowledge.knowledge_file.exists():

@@ -754,14 +754,57 @@ def _chat_status_markdown(campaign_id: Optional[str]) -> str:
     )
 
 
-def _resolve_audio_path(audio_file) -> str:
-    """Resolve the audio file path from Gradio file upload."""
-    if isinstance(audio_file, str):
-        return audio_file
-    elif hasattr(audio_file, 'name'):
-        return audio_file.name
-    else:
-        raise ValueError(f"Unsupported audio file type: {type(audio_file)}")
+def _resolve_audio_path(audio_file) -> Path:
+    """
+    Normalize Gradio file input into a filesystem path with validation.
+
+    Handles multiple input types from different Gradio versions and deployment
+    environments: strings, Path objects, dicts, temporary file wrappers, and lists.
+
+    Args:
+        audio_file: Audio file input from Gradio (str, Path, dict, list, or object with .name)
+
+    Returns:
+        Path: Validated path to audio file
+
+    Raises:
+        ValueError: If no audio file provided or path doesn't exist
+        TypeError: If audio file type is unsupported
+    """
+    if audio_file is None:
+        raise ValueError("No audio file provided")
+
+    candidate = audio_file
+
+    # Handle list input (batch upload or multi-file selection)
+    if isinstance(candidate, list):
+        if not candidate:
+            raise ValueError("Empty audio input list")
+        candidate = candidate[0]
+
+    # Handle dict input (some Gradio versions return dicts)
+    if isinstance(candidate, dict):
+        for key in ("name", "path", "tempfile"):
+            value = candidate.get(key)
+            if value:
+                candidate = value
+                break
+
+    # Handle objects with .name attribute (file-like objects)
+    # BUT skip Path objects which also have .name (returns just filename)
+    if hasattr(candidate, "name") and not isinstance(candidate, (str, os.PathLike)):
+        candidate = candidate.name
+
+    # Validate type before converting to Path
+    if not isinstance(candidate, (str, os.PathLike)):
+        raise TypeError(f"Unsupported audio file type: {type(candidate)}")
+
+    # Convert to Path and validate existence
+    resolved_path = Path(candidate)
+    if not resolved_path.exists():
+        raise ValueError(f"Audio file not found: {resolved_path}")
+
+    return resolved_path
 
 
 def _create_processor_for_context(

@@ -479,14 +479,16 @@ If you find a `[~]` task with timestamp >24 hours old:
   - **Fix**: Improved JavaScript auto-scroll with retry logic, increased timeout from 100ms to 300ms, added visibility checks
   → BUG_HUNT_TODO.md:289
 
-- [~] **BUG-20251103-011**: Campaign Tab - Static content, no interactive features (Agent: Claude Sonnet 4.5, Started: 2025-11-18 14:30 UTC, Files: src/ui/campaign_tab_modern.py, app.py)
-  - **Files**: `src/ui/campaign_tab_modern.py:9-46`
-  - **Effort**: 2-3 hours | **Conflict Risk**: ⚠️ LOW
+- [x] **BUG-20251103-011**: Campaign Tab - Static content, no interactive features (Agent: Already Fixed, Completed: 2025-11-14 - commit bab3f2e)
+  - **Files**: `src/ui/campaign_tab_modern.py:9-46`, `app.py:1546-1800`
+  - **Effort**: 2-3 hours (actual: completed by Task12 PR #42)  | **Conflict Risk**: ⚠️ LOW
+  - **Fix**: Added _refresh_campaign_tab, _handle_rename_campaign, _handle_delete_campaign functions with full event wiring
   → BUG_HUNT_TODO.md:315
 
-- [ ] **BUG-20251103-021**: Social Insights - No loading indicator during analysis
-  - **Files**: `src/ui/social_insights_tab.py:16-64`
-  - **Effort**: 1 hour | **Conflict Risk**: ⚠️ LOW
+- [x] **BUG-20251103-021**: Social Insights - No loading indicator during analysis (Agent: Already Fixed, Completed: 2025-11-14 - commit a2d6b42)
+  - **Files**: `src/ui/social_insights_tab.py:34-243`
+  - **Effort**: 1 hour (actual: completed by Task10 PR #40) | **Conflict Risk**: ⚠️ LOW
+  - **Fix**: Added generator-based progress yielding with StatusMessages at 5 stages of analysis
   → BUG_HUNT_TODO.md:381
 
 - [ ] **BUG-20251103-025**: Settings & Tools - Static markdown only, no interactive controls

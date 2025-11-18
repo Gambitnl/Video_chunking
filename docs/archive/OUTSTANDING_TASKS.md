@@ -550,7 +550,7 @@ If you find a `[~]` task with timestamp >24 hours old:
 ### Low Priority (11 bugs)
 
 #### Quick Fixes (Isolated, Low Conflict)
-- [ ] **BUG-20251103-020**: Live Session - Stop button enabled before Start
+- [~] **BUG-20251103-020**: Live Session - Stop button enabled before Start (Agent: Claude Sonnet 4.5, Started: 2025-11-18 10:00 UTC)
   - **Files**: `src/ui/live_session_tab.py:111-115`
   - **Effort**: 15 min | **Conflict Risk**: ⚠️ LOW
   → BUG_HUNT_TODO.md:373

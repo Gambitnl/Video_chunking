@@ -453,7 +453,7 @@ If you find a `[~]` task with timestamp >24 hours old:
 - [x] BUG-20251103-017: Campaign Dashboard - Sessions not filtered by campaign (Agent: Claude, Completed: 2025-11-06) → BUG_HUNT_TODO.md:353 | src/campaign_dashboard.py:119-136
 
 #### Available - Core Logic (Medium Conflict Risk)
-- [ ] **BUG-20251103-008**: Process Session - No progress indicator during processing
+- [~] **BUG-20251103-008**: Process Session - No progress indicator during processing (Agent: Claude Sonnet 4.5, Started: 2025-11-18 14:30 UTC)
   - **Files**: `app.py:509-601` (process_session function), possibly `src/ui/process_session_tab_modern.py` for UI updates
   - **Effort**: 2-4 hours
   - **Conflict Risk**: ⚠️⚠️ MEDIUM (touches app.py core processing logic)
@@ -570,7 +570,7 @@ If you find a `[~]` task with timestamp >24 hours old:
   → BUG_HUNT_TODO.md:410
 
 #### Campaign Dashboard Polish
-- [ ] **BUG-20251103-014**: Campaign Dashboard - Personality text truncated mid-word
+- [~] **BUG-20251103-014**: Campaign Dashboard - Personality text truncated mid-word (Agent: Claude Sonnet 4.5, Started: 2025-11-18 14:30 UTC)
   - **Files**: `src/campaign_dashboard.py:101`
   - **Effort**: 20 min | **Conflict Risk**: ⚠️⚠️ MEDIUM
   → BUG_HUNT_TODO.md:335
@@ -592,12 +592,12 @@ If you find a `[~]` task with timestamp >24 hours old:
   - **Fix**: Added validation in _create_new_campaign() to reject empty/whitespace-only names. Shows error message with guidance, keeps UI in current state. Matches validation pattern from _handle_rename_campaign().
   → BUG_HUNT_TODO.md:263
 
-- [ ] **BUG-20251103-010**: Process Session - Name parsing doesn't handle edge cases
+- [~] **BUG-20251103-010**: Process Session - Name parsing doesn't handle edge cases (Agent: Claude Sonnet 4.5, Started: 2025-11-18 14:30 UTC)
   - **Files**: `app.py:542-543`
   - **Effort**: 30 min | **Conflict Risk**: ⚠️⚠️ MEDIUM
   → BUG_HUNT_TODO.md:307
 
-- [ ] **BUG-20251103-012**: Campaign Dashboard - Knowledge base sample truncated without indication
+- [~] **BUG-20251103-012**: Campaign Dashboard - Knowledge base sample truncated without indication (Agent: Claude Sonnet 4.5, Started: 2025-11-18 14:30 UTC)
   - **Files**: `app.py:337-366`
   - **Effort**: 30 min | **Conflict Risk**: ⚠️⚠️ MEDIUM
   → BUG_HUNT_TODO.md:321

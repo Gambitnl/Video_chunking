@@ -8,14 +8,14 @@
 ## Required Self-Check Before Work
 1. Confirm identity: "I am ChatGPT (Codex), GPT-5-based coding agent."
 2. Review `ROADMAP.md` and active implementation plans for Codex-owned tasks.
-3. Lock active tasks in `docs/archive/OUTSTANDING_TASKS.md` with the `[~]` marker if applicable.
+3. Lock active tasks in `docs/archive/OUTSTANDING_TASKS.md` with the `[~]` marker, following the format specified in that document's "Task Locking Protocol" section.
 4. Verify ASCII-only changes unless user-facing UI text requires otherwise.
 
 ## Execution Workflow
 1. Start from the relevant implementation plan (`IMPLEMENTATION_PLANS*.md`) and note the specific Codex tasks.
 2. Work in small, testable increments; update plan checkboxes and progress notes as you go.
 3. Run targeted tests (e.g., `pytest -q` or focused `-k` flags) after meaningful changes; record commands and outcomes.
-4. Add "Implementation Notes & Reasoning" and "Code Review Findings" sections for completed work.
+4. Add an "Implementation Notes & Reasoning" section for completed work.
 5. Request the Critical Reviewer Agent for major features, bug fixes, or architectural changes.
 
 ## Integration Focus Areas

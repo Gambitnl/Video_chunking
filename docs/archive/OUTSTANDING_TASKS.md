@@ -473,9 +473,10 @@ If you find a `[~]` task with timestamp >24 hours old:
 ### Medium Priority (13 bugs)
 
 #### Isolated UI Files (Low Conflict Risk)
-- [ ] **BUG-20251103-007**: Process Session - Results section doesn't auto-scroll
-  - **Files**: `src/ui/process_session_tab_modern.py:219-226`
-  - **Effort**: 30 min | **Conflict Risk**: ⚠️ LOW
+- [x] **BUG-20251103-007**: Process Session - Results section doesn't auto-scroll (Agent: Claude, Completed: 2025-11-18)
+  - **Files**: `src/ui/process_session_helpers.py:263-290`
+  - **Effort**: 30 min (actual: 20 min) | **Conflict Risk**: ⚠️ LOW
+  - **Fix**: Improved JavaScript auto-scroll with retry logic, increased timeout from 100ms to 300ms, added visibility checks
   → BUG_HUNT_TODO.md:289
 
 - [ ] **BUG-20251103-011**: Campaign Tab - Static content, no interactive features
@@ -499,7 +500,7 @@ If you find a `[~]` task with timestamp >24 hours old:
   - **Effort**: 1-2 hours | **Conflict Risk**: ⚠️⚠️ MEDIUM
   → BUG_HUNT_TODO.md:353
 
-- [ ] **BUG-20251103-018**: Campaign Dashboard - Narratives include other campaigns
+- [x] **BUG-20251103-018**: Campaign Dashboard - Narratives include other campaigns (Agent: Claude, Completed: 2025-11-18 - Already fixed in commit 575b9a6)
   - **Files**: `src/campaign_dashboard.py:146-148`
   - **Effort**: 30-60 min | **Conflict Risk**: ⚠️⚠️ MEDIUM
   → BUG_HUNT_TODO.md:359

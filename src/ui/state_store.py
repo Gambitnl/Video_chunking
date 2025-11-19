@@ -75,7 +75,7 @@ class UIStateStore:
             lock = get_file_lock(self.state_file)
             with lock:
                 with open(self.state_file, "w", encoding="utf-8") as handle:
-                    json.dump(payload, handle, indent=2, ensure_ascii=True)
+                    json.dump(payload, handle, indent=2, ensure_ascii=False)
         except OSError as exc:
             logger.warning("Failed to persist UI state to %s: %s", self.state_file, exc)
 

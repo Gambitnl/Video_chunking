@@ -32,6 +32,7 @@ from src.knowledge_base import CampaignKnowledgeBase
 from src.preflight import PreflightIssue
 from src.ui.constants import StatusIndicators
 from src.ui.helpers import StatusMessages, UIComponents
+from src.ui.state_store import UIStateStore
 from src.campaign_dashboard import CampaignDashboard
 from src.story_notebook import StoryNotebookManager
 from src.artifact_counter import CampaignArtifactCounter
@@ -236,6 +237,7 @@ def ui_restart_application() -> str:
 PROJECT_ROOT = Path(__file__).resolve().parent
 NOTEBOOK_CONTEXT = ""
 story_manager = StoryNotebookManager()
+character_profile_manager = CharacterProfileManager()
 speaker_profile_manager = SpeakerProfileManager()
 logger = get_logger(__name__)
 
@@ -276,7 +278,17 @@ def _set_notebook_context(value: str) -> None:
     NOTEBOOK_CONTEXT = value
 
 
+def _persist_active_campaign(campaign_id: Optional[str]) -> None:
+    """Persist the active campaign selection while suppressing UI errors."""
+
+    try:
+        ui_state_store.save_active_campaign(campaign_id)
+    except Exception as exc:  # pragma: no cover - defensive logging
+        logger.warning("Failed to persist active campaign: %s", exc)
+
+
 campaign_manager = CampaignManager()
+ui_state_store = UIStateStore()
 campaign_names = campaign_manager.get_campaign_names()
 
 
@@ -1337,7 +1349,8 @@ available_parties = party_manager.list_parties()
 theme = create_modern_theme()
 
 # Determine initial campaign context
-initial_campaign_id = next(iter(campaign_names.keys()), None)
+persisted_campaign_id = ui_state_store.load_active_campaign(campaign_names.keys())
+initial_campaign_id = persisted_campaign_id or next(iter(campaign_names.keys()), None)
 initial_campaign_name = campaign_names.get(initial_campaign_id, "Manual Setup")
 initial_badge = _format_campaign_badge(initial_campaign_id)
 initial_summary = _campaign_summary_message(initial_campaign_id)
@@ -1407,8 +1420,8 @@ with gr.Blocks(
     create_party_management_tab(available_parties)
     stories_tab_refs = create_stories_output_tab_modern(demo)
     artifacts_tab_refs = create_session_artifacts_tab(demo)
-    create_search_tab(demo)
-    create_analytics_tab(Path.cwd())
+    create_search_tab(Path.cwd(), ui_container=demo)
+    create_analytics_tab(Path.cwd(), ui_container=demo)
     create_character_analytics_tab(character_profile_manager, campaign_manager, Path.cwd())
     settings_tab_refs = create_settings_tools_tab_modern(
         demo,
@@ -1539,9 +1552,10 @@ with gr.Blocks(
         campaign_id = _campaign_id_from_name(display_name) or current_campaign_id or initial_campaign_id
         summary = _campaign_summary_message(campaign_id)
         manifest = _build_campaign_manifest(campaign_id)
-        
+
         ui_updates = _build_full_ui_update(campaign_id)
-        
+        _persist_active_campaign(campaign_id)
+
         return (
             ui_updates[0], # campaign_id
             summary,
@@ -1574,10 +1588,11 @@ with gr.Blocks(
         if not knowledge.knowledge_file.exists():
             knowledge._save_knowledge()
         _set_notebook_context("")
+        _persist_active_campaign(new_campaign_id)
 
         summary = _campaign_summary_message(new_campaign_id, is_new=True)
         manifest = _build_campaign_manifest(new_campaign_id)
-        
+
         ui_updates = _build_full_ui_update(new_campaign_id)
 
         return (
@@ -1623,7 +1638,8 @@ with gr.Blocks(
         # On success, refresh and load the first available campaign
         _refresh_campaign_names()
         new_active_id = next(iter(campaign_names.keys()), None)
-        
+        _persist_active_campaign(new_active_id)
+
         summary = _campaign_summary_message(new_active_id)
         manifest = _build_campaign_manifest(new_active_id)
         ui_updates = _build_full_ui_update(new_active_id)

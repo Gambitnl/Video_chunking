@@ -26,12 +26,13 @@ from src.ui.helpers import StatusMessages
 logger = logging.getLogger("DDSessionProcessor.search_tab")
 
 
-def create_search_tab(project_root: Path) -> None:
+def create_search_tab(project_root: Path, ui_container: Optional[gr.Blocks] = None) -> None:
     """
     Create the Search tab for transcript search.
 
     Args:
         project_root: Path to project root directory
+        ui_container: Optional Blocks instance used to register load callbacks
     """
 
     output_dir = project_root / "output"
@@ -448,12 +449,13 @@ def create_search_tab(project_root: Path) -> None:
             fn=lambda: export_results("md"), outputs=[export_status]
         )
 
-        # IMPROVEMENT 1: Auto-initialize index on tab load
-        # This provides better UX by automatically preparing the search index
-        # when the user navigates to the Search tab
-        def on_tab_load():
-            """Initialize index when tab loads."""
-            return initialize_index()
+    # IMPROVEMENT 1: Auto-initialize index on tab load
+    # This provides better UX by automatically preparing the search index
+    # when the user navigates to the Search tab
+    def on_tab_load():
+        """Initialize index when tab loads."""
+        return initialize_index()
 
-        # Trigger initialization when component mounts
-        index_status.load(fn=on_tab_load, outputs=[index_status, speaker_filter])
+    # Trigger initialization when the hosting Blocks finishes loading (if provided).
+    if ui_container is not None:
+        ui_container.load(fn=on_tab_load, outputs=[index_status, speaker_filter])

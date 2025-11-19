@@ -438,7 +438,7 @@ If you find a `[~]` task with timestamp >24 hours old:
 
 ### Medium Priority (13 bugs)
 
-- [ ] BUG-20251103-002: Main Dashboard - Campaign state not persisted across refreshes → BUG_HUNT_TODO.md:257 | app.py:623
+- [x] BUG-20251103-002: Main Dashboard - Campaign state not persisted across refreshes (Agent: Codex GPT-5, Completed: 2025-11-19) → BUG_HUNT_TODO.md:257 | app.py:623
 ---
 
 
@@ -615,6 +615,18 @@ If you find a `[~]` task with timestamp >24 hours old:
   - **Files**: Multiple files
   - **Effort**: 1-2 hours | **Conflict Risk**: ⚠️⚠️ MEDIUM
   → BUG_HUNT_TODO.md:441
+
+
+
+---
+
+## Bugs - Analytics Module
+
+🔍 **Session Analyzer Issues** (newly logged 2025-11-19)
+
+- [x] BUG-20251119-101: SessionAnalyzer compare_sessions returned no insights when only one session was provided, leaving the Analytics tab without guidance and failing `tests/test_analytics_session_analyzer.py::test_compare_sessions_single`. Added a single-session summary insight plus a top-speaker highlight so comparisons always emit actionable text. → src/analytics/session_analyzer.py:452-476 | tests/test_analytics_session_analyzer.py:224-233
+
+- [ ] BUG-20251119-102: SessionAnalyzer.calculate_character_stats relies on a non-existent `duration` field in transcript segments, so any caller receives zero speaking durations even though `start_time`/`end_time` are provided. Update the helper to compute duration from timestamps and add regression tests. → src/analytics/session_analyzer.py:373-394
 
 
 

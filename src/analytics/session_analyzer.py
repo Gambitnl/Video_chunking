@@ -470,6 +470,29 @@ class SessionAnalyzer:
         if not sessions:
             return insights
 
+        # Provide a useful summary even when comparing a single session so the
+        # UI and tests are guaranteed to surface at least one insight.
+        if len(sessions) == 1:
+            session = sessions[0]
+            summary = (
+                f"Session '{session.session_name}' lasted {session.duration_formatted()} "
+                f"with {session.message_count} messages "
+                f"({session.ic_percentage():.1f}% IC / {session.ooc_percentage():.1f}% OOC)."
+            )
+            insights.append(summary)
+
+            top_speaker = session.get_top_speakers(1)
+            if top_speaker:
+                name, stats = top_speaker[0]
+                speaker_summary = (
+                    f"Top speaker: {name} spoke {stats.message_count} messages "
+                    f"over {stats.speaking_duration:.0f}s "
+                    f"({stats.ic_percentage():.1f}% IC)."
+                )
+                insights.append(speaker_summary)
+
+            return insights
+
         # Duration insights
         durations = differences["duration"]
         avg_duration = sum(durations) / len(durations)

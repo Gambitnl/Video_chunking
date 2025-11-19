@@ -1,3 +1,4 @@
+import logging
 import pytest
 import json
 from pathlib import Path
@@ -144,3 +145,33 @@ def test_rename_conversation_long_name(conversation_store):
     conversation = conversation_store.load_conversation(conversation_id)
     assert len(conversation["context"]["campaign"]) == 100
     assert conversation["context"]["campaign"] == "A" * 100
+
+
+@pytest.mark.parametrize(
+    "corruption_content",
+    [
+        "not valid json",
+        "{'key': 'value'",
+        "",
+    ],
+)
+def test_load_conversation_corrupted_file_quarantined(
+    conversation_store, caplog, corruption_content
+):
+    """Corrupted JSON should be quarantined and return None without raising."""
+
+    conversation_id = conversation_store.create_conversation()
+    conversation_file = conversation_store.conversations_dir / f"{conversation_id}.json"
+    conversation_file.write_text(corruption_content, encoding="utf-8")
+
+    caplog.set_level(logging.ERROR)
+    result = conversation_store.load_conversation(conversation_id)
+
+    assert result is None
+    assert not conversation_file.exists()
+
+    quarantined_files = list(
+        conversation_store.conversations_dir.glob(f"{conversation_id}.corrupted*")
+    )
+    assert len(quarantined_files) == 1
+    assert "Error loading conversation" in caplog.text

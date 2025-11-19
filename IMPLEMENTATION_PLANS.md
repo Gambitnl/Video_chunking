@@ -989,7 +989,7 @@ At Stage 6 the Groq-backed IC/OOC classifier alternates between HTTP 200s and `4
    - Record validation commands plus Implementation Notes & Reasoning.
 
 ### Implementation Notes & Reasoning
-**Implementer**: Codex (GPT-5)  
+**Implementer**: Codex (GPT-5)
 **Date**: 2025-11-12
 
 1. **PyAnnote checkpoint + warning control**
@@ -1006,3 +1006,50 @@ At Stage 6 the Groq-backed IC/OOC classifier alternates between HTTP 200s and `4
    - **Trade-offs**: Adds minimal latency between classification requests (default 2 req/s) but keeps the pipeline running instead of spamming failed calls.
 
 ---
+
+## BUG-20251102-13 - ConversationStore.load_conversation corrupted JSON handling
+
+### File Impact Analysis (pre-implementation)
+- **src/langchain/conversation_store.py**
+  - **Why**: Add hardened handling for corrupted conversation JSON files so loading failures are contained and surfaced cleanly.
+  - **What**: Adjust `load_conversation` to quarantine unreadable files and log actionable diagnostics.
+  - **Estimated change size**: ~20–30 lines (small try/except refinements and helper logic).
+  - **Risk**: Medium – affects core persistence path used by multiple callers; requires careful regression testing.
+- **tests/test_langchain_conversation_store.py**
+  - **Why**: Add coverage to reproduce corrupted JSON scenarios and assert graceful degradation behavior.
+  - **What**: New test cases for malformed conversation files and expectations about load outcomes and file handling.
+  - **Estimated change size**: ~20–30 lines.
+  - **Risk**: Low – test-only changes.
+
+### Plan
+1) Extend `ConversationStore.load_conversation` to explicitly handle `json.JSONDecodeError` by returning `None`, logging context, and moving the corrupted file to a quarantined suffix to avoid repeated failures.
+2) Add unit tests in `tests/test_langchain_conversation_store.py` that create a malformed JSON file and verify `load_conversation` returns `None`, logs an error, and quarantines the bad file without raising.
+3) Run `pytest -q` to confirm existing behavior remains stable and the new coverage passes.
+
+### Implementation Notes & Reasoning
+- Added a `_quarantine_corrupted_file` helper that renames unreadable JSON files to a `.corrupted`-suffixed path (timestamped when necessary) so repeated loads do not keep failing on the same bad file.
+- Kept `load_conversation` return contract unchanged (`None` on failure) while tightening JSON decode handling to log the error and quarantine the file before returning.
+- Logging now hashes the conversation ID before emitting errors to avoid leaking raw identifiers while preserving debuggability.
+- Quarantine filenames use a simplified `.corrupted` suffix with timestamp fallback when collisions occur to improve discoverability.
+- Tests are parameterized across multiple corruption shapes to verify the quarantine behavior and logging without altering existing conversation creation and validation flows.
+
+### Code Review Findings
+- **Security (LOW)**
+  - Path validation remains in place before loading; quarantine path creation stays within the conversations directory.
+  - Recommend constraining quarantine rename to enforce same-parent moves with explicit checks before rename.
+  - [Addressed] Conversation IDs are hashed before logging to reduce identifier exposure in shared environments.
+- **Performance (LOW)**
+  - Quarantine adds a single rename on corrupted files only; no steady-state impact.
+  - If corruption frequency increases, add lazy cleanup to run during listing rather than on-demand to keep load paths lean.
+  - Consider deferring timestamp formatting until needed to avoid minor overhead inside hot paths (currently negligible).
+- **Maintainability (LOW)**
+  - Helper isolates quarantine behavior, reducing duplication if other methods need similar handling.
+  - Could extract log message strings to constants if more file-health instrumentation is added.
+  - Add docstring references to related functions (`list_conversations`) to show shared error-handling expectations.
+- **User Experience (LOW)**
+  - Errors are logged but not surfaced to callers; exposing a user-facing warning channel could improve visibility when a conversation cannot be loaded.
+  - Add a telemetry counter for quarantined files to show operators that data was skipped.
+  - Provide a recovery utility to attempt salvage of quarantined files when possible.
+- **Testing (LOW)**
+  - New parameterized test covers JSON corruption and quarantine behavior across empty, invalid, and truncated content.
+  - Simulate permission errors to verify the warning path when the quarantine rename fails.

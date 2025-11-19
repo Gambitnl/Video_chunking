@@ -139,11 +139,15 @@ class TestSessionAnalyzer:
         assert thorin_stats.message_count == 2
         assert thorin_stats.ic_messages == 2
         assert thorin_stats.ooc_messages == 0
+        # Thorin has 2 segments: 0-10s (10s) + 20-30s (10s) = 20s total
+        assert thorin_stats.speaking_duration == 20.0
 
         elara_stats = metrics.character_stats["Elara"]
         assert elara_stats.message_count == 1
         assert elara_stats.ic_messages == 0
         assert elara_stats.ooc_messages == 1
+        # Elara has 1 segment: 10-20s (10s) = 10s total
+        assert elara_stats.speaking_duration == 10.0
 
     def test_extract_metrics_empty_segments(self):
         """Test extracting metrics with empty segments."""

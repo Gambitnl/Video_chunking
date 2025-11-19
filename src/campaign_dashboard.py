@@ -99,14 +99,13 @@ class CampaignDashboard:
                 for name in profiles_for_party:
                     profile = char_mgr.get_profile(name)
                     # Truncate personality at word boundaries to avoid mid-word cuts
-                    personality_text = profile.personality if profile.personality else 'No personality set'
+                    personality_text = profile.personality or 'No personality set'
                     if len(personality_text) > 50:
                         # Find last space before 50 chars to avoid breaking words
                         truncate_pos = personality_text.rfind(' ', 0, 50)
-                        if truncate_pos > 0:  # Found a space
-                            personality_preview = personality_text[:truncate_pos] + "..."
-                        else:  # No space found, hard truncate at 50
-                            personality_preview = personality_text[:50] + "..."
+                        if truncate_pos <= 0:  # No space found or at the beginning, hard truncate
+                            truncate_pos = 50
+                        personality_preview = personality_text[:truncate_pos] + "..."
                     else:
                         personality_preview = personality_text
                     details += f"- **{name}**: {personality_preview}\n"

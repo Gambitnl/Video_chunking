@@ -577,14 +577,16 @@ def _knowledge_summary_markdown(campaign_id: Optional[str]) -> str:
 
     def _format_sample(entries, attr, label):
         """Format a sample with total count indication if truncated."""
-        sample = _sample(entries, attr)
         total = len(entries)
+        if not total:
+            return f"- {label}: None captured"
+
+        sample = _sample(entries, attr)
         if total > 3:
             return f"- {label}: {sample} (showing 3 of {total})"
-        elif total > 0:
-            return f"- {label}: {sample}"
-        else:
-            return f"- {label}: None captured"
+
+        # For total <= 3, _sample handles the "None captured" case if no names are found.
+        return f"- {label}: {sample}"
 
     lines = [
         "### Knowledge Highlights",
@@ -868,11 +870,6 @@ def _create_processor_for_context(
         # Validate character names if required
         if not chars and not allow_empty_names:
             raise ValueError("Character names are required when using Manual Entry")
-
-        # Warn about potentially problematic characters (logged, not blocking)
-        for name in chars + players:
-            if ',' in name:
-                logger.warning(f"Name contains comma which may cause parsing issues: '{name}'. Consider removing commas from names.")
 
         if chars:
             kwargs["character_names"] = chars

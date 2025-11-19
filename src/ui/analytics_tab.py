@@ -26,12 +26,13 @@ from src.ui.helpers import StatusMessages
 logger = logging.getLogger("DDSessionProcessor.analytics_tab")
 
 
-def create_analytics_tab(project_root: Path) -> None:
+def create_analytics_tab(project_root: Path, ui_container: Optional[gr.Blocks] = None) -> None:
     """
     Create the Analytics tab for session analysis and comparison.
 
     Args:
         project_root: Root directory of the project
+        ui_container: Optional Blocks instance for registering load callbacks
     """
 
     # Initialize analytics components
@@ -406,9 +407,9 @@ def create_analytics_tab(project_root: Path) -> None:
             outputs=[export_status]
         )
 
-        # Initialize session list on tab load
-        gr.on(
-            triggers=[gr.Tab.select],
-            fn=refresh_sessions,
-            outputs=[session_dropdown]
-        )
+        # Initialize session list when the hosting Blocks finishes loading.
+        if ui_container is not None:
+            ui_container.load(
+                fn=refresh_sessions,
+                outputs=[session_dropdown]
+            )

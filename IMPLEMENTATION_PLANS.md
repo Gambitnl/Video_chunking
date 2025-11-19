@@ -1029,13 +1029,15 @@ At Stage 6 the Groq-backed IC/OOC classifier alternates between HTTP 200s and `4
 ### Implementation Notes & Reasoning
 - Added a `_quarantine_corrupted_file` helper that renames unreadable JSON files to a `.corrupted`-suffixed path (timestamped when necessary) so repeated loads do not keep failing on the same bad file.
 - Kept `load_conversation` return contract unchanged (`None` on failure) while tightening JSON decode handling to log the error and quarantine the file before returning.
-- Test adds a malformed conversation fixture to verify the quarantine behavior and logging without altering existing conversation creation and validation flows.
+- Logging now hashes the conversation ID before emitting errors to avoid leaking raw identifiers while preserving debuggability.
+- Quarantine filenames use a simplified `.corrupted` suffix with timestamp fallback when collisions occur to improve discoverability.
+- Tests are parameterized across multiple corruption shapes to verify the quarantine behavior and logging without altering existing conversation creation and validation flows.
 
 ### Code Review Findings
 - **Security (LOW)**
   - Path validation remains in place before loading; quarantine path creation stays within the conversations directory.
   - Recommend constraining quarantine rename to enforce same-parent moves with explicit checks before rename.
-  - Consider redacting conversation IDs in error logs when running in shared environments to avoid leaking identifiers.
+  - [Addressed] Conversation IDs are hashed before logging to reduce identifier exposure in shared environments.
 - **Performance (LOW)**
   - Quarantine adds a single rename on corrupted files only; no steady-state impact.
   - If corruption frequency increases, add lazy cleanup to run during listing rather than on-demand to keep load paths lean.
@@ -1049,6 +1051,5 @@ At Stage 6 the Groq-backed IC/OOC classifier alternates between HTTP 200s and `4
   - Add a telemetry counter for quarantined files to show operators that data was skipped.
   - Provide a recovery utility to attempt salvage of quarantined files when possible.
 - **Testing (LOW)**
-  - New test covers JSON corruption and quarantine behavior.
-  - Add scenarios for partial writes (truncated JSON) to ensure consistent quarantine outcomes.
+  - New parameterized test covers JSON corruption and quarantine behavior across empty, invalid, and truncated content.
   - Simulate permission errors to verify the warning path when the quarantine rename fails.

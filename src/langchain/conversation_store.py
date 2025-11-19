@@ -3,6 +3,7 @@ Conversation persistence and management.
 """
 from __future__ import annotations
 
+import hashlib
 import json
 import logging
 import re
@@ -230,19 +231,20 @@ class ConversationStore:
         try:
             self._validate_conversation_id(conversation_id)
         except ValueError as e:
-            logger.error(f"Invalid conversation ID: {e}")
+            logger.error("Invalid conversation ID: %s", e)
             return None
 
         conversation_file = self.conversations_dir / f"{conversation_id}.json"
+        redacted_id = self._redacted_id(conversation_id)
 
         # Additional security check: ensure the resolved path is within conversations_dir
         try:
             conversation_file = conversation_file.resolve()
             if not str(conversation_file).startswith(str(self.conversations_dir.resolve())):
-                logger.error(f"Path traversal attempt detected: {conversation_id}")
+                logger.error("Path traversal attempt detected: %s", redacted_id)
                 return None
         except Exception as e:
-            logger.error(f"Error resolving path for conversation {conversation_id}: {e}")
+            logger.error("Error resolving path for conversation %s: %s", redacted_id, e)
             return None
 
         if not conversation_file.exists():
@@ -258,25 +260,23 @@ class ConversationStore:
 
             return conversation
         except json.JSONDecodeError as e:
-            logger.error(f"Error loading conversation {conversation_id}: {e}")
+            logger.error("Error loading conversation %s: %s", redacted_id, e)
             self._quarantine_corrupted_file(conversation_file)
             return None
         except IOError as e:
-            logger.error(f"Error loading conversation {conversation_id}: {e}")
+            logger.error("Error loading conversation %s: %s", redacted_id, e)
             return None
         except ValueError as e:
-            logger.error(f"Invalid conversation data in {conversation_id}: {e}")
+            logger.error("Invalid conversation data in %s: %s", redacted_id, e)
             return None
 
     def _quarantine_corrupted_file(self, conversation_file: Path) -> None:
         """Move a corrupted conversation file aside to prevent repeated failures."""
 
-        corrupted_path = conversation_file.with_suffix(conversation_file.suffix + ".corrupted")
+        corrupted_path = conversation_file.with_suffix(".corrupted")
         if corrupted_path.exists():
             timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
-            corrupted_path = conversation_file.with_suffix(
-                conversation_file.suffix + f".corrupted.{timestamp}"
-            )
+            corrupted_path = conversation_file.with_suffix(f".corrupted.{timestamp}")
 
         try:
             conversation_file.rename(corrupted_path)
@@ -289,6 +289,13 @@ class ConversationStore:
                 conversation_file,
                 quarantine_error,
             )
+
+    @staticmethod
+    def _redacted_id(conversation_id: str) -> str:
+        """Return a non-reversible identifier safe for logs."""
+
+        digest = hashlib.sha256(conversation_id.encode("utf-8", "replace")).hexdigest()
+        return digest[:12]
 
     def list_conversations(self, limit: int = 50) -> List[Dict]:
         """

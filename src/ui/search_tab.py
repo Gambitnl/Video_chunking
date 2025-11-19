@@ -298,7 +298,7 @@ def create_search_tab(project_root: Path) -> None:
             )
 
     # Create UI
-    with gr.Tab("Search"):
+    with gr.Tab("Search") as search_tab:
         gr.Markdown(
             """
         ### [SEARCH] Transcript Search
@@ -455,5 +455,5 @@ def create_search_tab(project_root: Path) -> None:
             """Initialize index when tab loads."""
             return initialize_index()
 
-        # Trigger initialization when component mounts
-        index_status.load(fn=on_tab_load, outputs=[index_status, speaker_filter])
+        # Trigger initialization when the tab is selected
+        search_tab.select(fn=on_tab_load, outputs=[index_status, speaker_filter])

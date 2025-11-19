@@ -237,6 +237,7 @@ PROJECT_ROOT = Path(__file__).resolve().parent
 NOTEBOOK_CONTEXT = ""
 story_manager = StoryNotebookManager()
 speaker_profile_manager = SpeakerProfileManager()
+character_profile_manager = CharacterProfileManager()
 logger = get_logger(__name__)
 
 # Create global artifact counter with 5-minute cache
@@ -1362,11 +1363,17 @@ with gr.Blocks(
                 value=initial_campaign_name if initial_campaign_id else None,
                 info="Load a campaign profile to apply its defaults.",
             )
-            load_campaign_btn = UIComponents.create_action_button(
-                "Load Existing Campaign",
-                variant="primary",
-                size="md",
-            )
+            with gr.Row():
+                load_campaign_btn = UIComponents.create_action_button(
+                    "Load Existing Campaign",
+                    variant="primary",
+                    size="md",
+                )
+                refresh_campaigns_btn = UIComponents.create_action_button(
+                    "Refresh List",
+                    variant="secondary",
+                    size="sm",
+                )
 
         with gr.Column():
             new_campaign_name = gr.Textbox(
@@ -1407,7 +1414,7 @@ with gr.Blocks(
     create_party_management_tab(available_parties)
     stories_tab_refs = create_stories_output_tab_modern(demo)
     artifacts_tab_refs = create_session_artifacts_tab(demo)
-    create_search_tab(demo)
+    create_search_tab(PROJECT_ROOT)
     create_analytics_tab(Path.cwd())
     create_character_analytics_tab(character_profile_manager, campaign_manager, Path.cwd())
     settings_tab_refs = create_settings_tools_tab_modern(
@@ -1587,6 +1594,12 @@ with gr.Blocks(
             gr.update(value=""), # Clear the new campaign name textbox
             *ui_updates[1:], # The rest of the UI updates
         )
+
+    def _handle_refresh_campaigns():
+        """Handles the refresh button click event."""
+        campaign_names_map = _refresh_campaign_names()
+        campaign_choices = list(campaign_names_map.values())
+        return gr.update(choices=campaign_choices)
 
     def _handle_rename_campaign(campaign_display_name: str, new_name: str, active_campaign_id: Optional[str]):
         """Handler for the rename campaign button."""
@@ -1841,6 +1854,11 @@ with gr.Blocks(
         fn=_create_new_campaign,
         inputs=[new_campaign_name],
         outputs=create_campaign_outputs,
+    )
+
+    refresh_campaigns_btn.click(
+        fn=_handle_refresh_campaigns,
+        outputs=existing_campaign_dropdown
     )
 
     # Pipeline Stage Control

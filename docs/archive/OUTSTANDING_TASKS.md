@@ -514,7 +514,7 @@ If you find a `[~]` task with timestamp >24 hours old:
   - **Effort**: 1-2 hours | **Conflict Risk**: ⚠️⚠️ MEDIUM
   → BUG_HUNT_TODO.md:257
 
-- [ ] **BUG-20251103-004**: Campaign Launcher - Dropdown not refreshed on external changes
+- [x] **BUG-20251103-004**: Campaign Launcher - Dropdown not refreshed on external changes (Agent: Jules, Completed: 2025-11-19)
   - **Files**: `app.py:630-635`
   - **Effort**: 1 hour | **Conflict Risk**: ⚠️⚠️ MEDIUM
   → BUG_HUNT_TODO.md:269

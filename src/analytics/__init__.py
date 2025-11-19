@@ -8,8 +8,10 @@ from .character_analytics import (
 from .timeline_view import TimelineGenerator
 from .party_analytics import PartyAnalyzer, PartyComposition
 from .data_validator import DataValidator, ValidationWarning, ValidationReport
+from .session_analyzer import SessionAnalyzer
 
 __all__ = [
+    "SessionAnalyzer",
     "CharacterAnalytics",
     "TimelineEvent",
     "CharacterTimeline",

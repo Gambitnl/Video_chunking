@@ -406,9 +406,7 @@ def create_analytics_tab(project_root: Path) -> None:
             outputs=[export_status]
         )
 
-        # Initialize session list on tab load
-        gr.on(
-            triggers=[gr.Tab.select],
-            fn=refresh_sessions,
-            outputs=[session_dropdown]
-        )
+        # This tab does not have access to the `demo` object, so the load event
+        # cannot be attached here. It must be attached in the main `app.py`
+        # after the tab is created. The original `gr.on()` was incorrect.
+        pass

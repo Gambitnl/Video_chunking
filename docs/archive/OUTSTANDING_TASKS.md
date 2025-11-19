@@ -581,7 +581,7 @@ If you find a `[~]` task with timestamp >24 hours old:
   - **Effort**: 15 min | **Conflict Risk**: ⚠️⚠️ MEDIUM
   → BUG_HUNT_TODO.md:341
 
-- [ ] **BUG-20251103-016**: Campaign Dashboard - Managers instantiated multiple times
+- [~] **BUG-20251103-016**: Campaign Dashboard - Managers instantiated multiple times (Agent: Claude Sonnet 4.5, Started: 2025-11-19 08:00 UTC)
   - **Files**: `src/campaign_dashboard.py:20-22`
   - **Effort**: 30-60 min | **Conflict Risk**: ⚠️⚠️ MEDIUM
   → BUG_HUNT_TODO.md:347

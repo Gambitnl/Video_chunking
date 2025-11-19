@@ -453,11 +453,11 @@ If you find a `[~]` task with timestamp >24 hours old:
 - [x] BUG-20251103-017: Campaign Dashboard - Sessions not filtered by campaign (Agent: Claude, Completed: 2025-11-06) → BUG_HUNT_TODO.md:353 | src/campaign_dashboard.py:119-136
 
 #### Available - Core Logic (Medium Conflict Risk)
-- [ ] **BUG-20251103-008**: Process Session - No progress indicator during processing
-  - **Files**: `app.py:509-601` (process_session function), possibly `src/ui/process_session_tab_modern.py` for UI updates
-  - **Effort**: 2-4 hours
+- [x] **BUG-20251103-008**: Process Session - No progress indicator during processing (Agent: Claude Sonnet 4.5, Completed: 2025-11-18)
+  - **Files**: `app.py:916-1005` (added progress parameter and callback), `src/pipeline.py:1535-2181` (added progress_callback with 9 stage reports)
+  - **Effort**: 2-4 hours (actual: ~2 hours)
   - **Conflict Risk**: ⚠️⚠️ MEDIUM (touches app.py core processing logic)
-  - **Fix**: Add progress callbacks and UI status updates
+  - **Fix**: Added progress_callback to pipeline, integrated with Gradio Progress tracker, reports after each of 9 stages
   → BUG_HUNT_TODO.md:295
 
 #### Available - Cross-Cutting (High Conflict Risk)
@@ -570,9 +570,10 @@ If you find a `[~]` task with timestamp >24 hours old:
   → BUG_HUNT_TODO.md:410
 
 #### Campaign Dashboard Polish
-- [ ] **BUG-20251103-014**: Campaign Dashboard - Personality text truncated mid-word
-  - **Files**: `src/campaign_dashboard.py:101`
-  - **Effort**: 20 min | **Conflict Risk**: ⚠️⚠️ MEDIUM
+- [x] **BUG-20251103-014**: Campaign Dashboard - Personality text truncated mid-word (Agent: Claude Sonnet 4.5, Completed: 2025-11-18)
+  - **Files**: `src/campaign_dashboard.py:101-112`
+  - **Effort**: 20 min (actual: 15 min) | **Conflict Risk**: ⚠️⚠️ MEDIUM
+  - **Fix**: Added word-boundary-aware truncation using rfind() to avoid mid-word cuts
   → BUG_HUNT_TODO.md:335
 
 - [x] **BUG-20251103-015**: Campaign Dashboard - Health percentage edge case (Agent: Jules, Completed: 2025-11-18)
@@ -592,14 +593,16 @@ If you find a `[~]` task with timestamp >24 hours old:
   - **Fix**: Added validation in _create_new_campaign() to reject empty/whitespace-only names. Shows error message with guidance, keeps UI in current state. Matches validation pattern from _handle_rename_campaign().
   → BUG_HUNT_TODO.md:263
 
-- [ ] **BUG-20251103-010**: Process Session - Name parsing doesn't handle edge cases
-  - **Files**: `app.py:542-543`
-  - **Effort**: 30 min | **Conflict Risk**: ⚠️⚠️ MEDIUM
+- [x] **BUG-20251103-010**: Process Session - Name parsing doesn't handle edge cases (Agent: Claude Sonnet 4.5, Completed: 2025-11-18)
+  - **Files**: `app.py:860-880`
+  - **Effort**: 30 min (actual: 20 min) | **Conflict Risk**: ⚠️⚠️ MEDIUM
+  - **Fix**: Added duplicate removal with order preservation, comma validation warning
   → BUG_HUNT_TODO.md:307
 
-- [ ] **BUG-20251103-012**: Campaign Dashboard - Knowledge base sample truncated without indication
-  - **Files**: `app.py:337-366`
-  - **Effort**: 30 min | **Conflict Risk**: ⚠️⚠️ MEDIUM
+- [x] **BUG-20251103-012**: Campaign Dashboard - Knowledge base sample truncated without indication (Agent: Claude Sonnet 4.5, Completed: 2025-11-18)
+  - **Files**: `app.py:578-596`
+  - **Effort**: 30 min (actual: 20 min) | **Conflict Risk**: ⚠️⚠️ MEDIUM
+  - **Fix**: Added _format_sample helper to show count indicators (e.g., "showing 3 of 47")
   → BUG_HUNT_TODO.md:321
 
 #### Cross-Cutting (Defer)

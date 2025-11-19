@@ -1532,6 +1532,9 @@ class DDSessionProcessor:
             self.logger.info("Processing cancelled by user")
             raise CancelledError("Processing was cancelled by user")
 
+    # Total number of pipeline stages for progress tracking
+    TOTAL_PIPELINE_STAGES = 9
+
     def process(
         self,
         input_file: Path,
@@ -1541,7 +1544,8 @@ class DDSessionProcessor:
         skip_snippets: bool = False,
         skip_knowledge: bool = False,
         is_test_run: bool = False,
-        cancel_event: Optional[Event] = None
+        cancel_event: Optional[Event] = None,
+        progress_callback: Optional[callable] = None
     ):
         """
         Process a complete D&D session recording through the 9-stage pipeline.
@@ -1569,6 +1573,8 @@ class DDSessionProcessor:
             skip_knowledge: Skip knowledge extraction (default: False)
             is_test_run: Flag for test mode (default: False)
             cancel_event: Threading Event to signal cancellation (default: None)
+            progress_callback: Optional callback for progress updates (default: None)
+                              Called with (progress: float, message: str) where progress is 0.0-1.0
 
         Returns:
             Dictionary containing:
@@ -1584,6 +1590,17 @@ class DDSessionProcessor:
         """
         self.is_test_run = is_test_run
         self.cancel_event = cancel_event
+        self.progress_callback = progress_callback
+
+        # Helper function to report progress
+        def _report_progress(stage_num: int, message: str):
+            """Report progress to callback if provided."""
+            if self.progress_callback:
+                progress = stage_num / self.TOTAL_PIPELINE_STAGES
+                try:
+                    self.progress_callback(progress, message)
+                except Exception as e:
+                    self.logger.warning(f"Progress callback failed: {e}")
 
         # ====================================================================
         # Setup and Initialization
@@ -1715,6 +1732,7 @@ class DDSessionProcessor:
                     completed_stages,
                     checkpoint_metadata
                 )
+                _report_progress(1, f"Stage 1/{self.TOTAL_PIPELINE_STAGES}: Audio converted ({duration:.1f}s)")
                 # Check for cancellation after Stage 1
                 self._check_cancellation()
 
@@ -1749,6 +1767,7 @@ class DDSessionProcessor:
                     completed_stages,
                     checkpoint_metadata
                 )
+                _report_progress(2, f"Stage 2/{self.TOTAL_PIPELINE_STAGES}: Audio chunked ({len(chunks)} chunks)")
                 # Check for cancellation after Stage 2
                 self._check_cancellation()
 
@@ -1808,6 +1827,7 @@ class DDSessionProcessor:
                     completed_stages,
                     checkpoint_metadata
                 )
+                _report_progress(3, f"Stage 3/{self.TOTAL_PIPELINE_STAGES}: Audio transcribed ({len(chunk_transcriptions)} chunks)")
                 # Check for cancellation after Stage 3
                 self._check_cancellation()
 
@@ -1865,6 +1885,7 @@ class DDSessionProcessor:
                     completed_stages,
                     checkpoint_metadata
                 )
+                _report_progress(4, f"Stage 4/{self.TOTAL_PIPELINE_STAGES}: Transcriptions merged ({len(merged_segments)} segments)")
 
                 # Save intermediate output if enabled
                 if Config.SAVE_INTERMEDIATE_OUTPUTS:
@@ -1933,6 +1954,7 @@ class DDSessionProcessor:
                         completed_stages,
                         checkpoint_metadata
                     )
+                    _report_progress(5, f"Stage 5/{self.TOTAL_PIPELINE_STAGES}: Speaker diarization complete ({len(speaker_segments_with_labels)} segments)")
 
                     # Save intermediate output if enabled
                     if Config.SAVE_INTERMEDIATE_OUTPUTS:
@@ -2034,6 +2056,7 @@ class DDSessionProcessor:
                         except Exception as e:
                             self.logger.warning("Failed to generate scene bundles: %s", e)
 
+                    _report_progress(6, f"Stage 6/{self.TOTAL_PIPELINE_STAGES}: Segments classified ({len(classifications)} classifications)")
                     # Check for cancellation after Stage 6
                     self._check_cancellation()
                 else:
@@ -2083,6 +2106,7 @@ class DDSessionProcessor:
                     completed_stages,
                     checkpoint_metadata
                 )
+                _report_progress(7, f"Stage 7/{self.TOTAL_PIPELINE_STAGES}: Transcript outputs generated")
                 # Check for cancellation after Stage 7
                 self._check_cancellation()
 
@@ -2120,6 +2144,7 @@ class DDSessionProcessor:
                     completed_stages,
                     checkpoint_metadata
                 )
+                _report_progress(8, f"Stage 8/{self.TOTAL_PIPELINE_STAGES}: Audio segments exported")
                 # Check for cancellation after Stage 8
                 self._check_cancellation()
 
@@ -2156,6 +2181,7 @@ class DDSessionProcessor:
                     completed_stages,
                     checkpoint_metadata
                 )
+                _report_progress(9, f"Stage 9/{self.TOTAL_PIPELINE_STAGES}: Knowledge extraction complete")
                 # Check for cancellation after Stage 9
                 self._check_cancellation()
 

@@ -139,11 +139,32 @@ class TestSessionAnalyzer:
         assert thorin_stats.message_count == 2
         assert thorin_stats.ic_messages == 2
         assert thorin_stats.ooc_messages == 0
+        # Thorin has 2 segments: 0-10s (10s) + 20-30s (10s) = 20s total
+        assert thorin_stats.speaking_duration == 20.0
 
         elara_stats = metrics.character_stats["Elara"]
         assert elara_stats.message_count == 1
         assert elara_stats.ic_messages == 0
         assert elara_stats.ooc_messages == 1
+        # Elara has 1 segment: 10-20s (10s) = 10s total
+        assert elara_stats.speaking_duration == 10.0
+
+    def test_calculate_character_stats_duration(self, sample_session_data):
+        """Test that speaking duration is calculated correctly in calculate_character_stats."""
+        analyzer = SessionAnalyzer(Path("/tmp"))
+        segments = sample_session_data["segments"]
+
+        # Directly call the method that was fixed
+        char_stats = analyzer.calculate_character_stats(segments)
+
+        # Verify duration calculation from timestamps
+        assert "Thorin" in char_stats
+        assert "Elara" in char_stats
+
+        # Thorin: 2 segments (0-10s + 20-30s = 20s total)
+        assert char_stats["Thorin"].speaking_duration == 20.0
+        # Elara: 1 segment (10-20s = 10s total)
+        assert char_stats["Elara"].speaking_duration == 10.0
 
     def test_extract_metrics_empty_segments(self):
         """Test extracting metrics with empty segments."""

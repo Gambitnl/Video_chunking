@@ -276,7 +276,7 @@ class SessionAnalyzer:
             # Extract segment data
             start_time = segment.get("start_time", 0.0)
             end_time = segment.get("end_time", 0.0)
-            duration = end_time - start_time
+            duration = max(0.0, end_time - start_time)  # Ensure non-negative
 
             text = segment.get("text", "")
             speaker_id = segment.get("speaker_id", "UNKNOWN")
@@ -394,7 +394,10 @@ class SessionAnalyzer:
             stat = char_stats[speaker_name]
             stat.message_count += 1
             stat.word_count += len(segment.get("text", "").split())
-            stat.speaking_duration += segment.get("duration", 0.0)
+
+            # Calculate duration from timestamps (segments don't have duration field)
+            duration = segment.get("end_time", 0.0) - segment.get("start_time", 0.0)
+            stat.speaking_duration += max(0.0, duration)  # Ensure non-negative
             stat.last_appearance = segment.get("end_time", 0.0)
 
             # Update IC/OOC

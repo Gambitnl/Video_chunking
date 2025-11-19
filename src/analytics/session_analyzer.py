@@ -276,7 +276,7 @@ class SessionAnalyzer:
             # Extract segment data
             start_time = segment.get("start_time", 0.0)
             end_time = segment.get("end_time", 0.0)
-            duration = end_time - start_time
+            duration = max(0.0, end_time - start_time)  # Ensure non-negative
 
             text = segment.get("text", "")
             speaker_id = segment.get("speaker_id", "UNKNOWN")

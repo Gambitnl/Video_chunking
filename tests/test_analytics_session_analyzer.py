@@ -149,6 +149,23 @@ class TestSessionAnalyzer:
         # Elara has 1 segment: 10-20s (10s) = 10s total
         assert elara_stats.speaking_duration == 10.0
 
+    def test_calculate_character_stats_duration(self, sample_session_data):
+        """Test that speaking duration is calculated correctly in calculate_character_stats."""
+        analyzer = SessionAnalyzer(Path("/tmp"))
+        segments = sample_session_data["segments"]
+
+        # Directly call the method that was fixed
+        char_stats = analyzer.calculate_character_stats(segments)
+
+        # Verify duration calculation from timestamps
+        assert "Thorin" in char_stats
+        assert "Elara" in char_stats
+
+        # Thorin: 2 segments (0-10s + 20-30s = 20s total)
+        assert char_stats["Thorin"].speaking_duration == 20.0
+        # Elara: 1 segment (10-20s = 10s total)
+        assert char_stats["Elara"].speaking_duration == 10.0
+
     def test_extract_metrics_empty_segments(self):
         """Test extracting metrics with empty segments."""
         analyzer = SessionAnalyzer(Path("/tmp"))

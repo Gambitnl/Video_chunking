@@ -581,9 +581,10 @@ If you find a `[~]` task with timestamp >24 hours old:
   - **Effort**: 15 min | **Conflict Risk**: ⚠️⚠️ MEDIUM
   → BUG_HUNT_TODO.md:341
 
-- [~] **BUG-20251103-016**: Campaign Dashboard - Managers instantiated multiple times (Agent: Claude Sonnet 4.5, Started: 2025-11-19 08:00 UTC)
-  - **Files**: `src/campaign_dashboard.py:20-22`
-  - **Effort**: 30-60 min | **Conflict Risk**: ⚠️⚠️ MEDIUM
+- [x] **BUG-20251103-016**: Campaign Dashboard - Managers instantiated multiple times (Agent: Claude Sonnet 4.5, Completed: 2025-11-19)
+  - **Files**: `src/campaign_dashboard.py:10-53`
+  - **Effort**: 30 min (actual) | **Conflict Risk**: ⚠️⚠️ MEDIUM
+  - **Fix**: Implemented lazy-loading singleton pattern for CampaignManager, PartyConfigManager, and CharacterProfileManager. Added _get_*_manager() functions to create instances once and reuse across all dashboard generations. Reduces JSON file I/O by ~3x during dashboard refreshes.
   → BUG_HUNT_TODO.md:347
 
 #### App.py Edge Cases

@@ -28,7 +28,7 @@
 
 1. **Before starting**: Change `[ ]` to `[~]` with agent name + timestamp
 
-2. **Commit immediately**: `git add docs/OUTSTANDING_TASKS.md && git commit -m "Lock task: Task-ID"`
+2. **Commit immediately**: `git add docs/OUTSTANDING_TASKS.md && git commit -m Lock task: Task-ID`
 
 3. **After completion**: Update `[~]` to `[x]` with completion date
 
@@ -410,7 +410,7 @@ If you find a `[~]` task with timestamp >24 hours old:
    ```markdown
    [~] BUG-ID: Description (Agent: YourName, Started: YYYY-MM-DD HH:MM UTC, Files: list) → source
    ```
-5. **Commit & push lock** right away: `git add docs/OUTSTANDING_TASKS.md && git commit -m "Lock task: BUG-ID" && git push`
+5. **Commit & push lock** right away: `git add docs/OUTSTANDING_TASKS.md && git commit -m Lock task: BUG-ID && git push`
 6. **Do the work**
 7. **Update to complete** when done:
    ```markdown
@@ -514,7 +514,7 @@ If you find a `[~]` task with timestamp >24 hours old:
   - **Effort**: 1-2 hours | **Conflict Risk**: ⚠️⚠️ MEDIUM
   → BUG_HUNT_TODO.md:257
 
-- [ ] **BUG-20251103-004**: Campaign Launcher - Dropdown not refreshed on external changes
+- [x] **BUG-20251103-004**: Campaign Launcher - Dropdown not refreshed on external changes (Agent: Jules, Completed: 2025-11-19)
   - **Files**: `app.py:630-635`
   - **Effort**: 1 hour | **Conflict Risk**: ⚠️⚠️ MEDIUM
   → BUG_HUNT_TODO.md:269
@@ -554,7 +554,7 @@ If you find a `[~]` task with timestamp >24 hours old:
 - [x] **BUG-20251103-020**: Live Session - Stop button enabled before Start (Agent: Claude Sonnet 4.5, Completed: 2025-11-18 - Already fixed in commit 8d637f9)
   - **Files**: `src/ui/live_session_tab.py:121,127`
   - **Effort**: 15 min (verification only) | **Conflict Risk**: ⚠️ LOW
-  - **Fix**: Both buttons now have `.interactive = False` set explicitly. Feature marked as "Coming Soon" with disabled UI.
+  - **Fix**: Both buttons now have `.interactive = False` set explicitly. Feature marked as Coming Soon with disabled UI.
   → BUG_HUNT_TODO.md:373
 
 - [x] **BUG-20251103-023**: Social Insights - Temp file cleanup not guaranteed (Agent: Claude Sonnet 4.5, Completed: 2025-11-18)
@@ -602,7 +602,7 @@ If you find a `[~]` task with timestamp >24 hours old:
 - [x] **BUG-20251103-012**: Campaign Dashboard - Knowledge base sample truncated without indication (Agent: Claude Sonnet 4.5, Completed: 2025-11-18)
   - **Files**: `app.py:578-596`
   - **Effort**: 30 min (actual: 20 min) | **Conflict Risk**: ⚠️⚠️ MEDIUM
-  - **Fix**: Added _format_sample helper to show count indicators (e.g., "showing 3 of 47")
+  - **Fix**: Added _format_sample helper to show count indicators (e.g., showing 3 of 47)
   → BUG_HUNT_TODO.md:321
 
 #### Cross-Cutting (Defer)
@@ -650,7 +650,7 @@ If you find a `[~]` task with timestamp >24 hours old:
 
 1. BUG-20251103-006 - Add client-side validation to Process Session
 
-2. BUG-20251103-019 - Hide/disable Live Session tab (mark "Coming Soon")
+2. BUG-20251103-019 - Hide/disable Live Session tab (mark Coming Soon)
 
 3. BUG-20251103-022 - Better WordCloud dependency error handling
 

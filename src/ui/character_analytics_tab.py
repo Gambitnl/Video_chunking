@@ -46,8 +46,8 @@ def create_character_analytics_tab(
 
     def get_campaign_choices() -> List[str]:
         """Get list of campaign names for dropdown."""
-        campaigns = campaign_manager.list_campaigns()
-        return ["All Campaigns"] + [c["name"] for c in campaigns]
+        campaign_names_map = campaign_manager.get_campaign_names()
+        return ["All Campaigns"] + list(campaign_names_map.values())
 
     def get_character_choices(campaign_name: str = "All Campaigns") -> List[str]:
         """Get list of character names for dropdown, filtered by campaign."""
@@ -288,7 +288,7 @@ def create_character_analytics_tab(
                         )
 
                         timeline_export_btn = gr.Button(
-                            f"{SI.ACTION_EXPORT} Export Timeline",
+                            f"{SI.ACTION_DOWNLOAD} Export Timeline",
                             size="sm"
                         )
 

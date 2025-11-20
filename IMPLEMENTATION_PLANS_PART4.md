@@ -536,13 +536,13 @@ Add linting and type checking.
 **Effort**: 2 days
 **Priority**: LOW
 **Dependencies**: None
-**Status**: NOT STARTED
+**Status**: IN PROGRESS (2025-11-20)
 
 ### Problem Statement
 No visibility into performance bottlenecks. Need profiling tools to identify optimization opportunities.
 
 ### Success Criteria
-- [_] Profiling script for pipeline
+- [x] Profiling script for pipeline
 - [_] Benchmark suite for core operations
 - [_] Memory profiling
 - [_] Performance regression detection
@@ -587,6 +587,32 @@ Profile memory usage during processing.
 **Files**: `tools/memory_profiler.py`
 
 ---
+
+### Implementation Notes & Reasoning (2025-11-20)
+**Implementer**: GPT-5.1-Codex-Max
+
+1. **Profile-First CLI**
+   - **Choice**: Added `tools/profiler.py` with argument parsing, path normalization, and a pluggable runner.
+   - **Reasoning**: Keeps the profiling entry point reusable in tests and allows injecting lightweight runners when full pipeline dependencies are unavailable.
+   - **Trade-offs**: The default runner still exercises the full pipeline, so profiling long sessions remains time-intensive; the hook keeps unit tests fast.
+
+2. **Deterministic Output Paths**
+   - **Choice**: Default profile path `profiles/pipeline.prof` is resolved relative to the current working directory and created if missing.
+   - **Reasoning**: Ensures consistent artifact locations for repeated runs and avoids failures when the target directory does not exist.
+   - **Trade-offs**: The script will create directories under the working directory; callers should run from the repository root for predictable layout.
+
+3. **Console Summaries**
+   - **Choice**: Emit a cumulative-time summary using `pstats` to aid quick inspection without external viewers.
+   - **Reasoning**: Enables fast feedback in headless environments while keeping detailed stats in the saved `.prof` file for tools like snakeviz.
+   - **Trade-offs**: Summary output is text-only; flame graphs still require third-party viewers.
+
+#### Validation
+- `pytest tests/test_tools_profiler.py -q`
+
+### Code Review Findings (Self-Review)
+- **Issues Identified**: None observed during self-review; the profiler interface remains decoupled for testability.
+- **Positive Findings**: Clear path normalization with error handling prevents confusing failures when the input path is wrong; pluggable runner keeps profiling flexible.
+- **Recommendation**: Proceed with remaining subtasks (benchmark suite, memory profiling) to complete success criteria and add regression detection hooks once benchmarks exist.
 
 ## P4-DOCS-001: API Documentation
 

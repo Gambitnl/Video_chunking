@@ -216,7 +216,7 @@ If you find a `[~]` task with timestamp >24 hours old:
 
 - [x] BUG-20251102-04: CampaignChatClient.ask - Test LLM failure handling (Agent: Claude Sonnet 4.5, Completed: 2025-11-20) → BUG_HUNT_TODO.md:21
 
-- [~] BUG-20251102-07: _load_system_prompt - Test campaign placeholders (Agent: Claude Sonnet 4.5, Started: 2025-11-20 14:30 UTC, Approach: Refactor + Test) → BUG_HUNT_TODO.md:33
+- [x] BUG-20251102-07: _load_system_prompt - Test campaign placeholders (Agent: Claude Sonnet 4.5, Completed: 2025-11-20, Approach: Refactored into prompt_loader.py + 24 comprehensive tests) → BUG_HUNT_TODO.md:33
 
 - [ ] BUG-20251102-09: CampaignChatChain.ask - Test various questions/sources → BUG_HUNT_TODO.md:41
 

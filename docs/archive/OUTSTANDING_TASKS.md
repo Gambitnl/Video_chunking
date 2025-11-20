@@ -372,7 +372,7 @@ If you find a `[~]` task with timestamp >24 hours old:
   - **Effort**: 3-4 hours | **Conflict Risk**: ⚠️⚠️⚠️ HIGH
   → BUG_HUNT_TODO.md:415
 
-- [ ] **BUG-20251103-029**: Data - Session library doesn't verify campaign_id before display
+- [x] **BUG-20251103-029**: Data - Session library doesn't verify campaign_id before display (Agent: Jules, Completed: 2025-11-20)
   - **Files**: `app.py:397-426`
   - **Effort**: 1 hour | **Conflict Risk**: ⚠️⚠️ MEDIUM
   → BUG_HUNT_TODO.md:435

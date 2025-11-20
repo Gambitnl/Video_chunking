@@ -671,26 +671,56 @@ def _session_library_markdown(campaign_id: Optional[str]) -> str:
             "Processed sessions for the active campaign will appear here."
         )
 
-    session_ids = story_manager.list_sessions(
+    # Fetch all sessions to audit their campaign alignment
+    all_session_ids = story_manager.list_sessions(
         limit=None,
-        campaign_id=campaign_id,
-        include_unassigned=False,
+        campaign_id=None,  # Get everything
+        include_unassigned=True,
     )
-    if not session_ids:
+
+    valid_sessions = []
+    issue_sessions = []
+
+    # Classify sessions
+    for session_id in all_session_ids:
+        try:
+            session = story_manager.load_session(session_id)
+            session_campaign_id = session.metadata.get("campaign_id")
+
+            if session_campaign_id == campaign_id:
+                valid_sessions.append(session)
+            elif session_campaign_id is None:
+                issue_sessions.append((session_id, "Orphaned (No Campaign ID)", session))
+            elif session_campaign_id != campaign_id:
+                # Check if the other campaign exists
+                if campaign_manager.get_campaign(session_campaign_id):
+                    # Belongs to a valid OTHER campaign -> Hide implicitly (don't show in this campaign's list)
+                    continue
+                else:
+                    # Belongs to a deleted/missing campaign -> Show as issue
+                    issue_sessions.append(
+                        (session_id, f"Orphaned (Campaign `{session_campaign_id}` not found)", session)
+                    )
+        except Exception as e:
+            # Corrupted metadata or load failure
+            issue_sessions.append((session_id, f"Error loading metadata: {str(e)}", None))
+
+    if not valid_sessions and not issue_sessions:
         return StatusMessages.warning(
             "No Sessions",
             "Process a session for this campaign to populate the library."
         )
 
     lines = ["### Processed Sessions", ""]
-    for session_id in session_ids:
-        try:
-            session = story_manager.load_session(session_id)
+
+    # 1. List Valid Sessions
+    if valid_sessions:
+        for session in valid_sessions:
+            session_id = session.session_id
             stats = session.metadata.get("statistics", {})
             duration = stats.get("total_duration_formatted") or f"{stats.get('total_duration_seconds', 0)}s"
             segments = stats.get("total_segments", 0)
 
-            # Get output directory path for this session
             output_dir = Config.OUTPUT_DIR / session_id
             narratives_dir = output_dir / "narratives"
             narrative_count = len(list(narratives_dir.glob("*.md"))) if narratives_dir.exists() else 0
@@ -701,10 +731,26 @@ def _session_library_markdown(campaign_id: Optional[str]) -> str:
             lines.append(f"- **Narratives**: {narrative_count}")
             lines.append(f"- **Output**: `{output_dir.relative_to(Config.PROJECT_ROOT)}`")
             lines.append("")
-        except Exception as e:
-            lines.append(f"#### {StatusIndicators.ERROR} {session_id}")
-            lines.append(f"- **Status**: Error loading metadata: {str(e)}")
-            lines.append("")
+    else:
+        lines.append(StatusMessages.info("Empty", "No valid sessions found for this campaign."))
+
+    # 2. List Issues (Collapsible)
+    if issue_sessions:
+        lines.append("")
+        lines.append(f"<details><summary>⚠️ Found {len(issue_sessions)} Session Issues (Orphaned/Corrupt)</summary>")
+        lines.append("")
+        lines.append("> These sessions are not assigned to the active campaign or have errors.")
+        lines.append("")
+
+        for sid, reason, session in issue_sessions:
+            lines.append(f"- **{sid}**: {reason}")
+            if session:
+                output_dir = Config.OUTPUT_DIR / sid
+                lines.append(f"  - Path: `{output_dir.relative_to(Config.PROJECT_ROOT)}`")
+
+        lines.append("")
+        lines.append("</details>")
+
     return "\n".join(lines)
 
 

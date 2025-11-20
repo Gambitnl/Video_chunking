@@ -183,3 +183,64 @@ def test_load_conversation_corrupted_file_quarantined(
     )
     assert len(quarantined_files) == 1
     assert "Error loading conversation" in caplog.text
+
+
+def test_list_conversations_with_corrupted_files(conversation_store, caplog):
+    """
+    Test that list_conversations gracefully handles corrupted files.
+
+    When one or more conversation files are corrupted, list_conversations should:
+    1. Continue processing other valid files
+    2. Return metadata for all valid conversations
+    3. Log warnings for corrupted files
+    4. Not raise exceptions
+    """
+    # Create valid conversations
+    valid_conv1 = conversation_store.create_conversation("Campaign 1")
+    valid_conv2 = conversation_store.create_conversation("Campaign 2")
+
+    # Add messages to valid conversations for metadata verification
+    conversation_store.add_message(valid_conv1, "user", "Hello from conv1")
+    conversation_store.add_message(valid_conv2, "user", "Hello from conv2")
+    conversation_store.add_message(valid_conv2, "assistant", "Response")
+
+    # Create corrupted conversation files
+    corrupted_conv1 = conversation_store.conversations_dir / "conv_corrupt1.json"
+    corrupted_conv2 = conversation_store.conversations_dir / "conv_corrupt2.json"
+    corrupted_conv3 = conversation_store.conversations_dir / "conv_corrupt3.json"
+
+    # Different types of corruption
+    corrupted_conv1.write_text("not valid json at all", encoding="utf-8")
+    corrupted_conv2.write_text('{"incomplete": "json"', encoding="utf-8")
+    corrupted_conv3.write_text("", encoding="utf-8")
+
+    # Set log level to capture warnings
+    caplog.set_level(logging.WARNING)
+
+    # Call list_conversations
+    result = conversation_store.list_conversations()
+
+    # Verify only valid conversations are returned
+    assert len(result) == 2, f"Expected 2 valid conversations, got {len(result)}"
+
+    # Extract conversation IDs from results
+    returned_ids = {conv["conversation_id"] for conv in result}
+    assert valid_conv1 in returned_ids, "Valid conversation 1 should be in results"
+    assert valid_conv2 in returned_ids, "Valid conversation 2 should be in results"
+
+    # Verify metadata is correct
+    conv1_metadata = next(c for c in result if c["conversation_id"] == valid_conv1)
+    conv2_metadata = next(c for c in result if c["conversation_id"] == valid_conv2)
+
+    assert conv1_metadata["campaign"] == "Campaign 1"
+    assert conv1_metadata["message_count"] == 1
+    assert conv2_metadata["campaign"] == "Campaign 2"
+    assert conv2_metadata["message_count"] == 2
+
+    # Verify warnings were logged for corrupted files
+    log_text = caplog.text
+    assert "Error loading conversation file" in log_text or "error" in log_text.lower()
+
+    # Count warnings (should have at least 3 warnings for 3 corrupted files)
+    warning_count = sum(1 for record in caplog.records if record.levelname == "WARNING")
+    assert warning_count >= 3, f"Expected at least 3 warnings, got {warning_count}"

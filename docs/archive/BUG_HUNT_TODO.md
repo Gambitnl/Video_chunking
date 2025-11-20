@@ -66,6 +66,22 @@ This list summarizes preliminary findings from the bug hunt session on 2025-11-0
     *   **Issue**: During the `list_conversations` process, if one or more conversation files are corrupted, the `json.load` operation might fail for those specific files. The `try-except` block attempts to handle this.
     *   **Why it's an issue**: The conversation listing should be resilient to individual file corruption. A single bad file should not prevent the listing of all other valid conversations. Testing this ensures graceful degradation and continued access to recoverable data, improving overall system robustness.
 
+##### Implementation Notes & Reasoning (2025-11-20 Claude Sonnet 4.5)
+
+- Added comprehensive test `test_list_conversations_with_corrupted_files` that verifies graceful degradation when encountering corrupted JSON files
+- Test creates 2 valid conversations and 3 corrupted files (invalid JSON, incomplete JSON, empty file) to cover multiple corruption scenarios
+- Verifies that valid conversations are still returned with correct metadata (campaign name, message count) even when corrupted files are present
+- Confirms that warnings are logged for each corrupted file without raising exceptions
+- Test validates the existing error handling in `list_conversations()` lines 325-327 which catches `(json.JSONDecodeError, KeyError, IOError)` and continues processing
+- Follows existing test patterns using `conversation_store` fixture and `caplog` for log verification
+
+##### Code Review Findings (2025-11-20 Claude Sonnet 4.5)
+
+- [APPROVED] Existing implementation already handles corruption gracefully via try-except block; test coverage fills identified gap and prevents regressions
+- Test verifies resilience to corruption: 2 valid conversations returned from 5 total files (2 valid + 3 corrupted)
+- Proper use of assertions with descriptive error messages for debugging
+- Edge case coverage: different corruption types (syntax error, incomplete JSON, empty file)
+
 -   **BUG-20251102-16**: `ConversationStore.delete_conversation` - Test deleting a non-existent conversation. (Low)
     *   **Issue**: The `delete_conversation` method returns `False` if the target file does not exist, indicating it was not deleted.
     *   **Why it's an issue**: While the expected behavior is clear, unit testing this edge case confirms that calling the method with a non-existent ID does not raise unexpected exceptions or cause unintended side effects, validating the method's robustness.

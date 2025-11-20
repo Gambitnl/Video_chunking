@@ -190,7 +190,7 @@ If you find a `[~]` task with timestamp >24 hours old:
 
 ### High Priority Integration Tests (8 bugs)
 
-- [ ] BUG-20251102-01: CampaignChatClient.ask - Add integration tests for full RAG pipeline → BUG_HUNT_TODO.md:9
+- [x] BUG-20251102-01: CampaignChatClient.ask - Add integration tests for full RAG pipeline (Agent: Claude Sonnet 4.5, Completed: 2025-11-20) → BUG_HUNT_TODO.md:9
 
 - [ ] BUG-20251102-08: CampaignChatChain.ask - Add integration tests for full chain → BUG_HUNT_TODO.md:37
 

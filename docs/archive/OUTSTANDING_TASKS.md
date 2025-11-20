@@ -192,7 +192,7 @@ If you find a `[~]` task with timestamp >24 hours old:
 
 ### Remaining
 
-- [ ] **P2.1-UX: Campaign Chat UI Improvements** (1-2 days) → ROADMAP.md:364-370
+- [x] **P2.1-UX: Campaign Chat UI Improvements** (Agent: GPT-5.1-Codex, Completed: 2025-11-19) → ROADMAP.md:364-370
 
   - Missing loading indicators during LLM calls
 

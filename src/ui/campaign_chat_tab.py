@@ -8,6 +8,7 @@ from typing import List, Dict
 import gradio as gr
 
 from src.config import Config
+from src.langchain.campaign_chat import MAX_QUESTION_LENGTH
 from src.ui.helpers import StatusMessages, Placeholders
 from src.ui.constants import StatusIndicators as SI
 
@@ -15,6 +16,38 @@ logger = logging.getLogger("DDSessionProcessor.campaign_chat_tab")
 
 # Generic error detail message (prevents information disclosure)
 _GENERIC_ERROR_DETAIL = "Error details have been logged for troubleshooting."
+
+
+def describe_llm_configuration(chat_client) -> str:
+    """Return a concise description of the active LLM provider and model."""
+
+    if not chat_client:
+        return (
+            f"{SI.WARNING} LangChain dependencies missing - model information is unavailable."
+        )
+
+    provider = chat_client.llm_provider or "unknown"
+    model_name = chat_client.model_name or "unknown"
+    return f"**LLM Provider:** {provider} | **Model:** {model_name}"
+
+
+def format_character_counter(message: str, max_length: int = MAX_QUESTION_LENGTH) -> str:
+    """Render character counter text for the chat input box."""
+
+    current_length = len(message or "")
+    remaining = max_length - current_length
+    status = f"{SI.INFO} {current_length} / {max_length} characters"
+
+    if remaining <= 0:
+        return f"{status} (longer messages are trimmed to the limit)"
+
+    return f"{status} ({remaining} characters remaining)"
+
+
+def reset_character_counter() -> str:
+    """Reset the character counter to its default state."""
+
+    return format_character_counter("")
 
 
 def create_campaign_chat_tab(project_root: Path) -> None:
@@ -447,6 +480,8 @@ def create_campaign_chat_tab(project_root: Path) -> None:
             The chat interface will not be functional until these dependencies are installed.
             """)
 
+        gr.Markdown(describe_llm_configuration(chat_client))
+
         gr.Markdown("""
         ### [CHAT] Campaign Assistant
 
@@ -465,18 +500,29 @@ def create_campaign_chat_tab(project_root: Path) -> None:
                     label="Campaign Assistant",
                     height=600,
                     type="messages",
-                    show_label=True
+                    show_label=True,
+                    autoscroll=True,
+                    show_copy_button=True,
+                    show_copy_all_button=True
                 )
 
                 with gr.Row():
                     msg_input = gr.Textbox(
                         label="Ask a question",
                         placeholder=Placeholders.CAMPAIGN_QUESTION,
-                        info="Ask about NPCs, quests, locations, or session events",
+                        info=(
+                            "Ask about NPCs, quests, locations, or session events "
+                            f"(max {MAX_QUESTION_LENGTH} characters)"
+                        ),
                         scale=4,
-                        lines=2
+                        lines=2,
+                        max_length=MAX_QUESTION_LENGTH,
                     )
                     send_btn = gr.Button(SI.ACTION_SEND, scale=1, variant="primary")
+
+                char_counter = gr.Markdown(
+                    format_character_counter("")
+                )
 
         with gr.Row():
             clear_btn = gr.Button(f"{SI.ACTION_CLEAR} Chat", size="sm")
@@ -513,6 +559,12 @@ def create_campaign_chat_tab(project_root: Path) -> None:
                     label="Sources"
                 )
 
+        msg_input.change(
+            fn=format_character_counter,
+            inputs=[msg_input],
+            outputs=[char_counter]
+        )
+
         # Event handlers - Three-step pattern: show loading -> get response -> show sources
         send_btn.click(
             fn=send_message_show_loading,
@@ -526,6 +578,9 @@ def create_campaign_chat_tab(project_root: Path) -> None:
             fn=format_sources_display,
             inputs=[chatbot],
             outputs=[sources_display]
+        ).then(
+            fn=reset_character_counter,
+            outputs=[char_counter]
         )
 
         msg_input.submit(
@@ -540,28 +595,43 @@ def create_campaign_chat_tab(project_root: Path) -> None:
             fn=format_sources_display,
             inputs=[chatbot],
             outputs=[sources_display]
+        ).then(
+            fn=reset_character_counter,
+            outputs=[char_counter]
         )
 
         clear_btn.click(
             fn=clear_chat,
             outputs=[chatbot, sources_display]
+        ).then(
+            fn=reset_character_counter,
+            outputs=[char_counter]
         )
 
         new_conv_btn.click(
             fn=new_conversation,
             outputs=[chatbot, msg_input, conversation_dropdown, sources_display]
+        ).then(
+            fn=reset_character_counter,
+            outputs=[char_counter]
         )
 
         load_conv_btn.click(
             fn=lambda dropdown_val: load_conversation(extract_conversation_id(dropdown_val)),
             inputs=[conversation_dropdown],
             outputs=[chatbot, msg_input, sources_display]
+        ).then(
+            fn=reset_character_counter,
+            outputs=[char_counter]
         )
 
         delete_btn.click(
             fn=delete_conversation,
             inputs=[conversation_dropdown],
             outputs=[chatbot, msg_input, conversation_dropdown, sources_display]
+        ).then(
+            fn=reset_character_counter,
+            outputs=[char_counter]
         )
 
         rename_btn.click(

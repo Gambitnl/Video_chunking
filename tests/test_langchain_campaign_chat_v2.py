@@ -1,5 +1,5 @@
 import pytest
-from unittest.mock import Mock, patch, MagicMock
+from unittest.mock import Mock, patch, MagicMock, mock_open
 from pathlib import Path
 
 from src.langchain.campaign_chat import (
@@ -135,14 +135,60 @@ def test_initialize_memory(mock_window_memory):
             mock_window_memory.assert_called_once_with(k=10, memory_key='chat_history', return_messages=True, output_key='answer')
 
 @patch('builtins.open')
-def test_load_system_prompt_success(mock_open):
-    mock_file_content = "SYSTEM INSTRUCTIONS:\nCampaign Name: {campaign_name}"
+def test_load_system_prompt_uses_safe_defaults(mock_open):
+    mock_file_content = (
+        "SYSTEM INSTRUCTIONS:\n"
+        "Campaign Name: {campaign_name}\n"
+        "Total Sessions: {num_sessions}\n"
+        "Player Characters: {pc_names}\n"
+        "Extra: {missing_placeholder}"
+    )
     mock_open.return_value.__enter__.return_value.read.return_value = mock_file_content
     # Mock other initialization methods
     with patch.object(CampaignChatClient, '_initialize_llm', return_value=Mock()):
         with patch.object(CampaignChatClient, '_initialize_memory', return_value=Mock()):
             client = CampaignChatClient()
             assert "Campaign Name: Unknown" in client.system_prompt
+            assert "Total Sessions: 0" in client.system_prompt
+            assert "Player Characters: Unknown" in client.system_prompt
+            assert "Extra: {missing_placeholder}" in client.system_prompt
+
+
+@patch('src.story_notebook.StoryNotebookManager')
+@patch('src.party_config.PartyConfigManager')
+@patch('src.party_config.CampaignManager')
+@patch('builtins.open', new_callable=mock_open)
+def test_load_system_prompt_formats_campaign_context(
+    mock_file, mock_campaign_manager, mock_party_manager, mock_story_manager
+):
+    mock_file.return_value.__enter__.return_value.read.return_value = (
+        "Campaign Name: {campaign_name}\n"
+        "Total Sessions: {num_sessions}\n"
+        "Player Characters: {pc_names}"
+    )
+
+    campaign = MagicMock()
+    campaign.name = "Skyfall"
+    campaign.party_id = "party-1"
+    mock_campaign_manager.return_value.get_campaign.return_value = campaign
+
+    character_one = MagicMock()
+    character_one.name = "Aelwyn"
+    character_two = MagicMock()
+    character_two.name = "Borin"
+    mock_party_manager.return_value.get_party.return_value = MagicMock(
+        characters=[character_one, character_two]
+    )
+
+    mock_story_manager.return_value.list_sessions.return_value = [1, 2, 3]
+
+    with patch.object(CampaignChatClient, '_initialize_llm', return_value=Mock()):
+        with patch.object(CampaignChatClient, '_initialize_memory', return_value=Mock()):
+            client = CampaignChatClient(campaign_id="camp-001")
+
+    assert "Campaign Name: Skyfall" in client.system_prompt
+    assert "Total Sessions: 3" in client.system_prompt
+    assert "Player Characters: Aelwyn, Borin" in client.system_prompt
 
 @patch('builtins.open', side_effect=FileNotFoundError)
 def test_load_system_prompt_file_not_found(mock_open):

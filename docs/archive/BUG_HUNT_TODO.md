@@ -1,4 +1,14 @@
-# BUG_HUNT_TODO.md - Preliminary To-Do List
+# BUG_HUNT_TODO.md - Detailed Bug Descriptions & Implementation Notes
+
+> **Last Updated**: 2025-11-20
+> **Purpose**: Detailed bug hunt findings with implementation notes and code review results
+> **Status Tracking**: See [OUTSTANDING_TASKS.md](OUTSTANDING_TASKS.md) for current status of all bugs
+
+## About This File
+
+This file contains detailed descriptions, reproduction steps, and implementation notes for all bugs discovered during bug hunt sessions. Completed bugs remain here with their implementation notes for historical reference and future analysis.
+
+**For current bug status and work planning**, see [OUTSTANDING_TASKS.md](OUTSTANDING_TASKS.md).
 
 ## 2025-11-02 Bug Hunt Findings
 

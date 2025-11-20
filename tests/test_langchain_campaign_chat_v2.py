@@ -14,7 +14,7 @@ from src.langchain.retriever import Document
 # Mock Config for CampaignChatClient initialization
 @pytest.fixture(autouse=True)
 def mock_config():
-    with patch('src.config.Config') as mock_config_class:
+    with patch('src.langchain.campaign_chat.Config') as mock_config_class:
         mock_config_class.LLM_BACKEND = 'ollama'
         mock_config_class.OLLAMA_MODEL = 'gpt-oss:20b'
         mock_config_class.OLLAMA_BASE_URL = 'http://localhost:11434'
@@ -385,8 +385,8 @@ def test_ask_llm_error_after_successful_retrieval(mock_sanitize_input):
                 # Mock successful retrieval
                 client.retriever = Mock()
                 mock_docs = [
-                    Document(page_content="Retrieved doc 1", metadata={"id": "1"}),
-                    Document(page_content="Retrieved doc 2", metadata={"id": "2"}),
+                    Document(content="Retrieved doc 1", metadata={"id": "1"}),
+                    Document(content="Retrieved doc 2", metadata={"id": "2"}),
                 ]
                 client.retriever.retrieve.return_value = mock_docs
 
@@ -495,11 +495,11 @@ def test_rag_integration_retriever_to_llm_flow(mock_sanitize_input, tmp_path):
                 # Create client with mock retriever
                 mock_retriever = Mock()
                 mock_doc1 = Document(
-                    page_content="The Shadow Lord appeared in Session 5 as the main antagonist.",
+                    content="The Shadow Lord appeared in Session 5 as the main antagonist.",
                     metadata={"session_id": "Session_005", "type": "transcript"}
                 )
                 mock_doc2 = Document(
-                    page_content="The Shadow Lord commands an army of undead.",
+                    content="The Shadow Lord commands an army of undead.",
                     metadata={"session_id": "Session_007", "type": "knowledge"}
                 )
                 mock_retriever.retrieve.return_value = [mock_doc1, mock_doc2]
@@ -555,7 +555,9 @@ def test_rag_integration_with_empty_retrieval_results(mock_sanitize_input):
                 # Verify LLM was still called (without context)
                 mock_llm.assert_called_once()
                 llm_prompt = mock_llm.call_args[0][0]
-                assert "No relevant context found" in llm_prompt or "Context:" in llm_prompt
+                assert "RELEVANT INFORMATION" not in llm_prompt
+                assert "USER QUESTION:\ntest question" in llm_prompt
+                assert "ASSISTANT RESPONSE:" in llm_prompt
 
                 # Verify response
                 assert result["answer"] == "I don't have information about that."
@@ -578,7 +580,7 @@ def test_rag_integration_context_length_truncation(mock_sanitize_input):
                 mock_retriever = Mock()
                 # Create a very long document
                 long_content = "x" * (MAX_CONTEXT_DOCS_LENGTH + 1000)
-                mock_doc = Document(page_content=long_content, metadata={"session": "test"})
+                mock_doc = Document(content=long_content, metadata={"session": "test"})
                 mock_retriever.retrieve.return_value = [mock_doc]
 
                 client = CampaignChatClient(retriever=mock_retriever)
@@ -612,7 +614,7 @@ def test_rag_integration_with_various_context_inputs(mock_sanitize_input):
             with patch.object(CampaignChatClient, '_initialize_llm', return_value=mock_llm):
                 mock_retriever = Mock()
                 mock_retriever.retrieve.return_value = [
-                    Document(page_content="Session 5 notes", metadata={"session": "5"})
+                    Document(content="Session 5 notes", metadata={"session": "5"})
                 ]
 
                 client = CampaignChatClient(retriever=mock_retriever)

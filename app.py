@@ -32,6 +32,7 @@ from src.knowledge_base import CampaignKnowledgeBase
 from src.preflight import PreflightIssue
 from src.ui.constants import StatusIndicators
 from src.ui.helpers import StatusMessages, UIComponents
+from src.ui.state_store import UIStateStore
 from src.campaign_dashboard import CampaignDashboard
 from src.story_notebook import StoryNotebookManager
 from src.artifact_counter import CampaignArtifactCounter
@@ -236,8 +237,8 @@ def ui_restart_application() -> str:
 PROJECT_ROOT = Path(__file__).resolve().parent
 NOTEBOOK_CONTEXT = ""
 story_manager = StoryNotebookManager()
-speaker_profile_manager = SpeakerProfileManager()
 character_profile_manager = CharacterProfileManager()
+speaker_profile_manager = SpeakerProfileManager()
 logger = get_logger(__name__)
 
 # Create global artifact counter with 5-minute cache
@@ -277,7 +278,17 @@ def _set_notebook_context(value: str) -> None:
     NOTEBOOK_CONTEXT = value
 
 
+def _persist_active_campaign(campaign_id: Optional[str]) -> None:
+    """Persist the active campaign selection while suppressing UI errors."""
+
+    try:
+        ui_state_store.save_active_campaign(campaign_id)
+    except Exception as exc:  # pragma: no cover - defensive logging
+        logger.warning("Failed to persist active campaign: %s", exc)
+
+
 campaign_manager = CampaignManager()
+ui_state_store = UIStateStore()
 campaign_names = campaign_manager.get_campaign_names()
 
 
@@ -1338,7 +1349,8 @@ available_parties = party_manager.list_parties()
 theme = create_modern_theme()
 
 # Determine initial campaign context
-initial_campaign_id = next(iter(campaign_names.keys()), None)
+persisted_campaign_id = ui_state_store.load_active_campaign(campaign_names.keys())
+initial_campaign_id = persisted_campaign_id or next(iter(campaign_names.keys()), None)
 initial_campaign_name = campaign_names.get(initial_campaign_id, "Manual Setup")
 initial_badge = _format_campaign_badge(initial_campaign_id)
 initial_summary = _campaign_summary_message(initial_campaign_id)
@@ -1357,34 +1369,26 @@ with gr.Blocks(
 
     with gr.Row():
         with gr.Column():
-            existing_campaign_dropdown = gr.Dropdown(
-                label="Existing Campaigns",
-                choices=list(campaign_names.values()),
-                value=initial_campaign_name if initial_campaign_id else None,
-                info="Load a campaign profile to apply its defaults.",
+            with gr.Row(variant="compact"):
+                existing_campaign_dropdown = gr.Dropdown(
+                    label="Existing Campaigns",
+                    choices=list(campaign_names.values()),
+                    value=initial_campaign_name if initial_campaign_id else None,
+                    info="Load a campaign profile to apply its defaults.",
+                    scale=10,
+                )
+                refresh_campaign_list_btn = gr.Button(
+                    value="Refresh",
+                    size="sm",
+                    scale=0,
+                    min_width=80,
+                    variant="secondary",
+                )
+            load_campaign_btn = UIComponents.create_action_button(
+                "Load Existing Campaign",
+                variant="primary",
+                size="md",
             )
-            with gr.Row():
-            with gr.Row():
-                load_campaign_btn = UIComponents.create_action_button(
-                    "Load Existing Campaign",
-                    variant="primary",
-                    size="md",
-                )
-                refresh_campaigns_btn = UIComponents.create_action_button(
-                    "Refresh List",
-                    variant="secondary",
-                    size="sm",
-                )
-                refresh_campaigns_btn = UIComponents.create_action_button(
-                    "Refresh List",
-                    variant="secondary",
-                    size="sm",
-                )
-                refresh_campaigns_btn = UIComponents.create_action_button(
-                    "Refresh List",
-                    variant="secondary",
-                    size="sm",
-                )
 
         with gr.Column():
             new_campaign_name = gr.Textbox(
@@ -1425,8 +1429,8 @@ with gr.Blocks(
     create_party_management_tab(available_parties)
     stories_tab_refs = create_stories_output_tab_modern(demo)
     artifacts_tab_refs = create_session_artifacts_tab(demo)
-    create_search_tab(PROJECT_ROOT)
-    create_analytics_tab(Path.cwd())
+    create_search_tab(Path.cwd(), ui_container=demo)
+    create_analytics_tab(Path.cwd(), ui_container=demo)
     create_character_analytics_tab(character_profile_manager, campaign_manager, Path.cwd())
     settings_tab_refs = create_settings_tools_tab_modern(
         demo,
@@ -1557,9 +1561,10 @@ with gr.Blocks(
         campaign_id = _campaign_id_from_name(display_name) or current_campaign_id or initial_campaign_id
         summary = _campaign_summary_message(campaign_id)
         manifest = _build_campaign_manifest(campaign_id)
-        
+
         ui_updates = _build_full_ui_update(campaign_id)
-        
+        _persist_active_campaign(campaign_id)
+
         return (
             ui_updates[0], # campaign_id
             summary,
@@ -1592,10 +1597,11 @@ with gr.Blocks(
         if not knowledge.knowledge_file.exists():
             knowledge._save_knowledge()
         _set_notebook_context("")
+        _persist_active_campaign(new_campaign_id)
 
         summary = _campaign_summary_message(new_campaign_id, is_new=True)
         manifest = _build_campaign_manifest(new_campaign_id)
-        
+
         ui_updates = _build_full_ui_update(new_campaign_id)
 
         return (
@@ -1605,12 +1611,6 @@ with gr.Blocks(
             gr.update(value=""), # Clear the new campaign name textbox
             *ui_updates[1:], # The rest of the UI updates
         )
-
-    def _handle_refresh_campaigns():
-        """Handles the refresh button click event."""
-        campaign_names_map = _refresh_campaign_names()
-        campaign_choices = list(campaign_names_map.values())
-        return gr.update(choices=campaign_choices)
 
     def _handle_rename_campaign(campaign_display_name: str, new_name: str, active_campaign_id: Optional[str]):
         """Handler for the rename campaign button."""
@@ -1647,7 +1647,8 @@ with gr.Blocks(
         # On success, refresh and load the first available campaign
         _refresh_campaign_names()
         new_active_id = next(iter(campaign_names.keys()), None)
-        
+        _persist_active_campaign(new_active_id)
+
         summary = _campaign_summary_message(new_active_id)
         manifest = _build_campaign_manifest(new_active_id)
         ui_updates = _build_full_ui_update(new_active_id)
@@ -1855,6 +1856,15 @@ with gr.Blocks(
         outputs=artifacts_tab_refs["session_picker"]
     )
 
+    def _handle_refresh_campaign_list():
+        names = _refresh_campaign_names()
+        return gr.update(choices=list(names.values()))
+
+    refresh_campaign_list_btn.click(
+        fn=_handle_refresh_campaign_list,
+        outputs=existing_campaign_dropdown,
+    )
+
     load_campaign_btn.click(
         fn=_load_campaign,
         inputs=[existing_campaign_dropdown, active_campaign_state],
@@ -1865,11 +1875,6 @@ with gr.Blocks(
         fn=_create_new_campaign,
         inputs=[new_campaign_name],
         outputs=create_campaign_outputs,
-    )
-
-    refresh_campaigns_btn.click(
-        fn=_handle_refresh_campaigns,
-        outputs=existing_campaign_dropdown
     )
 
     # Pipeline Stage Control
@@ -1942,12 +1947,6 @@ with gr.Blocks(
         js="() => confirm('Are you sure you want to permanently delete this campaign? This action cannot be undone.')"
     )
 
-
-    def _handle_refresh_campaigns():
-        """Handles the refresh button click event."""
-        campaign_names_map = _refresh_campaign_names()
-        campaign_choices = list(campaign_names_map.values())
-        return gr.update(choices=campaign_choices)
 
 def is_port_in_use(port):
     """Check if a port is already in use"""

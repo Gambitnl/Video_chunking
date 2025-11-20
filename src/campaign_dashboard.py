@@ -1,11 +1,74 @@
 from pathlib import Path
 import json
+import threading
 from typing import Dict, List, Optional
 
 from .config import Config
 from .party_config import CampaignManager, PartyConfigManager, Campaign
 from .knowledge_base import CampaignKnowledgeBase
 from .ui.constants import StatusIndicators
+
+# Module-level manager instances (singletons) to avoid repeated disk I/O
+# These are shared across all CampaignDashboard instances
+# Using lazy initialization to support test mocking and thread-safety
+_campaign_manager = None
+_party_manager = None
+_char_profile_manager = None
+
+# Thread locks for thread-safe singleton initialization (Gradio runs multi-threaded)
+_campaign_manager_lock = threading.Lock()
+_party_manager_lock = threading.Lock()
+_char_profile_manager_lock = threading.Lock()
+
+def _get_campaign_manager():
+    """Get or create the shared CampaignManager instance (thread-safe)."""
+    global _campaign_manager
+    if _campaign_manager is None:
+        with _campaign_manager_lock:
+            if _campaign_manager is None:
+                _campaign_manager = CampaignManager()
+    return _campaign_manager
+
+def _get_party_manager():
+    """Get or create the shared PartyConfigManager instance (thread-safe)."""
+    global _party_manager
+    if _party_manager is None:
+        with _party_manager_lock:
+            if _party_manager is None:
+                _party_manager = PartyConfigManager()
+    return _party_manager
+
+def _get_char_profile_manager():
+    """Get or create the shared CharacterProfileManager instance (thread-safe)."""
+    global _char_profile_manager
+    if _char_profile_manager is None:
+        with _char_profile_manager_lock:
+            if _char_profile_manager is None:
+                from src.character_profile import CharacterProfileManager
+                _char_profile_manager = CharacterProfileManager()
+    return _char_profile_manager
+
+def reload_managers():
+    """
+    Reload all cached manager instances to pick up configuration changes.
+
+    Call this after updating party configurations, campaigns, or character profiles
+    to ensure the dashboard displays fresh data.
+    """
+    global _campaign_manager, _party_manager, _char_profile_manager
+
+    with _campaign_manager_lock:
+        if _campaign_manager is not None:
+            _campaign_manager = CampaignManager()
+
+    with _party_manager_lock:
+        if _party_manager is not None:
+            _party_manager = PartyConfigManager()
+
+    with _char_profile_manager_lock:
+        if _char_profile_manager is not None:
+            from src.character_profile import CharacterProfileManager
+            _char_profile_manager = CharacterProfileManager()
 
 class ComponentStatus:
     """Represents the status of a single dashboard component."""
@@ -18,8 +81,12 @@ class CampaignDashboard:
     """Generates a comprehensive campaign health check dashboard."""
 
     def __init__(self):
-        self.campaign_manager = CampaignManager()
-        self.party_manager = PartyConfigManager()
+        # Use module-level shared instances to avoid repeated disk I/O
+        # Lazy initialization ensures managers are only created once
+        # All managers are retrieved here for consistency
+        self.campaign_manager = _get_campaign_manager()
+        self.party_manager = _get_party_manager()
+        self.char_profile_manager = _get_char_profile_manager()
 
     def _check_party_config(self, campaign: Campaign) -> ComponentStatus:
         party = self.party_manager.get_party(campaign.party_id)
@@ -83,8 +150,8 @@ class CampaignDashboard:
 
     def _check_character_profiles(self, campaign: Campaign) -> ComponentStatus:
         try:
-            from src.character_profile import CharacterProfileManager
-            char_mgr = CharacterProfileManager()
+            # Use shared CharacterProfileManager instance from __init__
+            char_mgr = self.char_profile_manager
             party = self.party_manager.get_party(campaign.party_id)
 
             if not party:

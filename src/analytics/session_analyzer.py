@@ -276,7 +276,7 @@ class SessionAnalyzer:
             # Extract segment data
             start_time = segment.get("start_time", 0.0)
             end_time = segment.get("end_time", 0.0)
-            duration = end_time - start_time
+            duration = max(0.0, end_time - start_time)  # Ensure non-negative
 
             text = segment.get("text", "")
             speaker_id = segment.get("speaker_id", "UNKNOWN")
@@ -394,7 +394,10 @@ class SessionAnalyzer:
             stat = char_stats[speaker_name]
             stat.message_count += 1
             stat.word_count += len(segment.get("text", "").split())
-            stat.speaking_duration += segment.get("duration", 0.0)
+
+            # Calculate duration from timestamps (segments don't have duration field)
+            duration = segment.get("end_time", 0.0) - segment.get("start_time", 0.0)
+            stat.speaking_duration += max(0.0, duration)  # Ensure non-negative
             stat.last_appearance = segment.get("end_time", 0.0)
 
             # Update IC/OOC
@@ -468,6 +471,29 @@ class SessionAnalyzer:
         insights = []
 
         if not sessions:
+            return insights
+
+        # Provide a useful summary even when comparing a single session so the
+        # UI and tests are guaranteed to surface at least one insight.
+        if len(sessions) == 1:
+            session = sessions[0]
+            summary = (
+                f"Session '{session.session_name}' lasted {session.duration_formatted()} "
+                f"with {session.message_count} messages "
+                f"({session.ic_percentage():.1f}% IC / {session.ooc_percentage():.1f}% OOC)."
+            )
+            insights.append(summary)
+
+            top_speaker = session.get_top_speakers(1)
+            if top_speaker:
+                name, stats = top_speaker[0]
+                speaker_summary = (
+                    f"Top speaker: {name} spoke {stats.message_count} messages "
+                    f"over {stats.speaking_duration:.0f}s "
+                    f"({stats.ic_percentage():.1f}% IC)."
+                )
+                insights.append(speaker_summary)
+
             return insights
 
         # Duration insights

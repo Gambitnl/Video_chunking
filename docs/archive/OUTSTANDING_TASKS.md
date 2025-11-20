@@ -28,7 +28,7 @@
 
 1. **Before starting**: Change `[ ]` to `[~]` with agent name + timestamp
 
-2. **Commit immediately**: `git add docs/OUTSTANDING_TASKS.md && git commit -m Lock task: Task-ID`
+2. **Commit immediately**: `git add docs/OUTSTANDING_TASKS.md && git commit -m "Lock task: Task-ID"`
 
 3. **After completion**: Update `[~]` to `[x]` with completion date
 
@@ -192,7 +192,7 @@ If you find a `[~]` task with timestamp >24 hours old:
 
 ### Remaining
 
-- [ ] **P2.1-UX: Campaign Chat UI Improvements** (1-2 days) → ROADMAP.md:364-370
+- [x] **P2.1-UX: Campaign Chat UI Improvements** (Agent: GPT-5.1-Codex, Completed: 2025-11-19) → ROADMAP.md:364-370
 
   - Missing loading indicators during LLM calls
 
@@ -410,7 +410,7 @@ If you find a `[~]` task with timestamp >24 hours old:
    ```markdown
    [~] BUG-ID: Description (Agent: YourName, Started: YYYY-MM-DD HH:MM UTC, Files: list) → source
    ```
-5. **Commit & push lock** right away: `git add docs/OUTSTANDING_TASKS.md && git commit -m Lock task: BUG-ID && git push`
+5. **Commit & push lock** right away: `git add docs/OUTSTANDING_TASKS.md && git commit -m "Lock task: BUG-ID" && git push`
 6. **Do the work**
 7. **Update to complete** when done:
    ```markdown
@@ -438,7 +438,7 @@ If you find a `[~]` task with timestamp >24 hours old:
 
 ### Medium Priority (13 bugs)
 
-- [ ] BUG-20251103-002: Main Dashboard - Campaign state not persisted across refreshes → BUG_HUNT_TODO.md:257 | app.py:623
+- [x] BUG-20251103-002: Main Dashboard - Campaign state not persisted across refreshes (Agent: Codex GPT-5, Completed: 2025-11-19) → BUG_HUNT_TODO.md:257 | app.py:623
 ---
 
 
@@ -514,7 +514,7 @@ If you find a `[~]` task with timestamp >24 hours old:
   - **Effort**: 1-2 hours | **Conflict Risk**: ⚠️⚠️ MEDIUM
   → BUG_HUNT_TODO.md:257
 
-- [x] **BUG-20251103-004**: Campaign Launcher - Dropdown not refreshed on external changes (Agent: Jules, Completed: 2025-11-20)
+- [x] BUG-20251103-004: Campaign Launcher - Dropdown not refreshed on external changes (Agent: Jules, Completed: 2025-11-20)
   - **Files**: `app.py:630-635`
   - **Effort**: 1 hour | **Conflict Risk**: ⚠️⚠️ MEDIUM
   → BUG_HUNT_TODO.md:269
@@ -554,7 +554,7 @@ If you find a `[~]` task with timestamp >24 hours old:
 - [x] **BUG-20251103-020**: Live Session - Stop button enabled before Start (Agent: Claude Sonnet 4.5, Completed: 2025-11-18 - Already fixed in commit 8d637f9)
   - **Files**: `src/ui/live_session_tab.py:121,127`
   - **Effort**: 15 min (verification only) | **Conflict Risk**: ⚠️ LOW
-  - **Fix**: Both buttons now have `.interactive = False` set explicitly. Feature marked as Coming Soon with disabled UI.
+  - **Fix**: Both buttons now have `.interactive = False` set explicitly. Feature marked as "Coming Soon" with disabled UI.
   → BUG_HUNT_TODO.md:373
 
 - [x] **BUG-20251103-023**: Social Insights - Temp file cleanup not guaranteed (Agent: Claude Sonnet 4.5, Completed: 2025-11-18)
@@ -581,9 +581,10 @@ If you find a `[~]` task with timestamp >24 hours old:
   - **Effort**: 15 min | **Conflict Risk**: ⚠️⚠️ MEDIUM
   → BUG_HUNT_TODO.md:341
 
-- [ ] **BUG-20251103-016**: Campaign Dashboard - Managers instantiated multiple times
-  - **Files**: `src/campaign_dashboard.py:20-22`
-  - **Effort**: 30-60 min | **Conflict Risk**: ⚠️⚠️ MEDIUM
+- [x] **BUG-20251103-016**: Campaign Dashboard - Managers instantiated multiple times (Agent: Claude Sonnet 4.5, Completed: 2025-11-19)
+  - **Files**: `src/campaign_dashboard.py:10-53`
+  - **Effort**: 30 min (actual) | **Conflict Risk**: ⚠️⚠️ MEDIUM
+  - **Fix**: Implemented lazy-loading singleton pattern for CampaignManager, PartyConfigManager, and CharacterProfileManager. Added _get_*_manager() functions to create instances once and reuse across all dashboard generations. Reduces JSON file I/O by ~3x during dashboard refreshes.
   → BUG_HUNT_TODO.md:347
 
 #### App.py Edge Cases
@@ -602,7 +603,7 @@ If you find a `[~]` task with timestamp >24 hours old:
 - [x] **BUG-20251103-012**: Campaign Dashboard - Knowledge base sample truncated without indication (Agent: Claude Sonnet 4.5, Completed: 2025-11-18)
   - **Files**: `app.py:578-596`
   - **Effort**: 30 min (actual: 20 min) | **Conflict Risk**: ⚠️⚠️ MEDIUM
-  - **Fix**: Added _format_sample helper to show count indicators (e.g., showing 3 of 47)
+  - **Fix**: Added _format_sample helper to show count indicators (e.g., "showing 3 of 47")
   → BUG_HUNT_TODO.md:321
 
 #### Cross-Cutting (Defer)
@@ -615,6 +616,18 @@ If you find a `[~]` task with timestamp >24 hours old:
   - **Files**: Multiple files
   - **Effort**: 1-2 hours | **Conflict Risk**: ⚠️⚠️ MEDIUM
   → BUG_HUNT_TODO.md:441
+
+
+
+---
+
+## Bugs - Analytics Module
+
+🔍 **Session Analyzer Issues** (newly logged 2025-11-19)
+
+- [x] BUG-20251119-101: SessionAnalyzer compare_sessions returned no insights when only one session was provided, leaving the Analytics tab without guidance and failing `tests/test_analytics_session_analyzer.py::test_compare_sessions_single`. Added a single-session summary insight plus a top-speaker highlight so comparisons always emit actionable text. → src/analytics/session_analyzer.py:452-476 | tests/test_analytics_session_analyzer.py:224-233
+
+- [x] BUG-20251119-102: SessionAnalyzer.calculate_character_stats relies on a non-existent `duration` field in transcript segments, so any caller receives zero speaking durations even though `start_time`/`end_time` are provided. Update the helper to compute duration from timestamps and add regression tests. (Agent: Claude Sonnet 4.5, Completed: 2025-11-19) -> src/analytics/session_analyzer.py:398-400 | tests/test_analytics_session_analyzer.py:142-150
 
 
 
@@ -650,7 +663,7 @@ If you find a `[~]` task with timestamp >24 hours old:
 
 1. BUG-20251103-006 - Add client-side validation to Process Session
 
-2. BUG-20251103-019 - Hide/disable Live Session tab (mark Coming Soon)
+2. BUG-20251103-019 - Hide/disable Live Session tab (mark "Coming Soon")
 
 3. BUG-20251103-022 - Better WordCloud dependency error handling
 

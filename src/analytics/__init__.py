@@ -11,7 +11,6 @@ from .data_validator import DataValidator, ValidationWarning, ValidationReport
 from .session_analyzer import SessionAnalyzer
 
 __all__ = [
-    "SessionAnalyzer",
     "CharacterAnalytics",
     "TimelineEvent",
     "CharacterTimeline",
@@ -21,4 +20,5 @@ __all__ = [
     "DataValidator",
     "ValidationWarning",
     "ValidationReport",
+    "SessionAnalyzer",
 ]

@@ -50,6 +50,10 @@ This directory contains all the documentation for the D&D Session Processor. Bel
 - **[DIARIZATION_CLASSIFICATION_HISTORY.md](./DIARIZATION_CLASSIFICATION_HISTORY.md)**: Pipeline history focused on Stage 5/6 diarization and IC/OOC classification issues, mitigations, and pending work.
 - **[archive/OUTSTANDING_TASKS.md](./archive/OUTSTANDING_TASKS.md)**: Backlog of prioritized tasks with the locking protocol for in-progress work.
 - **[archive/BUG_HUNT_TODO.md](./archive/BUG_HUNT_TODO.md)**: Detailed bug hunt task list with context, issues, and reasoning notes (updated with Process Session progress tracking status on 2025-11-20).
+- **[notes/inbox_20251120_classification_run.md](./notes/inbox_20251120_classification_run.md)**: Scratchpad TODOs from the 2025-11-20 log review (classification logging, model availability, and session list warnings).
+- **[notes/live_review_implementation_plan.md](./notes/live_review_implementation_plan.md)**: Maximal implementation plan for live, in-process transcription/diarization/classification review with operator overrides and partial reruns.
+- **[notes/knowledge_board_reimplementation.md](./notes/knowledge_board_reimplementation.md)**: Outline to recreate the knowledge board UI using our stack and data, without copying the Chronicler app code.
+- **[notes/gradio_theme_toggle.md](./notes/gradio_theme_toggle.md)**: Draft plan for a toggle-able Chronicler-inspired theme in the Gradio Modern UI.
 
 ### Analysis & Technical Reviews
 

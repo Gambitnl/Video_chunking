@@ -3,7 +3,13 @@ import pytest
 import gradio as gr
 from unittest.mock import MagicMock
 
-from src.ui.social_insights_tab import create_social_insights_tab
+from src.ui.social_insights_tab import (
+    ANALYZING_LABEL,
+    DEFAULT_ANALYZE_LABEL,
+    create_social_insights_tab,
+    reset_social_insights_button,
+    start_social_insights_analysis,
+)
 from src.story_notebook import StoryNotebookManager
 
 @pytest.fixture
@@ -41,3 +47,32 @@ def test_refresh_sessions_ui(story_manager, refresh_campaign_names):
     assert refs["campaign_selector"].value == "All Campaigns"
     kwargs = story_manager.list_sessions.call_args.kwargs
     assert kwargs.get("campaign_id", None) is None
+
+
+def test_start_social_insights_analysis_sets_loading_state():
+    """Ensure the analyze button shows a loading state when analysis begins."""
+
+    button_update, status_message = start_social_insights_analysis("session-123")
+
+    assert button_update["value"] == ANALYZING_LABEL
+    assert button_update["interactive"] is False
+    assert "[LOADING]" in status_message
+
+
+def test_start_social_insights_analysis_warns_without_session():
+    """Warn the user immediately when no session is selected."""
+
+    button_update, status_message = start_social_insights_analysis("")
+
+    assert button_update["value"] == ANALYZING_LABEL
+    assert button_update["interactive"] is False
+    assert "Input Required" in status_message
+
+
+def test_reset_social_insights_button_restores_label():
+    """Reset button label and interactivity after analysis completes."""
+
+    button_update = reset_social_insights_button()
+
+    assert button_update["value"] == DEFAULT_ANALYZE_LABEL
+    assert button_update["interactive"] is True

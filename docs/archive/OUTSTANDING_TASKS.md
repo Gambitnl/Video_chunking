@@ -485,7 +485,7 @@ If you find a `[~]` task with timestamp >24 hours old:
   - **Fix**: Added _refresh_campaign_tab, _handle_rename_campaign, _handle_delete_campaign functions with full event wiring
   → BUG_HUNT_TODO.md:315
 
-- [x] **BUG-20251103-021**: Social Insights - No loading indicator during analysis (Agent: Already Fixed, Completed: 2025-11-14 - commit a2d6b42)
+[~] **BUG-20251103-021**: Social Insights - No loading indicator during analysis (Agent: ChatGPT Codex, Started: 2025-11-20 10:10 UTC)
   - **Files**: `src/ui/social_insights_tab.py:34-243`
   - **Effort**: 1 hour (actual: completed by Task10 PR #40) | **Conflict Risk**: ⚠️ LOW
   - **Fix**: Added generator-based progress yielding with StatusMessages at 5 stages of analysis

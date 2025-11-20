@@ -357,7 +357,7 @@ If you find a `[~]` task with timestamp >24 hours old:
 
 
 #### App.py Core Logic (Medium-High Conflict Risk)
-- [ ] **BUG-20251103-002**: Main Dashboard - Campaign state not persisted across refreshes
+- [x] **BUG-20251103-002**: Main Dashboard - Campaign state not persisted across refreshes (Agent: Jules, Completed: 2025-11-22)
   - **Files**: `app.py:623` (State initialization)
   - **Effort**: 1-2 hours | **Conflict Risk**: ⚠️⚠️ MEDIUM
   → BUG_HUNT_TODO.md:257

@@ -1856,6 +1856,35 @@ with gr.Blocks(
         outputs=artifacts_tab_refs["session_picker"]
     )
 
+    def _init_load_campaign():
+        """Initialize the UI state from the persisted campaign ID on page load."""
+        # Ensure campaign names are up to date
+        names = _refresh_campaign_names()
+        # Load the persisted ID from disk
+        persisted = ui_state_store.load_active_campaign(names.keys())
+        # Fallback to the first available campaign if persistence is empty/invalid
+        campaign_id = persisted or next(iter(names.keys()), None)
+
+        logger.info(f"Initializing UI with campaign: {campaign_id}")
+
+        # Generate all UI updates for this campaign
+        summary = _campaign_summary_message(campaign_id)
+        manifest = _build_campaign_manifest(campaign_id)
+        ui_updates = _build_full_ui_update(campaign_id)
+
+        return (
+            ui_updates[0], # active_campaign_state
+            summary,
+            manifest,
+            *ui_updates[1:] # Rest of UI updates
+        )
+
+    # Restore active campaign state on page load
+    demo.load(
+        fn=_init_load_campaign,
+        outputs=load_campaign_outputs
+    )
+
     def _handle_refresh_campaign_list():
         names = _refresh_campaign_names()
         return gr.update(choices=list(names.values()))

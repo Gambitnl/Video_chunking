@@ -12,6 +12,7 @@ import numpy as np
 from pathlib import Path
 from unittest.mock import Mock, MagicMock, patch
 from src.chunker import HybridChunker, AudioChunk
+from src.config import Config
 
 
 # ============================================================================

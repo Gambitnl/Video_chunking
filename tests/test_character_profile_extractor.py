@@ -15,6 +15,26 @@ from src.party_config import Character, PartyConfigManager
 from src import config as config_module
 
 
+@pytest.fixture(autouse=True)
+def stub_profile_extractor(monkeypatch):
+    """Avoid real Ollama connections by providing a lightweight extractor stub."""
+
+    class StubExtractor:
+        def __init__(self, *args, **kwargs):
+            pass
+
+        def extract_profile_updates(self, **kwargs):
+            return ProfileUpdateBatch(
+                session_id=kwargs.get("session_id", "test_session"),
+                campaign_id=kwargs.get("campaign_id", "test_campaign"),
+                generated_at=kwargs.get("generated_at", "1970-01-01T00:00:00Z"),
+                source={},
+                updates=[],
+            )
+
+    monkeypatch.setattr("src.character_profile_extractor.ProfileExtractor", StubExtractor)
+
+
 class TestCharacterProfileExtractor:
     """Test the high-level profile extraction workflow."""
 

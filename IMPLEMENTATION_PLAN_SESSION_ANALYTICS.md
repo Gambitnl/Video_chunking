@@ -643,6 +643,8 @@ docs/USAGE.md                      # Document analytics features
 
 *(This section will be updated during implementation)*
 
+- **2025-11-20**: Refactored analytics tab event handlers into `src/ui/analytics/actions.py` and kept `create_analytics_tab` focused on layout wiring to improve modularity and future testability.
+
 ### Design Decisions
 - **Why Markdown charts instead of Plotly initially?**
   - Lower complexity, faster implementation
@@ -668,6 +670,10 @@ docs/USAGE.md                      # Document analytics features
 - **Simplicity vs Features**: Prioritized core features, deferred advanced charts
 - **Performance vs Accuracy**: Used caching to balance both
 - **Flexibility vs Complexity**: Fixed schema for now, can extend later
+
+## Code Review Findings
+
+- **Self-review (2025-11-20)**: No behavioral changes observed after modularizing analytics tab handlers; structure now isolates UI wiring from business logic, reducing `app.py`-level coupling. Further test coverage should target `AnalyticsActions` methods directly.
 
 ---
 

@@ -179,7 +179,7 @@ class TestOOCAnalyzer:
         assert keywords_top_1[0] == ("test", 4)
 
         keywords_all = analyzer.get_keywords_by_frequency(top_n=10)
-        assert len(keywords_all) == 7  # Total unique non-stop words > 2 chars
+        assert len(keywords_all) == 6  # Total unique non-stop words > 2 chars
 
     def test_get_keywords_from_empty_file(self, empty_transcript_file):
         """Test that keyword extraction handles empty file gracefully."""

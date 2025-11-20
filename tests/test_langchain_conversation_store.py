@@ -183,3 +183,103 @@ def test_load_conversation_corrupted_file_quarantined(
     )
     assert len(quarantined_files) == 1
     assert "Error loading conversation" in caplog.text
+
+
+def test_list_conversations_with_corrupted_files(conversation_store, caplog):
+    """
+    Test that list_conversations handles corrupted files gracefully.
+
+    BUG-20251102-15: Verify that corrupted conversation files are skipped
+    and don't prevent listing of valid conversations.
+    """
+    # Create three valid conversations
+    conv1 = conversation_store.create_conversation("Campaign 1")
+    conv2 = conversation_store.create_conversation("Campaign 2")
+    conv3 = conversation_store.create_conversation("Campaign 3")
+
+    # Create corrupted conversation files with valid naming pattern
+    corrupted_conv_id = "conv_bad12345"
+    corrupted_file = conversation_store.conversations_dir / f"{corrupted_conv_id}.json"
+    corrupted_file.write_text("not valid json at all", encoding="utf-8")
+
+    # Create another corrupted file with incomplete JSON
+    corrupted_conv_id2 = "conv_bad67890"
+    corrupted_file2 = conversation_store.conversations_dir / f"{corrupted_conv_id2}.json"
+    corrupted_file2.write_text('{"conversation_id": "incomplete', encoding="utf-8")
+
+    # Capture log warnings
+    caplog.set_level(logging.WARNING)
+
+    # List conversations should still work and return only valid ones
+    conversations = conversation_store.list_conversations()
+
+    # Should return exactly 3 valid conversations (corrupted ones skipped)
+    assert len(conversations) == 3
+
+    # Verify the valid conversations are present
+    conv_ids = {c["conversation_id"] for c in conversations}
+    assert conv1 in conv_ids
+    assert conv2 in conv_ids
+    assert conv3 in conv_ids
+
+    # Corrupted conversation IDs should NOT be in results
+    assert corrupted_conv_id not in conv_ids
+    assert corrupted_conv_id2 not in conv_ids
+
+    # Verify warnings were logged for corrupted files
+    assert "Error loading conversation file" in caplog.text
+    assert corrupted_conv_id in caplog.text or "bad12345" in caplog.text
+
+
+def test_list_conversations_all_corrupted(conversation_store, caplog):
+    """
+    Test that list_conversations returns empty list when all files are corrupted.
+
+    BUG-20251102-15: Edge case where no valid conversations exist.
+    """
+    # Create only corrupted conversation files
+    corrupted_conv_id1 = "conv_bad11111"
+    corrupted_file1 = conversation_store.conversations_dir / f"{corrupted_conv_id1}.json"
+    corrupted_file1.write_text("invalid json", encoding="utf-8")
+
+    corrupted_conv_id2 = "conv_bad22222"
+    corrupted_file2 = conversation_store.conversations_dir / f"{corrupted_conv_id2}.json"
+    corrupted_file2.write_text("", encoding="utf-8")
+
+    caplog.set_level(logging.WARNING)
+
+    # List should return empty list (not crash)
+    conversations = conversation_store.list_conversations()
+
+    assert len(conversations) == 0
+    assert "Error loading conversation file" in caplog.text
+
+
+def test_list_conversations_missing_required_keys(conversation_store, caplog):
+    """
+    Test that list_conversations handles files missing required metadata keys.
+
+    BUG-20251102-15: Files with valid JSON but missing required keys should be skipped.
+    """
+    # Create valid conversations
+    conv1 = conversation_store.create_conversation("Valid Campaign")
+
+    # Create a file with valid JSON but missing required keys
+    incomplete_conv_id = "conv_incomplete"
+    incomplete_file = conversation_store.conversations_dir / f"{incomplete_conv_id}.json"
+    incomplete_data = {
+        "conversation_id": incomplete_conv_id,
+        # Missing created_at, updated_at, messages, context
+    }
+    incomplete_file.write_text(json.dumps(incomplete_data), encoding="utf-8")
+
+    caplog.set_level(logging.WARNING)
+
+    # List should return only the valid conversation
+    conversations = conversation_store.list_conversations()
+
+    assert len(conversations) == 1
+    assert conversations[0]["conversation_id"] == conv1
+
+    # Should have logged a warning for the incomplete file
+    assert "Error loading conversation file" in caplog.text

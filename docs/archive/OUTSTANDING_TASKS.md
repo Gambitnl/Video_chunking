@@ -190,7 +190,7 @@ If you find a `[~]` task with timestamp >24 hours old:
 
 ### High Priority Integration Tests (8 bugs)
 
-- [ ] BUG-20251102-01: CampaignChatClient.ask - Add integration tests for full RAG pipeline → BUG_HUNT_TODO.md:9
+- [x] BUG-20251102-01: CampaignChatClient.ask - Add integration tests for full RAG pipeline (Agent: Claude Sonnet 4.5, Completed: 2025-11-20) → BUG_HUNT_TODO.md:9
 
 - [ ] BUG-20251102-08: CampaignChatChain.ask - Add integration tests for full chain → BUG_HUNT_TODO.md:37
 
@@ -210,9 +210,9 @@ If you find a `[~]` task with timestamp >24 hours old:
 
 ### Medium Priority Tests (42 bugs)
 
-- [ ] BUG-20251102-02: CampaignChatClient.ask - Test various context inputs → BUG_HUNT_TODO.md:13
+- [x] BUG-20251102-02: CampaignChatClient.ask - Test various context inputs (Agent: Claude Sonnet 4.5, Completed: 2025-11-20) → BUG_HUNT_TODO.md:13
 
-- [ ] BUG-20251102-03: CampaignChatClient.ask - Test retriever failure handling → BUG_HUNT_TODO.md:17
+- [x] BUG-20251102-03: CampaignChatClient.ask - Test retriever failure handling (Agent: GPT-5.1-Codex-Max, Completed: 2025-11-20) → BUG_HUNT_TODO.md:17
 
 - [x] BUG-20251102-04: CampaignChatClient.ask - Test LLM failure handling (Agent: Claude Sonnet 4.5, Completed: 2025-11-20) → BUG_HUNT_TODO.md:21
 
@@ -228,7 +228,7 @@ If you find a `[~]` task with timestamp >24 hours old:
 
 - [ ] BUG-20251102-14: ConversationStore.list_conversations - Test with large numbers → BUG_HUNT_TODO.md:61
 
-- [ ] BUG-20251102-15: ConversationStore.list_conversations - Test corrupted files → BUG_HUNT_TODO.md:65
+- [x] BUG-20251102-15: ConversationStore.list_conversations - Test corrupted files (Agent: Claude Sonnet 4.5, Completed: 2025-11-20) → BUG_HUNT_TODO.md:65
 
 - [ ] BUG-20251102-19: HybridSearcher.search - Test varying top_k/semantic_weight → BUG_HUNT_TODO.md:81
 
@@ -372,7 +372,7 @@ If you find a `[~]` task with timestamp >24 hours old:
   - **Effort**: 3-4 hours | **Conflict Risk**: ⚠️⚠️⚠️ HIGH
   → BUG_HUNT_TODO.md:415
 
-- [ ] **BUG-20251103-029**: Data - Session library doesn't verify campaign_id before display
+- [x] **BUG-20251103-029**: Data - Session library doesn't verify campaign_id before display (Agent: Jules, Completed: 2025-11-20)
   - **Files**: `app.py:397-426`
   - **Effort**: 1 hour | **Conflict Risk**: ⚠️⚠️ MEDIUM
   → BUG_HUNT_TODO.md:435

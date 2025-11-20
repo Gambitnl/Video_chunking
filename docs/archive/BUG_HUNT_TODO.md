@@ -28,6 +28,14 @@ This list summarizes preliminary findings from the bug hunt session on 2025-11-0
     *   **Issue**: If the `self.retriever.retrieve` call within `CampaignChatClient.ask` throws an exception (e.g., due to issues with ChromaDB, embedding model, or file access), the current error handling might be too generic.
     *   **Why it's an issue**: Unspecific error handling can result in cryptic messages for the user or silent failures leading to suboptimal LLM responses. Explicitly testing this ensures the system either gracefully falls back (e.g., attempts to answer without RAG) or provides clear, actionable error messages to the user for better debugging.
 
+##### Implementation Notes & Reasoning (2025-11-20 GPT-5.1-Codex-Max)
+
+- Added a regression test that forces `CampaignChatClient.ask` to handle retriever exceptions, ensuring the LLM is not invoked and no chat history is persisted when retrieval fails.
+
+##### Code Review Findings (2025-11-20 GPT-5.1-Codex-Max)
+
+- [APPROVED] Error path now surfaces retrieval failures with an "Error:" prefix and empty sources while avoiding unintended side effects.
+
 -   **BUG-20251102-04**: `CampaignChatClient.ask` - Test error handling when `llm` call fails. (Medium)
     *   **Issue**: Similar to retriever failures, if the `self.llm(full_prompt)` call in `CampaignChatClient.ask` fails (e.g., due to an invalid API key, network timeout, model being unavailable), the current error handling simply captures the generic exception.
     *   **Why it's an issue**: An LLM failure is a critical operational issue. Generic error messages can expose internal system details or be unhelpful to the user. Specific tests are needed to ensure robust error handling provides clear, non-technical feedback to the user, potentially suggesting solutions like checking network connections or API keys.

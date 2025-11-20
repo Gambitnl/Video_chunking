@@ -1,5 +1,5 @@
 import pytest
-from unittest.mock import Mock, patch, MagicMock
+from unittest.mock import Mock, patch, MagicMock, mock_open
 from pathlib import Path
 
 from src.langchain.campaign_chat import (
@@ -135,14 +135,60 @@ def test_initialize_memory(mock_window_memory):
             mock_window_memory.assert_called_once_with(k=10, memory_key='chat_history', return_messages=True, output_key='answer')
 
 @patch('builtins.open')
-def test_load_system_prompt_success(mock_open):
-    mock_file_content = "SYSTEM INSTRUCTIONS:\nCampaign Name: {campaign_name}"
+def test_load_system_prompt_uses_safe_defaults(mock_open):
+    mock_file_content = (
+        "SYSTEM INSTRUCTIONS:\n"
+        "Campaign Name: {campaign_name}\n"
+        "Total Sessions: {num_sessions}\n"
+        "Player Characters: {pc_names}\n"
+        "Extra: {missing_placeholder}"
+    )
     mock_open.return_value.__enter__.return_value.read.return_value = mock_file_content
     # Mock other initialization methods
     with patch.object(CampaignChatClient, '_initialize_llm', return_value=Mock()):
         with patch.object(CampaignChatClient, '_initialize_memory', return_value=Mock()):
             client = CampaignChatClient()
             assert "Campaign Name: Unknown" in client.system_prompt
+            assert "Total Sessions: 0" in client.system_prompt
+            assert "Player Characters: Unknown" in client.system_prompt
+            assert "Extra: {missing_placeholder}" in client.system_prompt
+
+
+@patch('src.story_notebook.StoryNotebookManager')
+@patch('src.party_config.PartyConfigManager')
+@patch('src.party_config.CampaignManager')
+@patch('builtins.open', new_callable=mock_open)
+def test_load_system_prompt_formats_campaign_context(
+    mock_file, mock_campaign_manager, mock_party_manager, mock_story_manager
+):
+    mock_file.return_value.__enter__.return_value.read.return_value = (
+        "Campaign Name: {campaign_name}\n"
+        "Total Sessions: {num_sessions}\n"
+        "Player Characters: {pc_names}"
+    )
+
+    campaign = MagicMock()
+    campaign.name = "Skyfall"
+    campaign.party_id = "party-1"
+    mock_campaign_manager.return_value.get_campaign.return_value = campaign
+
+    character_one = MagicMock()
+    character_one.name = "Aelwyn"
+    character_two = MagicMock()
+    character_two.name = "Borin"
+    mock_party_manager.return_value.get_party.return_value = MagicMock(
+        characters=[character_one, character_two]
+    )
+
+    mock_story_manager.return_value.list_sessions.return_value = [1, 2, 3]
+
+    with patch.object(CampaignChatClient, '_initialize_llm', return_value=Mock()):
+        with patch.object(CampaignChatClient, '_initialize_memory', return_value=Mock()):
+            client = CampaignChatClient(campaign_id="camp-001")
+
+    assert "Campaign Name: Skyfall" in client.system_prompt
+    assert "Total Sessions: 3" in client.system_prompt
+    assert "Player Characters: Aelwyn, Borin" in client.system_prompt
 
 @patch('builtins.open', side_effect=FileNotFoundError)
 def test_load_system_prompt_file_not_found(mock_open):
@@ -599,6 +645,36 @@ def test_rag_integration_context_length_truncation(mock_sanitize_input):
                 assert result["answer"] == "Response based on truncated context."
 
 
+@patch('src.langchain.campaign_chat.sanitize_input', return_value="Where is the artifact?")
+def test_rag_integration_retriever_failure_returns_error(mock_sanitize_input):
+    """
+    Integration test: Verify retriever errors surface cleanly.
+
+    Tests BUG-20251102-03: retriever exceptions should not call the LLM and
+    should return a clear error without persisting chat history.
+    """
+    with patch.object(CampaignChatClient, '_initialize_memory', return_value=Mock()):
+        with patch.object(CampaignChatClient, '_load_system_prompt', return_value='System'):
+            mock_llm = Mock()
+
+            with patch.object(CampaignChatClient, '_initialize_llm', return_value=mock_llm):
+                mock_retriever = Mock()
+                mock_retriever.retrieve.side_effect = RuntimeError("retrieval failed")
+
+                client = CampaignChatClient(retriever=mock_retriever)
+                memory_mock = Mock()
+                client.memory = memory_mock
+
+                result = client.ask("Where is the artifact?")
+
+                mock_retriever.retrieve.assert_called_once_with("Where is the artifact?", top_k=5)
+                mock_llm.assert_not_called()
+                memory_mock.save_context.assert_not_called()
+                assert result["answer"].startswith("Error:")
+                assert "retrieval failed" in result["answer"]
+                assert result["sources"] == []
+
+
 @patch('src.langchain.campaign_chat.sanitize_input', return_value="What happened in Session 5?")
 def test_rag_integration_with_various_context_inputs(mock_sanitize_input):
     """
@@ -636,3 +712,378 @@ def test_rag_integration_with_various_context_inputs(mock_sanitize_input):
                     assert "answer" in result
                     assert "sources" in result
                     assert result["answer"] == "Session 5 was about the haunted castle."
+
+
+# --- BUG-20251102-02: Context Parameter Tests ---
+
+@patch('src.langchain.campaign_chat.sanitize_input', return_value="test question")
+def test_ask_context_parameter_with_invalid_types(mock_sanitize_input):
+    """
+    Test BUG-20251102-02: Context parameter handles invalid types gracefully.
+
+    The context parameter currently accepts Optional[Dict] but we should verify
+    behavior when non-dict types are passed (defensive programming).
+    """
+    with patch.object(CampaignChatClient, '_initialize_memory', return_value=Mock()):
+        with patch.object(CampaignChatClient, '_load_system_prompt', return_value='System'):
+            mock_llm = Mock(return_value="Response")
+
+            with patch.object(CampaignChatClient, '_initialize_llm', return_value=mock_llm):
+                client = CampaignChatClient()
+                client.memory = Mock()
+
+                # Test with string instead of dict
+                result = client.ask("question", context="invalid_string")
+                assert "answer" in result
+                assert "sources" in result
+
+                # Test with integer instead of dict
+                result = client.ask("question", context=123)
+                assert "answer" in result
+                assert "sources" in result
+
+                # Test with list instead of dict
+                result = client.ask("question", context=["item1", "item2"])
+                assert "answer" in result
+                assert "sources" in result
+
+
+@patch('src.langchain.campaign_chat.sanitize_input', return_value="test question")
+def test_ask_context_parameter_with_nested_structures(mock_sanitize_input):
+    """
+    Test BUG-20251102-02: Context parameter handles complex nested structures.
+
+    Ensures deeply nested dicts, lists within dicts, and complex structures
+    don't cause crashes even though context is currently unused.
+    """
+    with patch.object(CampaignChatClient, '_initialize_memory', return_value=Mock()):
+        with patch.object(CampaignChatClient, '_load_system_prompt', return_value='System'):
+            mock_llm = Mock(return_value="Response")
+
+            with patch.object(CampaignChatClient, '_initialize_llm', return_value=mock_llm):
+                client = CampaignChatClient()
+                client.memory = Mock()
+
+                # Test with deeply nested dict
+                nested_context = {
+                    "level1": {
+                        "level2": {
+                            "level3": {
+                                "data": "deeply nested"
+                            }
+                        }
+                    }
+                }
+                result = client.ask("question", context=nested_context)
+                assert "answer" in result
+
+                # Test with lists in dict values
+                list_context = {
+                    "sessions": ["session1", "session2", "session3"],
+                    "filters": [{"type": "campaign"}, {"type": "character"}]
+                }
+                result = client.ask("question", context=list_context)
+                assert "answer" in result
+
+
+@patch('src.langchain.campaign_chat.sanitize_input', return_value="test question")
+def test_ask_context_parameter_with_large_dict(mock_sanitize_input):
+    """
+    Test BUG-20251102-02: Context parameter handles large dictionaries.
+
+    Verifies that passing a large context dict doesn't cause performance
+    issues or memory problems.
+    """
+    with patch.object(CampaignChatClient, '_initialize_memory', return_value=Mock()):
+        with patch.object(CampaignChatClient, '_load_system_prompt', return_value='System'):
+            mock_llm = Mock(return_value="Response")
+
+            with patch.object(CampaignChatClient, '_initialize_llm', return_value=mock_llm):
+                client = CampaignChatClient()
+                client.memory = Mock()
+
+                # Create a large context dict with 1000 entries
+                large_context = {f"key_{i}": f"value_{i}" for i in range(1000)}
+
+                result = client.ask("question", context=large_context)
+                assert "answer" in result
+                assert "sources" in result
+
+
+@patch('src.langchain.campaign_chat.sanitize_input', return_value="test question")
+def test_ask_context_parameter_with_special_characters(mock_sanitize_input):
+    """
+    Test BUG-20251102-02: Context parameter handles special characters in keys/values.
+
+    Ensures context dicts with unicode, special chars, and edge case strings
+    don't cause encoding or parsing issues.
+    """
+    with patch.object(CampaignChatClient, '_initialize_memory', return_value=Mock()):
+        with patch.object(CampaignChatClient, '_load_system_prompt', return_value='System'):
+            mock_llm = Mock(return_value="Response")
+
+            with patch.object(CampaignChatClient, '_initialize_llm', return_value=mock_llm):
+                client = CampaignChatClient()
+                client.memory = Mock()
+
+                # Test with special characters and unicode
+                special_context = {
+                    "campaign_name": "The Dragon's Lair",
+                    "unicode_test": "Test with unicode: \u00e9\u00e8\u00ea",
+                    "newlines": "Line1\nLine2\nLine3",
+                    "tabs": "Col1\tCol2\tCol3",
+                    "quotes": 'He said "hello" and she replied',
+                    "empty_string": "",
+                    "whitespace_only": "   "
+                }
+
+                result = client.ask("question", context=special_context)
+                assert "answer" in result
+                assert "sources" in result
+
+
+@patch('src.langchain.campaign_chat.sanitize_input', return_value="test question")
+def test_ask_context_parameter_not_modified(mock_sanitize_input):
+    """
+    Test BUG-20251102-02: Context parameter is not modified by the ask method.
+
+    Ensures that the ask method doesn't mutate the context dict passed by caller,
+    which would be unexpected behavior.
+    """
+    with patch.object(CampaignChatClient, '_initialize_memory', return_value=Mock()):
+        with patch.object(CampaignChatClient, '_load_system_prompt', return_value='System'):
+            mock_llm = Mock(return_value="Response")
+
+            with patch.object(CampaignChatClient, '_initialize_llm', return_value=mock_llm):
+                client = CampaignChatClient()
+                client.memory = Mock()
+
+                # Create a context dict and keep a copy of original
+                original_context = {"campaign_id": "test_campaign", "session_filter": ["s1"]}
+                context_copy = original_context.copy()
+
+                result = client.ask("question", context=original_context)
+
+                # Verify context wasn't modified
+                assert original_context == context_copy
+                assert "answer" in result
+
+
+# --- BUG-20251102-01: Full RAG Pipeline Integration Tests ---
+
+@patch('src.langchain.campaign_chat.sanitize_input', return_value="What quests are available?")
+def test_rag_integration_multi_turn_conversation(mock_sanitize_input):
+    """
+    Integration test: Verify RAG pipeline works correctly across multiple conversation turns.
+
+    Tests BUG-20251102-01: Full RAG pipeline integration including memory persistence.
+    This test verifies:
+    1. First question retrieves context and generates response
+    2. Memory is saved after first question
+    3. Second question uses conversation history
+    4. Memory is updated after second question
+    """
+    with patch.object(CampaignChatClient, '_initialize_memory', return_value=Mock()):
+        with patch.object(CampaignChatClient, '_load_system_prompt', return_value='D&D Assistant'):
+            # Create mock LLM that tracks call count
+            mock_llm = Mock()
+            mock_llm.side_effect = [
+                "The available quests are the Dragon's Lair and the Lost Artifact.",
+                "The Dragon's Lair is located in the Crimson Mountains."
+            ]
+
+            with patch.object(CampaignChatClient, '_initialize_llm', return_value=mock_llm):
+                mock_retriever = Mock()
+                # First call returns quest info
+                mock_retriever.retrieve.side_effect = [
+                    [
+                        Document(
+                            content="Quest: Dragon's Lair - Location: Crimson Mountains",
+                            metadata={"session": "Session_001"}
+                        ),
+                        Document(
+                            content="Quest: Lost Artifact - Location: Ancient Ruins",
+                            metadata={"session": "Session_002"}
+                        )
+                    ],
+                    # Second call returns specific location info
+                    [
+                        Document(
+                            content="The Dragon's Lair: A massive cave system in the Crimson Mountains.",
+                            metadata={"session": "Session_003"}
+                        )
+                    ]
+                ]
+
+                client = CampaignChatClient(retriever=mock_retriever)
+                memory_mock = Mock()
+                client.memory = memory_mock
+
+                # First question
+                mock_sanitize_input.return_value = "What quests are available?"
+                result1 = client.ask("What quests are available?")
+
+                # Verify first retrieval and response
+                assert mock_retriever.retrieve.call_count == 1
+                assert result1["answer"] == "The available quests are the Dragon's Lair and the Lost Artifact."
+                assert len(result1["sources"]) == 2
+                # Verify memory was saved after first question
+                assert memory_mock.save_context.call_count == 1
+                memory_mock.save_context.assert_called_with(
+                    {"input": "What quests are available?"},
+                    {"answer": "The available quests are the Dragon's Lair and the Lost Artifact."}
+                )
+
+                # Second question
+                mock_sanitize_input.return_value = "Where is the Dragon's Lair?"
+                result2 = client.ask("Where is the Dragon's Lair?")
+
+                # Verify second retrieval and response
+                assert mock_retriever.retrieve.call_count == 2
+                assert result2["answer"] == "The Dragon's Lair is located in the Crimson Mountains."
+                assert len(result2["sources"]) == 1
+                # Verify memory was saved after second question
+                assert memory_mock.save_context.call_count == 2
+
+
+@patch('src.langchain.campaign_chat.sanitize_input', return_value="test question")
+def test_rag_integration_prompt_structure_verification(mock_sanitize_input):
+    """
+    Integration test: Verify the exact structure of prompts sent to the LLM.
+
+    Tests BUG-20251102-01: Ensures the structured prompt format prevents injection
+    and correctly separates system instructions, context, and user question.
+    """
+    with patch.object(CampaignChatClient, '_initialize_memory', return_value=Mock()):
+        with patch.object(CampaignChatClient, '_load_system_prompt', return_value='You are a D&D assistant.'):
+            mock_llm = Mock(return_value="Test response")
+
+            with patch.object(CampaignChatClient, '_initialize_llm', return_value=mock_llm):
+                mock_retriever = Mock()
+                mock_doc = Document(
+                    content="Campaign knowledge about dragons",
+                    metadata={"type": "knowledge"}
+                )
+                mock_retriever.retrieve.return_value = [mock_doc]
+
+                client = CampaignChatClient(retriever=mock_retriever)
+                client.memory = Mock()
+
+                result = client.ask("test question")
+
+                # Get the actual prompt sent to LLM
+                mock_llm.assert_called_once()
+                actual_prompt = mock_llm.call_args[0][0]
+
+                # Verify structured format sections exist and are in correct order
+                assert "SYSTEM INSTRUCTIONS:\nYou are a D&D assistant." in actual_prompt
+                assert "RELEVANT INFORMATION:" in actual_prompt
+                assert "Source 1:\nCampaign knowledge about dragons" in actual_prompt
+                assert "USER QUESTION:\ntest question" in actual_prompt
+                assert "ASSISTANT RESPONSE:" in actual_prompt
+
+                # Verify sections appear in the correct order
+                system_idx = actual_prompt.index("SYSTEM INSTRUCTIONS:")
+                relevant_idx = actual_prompt.index("RELEVANT INFORMATION:")
+                question_idx = actual_prompt.index("USER QUESTION:")
+                response_idx = actual_prompt.index("ASSISTANT RESPONSE:")
+
+                assert system_idx < relevant_idx < question_idx < response_idx
+
+
+@patch('src.langchain.campaign_chat.sanitize_input', return_value="test question")
+def test_rag_integration_prompt_structure_without_retriever(mock_sanitize_input):
+    """
+    Integration test: Verify prompt structure when no retriever is present.
+
+    Tests BUG-20251102-01: Ensures correct prompt structure when RAG is not used.
+    """
+    with patch.object(CampaignChatClient, '_initialize_memory', return_value=Mock()):
+        with patch.object(CampaignChatClient, '_load_system_prompt', return_value='System prompt'):
+            mock_llm = Mock(return_value="Response without retrieval")
+
+            with patch.object(CampaignChatClient, '_initialize_llm', return_value=mock_llm):
+                client = CampaignChatClient(retriever=None)
+                client.memory = Mock()
+
+                result = client.ask("test question")
+
+                # Get the actual prompt sent to LLM
+                actual_prompt = mock_llm.call_args[0][0]
+
+                # Verify sections exist
+                assert "SYSTEM INSTRUCTIONS:\nSystem prompt" in actual_prompt
+                assert "USER QUESTION:\ntest question" in actual_prompt
+                assert "ASSISTANT RESPONSE:" in actual_prompt
+
+                # Verify RELEVANT INFORMATION section is NOT present
+                assert "RELEVANT INFORMATION:" not in actual_prompt
+
+
+@patch('src.langchain.campaign_chat.sanitize_input', return_value="complex query")
+def test_rag_integration_memory_save_parameters(mock_sanitize_input):
+    """
+    Integration test: Verify memory.save_context is called with correct parameters.
+
+    Tests BUG-20251102-01: Ensures conversation history is properly persisted
+    with sanitized inputs and LLM outputs.
+    """
+    with patch.object(CampaignChatClient, '_initialize_memory', return_value=Mock()):
+        with patch.object(CampaignChatClient, '_load_system_prompt', return_value='Assistant'):
+            mock_llm = Mock(return_value="Detailed answer about the complex query")
+
+            with patch.object(CampaignChatClient, '_initialize_llm', return_value=mock_llm):
+                mock_retriever = Mock()
+                mock_retriever.retrieve.return_value = [
+                    Document(content="Context 1", metadata={"id": "1"})
+                ]
+
+                client = CampaignChatClient(retriever=mock_retriever)
+                memory_mock = Mock()
+                client.memory = memory_mock
+
+                result = client.ask("complex query")
+
+                # Verify memory was called exactly once
+                memory_mock.save_context.assert_called_once()
+
+                # Verify exact parameters passed to memory.save_context
+                call_args = memory_mock.save_context.call_args
+                assert call_args[0][0] == {"input": "complex query"}
+                assert call_args[0][1] == {"answer": "Detailed answer about the complex query"}
+
+                # Verify result contains both answer and sources
+                assert result["answer"] == "Detailed answer about the complex query"
+                assert len(result["sources"]) == 1
+
+
+@patch('src.langchain.campaign_chat.sanitize_input', return_value="test")
+def test_rag_integration_memory_not_saved_on_error(mock_sanitize_input):
+    """
+    Integration test: Verify memory is NOT saved when RAG pipeline encounters errors.
+
+    Tests BUG-20251102-01: Failed interactions should not pollute conversation history.
+    """
+    with patch.object(CampaignChatClient, '_initialize_memory', return_value=Mock()):
+        with patch.object(CampaignChatClient, '_load_system_prompt', return_value='System'):
+            # LLM that raises an exception
+            mock_llm = Mock(side_effect=Exception("LLM error"))
+
+            with patch.object(CampaignChatClient, '_initialize_llm', return_value=mock_llm):
+                mock_retriever = Mock()
+                mock_retriever.retrieve.return_value = [
+                    Document(content="Context", metadata={"id": "1"})
+                ]
+
+                client = CampaignChatClient(retriever=mock_retriever)
+                memory_mock = Mock()
+                client.memory = memory_mock
+
+                result = client.ask("test")
+
+                # Verify error response is returned
+                assert "Error:" in result["answer"]
+                assert result["sources"] == []
+
+                # Verify memory.save_context was NOT called (error should not be saved)
+                memory_mock.save_context.assert_not_called()

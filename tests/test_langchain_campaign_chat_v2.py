@@ -645,6 +645,36 @@ def test_rag_integration_context_length_truncation(mock_sanitize_input):
                 assert result["answer"] == "Response based on truncated context."
 
 
+@patch('src.langchain.campaign_chat.sanitize_input', return_value="Where is the artifact?")
+def test_rag_integration_retriever_failure_returns_error(mock_sanitize_input):
+    """
+    Integration test: Verify retriever errors surface cleanly.
+
+    Tests BUG-20251102-03: retriever exceptions should not call the LLM and
+    should return a clear error without persisting chat history.
+    """
+    with patch.object(CampaignChatClient, '_initialize_memory', return_value=Mock()):
+        with patch.object(CampaignChatClient, '_load_system_prompt', return_value='System'):
+            mock_llm = Mock()
+
+            with patch.object(CampaignChatClient, '_initialize_llm', return_value=mock_llm):
+                mock_retriever = Mock()
+                mock_retriever.retrieve.side_effect = RuntimeError("retrieval failed")
+
+                client = CampaignChatClient(retriever=mock_retriever)
+                memory_mock = Mock()
+                client.memory = memory_mock
+
+                result = client.ask("Where is the artifact?")
+
+                mock_retriever.retrieve.assert_called_once_with("Where is the artifact?", top_k=5)
+                mock_llm.assert_not_called()
+                memory_mock.save_context.assert_not_called()
+                assert result["answer"].startswith("Error:")
+                assert "retrieval failed" in result["answer"]
+                assert result["sources"] == []
+
+
 @patch('src.langchain.campaign_chat.sanitize_input', return_value="What happened in Session 5?")
 def test_rag_integration_with_various_context_inputs(mock_sanitize_input):
     """

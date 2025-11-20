@@ -1369,12 +1369,21 @@ with gr.Blocks(
 
     with gr.Row():
         with gr.Column():
-            existing_campaign_dropdown = gr.Dropdown(
-                label="Existing Campaigns",
-                choices=list(campaign_names.values()),
-                value=initial_campaign_name if initial_campaign_id else None,
-                info="Load a campaign profile to apply its defaults.",
-            )
+            with gr.Row(variant="compact"):
+                existing_campaign_dropdown = gr.Dropdown(
+                    label="Existing Campaigns",
+                    choices=list(campaign_names.values()),
+                    value=initial_campaign_name if initial_campaign_id else None,
+                    info="Load a campaign profile to apply its defaults.",
+                    scale=10,
+                )
+                refresh_campaign_list_btn = gr.Button(
+                    value="Refresh",
+                    size="sm",
+                    scale=0,
+                    min_width=80,
+                    variant="secondary",
+                )
             load_campaign_btn = UIComponents.create_action_button(
                 "Load Existing Campaign",
                 variant="primary",
@@ -1845,6 +1854,15 @@ with gr.Blocks(
     demo.load(
         fn=refresh_artifact_sessions,
         outputs=artifacts_tab_refs["session_picker"]
+    )
+
+    def _handle_refresh_campaign_list():
+        names = _refresh_campaign_names()
+        return gr.update(choices=list(names.values()))
+
+    refresh_campaign_list_btn.click(
+        fn=_handle_refresh_campaign_list,
+        outputs=existing_campaign_dropdown,
     )
 
     load_campaign_btn.click(

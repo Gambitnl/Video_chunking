@@ -316,7 +316,7 @@ If you find a `[~]` task with timestamp >24 hours old:
 
 - [ ] BUG-20251102-14: ConversationStore.list_conversations - Test with large numbers → BUG_HUNT_TODO.md:61
 
-- [ ] BUG-20251102-15: ConversationStore.list_conversations - Test corrupted files → BUG_HUNT_TODO.md:65
+- [~] BUG-20251102-15: ConversationStore.list_conversations - Test corrupted files (Agent: Claude Sonnet 4.5, Started: 2025-11-20 03:00 UTC) → BUG_HUNT_TODO.md:65
 
 - [ ] BUG-20251102-19: HybridSearcher.search - Test varying top_k/semantic_weight → BUG_HUNT_TODO.md:81
 

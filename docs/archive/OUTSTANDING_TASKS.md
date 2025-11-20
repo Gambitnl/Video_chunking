@@ -128,7 +128,7 @@ If you find a `[~]` task with timestamp >24 hours old:
 
 ### Active Work
 
-- [ ] **P2-ANALYTICS: Session Analytics & Search** (3-4 days) → ROADMAP.md:379-420
+- [~] **P2-ANALYTICS: Session Analytics & Search** (Agent: GPT-5.1-Codex-Max, Started: 2025-11-20 11:41 UTC) → ROADMAP.md:379-420
   - Session analytics dashboard
   - Character analytics & filtering
   - Session search functionality

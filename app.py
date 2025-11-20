@@ -1364,10 +1364,16 @@ with gr.Blocks(
                 info="Load a campaign profile to apply its defaults.",
             )
             with gr.Row():
+            with gr.Row():
                 load_campaign_btn = UIComponents.create_action_button(
                     "Load Existing Campaign",
                     variant="primary",
                     size="md",
+                )
+                refresh_campaigns_btn = UIComponents.create_action_button(
+                    "Refresh List",
+                    variant="secondary",
+                    size="sm",
                 )
                 refresh_campaigns_btn = UIComponents.create_action_button(
                     "Refresh List",

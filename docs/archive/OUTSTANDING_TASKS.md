@@ -15,7 +15,7 @@
 
 
 
-## ⚠️ Task Locking Protocol (Multi-Agent Coordination)
+## Task Locking Protocol (Multi-Agent Coordination)
 
 
 
@@ -67,25 +67,20 @@ If you find a `[~]` task with timestamp >24 hours old:
 
 ## Quick Stats
 
-- **P0**: ✅ ALL COMPLETE (9/9 done) - Archived
-- **P1**: ✅ ALL COMPLETE (6/6 done) - Archived
-- **P2**: 🟡 Core complete, 1 item remains (P2-ANALYTICS)
-- **P3**: ⏸️ Deferred (0/3 started)
-- **P4**: ⏸️ Deferred (0/4 started)
-- **Bugs**: 🟡 ~61 open (53 LangChain test gaps + 8 UI issues)
+- **P0**: [DONE] ALL COMPLETE (9/9 done) - Archived
+- **P1**: [DONE] ALL COMPLETE (6/6 done) - Archived
+- **P2**: [ACTIVE] Core complete, 1 item remains (P2-ANALYTICS)
+- **P3**: [DEFERRED] Deferred (0/3 started)
+- **P4**: [DEFERRED] Deferred (0/4 started)
+- **Bugs**: [ACTIVE] ~61 open (53 LangChain test gaps + 8 UI issues)
   - **Completed**: 34 bugs archived (21 UI bugs + 2 LangChain tests + 2 Analytics bugs + 9 from P0/P1/P2)
-
-
 
 **Legend**:
 
 - `[ ]` Not Started (available for work)
-
 - `[~]` In Progress (locked by agent - includes agent name + start timestamp)
-
 - `[x]` Completed (includes completion date)
-
-- ✅ Complete | 🟡 In Progress | 🔴 High Priority | ⏸️ Paused
+- [DONE] Complete | [ACTIVE] In Progress | [HIGH] High Priority | [DEFERRED] Paused
 
 
 
@@ -107,7 +102,7 @@ If you find a `[~]` task with timestamp >24 hours old:
 
 ## P0 (Critical / Immediate)
 
-✅ **ALL COMPLETE** (2025-10-26) - See [Archived section](#archived---completed-features-2025) below for details.
+[DONE] **ALL COMPLETE** (2025-10-26) - See [Archived section](#archived---completed-features-2025) below for details.
 
 
 
@@ -117,7 +112,7 @@ If you find a `[~]` task with timestamp >24 hours old:
 
 ## P1 (High Impact)
 
-✅ **ALL COMPLETE** (6/6 done as of 2025-11-02) - See [Archived section](#archived---completed-features-2025) below for details.
+[DONE] **ALL COMPLETE** (6/6 done as of 2025-11-02) - See [Archived section](#archived---completed-features-2025) below for details.
 
 
 
@@ -127,7 +122,7 @@ If you find a `[~]` task with timestamp >24 hours old:
 
 ## P2 (Important Enhancements)
 
-🟡 **Core Complete, 1 item remaining**
+[ACTIVE] **Core Complete, 1 item remaining**
 
 **Completed items moved to [Archived section](#archived---completed-features-2025) below.**
 
@@ -147,9 +142,7 @@ If you find a `[~]` task with timestamp >24 hours old:
 
 ## P3 (Future Enhancements)
 
-
-
-⏸️ **Deferred** - Focus on P2 polish first
+[DEFERRED] **Deferred** - Focus on P2 polish first
 
 
 
@@ -167,9 +160,7 @@ If you find a `[~]` task with timestamp >24 hours old:
 
 ## P4 (Infrastructure & Quality)
 
-
-
-⏸️ **Deferred** - Incremental alongside features
+[DEFERRED] **Deferred** - Incremental alongside features
 
 
 
@@ -189,9 +180,7 @@ If you find a `[~]` task with timestamp >24 hours old:
 
 ## Bugs - LangChain Test Gaps
 
-
-
-🔴 **58 Test Coverage Gaps** (from 2025-11-02 bug hunt)
+[HIGH] **58 Test Coverage Gaps** (from 2025-11-02 bug hunt)
 
 
 
@@ -309,9 +298,7 @@ If you find a `[~]` task with timestamp >24 hours old:
 
 ## Bugs - UI Dashboard Issues
 
-
-
-🔴 **30 UI Issues** (from 2025-11-03 bug hunt)
+[ACTIVE] **8 UI Issues remaining** (from 2025-11-03 bug hunt, 21 completed and archived)
 
 
 
@@ -424,7 +411,7 @@ If you find a `[~]` task with timestamp >24 hours old:
 
 ## Bugs - Analytics Module
 
-✅ **ALL COMPLETE** (2 bugs resolved 2025-11-19) - See [Archived section](#archived---completed-features-2025) below for details.
+[DONE] **ALL COMPLETE** (2 bugs resolved 2025-11-19) - See [Archived section](#archived---completed-features-2025) below for details.
 
 
 

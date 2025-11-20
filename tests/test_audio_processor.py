@@ -86,7 +86,7 @@ class TestAudioProcessor:
         assert str(expected_input) in command
         assert str(expected_output) in command
 
-    @patch('soundfile.read')
+    @patch('src.audio_processor.sf.read')
     def test_load_audio(self, mock_sf_read, processor):
         mock_sf_read.return_value = (np.array([0, 1], dtype=np.int16), 16000)
         audio, sr = processor.load_audio(Path("test.wav"))
@@ -111,14 +111,14 @@ class TestAudioProcessor:
         normalized = processor.normalize_audio(audio)
         assert np.all(normalized == 0)
 
-    @patch('soundfile.write')
+    @patch('src.audio_processor.sf.write')
     def test_save_audio(self, mock_sf_write, processor):
         audio = np.zeros(100)
         path = Path("/out/test.wav")
         processor.save_audio(audio, path)
         mock_sf_write.assert_called_once_with(str(path), audio, 16000)
 
-    @patch('soundfile.SoundFile')
+    @patch('src.audio_processor.sf.SoundFile')
     def test_load_audio_segment(self, mock_soundfile, processor):
         mock_file_instance = MagicMock()
         mock_soundfile.return_value.__enter__.return_value = mock_file_instance

@@ -129,6 +129,9 @@ class AudioProcessor:
         - Normalization helps with VAD accuracy
         - Peak normalization preserves dynamics
         """
+        if audio.size == 0:
+            return audio.astype(np.float32, copy=False)
+
         if audio.max() > 0:
             return (audio / np.abs(audio).max()).astype(np.float32, copy=False)
         return audio.astype(np.float32, copy=False)

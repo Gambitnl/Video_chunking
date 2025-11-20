@@ -34,14 +34,23 @@ def mock_config():
 @pytest.fixture
 def dashboard_with_mocks():
     """Provides a CampaignDashboard instance and mocks its direct dependencies."""
+    import src.campaign_dashboard as dashboard_module
+
+    # Reset singleton caches to ensure patched managers are used
+    dashboard_module._campaign_manager = None
+    dashboard_module._party_manager = None
+    dashboard_module._char_profile_manager = None
+
     # Patch the managers at the point of instantiation within the dashboard's __init__
     with patch('src.campaign_dashboard.CampaignManager') as MockCampaignManager, \
-         patch('src.campaign_dashboard.PartyConfigManager') as MockPartyManager:
-        
+         patch('src.campaign_dashboard.PartyConfigManager') as MockPartyManager, \
+         patch('src.character_profile.CharacterProfileManager') as MockCharProfileManager:
+
         dashboard = CampaignDashboard()
         mocks = {
             'campaign': dashboard.campaign_manager,
-            'party': dashboard.party_manager
+            'party': dashboard.party_manager,
+            'char_profile': dashboard.char_profile_manager
         }
         yield dashboard, mocks
 
@@ -97,10 +106,9 @@ class TestCampaignDashboard:
         assert "Error loading" in status_error.details
 
     # Patch the manager where it is imported, inside the method's namespace
-    @patch('src.character_profile.CharacterProfileManager')
-    def test_check_character_profiles_logic(self, MockCharManager, dashboard_with_mocks):
+    def test_check_character_profiles_logic(self, dashboard_with_mocks):
         dashboard, mocks = dashboard_with_mocks
-        mock_char_mgr_instance = MockCharManager.return_value
+        mock_char_mgr_instance = mocks['char_profile']
         party = Party(party_name="H", dm_name="DM", characters=[
             Character("Aragorn", "J", "H", "R"), Character("Gimli", "J2", "D", "F")
         ])

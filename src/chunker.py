@@ -213,8 +213,8 @@ class HybridChunker:
         - Prefer gaps close to ideal_end
         - If no good gap found within tolerance, just use ideal_end
         """
-        # Search window: ±30 seconds from ideal end
-        search_window = 30.0
+        # Search window: ±60 seconds from ideal end to consider nearby pauses
+        search_window = 60.0
         best_gap_end = ideal_end
         best_gap_score = float('inf')
 

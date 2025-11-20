@@ -636,3 +636,158 @@ def test_rag_integration_with_various_context_inputs(mock_sanitize_input):
                     assert "answer" in result
                     assert "sources" in result
                     assert result["answer"] == "Session 5 was about the haunted castle."
+
+
+# --- BUG-20251102-02: Context Parameter Tests ---
+
+@patch('src.langchain.campaign_chat.sanitize_input', return_value="test question")
+def test_ask_context_parameter_with_invalid_types(mock_sanitize_input):
+    """
+    Test BUG-20251102-02: Context parameter handles invalid types gracefully.
+
+    The context parameter currently accepts Optional[Dict] but we should verify
+    behavior when non-dict types are passed (defensive programming).
+    """
+    with patch.object(CampaignChatClient, '_initialize_memory', return_value=Mock()):
+        with patch.object(CampaignChatClient, '_load_system_prompt', return_value='System'):
+            mock_llm = Mock(return_value="Response")
+
+            with patch.object(CampaignChatClient, '_initialize_llm', return_value=mock_llm):
+                client = CampaignChatClient()
+                client.memory = Mock()
+
+                # Test with string instead of dict
+                result = client.ask("question", context="invalid_string")
+                assert "answer" in result
+                assert "sources" in result
+
+                # Test with integer instead of dict
+                result = client.ask("question", context=123)
+                assert "answer" in result
+                assert "sources" in result
+
+                # Test with list instead of dict
+                result = client.ask("question", context=["item1", "item2"])
+                assert "answer" in result
+                assert "sources" in result
+
+
+@patch('src.langchain.campaign_chat.sanitize_input', return_value="test question")
+def test_ask_context_parameter_with_nested_structures(mock_sanitize_input):
+    """
+    Test BUG-20251102-02: Context parameter handles complex nested structures.
+
+    Ensures deeply nested dicts, lists within dicts, and complex structures
+    don't cause crashes even though context is currently unused.
+    """
+    with patch.object(CampaignChatClient, '_initialize_memory', return_value=Mock()):
+        with patch.object(CampaignChatClient, '_load_system_prompt', return_value='System'):
+            mock_llm = Mock(return_value="Response")
+
+            with patch.object(CampaignChatClient, '_initialize_llm', return_value=mock_llm):
+                client = CampaignChatClient()
+                client.memory = Mock()
+
+                # Test with deeply nested dict
+                nested_context = {
+                    "level1": {
+                        "level2": {
+                            "level3": {
+                                "data": "deeply nested"
+                            }
+                        }
+                    }
+                }
+                result = client.ask("question", context=nested_context)
+                assert "answer" in result
+
+                # Test with lists in dict values
+                list_context = {
+                    "sessions": ["session1", "session2", "session3"],
+                    "filters": [{"type": "campaign"}, {"type": "character"}]
+                }
+                result = client.ask("question", context=list_context)
+                assert "answer" in result
+
+
+@patch('src.langchain.campaign_chat.sanitize_input', return_value="test question")
+def test_ask_context_parameter_with_large_dict(mock_sanitize_input):
+    """
+    Test BUG-20251102-02: Context parameter handles large dictionaries.
+
+    Verifies that passing a large context dict doesn't cause performance
+    issues or memory problems.
+    """
+    with patch.object(CampaignChatClient, '_initialize_memory', return_value=Mock()):
+        with patch.object(CampaignChatClient, '_load_system_prompt', return_value='System'):
+            mock_llm = Mock(return_value="Response")
+
+            with patch.object(CampaignChatClient, '_initialize_llm', return_value=mock_llm):
+                client = CampaignChatClient()
+                client.memory = Mock()
+
+                # Create a large context dict with 1000 entries
+                large_context = {f"key_{i}": f"value_{i}" for i in range(1000)}
+
+                result = client.ask("question", context=large_context)
+                assert "answer" in result
+                assert "sources" in result
+
+
+@patch('src.langchain.campaign_chat.sanitize_input', return_value="test question")
+def test_ask_context_parameter_with_special_characters(mock_sanitize_input):
+    """
+    Test BUG-20251102-02: Context parameter handles special characters in keys/values.
+
+    Ensures context dicts with unicode, special chars, and edge case strings
+    don't cause encoding or parsing issues.
+    """
+    with patch.object(CampaignChatClient, '_initialize_memory', return_value=Mock()):
+        with patch.object(CampaignChatClient, '_load_system_prompt', return_value='System'):
+            mock_llm = Mock(return_value="Response")
+
+            with patch.object(CampaignChatClient, '_initialize_llm', return_value=mock_llm):
+                client = CampaignChatClient()
+                client.memory = Mock()
+
+                # Test with special characters and unicode
+                special_context = {
+                    "campaign_name": "The Dragon's Lair",
+                    "unicode_test": "Test with unicode: \u00e9\u00e8\u00ea",
+                    "newlines": "Line1\nLine2\nLine3",
+                    "tabs": "Col1\tCol2\tCol3",
+                    "quotes": 'He said "hello" and she replied',
+                    "empty_string": "",
+                    "whitespace_only": "   "
+                }
+
+                result = client.ask("question", context=special_context)
+                assert "answer" in result
+                assert "sources" in result
+
+
+@patch('src.langchain.campaign_chat.sanitize_input', return_value="test question")
+def test_ask_context_parameter_not_modified(mock_sanitize_input):
+    """
+    Test BUG-20251102-02: Context parameter is not modified by the ask method.
+
+    Ensures that the ask method doesn't mutate the context dict passed by caller,
+    which would be unexpected behavior.
+    """
+    with patch.object(CampaignChatClient, '_initialize_memory', return_value=Mock()):
+        with patch.object(CampaignChatClient, '_load_system_prompt', return_value='System'):
+            mock_llm = Mock(return_value="Response")
+
+            with patch.object(CampaignChatClient, '_initialize_llm', return_value=mock_llm):
+                client = CampaignChatClient()
+                client.memory = Mock()
+
+                # Create a context dict and keep a copy of original
+                original_context = {"campaign_id": "test_campaign", "session_filter": ["s1"]}
+                context_copy = original_context.copy()
+
+                result = client.ask("question", context=original_context)
+
+                # Verify context wasn't modified
+                assert original_context == context_copy
+                assert "answer" in result

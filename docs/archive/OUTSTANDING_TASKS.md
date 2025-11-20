@@ -210,7 +210,7 @@ If you find a `[~]` task with timestamp >24 hours old:
 
 ### Medium Priority Tests (42 bugs)
 
-- [~] BUG-20251102-02: CampaignChatClient.ask - Test various context inputs (Agent: Claude Sonnet 4.5, Started: 2025-11-20 14:30 UTC) → BUG_HUNT_TODO.md:13
+- [x] BUG-20251102-02: CampaignChatClient.ask - Test various context inputs (Agent: Claude Sonnet 4.5, Completed: 2025-11-20) → BUG_HUNT_TODO.md:13
 
 - [ ] BUG-20251102-03: CampaignChatClient.ask - Test retriever failure handling → BUG_HUNT_TODO.md:17
 

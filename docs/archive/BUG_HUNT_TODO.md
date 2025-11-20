@@ -434,6 +434,16 @@ This list summarizes preliminary findings from the bug hunt session on 2025-11-0
     *   **File**: `src/ui/social_insights_tab.py:130-134` (campaign_selector.change)
     *   **Impact**: LOW - Stale data display
 
+##### Implementation Notes & Reasoning (2025-11-20 GPT-5.1-Codex)
+
+- Added a dedicated loading state for Social Insights that disables the Analyze button, surfaces a `[LOADING]` label, and posts an immediate status update so users see progress before the generator starts yielding results.
+- Sequenced the Gradio event chain to restore the Analyze button after completion, preventing stuck disabled states and duplicate submissions.
+- Extended unit coverage for the loading and reset helpers to ensure the UI updates stay stable as the tab evolves.
+
+##### Code Review Findings (2025-11-20 GPT-5.1-Codex)
+
+- [APPROVED] Implementation improves UX feedback without altering analysis logic; tests capture the new button-state contract.
+
 #### Settings & Tools Tab
 
 -   **BUG-20251103-025**: Settings & Tools - Diagnostics and Chat sections are static markdown only. (Medium)

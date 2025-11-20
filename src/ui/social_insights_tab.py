@@ -7,10 +7,38 @@ for Out-of-Character (OOC) session content.
 from __future__ import annotations
 
 from typing import Callable, Dict, Optional, Tuple
+
 import gradio as gr
+
 from src.ui.helpers import StatusMessages
 from src.ui.constants import StatusIndicators as SI
 from src.story_notebook import StoryNotebookManager
+
+
+DEFAULT_ANALYZE_LABEL = f"{SI.ACTION_PROCESS} Analyze Banter"
+ANALYZING_LABEL = f"{SI.LOADING} Analyzing Banter"
+
+
+def start_social_insights_analysis(session_id: Optional[str]) -> Tuple[dict, str]:
+    """Return UI updates to show a loading indicator when analysis begins."""
+
+    status_message = StatusMessages.loading("Preparing Social Insights")
+    if not session_id:
+        status_message = StatusMessages.warning(
+            "Input Required",
+            "Please select a session ID before running analysis."
+        )
+
+    return (
+        gr.update(value=ANALYZING_LABEL, interactive=False),
+        status_message,
+    )
+
+
+def reset_social_insights_button() -> dict:
+    """Reset the Analyze button to its default label and enabled state."""
+
+    return gr.update(value=DEFAULT_ANALYZE_LABEL, interactive=True)
 
 
 def create_social_insights_tab(
@@ -343,7 +371,7 @@ def create_social_insights_tab(
                     interactive=True,
                 )
                 insight_btn = gr.Button(
-                    f"{SI.ACTION_PROCESS} Analyze Banter",
+                    DEFAULT_ANALYZE_LABEL,
                     variant="primary",
                     size="lg"
                 )
@@ -405,10 +433,22 @@ def create_social_insights_tab(
             ],
         )
 
-        insight_btn.click(
+        insight_click = insight_btn.click(
+            fn=start_social_insights_analysis,
+            inputs=[insight_session_id],
+            outputs=[insight_btn, status_output],
+            queue=False,
+        )
+
+        insight_click.then(
             fn=analyze_ooc_ui,
             inputs=[insight_session_id],
             outputs=[keyword_output, topics_output, nebula_output, insights_output, status_output],
+            queue=True,
+        ).then(
+            fn=reset_social_insights_button,
+            outputs=[insight_btn],
+            queue=False,
         )
 
     return {

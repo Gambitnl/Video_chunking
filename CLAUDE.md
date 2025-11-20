@@ -1,7 +1,8 @@
 # CLAUDE.md - AI Assistant Guide
 
 > **Purpose**: Comprehensive guide for AI assistants (Claude, GPT, Gemini) working with this repository
-> **Last Updated**: 2025-11-18
+> **Last Updated**: 2025-11-20
+> **Last Cleanup**: 2025-11-20
 > **Repository**: D&D Session Transcription & Diarization System
 
 ---
@@ -32,11 +33,17 @@
 ### High-Priority Active Tasks
 
 **Core Planning & Roadmap:**
-- **[ROADMAP.md](ROADMAP.md)** (11 active tasks)
+- **[ROADMAP.md](ROADMAP.md)** (Updated 2025-11-20)
   Main project roadmap with P0-P4 prioritized features and current status
+  - P0: ALL COMPLETE (archived)
+  - P1: ALL COMPLETE (archived)
+  - P2: 1 item remaining (P2-ANALYTICS)
+  - P3/P4: Deferred
 
-- **[docs/archive/OUTSTANDING_TASKS.md](docs/archive/OUTSTANDING_TASKS.md)** (83 active tasks)
+- **[docs/archive/OUTSTANDING_TASKS.md](docs/archive/OUTSTANDING_TASKS.md)** (Updated 2025-11-20)
   Comprehensive task backlog with detailed task descriptions and priorities
+  - **Active**: ~61 bugs (53 LangChain test gaps + 8 UI issues)
+  - **Archived**: 15 P0/P1 tasks + 5 P2 features + 34 bugs (all completed)
 
 **Active Implementation Plans:**
 - **[IMPLEMENTATION_PLANS_INTERACTIVE_CLARIFICATION.md](IMPLEMENTATION_PLANS_INTERACTIVE_CLARIFICATION.md)** (48 tasks)

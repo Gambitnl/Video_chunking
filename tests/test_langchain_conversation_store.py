@@ -110,6 +110,14 @@ def test_get_chat_history(conversation_store):
     history = conversation_store.get_chat_history(conversation_id)
     assert history == [{"role": "user", "content": "Hello"}]
 
+
+def test_get_chat_history_empty(conversation_store):
+    conversation_id = conversation_store.create_conversation()
+
+    history = conversation_store.get_chat_history(conversation_id)
+
+    assert history == []
+
 def test_get_chat_history_nonexistent(conversation_store):
     history = conversation_store.get_chat_history("conv_nonexistent")
     assert history == []

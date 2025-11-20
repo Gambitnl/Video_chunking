@@ -74,6 +74,15 @@ This list summarizes preliminary findings from the bug hunt session on 2025-11-0
     *   **Issue**: The `get_chat_history` method retrieves messages from a conversation. An empty conversation has an empty `messages` list.
     *   **Why it's an issue**: This simple test confirms that the method correctly returns an empty list for a newly created or cleared conversation, preventing potential indexing errors or unexpected formatting issues that could arise from an empty message list.
 
+##### Implementation Notes & Reasoning (2025-11-20 GPT-5.1-Codex)
+
+- Added a unit test that creates a new conversation and verifies `get_chat_history` returns an empty list so regressions surface before runtime.
+- Kept coverage in `tests/test_langchain_conversation_store.py` alongside the existing chat history tests for focused, low-overhead validation.
+
+##### Code Review Findings (2025-11-20 GPT-5.1-Codex)
+
+- [APPROVED] Behavior already aligns with expectations; additional test coverage mitigates future regressions without code changes.
+
 -   **BUG-20251102-18**: `HybridSearcher.search` - Add integration tests with actual `vector_store` and `keyword_retriever` instances (not mocks). (High)
     *   **Issue**: `HybridSearcher` is responsible for combining results from both semantic and keyword search, which rely on `CampaignVectorStore` and `CampaignRetriever` respectively. Existing tests heavily mock these dependencies.
     *   **Why it's an issue**: Excessive mocking prevents verification of the actual search mechanisms. Integration tests are vital to ensure that both search methods are correctly invoked, their results are accurately processed, and the final combined output is relevant and well-ranked, directly impacting the quality of information provided to the LLM.
@@ -303,11 +312,23 @@ This list summarizes preliminary findings from the bug hunt session on 2025-11-0
     *   **File**: `src/ui/process_session_tab_modern.py:219-226` (results_section)
     *   **Impact**: MEDIUM - Discoverability issue
 
--   **BUG-20251103-008**: Process Session - No progress indicator during long processing operations. (High)
-    *   **Issue**: The `process_session` function in `app.py:509-601` runs synchronously without progress updates. Users see no feedback during chunking, transcription (which can take hours), diarization, or classification stages.
-    *   **Why it's an issue**: Processing 4-hour sessions can take 10+ hours on CPU. With no progress indicators, users can't tell if the system is working, frozen, or failed. This leads to duplicate submissions, abandoned sessions, and support requests.
-    *   **File**: `app.py:509-601` (process_session function)
-    *   **Impact**: HIGH - Critical UX flaw for long operations
+  -   **BUG-20251103-008**: Process Session - No progress indicator during long processing operations. (High)
+      *   **Issue**: The `process_session` function in `app.py:509-601` runs synchronously without progress updates. Users see no feedback during chunking, transcription (which can take hours), diarization, or classification stages.
+      *   **Why it's an issue**: Processing 4-hour sessions can take 10+ hours on CPU. With no progress indicators, users can't tell if the system is working, frozen, or failed. This leads to duplicate submissions, abandoned sessions, and support requests.
+      *   **File**: `app.py:509-601` (process_session function)
+      *   **Impact**: HIGH - Critical UX flaw for long operations
+
+      *   **Status (2025-11-20 Codex)**: Improved session progress polling with elapsed time, ETA, and next-stage hints sourced from StatusTracker snapshots. The Process tab now surfaces timing summaries whenever processing is active, aligning with the progress UI components.
+
+      ##### Implementation Notes & Reasoning (2025-11-20 Codex)
+
+      - Calculated elapsed time and ETA using recorded stage durations so users get realistic expectations during long runs.
+      - Added next-stage callouts to set expectations for upcoming work and reduce perceived stalls.
+      - Centralized timestamp parsing to tolerate `Z` suffixes and allow deterministic testing through a patchable time source.
+
+      ##### Code Review Findings (2025-11-20 Codex)
+
+      - [APPROVED] Self-review: Progress summaries display for the active session only and remain hidden otherwise. ETA calculations fall back gracefully when timing data is incomplete.
 
 -   **BUG-20251103-009**: Process Session - Audio file path resolution inconsistent across platforms. (Medium)
     *   **Issue**: The `_resolve_audio_path` function at `app.py:499-507` handles string paths and objects with `.name` attributes, but doesn't handle `pathlib.Path` objects or validate that resolved paths actually exist before passing to pipeline.

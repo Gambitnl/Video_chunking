@@ -48,6 +48,8 @@ This directory contains all the documentation for the D&D Session Processor. Bel
 - **[AGENT_ONBOARDING.md](../AGENT_ONBOARDING.md)**: (In root) **START HERE** - Comprehensive onboarding guide with structured reading path for new AI agents and contributors. Tells you what to read and in what order.
 - **[DEVELOPMENT.md](./DEVELOPMENT.md)**: A development chronicle logging major implementation and refactoring sessions.
 - **[DIARIZATION_CLASSIFICATION_HISTORY.md](./DIARIZATION_CLASSIFICATION_HISTORY.md)**: Pipeline history focused on Stage 5/6 diarization and IC/OOC classification issues, mitigations, and pending work.
+- **[archive/OUTSTANDING_TASKS.md](./archive/OUTSTANDING_TASKS.md)**: Backlog of prioritized tasks with the locking protocol for in-progress work.
+- **[archive/BUG_HUNT_TODO.md](./archive/BUG_HUNT_TODO.md)**: Detailed bug hunt task list with context, issues, and reasoning notes (updated with Process Session progress tracking status on 2025-11-20).
 
 ### Analysis & Technical Reviews
 

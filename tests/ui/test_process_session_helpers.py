@@ -12,6 +12,7 @@ from src.ui.process_session_helpers import (
     format_party_display,
     render_processing_response,
     prepare_processing_status,
+    poll_overall_progress,
     poll_transcription_progress,
     poll_runtime_updates,
     check_file_processing_history,
@@ -396,10 +397,10 @@ class TestRenderProcessingResponse:
             "knowledge": {},
         }
 
-        (status, visible, full, ic, ooc, stats, snippet, scroll) = render_processing_response(response)
+        (status, visible, full, ic, ooc, stats, snippet, scroll, cancel_btn) = render_processing_response(response)
 
         assert "success" in status.lower()
-        assert full == "Full transcript"
+        assert full == []
         assert ic == "IC transcript"
         assert ooc == "OOC transcript"
 
@@ -411,7 +412,7 @@ class TestRenderProcessingResponse:
             "details": "File not found",
         }
 
-        (status, visible, full, ic, ooc, stats, snippet, scroll) = render_processing_response(response)
+        (status, visible, full, ic, ooc, stats, snippet, scroll, cancel_btn) = render_processing_response(response)
 
         assert "failed" in status.lower()
         assert "File not found" in status
@@ -420,7 +421,7 @@ class TestRenderProcessingResponse:
         """Test rendering with invalid response type."""
         response = "not a dict"
 
-        (status, visible, full, ic, ooc, stats, snippet, scroll) = render_processing_response(response)
+        (status, visible, full, ic, ooc, stats, snippet, scroll, cancel_btn) = render_processing_response(response)
 
         assert "unexpected response" in status.lower()
 
@@ -434,7 +435,7 @@ class TestRenderProcessingResponse:
             "knowledge": {},
         }
 
-        (status, visible, full, ic, ooc, stats, snippet, scroll) = render_processing_response(response)
+        (status, visible, full, ic, ooc, stats, snippet, scroll, cancel_btn) = render_processing_response(response)
 
         # scroll should be a gr.update with JavaScript
         assert scroll is not None
@@ -449,7 +450,7 @@ class TestPrepareProcessingStatus:
         audio_file.name = "/path/to/test.wav"
 
         with patch('pathlib.Path.exists', return_value=True):
-            (status, results_update, should_proceed, log_clear) = prepare_processing_status(
+            (status, results_update, should_proceed, log_clear, cancel_btn) = prepare_processing_status(
                 audio_file=audio_file,
                 session_id="session_001",
                 party_selection="Manual Entry",
@@ -464,7 +465,7 @@ class TestPrepareProcessingStatus:
 
     def test_prepare_with_validation_errors(self):
         """Test preparation with validation errors."""
-        (status, results_update, should_proceed, log_clear) = prepare_processing_status(
+        (status, results_update, should_proceed, log_clear, cancel_btn) = prepare_processing_status(
             audio_file=None,
             session_id="",
             party_selection="Manual Entry",
@@ -598,6 +599,50 @@ class TestPollRuntimeUpdates:
         assert "Event 1" in updated_log
         assert "Event 2" in updated_log
         assert updated_log.count("Event 1") == 1  # Not duplicated
+
+
+class TestPollOverallProgress:
+    """Test overall progress polling and timing summaries."""
+
+    @patch('src.ui.process_session_helpers._utcnow')
+    @patch('src.ui.process_session_helpers.StatusTracker')
+    def test_progress_includes_elapsed_eta_and_next_stage(self, mock_tracker, mock_now):
+        """Progress display should surface timing and next stage hints."""
+
+        mock_now.return_value = datetime(2025, 1, 1, 0, 2, 0)
+        mock_tracker.get_snapshot.return_value = {
+            "processing": True,
+            "session_id": "session_001",
+            "current_stage": 2,
+            "started_at": "2025-01-01T00:00:00Z",
+            "stages": [
+                {"id": 1, "name": "Audio Conversion", "state": "completed", "duration_seconds": 30},
+                {"id": 2, "name": "Chunking", "state": "running", "started_at": "2025-01-01T00:01:00Z"},
+                {"id": 3, "name": "Transcription", "state": "pending"},
+            ],
+        }
+
+        result = poll_overall_progress("session_001")
+
+        assert result["visible"] is True
+        assert "Elapsed:" in result["value"]
+        assert "ETA:" in result["value"]
+        assert "Next: Transcription" in result["value"]
+
+    @patch('src.ui.process_session_helpers.StatusTracker')
+    def test_progress_hidden_for_other_session(self, mock_tracker):
+        """Hide progress when polling for a different session."""
+
+        mock_tracker.get_snapshot.return_value = {
+            "processing": True,
+            "session_id": "session_002",
+            "current_stage": 1,
+            "stages": [],
+        }
+
+        result = poll_overall_progress("session_001")
+
+        assert result["visible"] is False
 
 
 class TestCheckFileProcessingHistory:

@@ -65,6 +65,106 @@ ALLOWED_AUDIO_EXTENSIONS: Tuple[str, ...] = (".m4a", ".mp3", ".wav", ".flac")
 SESSION_ID_PATTERN = re.compile(r"^[A-Za-z0-9_-]+$")
 
 
+def _utcnow() -> datetime:
+    """Return the current UTC time (isolated for testing)."""
+
+    return datetime.utcnow()
+
+
+def _parse_timestamp(value: Optional[str]) -> Optional[datetime]:
+    """Parse an ISO-8601 timestamp, tolerating a trailing Z suffix."""
+
+    if not value:
+        return None
+
+    cleaned = value[:-1] if value.endswith("Z") else value
+    try:
+        return datetime.fromisoformat(cleaned)
+    except ValueError:
+        return None
+
+
+def _format_duration(seconds: Optional[float]) -> str:
+    """Format a duration in seconds into a human-readable string."""
+
+    if seconds is None:
+        return "n/a"
+
+    total_seconds = int(max(0, round(seconds)))
+    minutes, secs = divmod(total_seconds, 60)
+    hours, minutes = divmod(minutes, 60)
+
+    if hours:
+        return f"{hours}h {minutes}m {secs}s"
+    if minutes:
+        return f"{minutes}m {secs}s"
+    return f"{secs}s"
+
+
+def _stage_elapsed_seconds(stage: Dict[str, Any], now: datetime) -> Optional[float]:
+    """Return elapsed seconds for a stage using duration or timestamps."""
+
+    if stage.get("duration_seconds") is not None:
+        try:
+            return float(stage["duration_seconds"])
+        except (TypeError, ValueError):
+            return None
+
+    started_at = _parse_timestamp(stage.get("started_at"))
+    ended_at = _parse_timestamp(stage.get("ended_at")) or now
+
+    if not started_at:
+        return None
+
+    return (ended_at - started_at).total_seconds()
+
+
+def _compute_progress_timings(snapshot: Dict[str, Any], total_stages: int) -> Tuple[Optional[float], Optional[float], Optional[str]]:
+    """Compute elapsed time, ETA, and next stage name from the snapshot."""
+
+    stages = snapshot.get("stages") or []
+    now = _utcnow()
+
+    completed_count = len([s for s in stages if s.get("state") == "completed"])
+    running_stage = next((s for s in stages if s.get("state") == "running"), None)
+    running_stage_id = running_stage.get("id") if running_stage else None
+
+    # Sum completed durations and include the running stage so ETA reflects work in progress
+    completed_seconds = sum(
+        filter(None, (_stage_elapsed_seconds(stage, now) for stage in stages if stage.get("state") == "completed"))
+    )
+
+    running_seconds = _stage_elapsed_seconds(running_stage, now) if running_stage else 0
+
+    active_stage_count = completed_count + (1 if running_stage else 0)
+    average_stage_duration = None
+
+    if active_stage_count:
+        average_stage_duration = (completed_seconds + running_seconds) / active_stage_count
+
+    remaining_stages = max(total_stages - active_stage_count, 0)
+    eta_seconds = None
+
+    if average_stage_duration is not None and remaining_stages:
+        eta_seconds = average_stage_duration * remaining_stages
+
+    started_at = _parse_timestamp(snapshot.get("started_at"))
+    elapsed_seconds = (now - started_at).total_seconds() if started_at else None
+
+    # Identify the next stage for user awareness
+    next_stage_name = None
+    if running_stage_id:
+        for stage in stages:
+            if stage.get("state") in {"skipped", "completed"}:
+                continue
+            if stage.get("id") == running_stage_id:
+                continue
+            next_stage_name = stage.get("name")
+            break
+
+    return elapsed_seconds, eta_seconds, next_stage_name
+
+
 # ============================================================================
 # Validation Functions
 # ============================================================================
@@ -656,40 +756,34 @@ def poll_overall_progress(session_id_value: str) -> gr.update:
         # Add stage-specific progress if available
         if "progress_percent" in current_stage_details:
             stage_percent = current_stage_details["progress_percent"]
-            lines.append(f"  ↳ Stage Progress: {stage_percent}%")
+            lines.append(f"  -> Stage Progress: {stage_percent}%")
 
         if "chunks_transcribed" in current_stage_details and "total_chunks" in current_stage_details:
             chunks_done = current_stage_details["chunks_transcribed"]
             chunks_total = current_stage_details["total_chunks"]
-            lines.append(f"  ↳ Chunks: {chunks_done}/{chunks_total}")
+            lines.append(f"  -> Chunks: {chunks_done}/{chunks_total}")
+
+        if "eta_minutes" in current_stage_details:
+            eta_minutes = current_stage_details["eta_minutes"]
+            lines.append(f"  -> ETA: {eta_minutes} minutes")
     else:
-        lines.append(f"{SI.COMPLETE} **Status:** Between stages")
+        lines.append(f"{SI.INFO} Waiting to start processing...")
 
     # Summary stats
     lines.append("")
     lines.append(f"**Progress:** {completed_stages}/{total_stages} stages completed")
 
-    # Estimated time remaining (if we have timing data)
-    started_at = snapshot.get("started_at")
-    if started_at and completed_stages > 0 and overall_percent < 100:
-        try:
-            start_time = datetime.fromisoformat(started_at.replace('Z', ''))
-            elapsed = (datetime.utcnow() - start_time).total_seconds()
+    # High-level timing summary using completed durations
+    elapsed_seconds, eta_seconds, next_stage_name = _compute_progress_timings(snapshot, total_stages)
 
-            # Estimate based on completed percentage
-            if overall_percent > 0:
-                estimated_total = elapsed / (overall_percent / 100)
-                remaining = estimated_total - elapsed
+    if elapsed_seconds is not None:
+        lines.append(f"{SI.INFO} Elapsed: {_format_duration(elapsed_seconds)}")
 
-                if remaining > 0:
-                    minutes = int(remaining // 60)
-                    seconds = int(remaining % 60)
-                    if minutes > 0:
-                        lines.append(f"**Estimated Time Remaining:** ~{minutes}m {seconds}s")
-                    else:
-                        lines.append(f"**Estimated Time Remaining:** ~{seconds}s")
-        except (ValueError, ZeroDivisionError):
-            pass  # Skip time estimation if parsing fails
+    if eta_seconds is not None:
+        lines.append(f"{SI.INFO} ETA: ~{_format_duration(eta_seconds)} remaining")
+
+    if next_stage_name:
+        lines.append(f"{SI.INFO} Next: {next_stage_name}")
 
     return gr.update(value="\n".join(lines), visible=True)
 

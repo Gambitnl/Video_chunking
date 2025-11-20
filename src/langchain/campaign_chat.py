@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import Dict, List, Optional
 
 from src.config import Config
+from src.langchain.prompt_loader import SystemPromptLoader
 
 logger = logging.getLogger("DDSessionProcessor.campaign_chat")
 
@@ -64,16 +65,6 @@ def sanitize_input(text: str, max_length: int = MAX_QUESTION_LENGTH) -> str:
         raise ValueError("Input cannot be empty after sanitization")
 
     return sanitized
-
-
-class SafeFormatDict(dict):
-    def __missing__(self, key):
-        return f'{{{key}}}'
-
-
-class SafeFormatDict(dict):
-    def __missing__(self, key):
-        return f"{{{key}}}"
 
 
 class CampaignChatClient:
@@ -186,61 +177,13 @@ class CampaignChatClient:
         )
 
     def _load_system_prompt(self) -> str:
-        """Load the system prompt template with campaign context."""
-        prompt_file = Path(__file__).parent.parent.parent / "prompts" / "campaign_assistant.txt"
+        """
+        Load the system prompt template with campaign context.
 
-        try:
-            with open(prompt_file, "r", encoding="utf-8") as f:
-                template = f.read()
-
-            # Load campaign data if campaign_id is provided
-            campaign_name = "Unknown"
-            num_sessions = 0
-            pc_names = "Unknown"
-
-            if self.campaign_id:
-                try:
-                    from src.party_config import CampaignManager, PartyConfigManager
-                    from src.story_notebook import StoryNotebookManager
-
-                    # Load campaign info
-                    campaign_mgr = CampaignManager()
-                    campaign = campaign_mgr.get_campaign(self.campaign_id)
-
-                    if campaign:
-                        campaign_name = campaign.name
-
-                        # Load party info to get PC names
-                        party_mgr = PartyConfigManager()
-                        party = party_mgr.get_party(campaign.party_id)
-
-                        if party and party.characters:
-                            pc_names = ", ".join([char.name for char in party.characters])
-
-                        # Get session count for this campaign
-                        story_mgr = StoryNotebookManager()
-                        sessions = story_mgr.list_sessions(
-                            limit=None,
-                            campaign_id=self.campaign_id,
-                            include_unassigned=False
-                        )
-                        num_sessions = len(sessions)
-
-                except ImportError as e:
-                    logger.warning(f"Could not load campaign data for {self.campaign_id} because a dependency is missing: {e}")
-                except Exception as e:
-                    logger.warning(f"Could not load campaign data for {self.campaign_id}: {e}", exc_info=True)
-
-            context = SafeFormatDict(
-                campaign_name=campaign_name,
-                num_sessions=num_sessions,
-                pc_names=pc_names,
-            )
-
-            return template.format_map(context)
-        except FileNotFoundError:
-            logger.warning(f"System prompt file not found: {prompt_file}")
-            return "You are a helpful D&D campaign assistant."
+        Delegates to SystemPromptLoader for modular prompt management.
+        """
+        loader = SystemPromptLoader()
+        return loader.load_and_format(campaign_id=self.campaign_id)
 
     def ask(self, question: str, context: Optional[Dict] = None) -> Dict:
         """

@@ -302,7 +302,7 @@ If you find a `[~]` task with timestamp >24 hours old:
 
 - [ ] BUG-20251102-03: CampaignChatClient.ask - Test retriever failure handling → BUG_HUNT_TODO.md:17
 
-- [~] BUG-20251102-04: CampaignChatClient.ask - Test LLM failure handling (Agent: Claude Sonnet 4.5, Started: 2025-11-20 00:00 UTC) → BUG_HUNT_TODO.md:21
+- [x] BUG-20251102-04: CampaignChatClient.ask - Test LLM failure handling (Agent: Claude Sonnet 4.5, Completed: 2025-11-20) → BUG_HUNT_TODO.md:21
 
 - [ ] BUG-20251102-07: _load_system_prompt - Test campaign placeholders → BUG_HUNT_TODO.md:33
 

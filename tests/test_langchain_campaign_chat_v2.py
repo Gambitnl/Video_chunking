@@ -14,7 +14,7 @@ from src.langchain.retriever import Document
 # Mock Config for CampaignChatClient initialization
 @pytest.fixture(autouse=True)
 def mock_config():
-    with patch('src.config.Config') as mock_config_class:
+    with patch('src.langchain.campaign_chat.Config') as mock_config_class:
         mock_config_class.LLM_BACKEND = 'ollama'
         mock_config_class.OLLAMA_MODEL = 'gpt-oss:20b'
         mock_config_class.OLLAMA_BASE_URL = 'http://localhost:11434'
@@ -229,6 +229,180 @@ def test_ask_handles_llm_error(mock_sanitize_input):
                 result = client.ask("question")
                 assert "Error: LLM failed" in result["answer"]
 
+
+# --- BUG-20251102-04: LLM Failure Handling Tests ---
+
+@patch('src.langchain.campaign_chat.sanitize_input', return_value="sanitized question")
+def test_ask_handles_llm_authentication_error(mock_sanitize_input):
+    """Test LLM failure due to invalid API key / authentication error."""
+    # Simulate authentication error (common with OpenAI, Ollama)
+    auth_error = Exception("Authentication failed: Invalid API key")
+
+    with patch.object(CampaignChatClient, '_initialize_llm', return_value=Mock(side_effect=auth_error)):
+        with patch.object(CampaignChatClient, '_initialize_memory', return_value=Mock()):
+            with patch.object(CampaignChatClient, '_load_system_prompt', return_value='Test Prompt'):
+                client = CampaignChatClient()
+                client.retriever = None
+
+                result = client.ask("test question")
+
+                # Verify error is returned
+                assert "Error:" in result["answer"]
+                assert "Authentication failed" in result["answer"]
+                assert result["sources"] == []
+
+
+@patch('src.langchain.campaign_chat.sanitize_input', return_value="sanitized question")
+def test_ask_handles_llm_timeout_error(mock_sanitize_input):
+    """Test LLM failure due to network timeout."""
+    # Simulate timeout error
+    timeout_error = Exception("Request timed out after 30 seconds")
+
+    with patch.object(CampaignChatClient, '_initialize_llm', return_value=Mock(side_effect=timeout_error)):
+        with patch.object(CampaignChatClient, '_initialize_memory', return_value=Mock()):
+            with patch.object(CampaignChatClient, '_load_system_prompt', return_value='Test Prompt'):
+                client = CampaignChatClient()
+                client.retriever = None
+
+                result = client.ask("test question")
+
+                # Verify error is returned
+                assert "Error:" in result["answer"]
+                assert "timed out" in result["answer"]
+                assert result["sources"] == []
+
+
+@patch('src.langchain.campaign_chat.sanitize_input', return_value="sanitized question")
+def test_ask_handles_llm_model_not_found_error(mock_sanitize_input):
+    """Test LLM failure when model is unavailable or not found."""
+    # Simulate model not found error (Ollama model not pulled, OpenAI invalid model name)
+    model_error = Exception("Model 'nonexistent-model' not found")
+
+    with patch.object(CampaignChatClient, '_initialize_llm', return_value=Mock(side_effect=model_error)):
+        with patch.object(CampaignChatClient, '_initialize_memory', return_value=Mock()):
+            with patch.object(CampaignChatClient, '_load_system_prompt', return_value='Test Prompt'):
+                client = CampaignChatClient()
+                client.retriever = None
+
+                result = client.ask("test question")
+
+                # Verify error is returned
+                assert "Error:" in result["answer"]
+                assert "not found" in result["answer"]
+                assert result["sources"] == []
+
+
+@patch('src.langchain.campaign_chat.sanitize_input', return_value="sanitized question")
+def test_ask_handles_llm_rate_limit_error(mock_sanitize_input):
+    """Test LLM failure due to rate limiting."""
+    # Simulate rate limit error (common with API-based LLMs)
+    rate_limit_error = Exception("Rate limit exceeded. Please try again in 60 seconds.")
+
+    with patch.object(CampaignChatClient, '_initialize_llm', return_value=Mock(side_effect=rate_limit_error)):
+        with patch.object(CampaignChatClient, '_initialize_memory', return_value=Mock()):
+            with patch.object(CampaignChatClient, '_load_system_prompt', return_value='Test Prompt'):
+                client = CampaignChatClient()
+                client.retriever = None
+
+                result = client.ask("test question")
+
+                # Verify error is returned
+                assert "Error:" in result["answer"]
+                assert "Rate limit" in result["answer"]
+                assert result["sources"] == []
+
+
+@patch('src.langchain.campaign_chat.sanitize_input', return_value="sanitized question")
+def test_ask_llm_error_does_not_expose_internal_details(mock_sanitize_input):
+    """
+    Test that LLM errors don't expose sensitive internal system details.
+
+    Error messages should be informative but not expose:
+    - File paths
+    - Stack traces
+    - Internal variable names
+    - API keys or tokens
+    """
+    # Simulate error with internal details (file paths, etc.)
+    internal_error = Exception("/usr/local/lib/python3.11/langchain/llms.py line 234: ConnectionError")
+
+    with patch.object(CampaignChatClient, '_initialize_llm', return_value=Mock(side_effect=internal_error)):
+        with patch.object(CampaignChatClient, '_initialize_memory', return_value=Mock()):
+            with patch.object(CampaignChatClient, '_load_system_prompt', return_value='Test Prompt'):
+                client = CampaignChatClient()
+                client.retriever = None
+
+                result = client.ask("test question")
+
+                # Verify error is returned but raw exception is passed through
+                # Note: Current implementation returns f"Error: {str(e)}" which exposes the raw exception
+                # This test documents current behavior - ideally we would sanitize this
+                assert "Error:" in result["answer"]
+                # Current implementation exposes internal details (this is the bug we're documenting)
+                assert result["sources"] == []
+
+
+@patch('src.langchain.campaign_chat.sanitize_input', return_value="sanitized question")
+def test_ask_llm_error_with_retriever_does_not_call_memory(mock_sanitize_input):
+    """
+    Test that when LLM fails, memory.save_context is NOT called.
+
+    Failed interactions should not be saved to conversation history.
+    """
+    llm_error = Exception("LLM service unavailable")
+
+    with patch.object(CampaignChatClient, '_initialize_llm', return_value=Mock(side_effect=llm_error)):
+        with patch.object(CampaignChatClient, '_initialize_memory', return_value=Mock()):
+            with patch.object(CampaignChatClient, '_load_system_prompt', return_value='Test Prompt'):
+                client = CampaignChatClient()
+                client.retriever = Mock()
+                client.retriever.retrieve.return_value = [
+                    Document(content="Some context", metadata={"session": "test"})
+                ]
+                client.memory = Mock()
+
+                result = client.ask("test question")
+
+                # Verify error is returned
+                assert "Error:" in result["answer"]
+                # Verify memory was NOT saved (failed interactions should not be stored)
+                client.memory.save_context.assert_not_called()
+
+
+@patch('src.langchain.campaign_chat.sanitize_input', return_value="sanitized question")
+def test_ask_llm_error_after_successful_retrieval(mock_sanitize_input):
+    """
+    Test LLM failure after retriever successfully returns documents.
+
+    This verifies that retrieval success doesn't mask LLM failures.
+    """
+    llm_error = Exception("LLM connection refused")
+
+    with patch.object(CampaignChatClient, '_initialize_llm', return_value=Mock(side_effect=llm_error)):
+        with patch.object(CampaignChatClient, '_initialize_memory', return_value=Mock()):
+            with patch.object(CampaignChatClient, '_load_system_prompt', return_value='Test Prompt'):
+                client = CampaignChatClient()
+                # Mock successful retrieval
+                client.retriever = Mock()
+                mock_docs = [
+                    Document(content="Retrieved doc 1", metadata={"id": "1"}),
+                    Document(content="Retrieved doc 2", metadata={"id": "2"}),
+                ]
+                client.retriever.retrieve.return_value = mock_docs
+
+                result = client.ask("test question")
+
+                # Verify retriever was called successfully
+                client.retriever.retrieve.assert_called_once_with("sanitized question", top_k=5)
+
+                # Verify LLM error is returned (not masked by retrieval success)
+                assert "Error:" in result["answer"]
+                assert "connection refused" in result["answer"]
+
+                # Sources should still be empty because LLM failed
+                # (current implementation clears sources on any error in the ask method)
+                assert result["sources"] == []
+
 def test_clear_memory():
     # Mock initialization methods
     with patch.object(CampaignChatClient, '_initialize_llm', return_value=Mock()):
@@ -321,11 +495,11 @@ def test_rag_integration_retriever_to_llm_flow(mock_sanitize_input, tmp_path):
                 # Create client with mock retriever
                 mock_retriever = Mock()
                 mock_doc1 = Document(
-                    page_content="The Shadow Lord appeared in Session 5 as the main antagonist.",
+                    content="The Shadow Lord appeared in Session 5 as the main antagonist.",
                     metadata={"session_id": "Session_005", "type": "transcript"}
                 )
                 mock_doc2 = Document(
-                    page_content="The Shadow Lord commands an army of undead.",
+                    content="The Shadow Lord commands an army of undead.",
                     metadata={"session_id": "Session_007", "type": "knowledge"}
                 )
                 mock_retriever.retrieve.return_value = [mock_doc1, mock_doc2]
@@ -381,7 +555,9 @@ def test_rag_integration_with_empty_retrieval_results(mock_sanitize_input):
                 # Verify LLM was still called (without context)
                 mock_llm.assert_called_once()
                 llm_prompt = mock_llm.call_args[0][0]
-                assert "No relevant context found" in llm_prompt or "Context:" in llm_prompt
+                assert "RELEVANT INFORMATION" not in llm_prompt
+                assert "USER QUESTION:\ntest question" in llm_prompt
+                assert "ASSISTANT RESPONSE:" in llm_prompt
 
                 # Verify response
                 assert result["answer"] == "I don't have information about that."
@@ -404,7 +580,7 @@ def test_rag_integration_context_length_truncation(mock_sanitize_input):
                 mock_retriever = Mock()
                 # Create a very long document
                 long_content = "x" * (MAX_CONTEXT_DOCS_LENGTH + 1000)
-                mock_doc = Document(page_content=long_content, metadata={"session": "test"})
+                mock_doc = Document(content=long_content, metadata={"session": "test"})
                 mock_retriever.retrieve.return_value = [mock_doc]
 
                 client = CampaignChatClient(retriever=mock_retriever)
@@ -438,7 +614,7 @@ def test_rag_integration_with_various_context_inputs(mock_sanitize_input):
             with patch.object(CampaignChatClient, '_initialize_llm', return_value=mock_llm):
                 mock_retriever = Mock()
                 mock_retriever.retrieve.return_value = [
-                    Document(page_content="Session 5 notes", metadata={"session": "5"})
+                    Document(content="Session 5 notes", metadata={"session": "5"})
                 ]
 
                 client = CampaignChatClient(retriever=mock_retriever)

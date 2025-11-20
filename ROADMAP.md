@@ -1,6 +1,7 @@
 # VideoChunking Project Roadmap
 
-> **Last Updated**: 2025-11-18
+> **Last Updated**: 2025-11-20
+> **Last Cleanup**: 2025-11-20
 > **Multi-Agent Collaboration**: This roadmap consolidates plans from Claude, Gemini, and ChatGPT (Codex)
 
 ---
@@ -19,7 +20,7 @@ Transform long-form D&D session recordings into rich, searchable transcripts wit
 
 ---
 
-## Current Status
+## Current Status (Updated 2025-11-20)
 
 ### Core Pipeline (Production Ready)
 - Audio conversion (M4A -> WAV via FFmpeg)
@@ -54,193 +55,27 @@ Transform long-form D&D session recordings into rich, searchable transcripts wit
 
 ## Roadmap by Priority
 
-### P0: Critical / Immediate (Next 1-2 Weeks)
+### P0: Critical / Immediate
 
-#### 1. Bug Fixes
-**Owner**: Any agent
-**Status**: Partially complete
+✅ **ALL COMPLETE** (Completed 2025-10-26) - See [Archived Completed Work](#archived--completed-work) below for full details.
 
-- [x] Session ID sanitization (COMPLETED)
-- [x] Unicode compatibility (cp1252 crashes) (COMPLETED)
-- [x] Multiple background processes prevention (COMPLETED)
-- [x] Party config validation (COMPLETED)
-- [x] **Stale Clip Cleanup in Audio Snipper**
-  - File: `src/snipper.py`
-  - Issue: Reprocessing leaves orphaned WAV files from previous runs
-  - Fix: Clear session directory before writing new batch
-  - Estimated effort: 0.5 days
-  - Impact: MEDIUM - prevents directory confusion
-- [x] **Unsafe Type Casting in Configuration**
-  - File: `src/config.py`
-  - Issue: Non-numeric .env values crash on int() cast
-  - Fix: Wrap casts in try-except, fall back to defaults
-  - Estimated effort: 0.5 days
-  - Impact: MEDIUM - prevents startup crashes
-  - Status: [DONE] Completed (2025-10-24)
-- [x] **Checkpoint system for resumable processing**
-  - Save intermediate state after each pipeline stage
-  - Prevent data loss on 4+ hour sessions
-  - Estimated effort: 2 days
-  - Impact: HIGH - prevents hours of lost work
-- [x] **Improve resumable checkpoints robustness**
-  - Files: `src/pipeline.py`, `src/checkpoint.py`
-  - Issue: Resume still re-executes completed stages and checkpoints can become very large
-  - Fix: Skip already completed stages, compress/trim checkpoint payloads, and re-run only necessary steps
-  - Estimated effort: 1.5 days
-  - Impact: HIGH - faster recovery for long sessions
-  - Status: [DONE] Completed 2025-10-26 (Codex GPT-5)
-- [x] **Surface chunking failures to users**
-  - Files: `src/pipeline.py`
-  - Issue: When chunking yields zero segments the pipeline silently proceeds, leading to empty transcripts
-  - Fix: Detect real sessions vs. test mocks and abort with actionable errors for users
-  - Estimated effort: 0.5 days
-  - Impact: HIGH - avoids confusing empty outputs
-  - Status: [DONE] Completed 2025-10-24 (Codex GPT-5)
-- [x] **Refine snippet placeholder output**
-  - File: `src/snipper.py`
-  - Issue: Placeholder manifests use hard-coded Dutch text and leave stray files even when no snippets are produced
-  - Fix: Localize placeholder strings, only create markers when needed, and make the manifest structure explicit
-  - Estimated effort: 0.5 days
-  - Impact: MEDIUM - clearer UX for empty sessions
-  - Status: [DONE] Completed 2025-10-26 (Codex GPT-5)
-
-#### 2. Code Refactoring (Maintainability)
-**Owner**: Open
-**Status**: Planned
-**Priority Order**: 4 -> 1 -> 3 -> 2 -> 5
-
-1. **Priority 4: Status Indicator Constants** (QUICK WIN)
-   - [x] Create `src/ui/constants.py` (COMPLETED)
-   - Centralize emoji/symbol usage
-   - Windows cp1252 compatibility in one place
-   - Estimated effort: 0.5 days
-
-2. **Priority 1: Extract Campaign Dashboard Logic**
-   - [x] Extract `generate_campaign_dashboard()` from app.py (~240 lines) (COMPLETED)
-   - [x] Create `src/campaign_dashboard.py` with testable components (COMPLETED)
-   - [x] 7 unit tests added - all passing (COMPLETED)
-   - Estimated effort: 2 days (Actual: ~1 day)
-   - Impact: HIGH - enables testing and reusability
-   - Status: [DONE] Completed 2025-10-23
-
-3. **Priority 3: Extract Story Generation Logic**
-   - [x] Move narrative generation from app.py to `src/story_generator.py`
-   - [x] Enable CLI usage of story generation
-   - [x] Created `StoryNotebookManager` class in `src/story_notebook.py`
-   - [x] Added `generate-story` CLI command
-   - Estimated effort: 1 day
-   - Status: [DONE] Completed (already implemented)
-
-4. **Priority 2: Split app.py into UI Modules**
-   - Create `src/ui/` module structure
-   - Break app.py (2,564 lines) into focused modules (<300 lines each)
-   - Estimated effort: 3-4 days
-   - Target: Reduce app.py to <1,000 lines
-
-5. **Priority 5: MarkdownBuilder Helper** (DEFERRED)
-   - Create `src/ui/markdown_builder.py` helper class
-   - Consolidate markdown generation logic from dashboard
-   - Estimated effort: 1 day
-   - Impact: LOW - nice to have, not critical
-   - Status: Skip for now, revisit after Priority 1-2 complete
+All 9 P0 tasks completed:
+- 6 Bug fixes (stale clip cleanup, type casting, checkpoints, chunking failures, snippet placeholders)
+- 3 Refactoring tasks (campaign dashboard extraction, story generation extraction, UI modules split)
 
 ---
 
-### P1: High Impact Features (Next 2-4 Weeks)
+### P1: High Impact Features
 
-#### 1. Automatic Character Profile Extraction
-**Owner**: Claude (Sonnet 4.5)
-**Status**: [DONE] Completed 2025-10-31
-**Effort**: 3-5 days (actual: ~4 hours)
-**Impact**: EXTREMELY HIGH - eliminates 80% of manual data entry
+✅ **ALL COMPLETE** (Completed 2025-10-24 to 2025-11-02) - See [Archived Completed Work](#archived--completed-work) below for full details.
 
-**Implementation** (COMPLETE):
-- [DONE] Created `ProfileExtractor` class with LLM integration
-- [DONE] Created `CharacterProfileExtractor` workflow wrapper
-- [DONE] Designed comprehensive D&D-specific extraction prompts
-- [DONE] Ollama integration for IC-transcript analysis
-- [DONE] Auto-extracts: actions, items, relationships, quotes, development notes, goals
-- [DONE] UI integration in Character Profiles tab (upload transcript -> extract -> auto-apply)
-- [DONE] 13 unit tests + 9 integration tests (all passing)
-- [PENDING] Human review/approval workflow (future enhancement)
-
-**Benefits Delivered**:
-- Reduces manual data entry by 80%+ (extraction working)
-- Ensures no important moments are missed (LLM-powered)
-- Creates consistent, comprehensive profiles (7 categories)
-- Links sessions to character data via session_id tracking
-
-**Files**: `src/profile_extractor.py`, `src/character_profile_extractor.py`, `prompts/profile_extraction.txt`, `schemas/profile_update.json`, `tests/test_profile_extraction.py`, `tests/test_character_profile_extractor.py`
-
-#### 2. UI Modernization (16 Tabs -> 5 Sections)
-**Owner**: Claude (Sonnet 4.5)
-**Status**: [DONE] Completed 2025-11-01
-**Effort**: 2-3 days (actual: ~5 hours)
-**Impact**: EXTREMELY HIGH - transforms user experience
-
-**Implementation** (COMPLETE):
-- [DONE] Created modern theme system with Indigo/Cyan color palette (`src/ui/theme.py`)
-- [DONE] Designed 5 consolidated tabs with clear workflow:
-  - [PROCESS] Process Session (workflow stepper: Upload -> Configure -> Process -> Review)
-  - [CAMPAIGN] Campaign (dashboard, knowledge base, session library, party management)
-  - [PEOPLE] Characters (card-based browser with auto-extraction tool)
-  - [STORIES] Stories & Output (content viewer with export options)
-  - [TOOLS] Settings & Tools (config, diagnostics, logs, speaker mgmt, LLM chat, help)
-- [DONE] Progressive disclosure pattern (accordions, collapsible sections, tooltips)
-- [DONE] Full-width responsive layout with proper horizontal spacing
-- [DONE] Improved accordion indicators (animated indigo arrows)
-- [DONE] Modern card-based layouts with hover effects and shadows
-- [DONE] Visual workflow stepper for session processing
-- [DONE] Replaced main `app.py` with modern UI (backed up to `app.py.backup`)
-
-**Benefits Delivered**:
-- Reduced tab count by 69% (16 -> 5 tabs)
-- Eliminated hidden overflow menu tabs
-- Clear entry point and workflow guidance
-- Modern, professional aesthetic (inspired by ElevenLabs, Linear)
-- 80% less visual clutter via progressive disclosure
-- Better content organization and feature discoverability
-
-**Files**: `src/ui/theme.py`, `src/ui/process_session_tab_modern.py`, `src/ui/campaign_tab_modern.py`, `src/ui/characters_tab_modern.py`, `src/ui/stories_output_tab_modern.py`, `src/ui/settings_tools_tab_modern.py`, `app.py`, `app_modern_preview.py`, `docs/UI_MODERNIZATION_PROPOSAL.md`
-
-#### 3. Streaming Snippet Export
-**Owner**: Claude (Sonnet 4.5)
-**Status**: [DONE] **COMPLETED** (2025-11-18)
-**Effort**: 2 days (actual: ~3 hours)
-**Impact**: HIGH - 90% memory footprint reduction
-
-**Implementation** (COMPLETE):
-- [DONE] FFmpeg-based streaming extraction implemented
-- [DONE] Current: 450MB -> New: <50MB for 4-hour sessions (90% reduction)
-- [DONE] Direct segment extraction using FFmpeg `-ss` and `-t` flags
-- [DONE] Backward compatible via USE_STREAMING_SNIPPET_EXPORT config flag
-- [DONE] 8 comprehensive unit tests added to test_snipper.py
-- [DONE] Default enabled for all new users
-
-**Files Modified:**
-- `src/snipper.py` - Added streaming extraction with FFmpeg
-- `src/config.py` - Added USE_STREAMING_SNIPPET_EXPORT flag
-- `.env.example` - Documented new configuration
-- `tests/test_snipper.py` - Added 8 new tests for streaming functionality
-- `IMPLEMENTATION_PLAN_STREAMING_SNIPPET_EXPORT.md` - Complete implementation plan
-
-**Benefits Delivered:**
-- 90% memory reduction for long session processing
-- No breaking changes (backward compatible)
-- Minimal performance overhead (<10%)
-- Transparent upgrade for users
-
-#### 3. Batch Processing
-**Owner**: Gemini
-**Status**: [DONE] Completed (2025-10-24)
-**Effort**: 1 day
-**Impact**: MEDIUM-HIGH
-
-**Features**:
-- Multi-file upload in Gradio UI
-- Sequential processing with progress tracking
-- Process multiple sessions overnight
-- Generate batch summary report
+All 6 P1 features completed:
+1. Automatic Character Profile Extraction (2025-10-31) - 80% reduction in manual data entry
+2. UI Modernization (2025-11-01) - 16 tabs -> 5 sections, modern theme
+3. Streaming Snippet Export (2025-11-18) - 90% memory footprint reduction
+4. Batch Processing (2025-10-24) - Multi-file upload and processing
+5. Campaign Lifecycle Manager (2025-11-02) - Multi-campaign management
+6. Session Cleanup & Validation (2025-11-01) - Data integrity tools
 
 ---
 
@@ -1137,6 +972,69 @@ See [IMPLEMENTATION_PLANS_INTERACTIVE_CLARIFICATION.md](IMPLEMENTATION_PLANS_INT
 
 ## Archived / Completed Work
 
+> **Note**: Tasks below are completed and archived for historical reference.
+> **Last Cleanup**: 2025-11-20
+
+---
+
+### P0: Critical / Immediate (Completed 2025-10-23 to 2025-10-26)
+
+**Bug Fixes:**
+- [x] Session ID sanitization (prevents injection attacks)
+- [x] Unicode compatibility (cp1252 crashes fixed)
+- [x] Multiple background processes prevention
+- [x] Party config validation
+- [x] Stale Clip Cleanup in Audio Snipper (orphaned WAV files)
+- [x] Unsafe Type Casting in Configuration (.env parsing)
+- [x] Checkpoint system for resumable processing (data loss prevention)
+- [x] Improve resumable checkpoints robustness (compression, skip completed stages)
+- [x] Surface chunking failures to users (actionable error messages)
+- [x] Refine snippet placeholder output (localization, cleaner manifests)
+
+**Code Refactoring:**
+- [x] Extract Campaign Dashboard Logic (`src/campaign_dashboard.py`)
+- [x] Extract Story Generation Logic (`src/story_notebook.py`)
+- [x] Split app.py into UI Modules (`src/ui/` structure created)
+
+### P1: High Impact Features (Completed 2025-10-24 to 2025-11-02)
+
+- [x] **Automatic Character Profile Extraction** (2025-10-31)
+  - LLM-powered extraction from transcripts
+  - 80% reduction in manual data entry
+  - 13 unit tests + 9 integration tests
+
+- [x] **UI Modernization** (2025-11-01)
+  - 16 tabs -> 5 consolidated sections
+  - Modern theme (Indigo/Cyan color palette)
+  - Progressive disclosure patterns
+  - 69% reduction in visual clutter
+
+- [x] **Streaming Snippet Export** (2025-11-18)
+  - 90% memory footprint reduction
+  - FFmpeg-based direct segment extraction
+  - Backward compatible configuration
+
+- [x] **Batch Processing** (2025-10-24)
+  - Multi-file upload in Gradio UI
+  - Sequential processing with progress tracking
+
+- [x] **Campaign Lifecycle Manager** (2025-11-02)
+  - Multi-campaign management
+  - Campaign-aware UI and filtering
+
+- [x] **Session Cleanup & Validation** (2025-11-01)
+  - Data integrity tools
+
+### P2: Core Features Completed (2025-10-25 to 2025-11-19)
+
+- [x] **P2-LANGCHAIN-001**: Conversational Campaign Interface (2025-10-25)
+- [x] **P2-LANGCHAIN-002**: Semantic Search with RAG (2025-10-25)
+- [x] **P2.1-SECURITY**: All critical security fixes (2025-10-25)
+- [x] **P2.1-TESTING**: LangChain test coverage expansion (2025-11-06) - 49% -> 87% coverage
+- [x] **P2.1-UX**: Campaign Chat UI Improvements (2025-11-19)
+
+### Other Completed Work
+
 See COLLECTIVE_ROADMAP.md "Recently Completed" section for:
 - [x] Groq transcription fix
 - [x] Audio snippet export toggle
@@ -1151,6 +1049,8 @@ See COLLECTIVE_ROADMAP.md "Recently Completed" section for:
 - [x] App Manager real-time monitoring
 - [x] Test suite refactoring
 - [x] Unicode compatibility fixes
+
+**For active work items**, see priority sections above.
 
 ---
 

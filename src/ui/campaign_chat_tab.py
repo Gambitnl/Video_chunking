@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import logging
 from pathlib import Path
-from typing import List, Dict
+from typing import Dict, List, TYPE_CHECKING
 
 import gradio as gr
 
@@ -18,7 +18,11 @@ logger = logging.getLogger("DDSessionProcessor.campaign_chat_tab")
 _GENERIC_ERROR_DETAIL = "Error details have been logged for troubleshooting."
 
 
-def describe_llm_configuration(chat_client) -> str:
+if TYPE_CHECKING:
+    from src.langchain.campaign_chat import CampaignChatClient
+
+
+def describe_llm_configuration(chat_client: "CampaignChatClient" | None) -> str:
     """Return a concise description of the active LLM provider and model."""
 
     if not chat_client:
@@ -520,9 +524,17 @@ def create_campaign_chat_tab(project_root: Path) -> None:
                     )
                     send_btn = gr.Button(SI.ACTION_SEND, scale=1, variant="primary")
 
-                char_counter = gr.Markdown(
-                    format_character_counter("")
-                )
+        char_counter = gr.Markdown(
+            format_character_counter("")
+        )
+
+        def attach_counter_reset(event):
+            """Append a character counter reset to the provided Gradio event."""
+
+            return event.then(
+                fn=reset_character_counter,
+                outputs=[char_counter]
+            )
 
         with gr.Row():
             clear_btn = gr.Button(f"{SI.ACTION_CLEAR} Chat", size="sm")
@@ -566,72 +578,66 @@ def create_campaign_chat_tab(project_root: Path) -> None:
         )
 
         # Event handlers - Three-step pattern: show loading -> get response -> show sources
-        send_btn.click(
-            fn=send_message_show_loading,
-            inputs=[msg_input, chatbot],
-            outputs=[chatbot, msg_input, conversation_dropdown, sources_display]
-        ).then(
-            fn=send_message_get_response,
-            inputs=[chatbot],
-            outputs=[chatbot, conversation_dropdown]
-        ).then(
-            fn=format_sources_display,
-            inputs=[chatbot],
-            outputs=[sources_display]
-        ).then(
-            fn=reset_character_counter,
-            outputs=[char_counter]
+        attach_counter_reset(
+            send_btn.click(
+                fn=send_message_show_loading,
+                inputs=[msg_input, chatbot],
+                outputs=[chatbot, msg_input, conversation_dropdown, sources_display]
+            ).then(
+                fn=send_message_get_response,
+                inputs=[chatbot],
+                outputs=[chatbot, conversation_dropdown]
+            ).then(
+                fn=format_sources_display,
+                inputs=[chatbot],
+                outputs=[sources_display]
+            )
         )
 
-        msg_input.submit(
-            fn=send_message_show_loading,
-            inputs=[msg_input, chatbot],
-            outputs=[chatbot, msg_input, conversation_dropdown, sources_display]
-        ).then(
-            fn=send_message_get_response,
-            inputs=[chatbot],
-            outputs=[chatbot, conversation_dropdown]
-        ).then(
-            fn=format_sources_display,
-            inputs=[chatbot],
-            outputs=[sources_display]
-        ).then(
-            fn=reset_character_counter,
-            outputs=[char_counter]
+        attach_counter_reset(
+            msg_input.submit(
+                fn=send_message_show_loading,
+                inputs=[msg_input, chatbot],
+                outputs=[chatbot, msg_input, conversation_dropdown, sources_display]
+            ).then(
+                fn=send_message_get_response,
+                inputs=[chatbot],
+                outputs=[chatbot, conversation_dropdown]
+            ).then(
+                fn=format_sources_display,
+                inputs=[chatbot],
+                outputs=[sources_display]
+            )
         )
 
-        clear_btn.click(
-            fn=clear_chat,
-            outputs=[chatbot, sources_display]
-        ).then(
-            fn=reset_character_counter,
-            outputs=[char_counter]
+        attach_counter_reset(
+            clear_btn.click(
+                fn=clear_chat,
+                outputs=[chatbot, sources_display]
+            )
         )
 
-        new_conv_btn.click(
-            fn=new_conversation,
-            outputs=[chatbot, msg_input, conversation_dropdown, sources_display]
-        ).then(
-            fn=reset_character_counter,
-            outputs=[char_counter]
+        attach_counter_reset(
+            new_conv_btn.click(
+                fn=new_conversation,
+                outputs=[chatbot, msg_input, conversation_dropdown, sources_display]
+            )
         )
 
-        load_conv_btn.click(
-            fn=lambda dropdown_val: load_conversation(extract_conversation_id(dropdown_val)),
-            inputs=[conversation_dropdown],
-            outputs=[chatbot, msg_input, sources_display]
-        ).then(
-            fn=reset_character_counter,
-            outputs=[char_counter]
+        attach_counter_reset(
+            load_conv_btn.click(
+                fn=lambda dropdown_val: load_conversation(extract_conversation_id(dropdown_val)),
+                inputs=[conversation_dropdown],
+                outputs=[chatbot, msg_input, sources_display]
+            )
         )
 
-        delete_btn.click(
-            fn=delete_conversation,
-            inputs=[conversation_dropdown],
-            outputs=[chatbot, msg_input, conversation_dropdown, sources_display]
-        ).then(
-            fn=reset_character_counter,
-            outputs=[char_counter]
+        attach_counter_reset(
+            delete_btn.click(
+                fn=delete_conversation,
+                inputs=[conversation_dropdown],
+                outputs=[chatbot, msg_input, conversation_dropdown, sources_display]
+            )
         )
 
         rename_btn.click(

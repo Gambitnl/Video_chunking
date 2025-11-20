@@ -136,7 +136,7 @@ class SpeakerSegment:
 
 class BaseDiarizer:
     """Abstract base class for diarization backends."""
-    def diarize(self, audio_path: Path) -> Tuple[List[SpeakerSegment], Dict[str, np.ndarray]]:
+    def diarize(self, audio_path: Path, num_speakers: Optional[int] = None) -> Tuple[List[SpeakerSegment], Dict[str, np.ndarray]]:
         raise NotImplementedError
 
     def assign_speakers_to_transcription(
@@ -188,7 +188,7 @@ class HuggingFaceApiDiarizer(BaseDiarizer):
         response.raise_for_status()
         return response.json()
 
-    def diarize(self, audio_path: Path) -> Tuple[List[SpeakerSegment], Dict[str, np.ndarray]]:
+    def diarize(self, audio_path: Path, num_speakers: Optional[int] = None) -> Tuple[List[SpeakerSegment], Dict[str, np.ndarray]]:
         """Perform speaker diarization using the Hugging Face API."""
         if not self.api_token:
             raise ValueError("HF_TOKEN is not set. Cannot use Hugging Face API.")
@@ -399,20 +399,25 @@ class SpeakerDiarizer(BaseDiarizer):
 
         return diarization_input
 
-    def _perform_diarization(self, diarization_input: Union[Dict, str]) -> Tuple['Annotation', List[SpeakerSegment]]:
+    def _perform_diarization(self, diarization_input: Union[Dict, str], num_speakers: Optional[int] = None) -> Tuple['Annotation', List[SpeakerSegment]]:
         """
         Execute diarization pipeline and convert results to segments.
 
         Args:
             diarization_input: Either a dict with audio data or a file path string
+            num_speakers: Optional number of speakers to detect
 
         Returns:
             A tuple of (diarization_result, segments_list) where:
             - diarization_result: Raw result from pyannote pipeline (needed for embeddings)
             - segments_list: List of SpeakerSegment objects
         """
-        self.logger.debug("Running diarization pipeline...")
-        diarization = self.pipeline(diarization_input)
+        self.logger.debug("Running diarization pipeline (num_speakers=%s)...", num_speakers)
+
+        if num_speakers is not None:
+            diarization = self.pipeline(diarization_input, num_speakers=num_speakers)
+        else:
+            diarization = self.pipeline(diarization_input)
 
         # Convert to our format
         segments = []
@@ -577,7 +582,7 @@ class SpeakerDiarizer(BaseDiarizer):
 
         return speaker_embeddings
 
-    def diarize(self, audio_path: Path) -> Tuple[List[SpeakerSegment], Dict[str, np.ndarray]]:
+    def diarize(self, audio_path: Path, num_speakers: Optional[int] = None) -> Tuple[List[SpeakerSegment], Dict[str, np.ndarray]]:
         """
         Perform speaker diarization on audio file.
 
@@ -589,6 +594,7 @@ class SpeakerDiarizer(BaseDiarizer):
 
         Args:
             audio_path: Path to WAV file
+            num_speakers: Optional number of speakers to detect (default: None = auto-detect)
 
         Returns:
             A tuple containing:
@@ -606,7 +612,7 @@ class SpeakerDiarizer(BaseDiarizer):
         diarization_input = self._load_audio_for_diarization(audio_path)
 
         # Step 2: Perform diarization
-        diarization, segments = self._perform_diarization(diarization_input)
+        diarization, segments = self._perform_diarization(diarization_input, num_speakers=num_speakers)
 
         # Step 3: Extract speaker embeddings
         speaker_embeddings = self._extract_speaker_embeddings(audio_path, diarization)

@@ -400,9 +400,9 @@ If you find a `[~]` task with timestamp >24 hours old:
   - **Effort**: 2-3 hours | **Conflict Risk**: ⚠️⚠️⚠️ HIGH
   → BUG_HUNT_TODO.md:275
 
-- [ ] **BUG-20251103-030**: Data - Profile filtering logic flaw with None handling
-  - **Files**: Multiple files
-  - **Effort**: 1-2 hours | **Conflict Risk**: ⚠️⚠️ MEDIUM
+- [x] **BUG-20251103-030**: Data - Profile filtering logic flaw with None handling (Agent: Claude Sonnet 4.5, Completed: 2025-11-21)
+  - **Files**: `src/ui/campaign_dashboard_helpers.py:129`
+  - **Fix**: Replaced `getattr(profile, "campaign_id", None)` with `profile.campaign_id` for consistency
   → BUG_HUNT_TODO.md:441
 
 

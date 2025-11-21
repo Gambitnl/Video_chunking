@@ -126,7 +126,7 @@ def build_campaign_manifest(
         profile_manager = CharacterProfileManager()
         profile_count = sum(
             1 for profile in profile_manager.profiles.values()
-            if getattr(profile, "campaign_id", None) == campaign_id
+            if profile.campaign_id == campaign_id
         )
         if profile_count:
             lines.append(f"- {StatusIndicators.READY} {profile_count} character profiles assigned to this campaign.")

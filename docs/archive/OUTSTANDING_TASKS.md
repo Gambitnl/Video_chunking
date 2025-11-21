@@ -362,8 +362,8 @@ If you find a `[~]` task with timestamp >24 hours old:
   - **Effort**: 1-2 hours | **Conflict Risk**: ⚠️⚠️ MEDIUM
   → BUG_HUNT_TODO.md:257
 
-- [ ] **BUG-20251103-013**: Campaign Dashboard - No error recovery for corrupted files
-  - **Files**: `app.py:300-335`
+- [x] **BUG-20251103-013**: Campaign Dashboard - No error recovery for corrupted files (Agent: Jules, Completed: 2025-11-20)
+  - **Files**: `app.py:300-335`, `src/ui/campaign_dashboard_helpers.py`
   - **Effort**: 1-2 hours | **Conflict Risk**: ⚠️⚠️ MEDIUM
   → BUG_HUNT_TODO.md:327
 

@@ -192,7 +192,7 @@ If you find a `[~]` task with timestamp >24 hours old:
 
 - [x] BUG-20251102-01: CampaignChatClient.ask - Add integration tests for full RAG pipeline (Agent: Claude Sonnet 4.5, Completed: 2025-11-20) → BUG_HUNT_TODO.md:9
 
-- [ ] BUG-20251102-08: CampaignChatChain.ask - Add integration tests for full chain → BUG_HUNT_TODO.md:37
+- [x] BUG-20251102-08: CampaignChatChain.ask - Add integration tests for full chain (Agent: GPT-5.1-Codex-Max, Completed: 2025-11-21) → BUG_HUNT_TODO.md:37
 
 - [ ] BUG-20251102-18: HybridSearcher.search - Integration tests with real instances → BUG_HUNT_TODO.md:77
 

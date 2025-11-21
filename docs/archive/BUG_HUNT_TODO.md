@@ -56,6 +56,15 @@ This list summarizes preliminary findings from the bug hunt session on 2025-11-0
     *   **Issue**: `CampaignChatChain` utilizes LangChain's `ConversationalRetrievalChain.from_llm`. Current tests typically mock the entire `chain` object rather than testing its full interaction with LLM, retriever, and memory components.
     *   **Why it's an issue**: Excessive mocking prevents verification of the actual LangChain orchestration. Integration tests are vital to ensure that the `ConversationalRetrievalChain` correctly combines and processes inputs from all its integrated components and produces the expected output, directly impacting the accuracy and relevance of conversational responses.
 
+##### Implementation Notes & Reasoning (2025-11-21 GPT-5.1-Codex-Max)
+
+- Added `tests/test_langchain_campaign_chat_chain.py` with integration-style tests that instantiate `CampaignChatChain` against a real `ConversationalRetrievalChain`, using `langchain_core` `LLM`/`BaseRetriever` subclasses to simulate deterministic LLM outputs and static documents.
+- Verified the chain propagates retrieved documents into the LLM prompt and returns sources alongside answers, and that it still responds when retrieval returns no documents.
+
+##### Code Review Findings (2025-11-21 GPT-5.1-Codex-Max)
+
+- [APPROVED] Tests now cover end-to-end wiring, confirming prompt formatting includes context and source propagation works; noted existing LangChain deprecation warnings for future cleanup.
+
 -   **BUG-20251102-09**: `CampaignChatChain.ask` - Test with various `question` inputs and expected `source_documents`. (Medium)
     *   **Issue**: The `CampaignChatChain.ask` method takes a `question` and is expected to return `answer` and `source_documents`. The range of questions and their impact on source retrieval needs thorough testing.
     *   **Why it's an issue**: The quality of RAG depends heavily on how the conversational chain processes different types of questions (e.g., simple, complex, follow-up). Verifying that relevant `source_documents` are consistently returned for various inputs is essential for the chain to provide accurate and well-contextualized answers.

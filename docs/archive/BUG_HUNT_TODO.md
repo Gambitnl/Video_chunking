@@ -40,7 +40,7 @@ This list summarizes preliminary findings from the bug hunt session on 2025-11-0
     *   **Issue**: Similar to retriever failures, if the `self.llm(full_prompt)` call in `CampaignChatClient.ask` fails (e.g., due to an invalid API key, network timeout, model being unavailable), the current error handling simply captures the generic exception.
     *   **Why it's an issue**: An LLM failure is a critical operational issue. Generic error messages can expose internal system details or be unhelpful to the user. Specific tests are needed to ensure robust error handling provides clear, non-technical feedback to the user, potentially suggesting solutions like checking network connections or API keys.
 
--   **BUG-20251102-05**: `CampaignChatClient._initialize_llm` - Add tests for `langchain_community.llms.Ollama` fallback. (Low)
+-   **BUG-20251102-05**: `CampaignChatClient._initialize_llm` - Add tests for `langchain_community.llms.Ollama` fallback. (Agent: Jules, Completed: 2025-11-20) (Low)
     *   **Issue**: The `_initialize_llm` method attempts to import `langchain_ollama.OllamaLLM` first, and if that fails, it falls back to `langchain_community.llms.Ollama`. Current tests might not cover this fallback scenario.
     *   **Why it's an issue**: Fallback mechanisms are crucial for resilience but are often overlooked in testing. If the fallback import or the `langchain_community` version of Ollama behaves unexpectedly, it could lead to silent failures or inconsistent behavior in environments where the primary import isn't available, undermining the system's intended robustness.
 

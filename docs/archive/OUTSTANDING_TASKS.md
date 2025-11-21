@@ -226,7 +226,7 @@ If you find a `[~]` task with timestamp >24 hours old:
 
 - [~] BUG-20251102-13: ConversationStore.load_conversation - Test corrupted JSON (Agent: GPT-5.1-Codex, Started: 2025-11-18 20:45 UTC) → BUG_HUNT_TODO.md:57
 
-- [ ] BUG-20251102-14: ConversationStore.list_conversations - Test with large numbers → BUG_HUNT_TODO.md:61
+- [~] BUG-20251102-14: ConversationStore.list_conversations - Test with large numbers (Agent: Claude Sonnet 4.5, Started: 2025-11-21 12:00 UTC) → BUG_HUNT_TODO.md:61
 
 - [x] BUG-20251102-15: ConversationStore.list_conversations - Test corrupted files (Agent: Claude Sonnet 4.5, Completed: 2025-11-20) → BUG_HUNT_TODO.md:65
 

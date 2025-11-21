@@ -263,6 +263,43 @@ class TestSpeakerDiarizer:
         assert issues
         assert any("segmentation-3.0" in issue.message for issue in issues)
 
+    @patch('pydub.AudioSegment')
+    @patch.dict('sys.modules', {'torchaudio': None})
+    def test_diarize_passes_num_speakers(self, MockAudioSegment, diarizer, tmp_path):
+        """Test that num_speakers parameter is correctly propagated to the pipeline."""
+        # Mock pipeline
+        mock_pipeline_instance = MagicMock()
+        # Mock result
+        mock_diarization_result = MagicMock()
+        mock_diarization_result.itertracks.return_value = []
+        mock_diarization_result.labels.return_value = []
+        mock_diarization_result.label_timeline.return_value = []
+        mock_pipeline_instance.return_value = mock_diarization_result
+        diarizer.pipeline = mock_pipeline_instance
+
+        # Mock embedding model to avoid errors
+        diarizer.embedding_model = MagicMock()
+
+        # Dummy audio
+        dummy_audio_path = tmp_path / "audio.wav"
+        dummy_audio_path.touch()
+
+        # Mock audio loading
+        mock_audio = MagicMock()
+        mock_audio.__len__.return_value = 1000
+        MockAudioSegment.from_wav.return_value = mock_audio
+        MockAudioSegment.empty.return_value = MagicMock()
+
+        # Call with num_speakers
+        diarizer.diarize(dummy_audio_path, num_speakers=4)
+
+        # Verify pipeline was called with num_speakers
+        call_args = mock_pipeline_instance.call_args
+        assert call_args is not None, "Pipeline should have been called"
+
+        # call_args[0] are positional, call_args[1] are kwargs
+        assert call_args[1].get('num_speakers') == 4, "num_speakers=4 should be passed to pipeline"
+
 class TestSpeakerProfileManager:
 
     @pytest.fixture

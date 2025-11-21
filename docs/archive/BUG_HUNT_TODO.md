@@ -515,7 +515,7 @@ This list summarizes preliminary findings from the bug hunt session on 2025-11-0
 
 ### Area 5: Core Pipeline Bugs (2025-11-07)
 
-- **BUG-20251107-01**: Fix Critical Bug - num_speakers Parameter Ignored in Speaker Diarization (🔴 Critical)
+- [x] **BUG-20251107-01**: Fix Critical Bug - num_speakers Parameter Ignored in Speaker Diarization (Agent: Jules, Completed: 2025-11-20) (🔴 Critical)
     *   **Problem**: The `num_speakers` parameter (set to 4 in your case) is completely ignored during speaker diarization. Users can set it in the UI and it gets stored in the pipeline configuration, but it's never passed to the PyAnnote diarization model. This causes PyAnnote to auto-detect the number of speakers using clustering algorithms, which frequently results in severe over-segmentation.
     *   **Impact**:
         *   In your Session 6 processing: Expected 4 speakers, detected 20 speakers
@@ -554,6 +554,12 @@ This list summarizes preliminary findings from the bug hunt session on 2025-11-0
         *   `src/diarizer.py` (add parameter, pass to pipeline)
         *   `src/pipeline.py` (wire parameter from config to diarizer)
         *   `tests/test_diarizer.py` (add test for `num_speakers` parameter)
+
+##### Implementation Notes & Reasoning (2025-11-20 Jules)
+
+- Verified that `src/diarizer.py` correctly accepts and uses `num_speakers`.
+- Verified that `src/pipeline.py` correctly passes `num_speakers` from config.
+- Added `test_diarize_passes_num_speakers` to `tests/test_diarizer.py` to enforce this behavior and prevent regression.
 
 - **BUG-20251107-02**: Add Progress Logging to Stage 6 IC/OOC Classification (🟡 High)
     *   **Problem**: Stage 6 (IC/OOC classification) processes thousands of segments with ZERO progress updates. In your Session 6 processing, Stage 6 started at 10:59:09 with 5726 segments and appeared to hang because there were no log messages for hours. Users have no way to know if:

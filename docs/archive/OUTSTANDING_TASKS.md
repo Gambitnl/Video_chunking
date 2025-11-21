@@ -204,7 +204,7 @@ If you find a `[~]` task with timestamp >24 hours old:
 
 - [ ] BUG-20251102-33: General - Add concurrency tests for clients → BUG_HUNT_TODO.md:136
 
-- [ ] BUG-20251102-35: General - Add tests for error paths and edge cases → BUG_HUNT_TODO.md:145
+- [~] BUG-20251102-35: General - Add tests for error paths and edge cases (Agent: Claude Sonnet 4.5, Started: 2025-11-21 12:00 UTC) → BUG_HUNT_TODO.md:145
 
 
 

@@ -216,11 +216,11 @@ If you find a `[~]` task with timestamp >24 hours old:
 
 - [x] BUG-20251102-04: CampaignChatClient.ask - Test LLM failure handling (Agent: Claude Sonnet 4.5, Completed: 2025-11-20) → BUG_HUNT_TODO.md:21
 
-- [ ] BUG-20251102-07: _load_system_prompt - Test campaign placeholders → BUG_HUNT_TODO.md:33
+- [x] BUG-20251102-07: _load_system_prompt - Test campaign placeholders (Agent: Claude Sonnet 4.5, Completed: 2025-11-21, pre-existing) → BUG_HUNT_TODO.md:33
 
 - [ ] BUG-20251102-09: CampaignChatChain.ask - Test various questions/sources → BUG_HUNT_TODO.md:41
 
-- [ ] BUG-20251102-10: CampaignChatChain.ask - Test chain failure handling → BUG_HUNT_TODO.md:45
+- [x] BUG-20251102-10: CampaignChatChain.ask - Test chain failure handling (Agent: Claude Sonnet 4.5, Completed: 2025-11-21, pre-existing) → BUG_HUNT_TODO.md:45
 
 - [ ] BUG-20251102-12: ConversationStore.add_message - Test updating relevant_sessions → BUG_HUNT_TODO.md:53
 
@@ -276,7 +276,7 @@ If you find a `[~]` task with timestamp >24 hours old:
 
 ### Low Priority Tests (8 bugs)
 
-- [ ] BUG-20251102-05: _initialize_llm - Test Ollama fallback → BUG_HUNT_TODO.md:25
+- [x] BUG-20251102-05: _initialize_llm - Test Ollama fallback (Agent: Claude Sonnet 4.5, Completed: 2025-11-21, pre-existing) → BUG_HUNT_TODO.md:25
 
 - [ ] BUG-20251102-06: _initialize_memory - Test ConversationBufferMemory fallbacks → BUG_HUNT_TODO.md:29
 

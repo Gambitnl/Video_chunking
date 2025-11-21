@@ -276,7 +276,7 @@ If you find a `[~]` task with timestamp >24 hours old:
 
 ### Low Priority Tests (8 bugs)
 
-- [ ] BUG-20251102-05: _initialize_llm - Test Ollama fallback → BUG_HUNT_TODO.md:25
+- [x] BUG-20251102-05: _initialize_llm - Test Ollama fallback (Agent: Jules, Completed: 2025-11-20) → BUG_HUNT_TODO.md:25
 
 - [ ] BUG-20251102-06: _initialize_memory - Test ConversationBufferMemory fallbacks → BUG_HUNT_TODO.md:29
 

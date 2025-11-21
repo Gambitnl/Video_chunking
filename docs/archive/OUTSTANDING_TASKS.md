@@ -15,6 +15,18 @@
 
 
 
+## Bugs - Core Pipeline
+
+[CRITICAL] **Pipeline Stability & Correctness**
+
+- [x] BUG-20251107-01: Verify and Regression Test for num_speakers Parameter in Diarization (Agent: Jules, Completed: 2025-11-20) → BUG_HUNT_TODO.md:507
+  - Verify fix in `src/diarizer.py`
+  - Add regression test in `tests/test_diarizer.py`
+
+---
+
+
+
 ## Task Locking Protocol (Multi-Agent Coordination)
 
 

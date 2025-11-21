@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import Dict, List, Optional
 
 from src.config import Config
+from src.langchain.llm_factory import LLMFactory
 
 logger = logging.getLogger("DDSessionProcessor.campaign_chat")
 
@@ -101,7 +102,10 @@ class CampaignChatClient:
         self.campaign_id = campaign_id
 
         # Initialize LLM based on provider
-        self.llm = self._initialize_llm()
+        self.llm = LLMFactory.create_llm(
+            provider=self.llm_provider,
+            model_name=self.model_name
+        )
 
         # Initialize conversation memory
         self.memory = self._initialize_memory()
@@ -113,38 +117,6 @@ class CampaignChatClient:
             f"Initialized CampaignChatClient with {self.llm_provider} "
             f"using model {self.model_name}"
         )
-
-    def _initialize_llm(self):
-        """Initialize the LLM based on provider configuration."""
-        try:
-            if self.llm_provider == "ollama":
-                try:
-                    from langchain_ollama import OllamaLLM
-                    return OllamaLLM(
-                        model=self.model_name,
-                        base_url=Config.OLLAMA_BASE_URL
-                    )
-                except ImportError:
-                    # Fallback to deprecated import
-                    from langchain_community.llms import Ollama
-                    return Ollama(
-                        model=self.model_name,
-                        base_url=Config.OLLAMA_BASE_URL
-                    )
-            elif self.llm_provider == "openai":
-                from langchain_community.llms import OpenAI
-                return OpenAI(
-                    model=self.model_name,
-                    openai_api_key=Config.OPENAI_API_KEY
-                )
-            else:
-                raise ValueError(f"Unsupported LLM provider: {self.llm_provider}")
-        except ImportError as e:
-            logger.error(f"Failed to import LangChain dependencies: {e}")
-            raise RuntimeError(
-                "LangChain dependencies not installed. "
-                "Run: pip install langchain langchain-community langchain-ollama"
-            ) from e
 
     def _initialize_memory(self):
         """

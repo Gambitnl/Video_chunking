@@ -212,7 +212,7 @@ If you find a `[~]` task with timestamp >24 hours old:
 
 - [x] BUG-20251102-26: CampaignVectorStore.add_transcript_segments - Test with large batches (Agent: Unknown, Completed: 2025-11-21, pre-existing in test_langchain_vector_store.py:139, test_langchain_security.py:293) → BUG_HUNT_TODO.md:109
 
-- [ ] BUG-20251102-32: General - Add performance tests for LangChain components → BUG_HUNT_TODO.md:132
+- [x] BUG-20251102-32: General - Add performance tests for LangChain components (Agent: Jules, Completed: 2025-11-22) → BUG_HUNT_TODO.md:132
 
 - [ ] BUG-20251102-33: General - Add concurrency tests for clients → BUG_HUNT_TODO.md:136
 

@@ -65,6 +65,48 @@ ALLOWED_AUDIO_EXTENSIONS: Tuple[str, ...] = (".m4a", ".mp3", ".wav", ".flac")
 SESSION_ID_PATTERN = re.compile(r"^[A-Za-z0-9_-]+$")
 
 
+def validate_session_id_realtime(session_id: str) -> str:
+    """
+    Validate session ID in real-time and return status message.
+
+    Args:
+        session_id: User-provided session identifier
+
+    Returns:
+        Markdown-formatted validation status message (empty string if no input)
+    """
+    # Don't show anything if the field is empty
+    if not session_id or not session_id.strip():
+        return ""
+
+    session_id = session_id.strip()
+
+    # Check against pattern
+    if SESSION_ID_PATTERN.match(session_id):
+        return StatusMessages.success(
+            "Valid",
+            f"Session ID `{session_id}` is valid"
+        )
+    else:
+        # Find invalid characters
+        invalid_chars = set()
+        for char in session_id:
+            if not (char.isalnum() or char in "_-"):
+                invalid_chars.add(char)
+
+        if invalid_chars:
+            invalid_str = " ".join(repr(c) for c in sorted(invalid_chars))
+            return StatusMessages.error(
+                "Invalid",
+                f"Session ID contains invalid characters: {invalid_str}. Only letters, numbers, underscores (_), and hyphens (-) are allowed."
+            )
+        else:
+            return StatusMessages.error(
+                "Invalid",
+                "Session ID format is invalid. Use only letters, numbers, underscores (_), and hyphens (-)."
+            )
+
+
 def _utcnow() -> datetime:
     """Return the current UTC time (isolated for testing)."""
 

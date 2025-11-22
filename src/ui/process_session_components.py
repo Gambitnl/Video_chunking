@@ -185,6 +185,12 @@ class ConfigurationSectionBuilder:
                 info=InfoText.SESSION_ID,
             )
 
+            # Session ID validation status (real-time feedback)
+            components["session_id_validation"] = gr.Markdown(
+                value="",
+                visible=True,
+            )
+
             # Party Selection
             with gr.Row():
                 components["party_selection_input"] = gr.Dropdown(

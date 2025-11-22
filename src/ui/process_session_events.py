@@ -27,6 +27,7 @@ import gradio as gr
 from src.ui.helpers import StatusMessages
 from src.ui.process_session_helpers import (
     validate_session_inputs,
+    validate_session_id_realtime,
     render_processing_response,
     prepare_processing_status,
     poll_transcription_progress,
@@ -91,12 +92,14 @@ class ProcessSessionEventWiring:
 
         Event wiring order:
             1. File upload events (validation, history)
-            2. Party selection events (character display)
-            3. Processing events (main workflow)
-            4. Preflight events (validation)
-            5. Polling events (live updates)
+            2. Session ID validation events (real-time)
+            3. Party selection events (character display)
+            4. Processing events (main workflow)
+            5. Preflight events (validation)
+            6. Polling events (live updates)
         """
         self._wire_file_upload_events()
+        self._wire_session_id_validation_events()
         self._wire_party_selection_events()
         self._wire_processing_events()
         self._wire_cancel_events()
@@ -123,6 +126,23 @@ class ProcessSessionEventWiring:
             fn=check_file_history,
             inputs=[self.components["audio_input"]],
             outputs=[self.components["file_warning_display"]],
+        )
+
+    # -------------------------------------------------------------------------
+    # Session ID Validation Events
+    # -------------------------------------------------------------------------
+
+    def _wire_session_id_validation_events(self) -> None:
+        """
+        Wire events for real-time Session ID validation.
+
+        Validates the session ID as the user types, providing immediate feedback
+        about invalid characters or format issues.
+        """
+        self.components["session_id_input"].change(
+            fn=validate_session_id_realtime,
+            inputs=[self.components["session_id_input"]],
+            outputs=[self.components["session_id_validation"]],
         )
 
     # -------------------------------------------------------------------------

@@ -145,7 +145,10 @@ class ConversationStore:
             }
         }
 
-        self._save_conversation(conversation_id, conversation)
+        # Save uses lock internally if we call a helper, but simpler to just lock here to be safe
+        # though create is unique ID so collision unlikely unless UUID conflict (impossible).
+        # We can just save directly as no one else knows this ID yet.
+        self._save_conversation_no_lock(conversation_id, conversation)
         logger.info(f"Created new conversation: {conversation_id}")
 
         return conversation_id
@@ -182,7 +185,8 @@ class ConversationStore:
 
         try:
             with lock:
-                conversation = self.load_conversation(conversation_id)
+                # Use internal load to avoid double locking/deadlock
+                conversation = self._load_conversation_internal(conversation_id)
 
                 if conversation is None:
                     raise ValueError(f"Conversation not found: {conversation_id}")
@@ -209,7 +213,7 @@ class ConversationStore:
                 conversation["messages"].append(message)
                 conversation["updated_at"] = timestamp
 
-                self._save_conversation(conversation_id, conversation)
+                self._save_conversation_no_lock(conversation_id, conversation)
                 logger.debug(f"Added {role} message to conversation {conversation_id}")
 
                 return message
@@ -217,15 +221,10 @@ class ConversationStore:
             logger.error(f"Timeout acquiring lock for conversation {conversation_id}")
             raise RuntimeError(f"Could not acquire lock for conversation {conversation_id}")
 
-    def load_conversation(self, conversation_id: str) -> Optional[Dict]:
+    def _load_conversation_internal(self, conversation_id: str) -> Optional[Dict]:
         """
-        Load a conversation by ID.
-
-        Args:
-            conversation_id: Conversation ID
-
-        Returns:
-            Conversation dict or None if not found
+        Internal method to load conversation without locking.
+        Caller must hold the lock if calling this!
         """
         # Validate conversation ID to prevent path traversal
         try:
@@ -270,6 +269,28 @@ class ConversationStore:
             logger.error("Invalid conversation data in %s: %s", redacted_id, e)
             return None
 
+    def load_conversation(self, conversation_id: str) -> Optional[Dict]:
+        """
+        Load a conversation by ID.
+        Acquires read lock (shared lock not supported by filelock, so exclusive) to ensure consistency.
+
+        Args:
+            conversation_id: Conversation ID
+
+        Returns:
+            Conversation dict or None if not found
+        """
+        # Use file locking to prevent reading partial writes
+        lock_path = self._get_lock_path(conversation_id)
+        lock = filelock.FileLock(lock_path, timeout=10)
+
+        try:
+            with lock:
+                return self._load_conversation_internal(conversation_id)
+        except filelock.Timeout:
+            logger.error(f"Timeout acquiring lock for loading conversation {conversation_id}")
+            return None
+
     def _quarantine_corrupted_file(self, conversation_file: Path) -> None:
         """Move a corrupted conversation file aside to prevent repeated failures."""
 
@@ -309,6 +330,8 @@ class ConversationStore:
         """
         conversations = []
 
+        # Note: listing does not lock individual files for performance.
+        # It handles potential read errors gracefully.
         for conv_file in self.conversations_dir.glob("conv_*.json"):
             try:
                 with open(conv_file, "r", encoding="utf-8") as f:
@@ -363,7 +386,8 @@ class ConversationStore:
 
         try:
             with lock:
-                conversation = self.load_conversation(conversation_id)
+                # Use internal load
+                conversation = self._load_conversation_internal(conversation_id)
                 if not conversation:
                     logger.warning(f"Cannot rename, conversation not found: {conversation_id}")
                     return False
@@ -372,7 +396,7 @@ class ConversationStore:
                 conversation["context"]["campaign"] = new_campaign_name
                 conversation["updated_at"] = datetime.now().isoformat()
 
-                self._save_conversation(conversation_id, conversation)
+                self._save_conversation_no_lock(conversation_id, conversation)
                 logger.info(f"Renamed conversation {conversation_id} to '{new_campaign_name}'")
 
             return True
@@ -441,11 +465,11 @@ class ConversationStore:
             logger.error(f"Error deleting conversation {conversation_id}: {e}")
             return False
 
-    def _save_conversation(self, conversation_id: str, conversation: Dict):
+    def _save_conversation_no_lock(self, conversation_id: str, conversation: Dict):
         """
-        Save conversation to disk.
+        Save conversation to disk without acquiring lock.
 
-        Note: This method should only be called from within a file lock context.
+        Caller MUST hold the lock!
         """
         # Validate conversation ID (this is called from locked contexts, but double-check)
         self._validate_conversation_id(conversation_id)
@@ -465,10 +489,24 @@ class ConversationStore:
             raise
 
         try:
-            with open(conversation_file, "w", encoding="utf-8") as f:
+            # Atomic write pattern: write to temp file then rename
+            # This prevents readers (like list_conversations) from seeing partial files
+            temp_file = conversation_file.with_suffix(".tmp")
+
+            with open(temp_file, "w", encoding="utf-8") as f:
                 json.dump(conversation, f, indent=2, ensure_ascii=False)
+                f.flush()
+                # os.fsync(f.fileno()) # Optional: strict durability
+
+            temp_file.replace(conversation_file)
+
         except IOError as e:
             logger.error(f"Error saving conversation {conversation_id}: {e}")
+            if 'temp_file' in locals() and temp_file.exists():
+                try:
+                    temp_file.unlink()
+                except:
+                    pass
             raise
 
     def get_chat_history(self, conversation_id: str) -> List[Dict]:
@@ -488,6 +526,7 @@ class ConversationStore:
             logger.error(f"Invalid conversation ID in get_chat_history: {e}")
             return []
 
+        # Uses the locking load_conversation now
         conversation = self.load_conversation(conversation_id)
 
         if conversation is None:

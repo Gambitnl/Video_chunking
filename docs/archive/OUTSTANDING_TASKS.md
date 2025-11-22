@@ -15,6 +15,18 @@
 
 
 
+## Bugs - Core Pipeline
+
+[CRITICAL] **Pipeline Stability & Correctness**
+
+- [x] BUG-20251107-01: Verify and Regression Test for num_speakers Parameter in Diarization (Agent: Jules, Completed: 2025-11-20) → BUG_HUNT_TODO.md:507
+  - Verify fix in `src/diarizer.py`
+  - Add regression test in `tests/test_diarizer.py`
+
+---
+
+
+
 ## Task Locking Protocol (Multi-Agent Coordination)
 
 
@@ -192,19 +204,19 @@ If you find a `[~]` task with timestamp >24 hours old:
 
 - [x] BUG-20251102-01: CampaignChatClient.ask - Add integration tests for full RAG pipeline (Agent: Claude Sonnet 4.5, Completed: 2025-11-20) → BUG_HUNT_TODO.md:9
 
-- [ ] BUG-20251102-08: CampaignChatChain.ask - Add integration tests for full chain → BUG_HUNT_TODO.md:37
+- [x] BUG-20251102-08: CampaignChatChain.ask - Add integration tests for full chain (Agent: GPT-5.1-Codex-Max, Completed: 2025-11-21) → BUG_HUNT_TODO.md:37
 
-- [ ] BUG-20251102-18: HybridSearcher.search - Integration tests with real instances → BUG_HUNT_TODO.md:77
+- [x] BUG-20251102-18: HybridSearcher.search - Integration tests with real instances (Agent: Jules, Completed: 2025-11-22) → BUG_HUNT_TODO.md:77
 
-- [ ] BUG-20251102-22: CampaignRetriever.retrieve - Integration tests with real files → BUG_HUNT_TODO.md:93
+- [x] BUG-20251102-22: CampaignRetriever.retrieve - Integration tests with real files (Agent: Unknown, Completed: 2025-11-21, pre-existing in test_langchain_hybrid_search.py:669) → BUG_HUNT_TODO.md:93
 
-- [ ] BUG-20251102-26: CampaignVectorStore.add_transcript_segments - Test with large batches → BUG_HUNT_TODO.md:109
+- [x] BUG-20251102-26: CampaignVectorStore.add_transcript_segments - Test with large batches (Agent: Unknown, Completed: 2025-11-21, pre-existing in test_langchain_vector_store.py:139, test_langchain_security.py:293) → BUG_HUNT_TODO.md:109
 
 - [ ] BUG-20251102-32: General - Add performance tests for LangChain components → BUG_HUNT_TODO.md:132
 
 - [ ] BUG-20251102-33: General - Add concurrency tests for clients → BUG_HUNT_TODO.md:136
 
-- [ ] BUG-20251102-35: General - Add tests for error paths and edge cases → BUG_HUNT_TODO.md:145
+- [x] BUG-20251102-35: General - Add tests for error paths and edge cases (Agent: Claude Sonnet 4.5, Completed: 2025-11-21) → BUG_HUNT_TODO.md:145
 
 
 
@@ -216,17 +228,17 @@ If you find a `[~]` task with timestamp >24 hours old:
 
 - [x] BUG-20251102-04: CampaignChatClient.ask - Test LLM failure handling (Agent: Claude Sonnet 4.5, Completed: 2025-11-20) → BUG_HUNT_TODO.md:21
 
-- [ ] BUG-20251102-07: _load_system_prompt - Test campaign placeholders → BUG_HUNT_TODO.md:33
+- [x] BUG-20251102-07: _load_system_prompt - Test campaign placeholders (Agent: Claude Sonnet 4.5, Completed: 2025-11-21, pre-existing) → BUG_HUNT_TODO.md:33
 
-- [ ] BUG-20251102-09: CampaignChatChain.ask - Test various questions/sources → BUG_HUNT_TODO.md:41
+- [x] BUG-20251102-09: CampaignChatChain.ask - Test various questions/sources (Agent: Claude Sonnet 4.5, Completed: 2025-11-22) → BUG_HUNT_TODO.md:68
 
-- [ ] BUG-20251102-10: CampaignChatChain.ask - Test chain failure handling → BUG_HUNT_TODO.md:45
+- [x] BUG-20251102-10: CampaignChatChain.ask - Test chain failure handling (Agent: Claude Sonnet 4.5, Completed: 2025-11-21, pre-existing) → BUG_HUNT_TODO.md:45
 
 - [ ] BUG-20251102-12: ConversationStore.add_message - Test updating relevant_sessions → BUG_HUNT_TODO.md:53
 
 - [~] BUG-20251102-13: ConversationStore.load_conversation - Test corrupted JSON (Agent: GPT-5.1-Codex, Started: 2025-11-18 20:45 UTC) → BUG_HUNT_TODO.md:57
 
-- [ ] BUG-20251102-14: ConversationStore.list_conversations - Test with large numbers → BUG_HUNT_TODO.md:61
+- [x] BUG-20251102-14: ConversationStore.list_conversations - Test with large numbers (Agent: Claude Sonnet 4.5, Completed: 2025-11-21) → BUG_HUNT_TODO.md:61
 
 - [x] BUG-20251102-15: ConversationStore.list_conversations - Test corrupted files (Agent: Claude Sonnet 4.5, Completed: 2025-11-20) → BUG_HUNT_TODO.md:65
 
@@ -276,7 +288,7 @@ If you find a `[~]` task with timestamp >24 hours old:
 
 ### Low Priority Tests (8 bugs)
 
-- [ ] BUG-20251102-05: _initialize_llm - Test Ollama fallback → BUG_HUNT_TODO.md:25
+- [x] BUG-20251102-05: _initialize_llm - Test Ollama fallback (Agent: Claude Sonnet 4.5, Completed: 2025-11-21, pre-existing) → BUG_HUNT_TODO.md:25
 
 - [ ] BUG-20251102-06: _initialize_memory - Test ConversationBufferMemory fallbacks → BUG_HUNT_TODO.md:29
 
@@ -286,7 +298,7 @@ If you find a `[~]` task with timestamp >24 hours old:
 
 - [x] BUG-20251102-17: ConversationStore.get_chat_history - Test empty conversation (Agent: GPT-5.1-Codex, Completed: 2025-11-20) → BUG_HUNT_TODO.md:73
 
-- [ ] BUG-20251102-29: CampaignVectorStore.delete_session - Test session with no segments → BUG_HUNT_TODO.md:121
+- [x] BUG-20251102-29: CampaignVectorStore.delete_session - Test session with no segments (Agent: GPT-5.1-Codex-Max, Completed: 2025-11-21, pre-existing coverage verified) → BUG_HUNT_TODO.md:121
 
 - [ ] BUG-20251102-31: CampaignVectorStore.get_stats - Test empty/populated collections → BUG_HUNT_TODO.md:129
 
@@ -362,8 +374,8 @@ If you find a `[~]` task with timestamp >24 hours old:
   - **Effort**: 1-2 hours | **Conflict Risk**: ⚠️⚠️ MEDIUM
   → BUG_HUNT_TODO.md:257
 
-- [ ] **BUG-20251103-013**: Campaign Dashboard - No error recovery for corrupted files
-  - **Files**: `app.py:300-335`
+- [x] **BUG-20251103-013**: Campaign Dashboard - No error recovery for corrupted files (Agent: Jules, Completed: 2025-11-20)
+  - **Files**: `app.py:300-335`, `src/ui/campaign_dashboard_helpers.py`
   - **Effort**: 1-2 hours | **Conflict Risk**: ⚠️⚠️ MEDIUM
   → BUG_HUNT_TODO.md:327
 
@@ -400,9 +412,9 @@ If you find a `[~]` task with timestamp >24 hours old:
   - **Effort**: 2-3 hours | **Conflict Risk**: ⚠️⚠️⚠️ HIGH
   → BUG_HUNT_TODO.md:275
 
-- [ ] **BUG-20251103-030**: Data - Profile filtering logic flaw with None handling
-  - **Files**: Multiple files
-  - **Effort**: 1-2 hours | **Conflict Risk**: ⚠️⚠️ MEDIUM
+- [x] **BUG-20251103-030**: Data - Profile filtering logic flaw with None handling (Agent: Claude Sonnet 4.5, Completed: 2025-11-21)
+  - **Files**: `src/ui/campaign_dashboard_helpers.py:129`
+  - **Fix**: Replaced `getattr(profile, "campaign_id", None)` with `profile.campaign_id` for consistency
   → BUG_HUNT_TODO.md:441
 
 

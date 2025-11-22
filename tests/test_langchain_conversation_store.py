@@ -283,3 +283,41 @@ def test_list_conversations_missing_required_keys(conversation_store, caplog):
 
     # Should have logged a warning for the incomplete file
     assert "Error loading conversation file" in caplog.text
+
+
+def test_list_conversations_with_large_numbers(conversation_store):
+    """Test list_conversations handles large numbers of conversations correctly."""
+    import time
+
+    num_conversations = 120  # More than default limit of 50
+
+    # Create many conversations with staggered timestamps
+    created_ids = []
+    for i in range(num_conversations):
+        conv_id = conversation_store.create_conversation(f"Campaign {i}")
+        created_ids.append(conv_id)
+        # Small delay to ensure different timestamps
+        time.sleep(0.001)
+
+    # Test default limit (50)
+    conversations = conversation_store.list_conversations()
+    assert len(conversations) == 50
+    # Should be sorted by updated_at descending (most recent first)
+    for j in range(len(conversations) - 1):
+        assert conversations[j]["updated_at"] >= conversations[j + 1]["updated_at"]
+
+    # Test with higher limit
+    conversations = conversation_store.list_conversations(limit=100)
+    assert len(conversations) == 100
+
+    # Test with limit exceeding count
+    conversations = conversation_store.list_conversations(limit=200)
+    assert len(conversations) == num_conversations
+
+    # Verify all conversations have required metadata fields
+    for conv in conversations:
+        assert "conversation_id" in conv
+        assert "created_at" in conv
+        assert "updated_at" in conv
+        assert "message_count" in conv
+        assert "campaign" in conv

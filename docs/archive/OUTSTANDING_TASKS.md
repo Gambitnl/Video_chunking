@@ -230,7 +230,7 @@ If you find a `[~]` task with timestamp >24 hours old:
 
 - [x] BUG-20251102-07: _load_system_prompt - Test campaign placeholders (Agent: Claude Sonnet 4.5, Completed: 2025-11-21, pre-existing) → BUG_HUNT_TODO.md:33
 
-- [ ] BUG-20251102-09: CampaignChatChain.ask - Test various questions/sources → BUG_HUNT_TODO.md:41
+- [~] BUG-20251102-09: CampaignChatChain.ask - Test various questions/sources (Agent: Claude Sonnet 4.5, Started: 2025-11-22 14:30 UTC) → BUG_HUNT_TODO.md:41
 
 - [x] BUG-20251102-10: CampaignChatChain.ask - Test chain failure handling (Agent: Claude Sonnet 4.5, Completed: 2025-11-21, pre-existing) → BUG_HUNT_TODO.md:45
 

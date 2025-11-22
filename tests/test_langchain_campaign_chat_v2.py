@@ -134,6 +134,86 @@ def test_initialize_memory(mock_window_memory):
             client = CampaignChatClient()
             mock_window_memory.assert_called_once_with(k=10, memory_key='chat_history', return_messages=True, output_key='answer')
 
+def test_initialize_memory_fallback_to_langchain_window():
+    """Test fallback from langchain_classic to langchain.memory for ConversationBufferWindowMemory."""
+    # Mock langchain_classic import to fail
+    import_error = ImportError("langchain_classic not found")
+
+    with patch('src.langchain.campaign_chat.CampaignChatClient._initialize_llm', return_value=Mock()):
+        with patch('src.langchain.campaign_chat.CampaignChatClient._load_system_prompt', return_value='Test Prompt'):
+            with patch('langchain_classic.memory.ConversationBufferWindowMemory', side_effect=import_error):
+                with patch('langchain.memory.ConversationBufferWindowMemory') as mock_fallback_window:
+                    client = CampaignChatClient()
+                    # Should fallback to langchain.memory.ConversationBufferWindowMemory
+                    mock_fallback_window.assert_called_once_with(
+                        k=10,
+                        memory_key='chat_history',
+                        return_messages=True,
+                        output_key='answer'
+                    )
+
+def test_initialize_memory_fallback_to_classic_buffer():
+    """Test fallback to unbounded ConversationBufferMemory from langchain_classic when WindowMemory unavailable."""
+    # Mock both WindowMemory imports to fail
+    import_error = ImportError("ConversationBufferWindowMemory not available")
+
+    with patch('src.langchain.campaign_chat.CampaignChatClient._initialize_llm', return_value=Mock()):
+        with patch('src.langchain.campaign_chat.CampaignChatClient._load_system_prompt', return_value='Test Prompt'):
+            with patch('langchain_classic.memory.ConversationBufferWindowMemory', side_effect=import_error):
+                with patch('langchain.memory.ConversationBufferWindowMemory', side_effect=import_error):
+                    with patch('langchain_classic.memory.ConversationBufferMemory') as mock_buffer:
+                        with patch('src.langchain.campaign_chat.logger') as mock_logger:
+                            client = CampaignChatClient()
+                            # Should log warning about unbounded memory
+                            mock_logger.warning.assert_called_once()
+                            assert "unbounded memory" in mock_logger.warning.call_args[0][0]
+                            # Should use ConversationBufferMemory from langchain_classic
+                            mock_buffer.assert_called_once_with(
+                                memory_key='chat_history',
+                                return_messages=True,
+                                output_key='answer'
+                            )
+
+def test_initialize_memory_fallback_to_langchain_buffer():
+    """Test final fallback to ConversationBufferMemory from langchain when all other imports fail."""
+    # Mock all imports to fail except final fallback
+    import_error = ImportError("Module not available")
+
+    with patch('src.langchain.campaign_chat.CampaignChatClient._initialize_llm', return_value=Mock()):
+        with patch('src.langchain.campaign_chat.CampaignChatClient._load_system_prompt', return_value='Test Prompt'):
+            with patch('langchain_classic.memory.ConversationBufferWindowMemory', side_effect=import_error):
+                with patch('langchain.memory.ConversationBufferWindowMemory', side_effect=import_error):
+                    with patch('langchain_classic.memory.ConversationBufferMemory', side_effect=import_error):
+                        with patch('langchain.memory.ConversationBufferMemory') as mock_buffer:
+                            with patch('src.langchain.campaign_chat.logger') as mock_logger:
+                                client = CampaignChatClient()
+                                # Should log warning about unbounded memory
+                                mock_logger.warning.assert_called_once()
+                                # Should use ConversationBufferMemory from langchain
+                                mock_buffer.assert_called_once_with(
+                                    memory_key='chat_history',
+                                    return_messages=True,
+                                    output_key='answer'
+                                )
+
+def test_initialize_memory_unbounded_warning_logged():
+    """Test that warning is logged when unbounded ConversationBufferMemory is used."""
+    # Force fallback to unbounded memory
+    import_error = ImportError("ConversationBufferWindowMemory not available")
+
+    with patch('src.langchain.campaign_chat.CampaignChatClient._initialize_llm', return_value=Mock()):
+        with patch('src.langchain.campaign_chat.CampaignChatClient._load_system_prompt', return_value='Test Prompt'):
+            with patch('langchain_classic.memory.ConversationBufferWindowMemory', side_effect=import_error):
+                with patch('langchain.memory.ConversationBufferWindowMemory', side_effect=import_error):
+                    with patch('langchain_classic.memory.ConversationBufferMemory') as mock_buffer:
+                        with patch('src.langchain.campaign_chat.logger') as mock_logger:
+                            client = CampaignChatClient()
+                            # Verify warning was logged with correct message
+                            mock_logger.warning.assert_called_once()
+                            warning_message = mock_logger.warning.call_args[0][0]
+                            assert "ConversationBufferWindowMemory not available" in warning_message
+                            assert "unbounded memory" in warning_message
+
 @patch('builtins.open')
 def test_load_system_prompt_uses_safe_defaults(mock_open):
     mock_file_content = (

@@ -37,6 +37,12 @@ def test_get_doc_id_with_empty_text(hybrid_searcher):
     doc_id = hybrid_searcher._get_doc_id(result)
     assert doc_id == "sess2_456"
 
+
+def test_get_doc_id_prefers_explicit_metadata_id(hybrid_searcher):
+    result = {"text": "duplicate text", "metadata": {"id": "DOC-123"}}
+    doc_id = hybrid_searcher._get_doc_id(result)
+    assert doc_id == "DOC-123"
+
 # Test _reciprocal_rank_fusion method
 def test_reciprocal_rank_fusion_basic(hybrid_searcher):
     results_a = [
@@ -93,6 +99,48 @@ def test_reciprocal_rank_fusion_weights(hybrid_searcher):
     merged_results = hybrid_searcher._reciprocal_rank_fusion(results_a, results_b, weights=(0.2, 0.8))
     assert merged_results[0]["metadata"]["id"] == "B1"
 
+
+def test_reciprocal_rank_fusion_merges_overlaps_with_weights(hybrid_searcher):
+    results_a = [
+        {"text": "shared", "metadata": {"session_id": "sess", "start": 1, "id": "shared"}},
+        {"text": "semantic_only", "metadata": {"session_id": "sess", "start": 2, "id": "semantic_only"}},
+    ]
+    results_b = [
+        {"text": "shared", "metadata": {"session_id": "sess", "start": 1, "id": "shared"}},
+        {"text": "keyword_only", "metadata": {"session_id": "other", "start": 3, "id": "keyword_only"}},
+    ]
+
+    merged_results = hybrid_searcher._reciprocal_rank_fusion(
+        results_a,
+        results_b,
+        weights=(0.7, 0.3),
+        k=60,
+    )
+
+    merged_ids = [result["metadata"]["id"] for result in merged_results]
+
+    assert merged_ids == ["shared", "semantic_only", "keyword_only"]
+
+
+def test_reciprocal_rank_fusion_retains_identical_text_with_different_metadata(hybrid_searcher):
+    results_a = [
+        {"text": "duplicate", "metadata": {"id": "doc_a"}},
+    ]
+    results_b = [
+        {"text": "duplicate", "metadata": {"id": "doc_b"}},
+    ]
+
+    merged_results = hybrid_searcher._reciprocal_rank_fusion(
+        results_a,
+        results_b,
+        weights=(0.5, 0.5),
+        k=60,
+    )
+
+    merged_ids = [result["metadata"]["id"] for result in merged_results]
+
+    assert merged_ids == ["doc_a", "doc_b"]
+
 # Test search method
 def test_search_happy_path(hybrid_searcher):
     mock_vector_store = hybrid_searcher.vector_store
@@ -126,32 +174,70 @@ def test_search_happy_path(hybrid_searcher):
     assert len(results) == 5 # Default top_k
     assert results[0]["metadata"]["id"] == "S1"
 
-def test_search_different_top_k_and_weight(hybrid_searcher):
+@pytest.mark.parametrize("top_k", [1, 3, 5])
+def test_search_respects_top_k_and_backend_scaling(hybrid_searcher, top_k):
     mock_vector_store = hybrid_searcher.vector_store
     mock_keyword_retriever = hybrid_searcher.keyword_retriever
 
     mock_vector_store.search.return_value = [
-        {"text": f"s_doc{i}", "metadata": {"id": f"S{i}"}} for i in range(1, 10)
+        {"text": f"s_doc{i}", "metadata": {"id": f"S{i}"}} for i in range(1, 12)
     ]
     mock_keyword_retriever.retrieve.return_value = [
-        MockDocument(f"k_doc{i}", {"id": f"K{i}"}) for i in range(1, 10)
+        MockDocument(f"k_doc{i}", {"id": f"K{i}"}) for i in range(1, 12)
     ]
-    
-    hybrid_searcher._reciprocal_rank_fusion = Mock(return_value=[
-        {"text": f"merged_doc{i}", "metadata": {"id": f"M{i}"}} for i in range(1, 15)
-    ])
+
+    fused_results = [
+        {"text": f"merged_doc{i}", "metadata": {"id": f"M{i}"}} for i in range(1, 16)
+    ]
+    hybrid_searcher._reciprocal_rank_fusion = Mock(return_value=fused_results)
 
     query = "another query"
-    top_k = 3
-    semantic_weight = 0.9
-    results = hybrid_searcher.search(query, top_k=top_k, semantic_weight=semantic_weight)
+    results = hybrid_searcher.search(query, top_k=top_k, semantic_weight=0.6)
 
     mock_vector_store.search.assert_called_once_with(query, top_k=top_k * 2)
     mock_keyword_retriever.retrieve.assert_called_once_with(query, top_k=top_k * 2)
-    hybrid_searcher._reciprocal_rank_fusion.assert_called_once()
-    
+    hybrid_searcher._reciprocal_rank_fusion.assert_called_once_with(
+        mock_vector_store.search.return_value,
+        [
+            {"text": doc.page_content, "metadata": doc.metadata, "distance": 0.5}
+            for doc in mock_keyword_retriever.retrieve.return_value
+        ],
+        weights=(0.6, 0.4)
+    )
+
     assert len(results) == top_k
-    assert results[0]["metadata"]["id"] == "M1"
+    assert results == fused_results[:top_k]
+
+
+@pytest.mark.parametrize(
+    "semantic_weight, expected_first_id",
+    [
+        (1.0, "semantic_1"),
+        (0.9, "semantic_1"),
+        (0.5, "semantic_1"),
+        (0.25, "keyword_1"),
+        (0.0, "keyword_1"),
+    ],
+)
+def test_search_semantic_weight_influences_ranking(hybrid_searcher, semantic_weight, expected_first_id):
+    mock_vector_store = hybrid_searcher.vector_store
+    mock_keyword_retriever = hybrid_searcher.keyword_retriever
+
+    mock_vector_store.search.return_value = [
+        {
+            "text": "semantic doc",
+            "metadata": {"session_id": "semantic_1", "start": 1}
+        }
+    ]
+    mock_keyword_retriever.retrieve.return_value = [
+        MockDocument("keyword doc", {"session_id": "keyword_1", "start": 2})
+    ]
+
+    query = "weighted query"
+    results = hybrid_searcher.search(query, top_k=1, semantic_weight=semantic_weight)
+
+    assert len(results) == 1
+    assert expected_first_id in hybrid_searcher._get_doc_id(results[0])
 
 def test_search_semantic_returns_empty(hybrid_searcher):
     mock_vector_store = hybrid_searcher.vector_store

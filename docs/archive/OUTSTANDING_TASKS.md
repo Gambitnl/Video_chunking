@@ -234,7 +234,7 @@ If you find a `[~]` task with timestamp >24 hours old:
 
 - [x] BUG-20251102-10: CampaignChatChain.ask - Test chain failure handling (Agent: Claude Sonnet 4.5, Completed: 2025-11-21, pre-existing) → BUG_HUNT_TODO.md:45
 
-- [~] BUG-20251102-12: ConversationStore.add_message - Test updating relevant_sessions (Agent: Claude Sonnet 4.5, Started: 2025-11-22 14:30 UTC) → BUG_HUNT_TODO.md:53
+- [x] BUG-20251102-12: ConversationStore.add_message - Test updating relevant_sessions (Agent: Claude Sonnet 4.5, Completed: 2025-11-22) → BUG_HUNT_TODO.md:53
 
 - [~] BUG-20251102-13: ConversationStore.load_conversation - Test corrupted JSON (Agent: GPT-5.1-Codex, Started: 2025-11-18 20:45 UTC) → BUG_HUNT_TODO.md:57
 

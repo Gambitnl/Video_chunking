@@ -97,9 +97,18 @@ This list summarizes preliminary findings from the bug hunt session on 2025-11-0
     *   **Issue**: The `add_message` method in `ConversationStore` has an optional `sources` parameter, but there isn't explicit test coverage for messages being added both with and without this source metadata.
     *   **Why it's an issue**: Proper storage and retrieval of source metadata are fundamental for the RAG feature's transparency. If sources are not correctly serialized/deserialized, users may lose sight of where information originated, undermining the credibility and usefulness of the conversational AI.
 
--   **BUG-20251102-12**: `ConversationStore.add_message` - Test updating `relevant_sessions` in context. (Medium)
+-   **BUG-20251102-12**: `ConversationStore.add_message` - Test updating `relevant_sessions` in context. (Medium) **[COMPLETED 2025-11-22]**
     *   **Issue**: The `add_message` method contains logic to extract `session_id` from sources and store them in `conversation["context"]["relevant_sessions"]`.
     *   **Why it's an issue**: This mechanism is crucial for maintaining historical context about which game sessions informed a conversation. Failure to correctly populate `relevant_sessions` could lead to inaccurate historical data, broken filtering features, or difficulties in generating campaign summaries, compromising the integrity of derived knowledge.
+    *   **Resolution**: Added 6 comprehensive test functions in test_langchain_conversation_store.py (lines 79-217):
+        - test_add_message_relevant_sessions_accumulation: Tests multiple messages with different sessions accumulate properly
+        - test_add_message_relevant_sessions_deduplication: Tests duplicate session_ids are not added (idempotency)
+        - test_add_message_relevant_sessions_multiple_sources: Tests sessions from multiple sources in same message
+        - test_add_message_relevant_sessions_multiple_sources_with_duplicates: Tests handling duplicates within same message
+        - test_add_message_relevant_sessions_edge_cases: Tests missing/None/empty session_id values
+        - test_add_message_no_sources_does_not_modify_relevant_sessions: Tests messages without sources don't affect relevant_sessions
+    *   **Agent**: Claude Sonnet 4.5
+    *   **Date**: 2025-11-22
 
 -   **BUG-20251102-13**: `ConversationStore.load_conversation` - Test loading a corrupted JSON file. (Medium)
     *   **Issue**: The `load_conversation` method deserializes JSON files. If a file becomes corrupted (e.g., malformed JSON, truncated due to a crash), the current error handling for `json.JSONDecodeError` needs verification.

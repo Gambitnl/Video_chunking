@@ -110,9 +110,19 @@ This list summarizes preliminary findings from the bug hunt session on 2025-11-0
 
 - [APPROVED] Behavior already aligns with expectations; additional test coverage mitigates future regressions without code changes.
 
--   **BUG-20251102-18**: `HybridSearcher.search` - Add integration tests with actual `vector_store` and `keyword_retriever` instances (not mocks). (High)
+-   **BUG-20251102-18**: `HybridSearcher.search` - Add integration tests with actual `vector_store` and `keyword_retriever` instances (not mocks). (Agent: Jules, Completed: 2025-11-22) (High)
     *   **Issue**: `HybridSearcher` is responsible for combining results from both semantic and keyword search, which rely on `CampaignVectorStore` and `CampaignRetriever` respectively. Existing tests heavily mock these dependencies.
     *   **Why it's an issue**: Excessive mocking prevents verification of the actual search mechanisms. Integration tests are vital to ensure that both search methods are correctly invoked, their results are accurately processed, and the final combined output is relevant and well-ranked, directly impacting the quality of information provided to the LLM.
+
+##### Implementation Notes & Reasoning (2025-11-22 Jules)
+
+- Verified existing integration tests in `tests/test_langchain_hybrid_search.py`.
+- Installed necessary dependencies (`pytest`, `langchain`, `chromadb`, `sentence-transformers`) and confirmed tests pass against real `CampaignVectorStore` (ChromaDB) and `CampaignRetriever` (BM25/files).
+- Tests confirm that `HybridSearcher` correctly combines and ranks results from both sources using Reciprocal Rank Fusion.
+
+##### Code Review Findings (2025-11-22 Jules)
+
+- [APPROVED] Integration tests are comprehensive, covering basic search, mixed results, weighting, metadata preservation, and edge cases.
 
 -   **BUG-20251102-19**: `HybridSearcher.search` - Test with varying `top_k` and `semantic_weight` values. (Medium)
     *   **Issue**: The `HybridSearcher.search` method allows users to control the number of results (`top_k`) and the balance between semantic and keyword search (`semantic_weight`).

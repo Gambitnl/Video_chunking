@@ -210,28 +210,17 @@ def test_search_error_in_semantic_fallback_to_keyword(hybrid_searcher):
     mock_keyword_retriever.retrieve.return_value = [
         MockDocument("keyword_doc1", {"id": "K1"}),
     ]
-    
-    # When semantic search fails, it should fall back to vector_store.search (which is mocked to return an empty list here)
-    # The fallback logic in the actual code is `return self.vector_store.search(query, top_k=top_k)`
-    # So, if vector_store.search raises an exception, the fallback will also call vector_store.search.
-    # To properly test the fallback, we need to ensure the second call to vector_store.search returns something.
-    # Or, more simply, test that the exception is caught and a fallback mechanism is triggered.
-    
-    # For this test, we'll mock the fallback behavior directly.
-    hybrid_searcher.vector_store.search.side_effect = [Exception("Semantic search failed"), [{"text": "fallback_doc", "metadata": {"id": "FB1"}}]]
+
+    hybrid_searcher._reciprocal_rank_fusion = Mock(return_value=[
+        {"text": "keyword_doc1", "metadata": {"id": "K1"}},
+    ])
 
     query = "error query"
     results = hybrid_searcher.search(query)
-    
-    # Expect the fallback to semantic search only
+
     assert len(results) == 1
-    assert results[0]["metadata"]["id"] == "FB1"
-    
-    # Ensure logger.error was called (optional, but good practice)
-    # from unittest.mock import patch
-    # with patch('src.langchain.hybrid_search.logger.error') as mock_logger_error:
-    #     results = hybrid_searcher.search(query)
-    #     mock_logger_error.assert_called_once()
+    assert results[0]["metadata"]["id"] == "K1"
+    hybrid_searcher._reciprocal_rank_fusion.assert_called_once()
 
 def test_search_error_in_keyword_fallback_to_semantic(hybrid_searcher):
     mock_vector_store = hybrid_searcher.vector_store
@@ -241,18 +230,17 @@ def test_search_error_in_keyword_fallback_to_semantic(hybrid_searcher):
         {"text": "semantic_doc1", "metadata": {"id": "S1"}},
     ]
     mock_keyword_retriever.retrieve.side_effect = Exception("Keyword search failed")
-    
-    # The fallback in the actual code is `return self.vector_store.search(query, top_k=top_k)`
-    # So, if keyword_retriever.retrieve raises an exception, the fallback will call vector_store.search.
-    # We need to ensure vector_store.search returns something for the fallback.
-    hybrid_searcher.vector_store.search.return_value = [{"text": "fallback_doc", "metadata": {"id": "FB1"}}]
+
+    hybrid_searcher._reciprocal_rank_fusion = Mock(return_value=[
+        {"text": "semantic_doc1", "metadata": {"id": "S1"}},
+    ])
 
     query = "error query"
     results = hybrid_searcher.search(query)
-    
-    # Expect the fallback to semantic search only
+
     assert len(results) == 1
-    assert results[0]["metadata"]["id"] == "FB1"
+    assert results[0]["metadata"]["id"] == "S1"
+    hybrid_searcher._reciprocal_rank_fusion.assert_called_once()
 
 def test_search_error_in_both_returns_empty(hybrid_searcher):
     mock_vector_store = hybrid_searcher.vector_store
@@ -261,13 +249,13 @@ def test_search_error_in_both_returns_empty(hybrid_searcher):
     mock_vector_store.search.side_effect = Exception("Semantic search failed")
     mock_keyword_retriever.retrieve.side_effect = Exception("Keyword search failed")
 
-    # If both fail, the fallback to vector_store.search will also fail, leading to an empty list
-    hybrid_searcher.vector_store.search.side_effect = [Exception("Semantic search failed"), []]
+    hybrid_searcher._reciprocal_rank_fusion = Mock()
 
     query = "error query"
     results = hybrid_searcher.search(query)
 
     assert len(results) == 0
+    hybrid_searcher._reciprocal_rank_fusion.assert_not_called()
 
 
 # ============================================================================

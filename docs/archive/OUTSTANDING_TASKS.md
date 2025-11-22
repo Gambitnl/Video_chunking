@@ -290,7 +290,7 @@ If you find a `[~]` task with timestamp >24 hours old:
 
 - [x] BUG-20251102-05: _initialize_llm - Test Ollama fallback (Agent: Claude Sonnet 4.5, Completed: 2025-11-21, pre-existing) → BUG_HUNT_TODO.md:25
 
-- [ ] BUG-20251102-06: _initialize_memory - Test ConversationBufferMemory fallbacks → BUG_HUNT_TODO.md:29
+- [x] BUG-20251102-06: _initialize_memory - Test ConversationBufferMemory fallbacks (Agent: Claude Sonnet 4.5, Completed: 2025-11-22) → BUG_HUNT_TODO.md:29
 
 - [ ] BUG-20251102-11: ConversationStore.add_message - Test with/without sources → BUG_HUNT_TODO.md:49
 

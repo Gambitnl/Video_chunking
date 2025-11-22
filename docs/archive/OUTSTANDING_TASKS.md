@@ -292,7 +292,7 @@ If you find a `[~]` task with timestamp >24 hours old:
 
 - [ ] BUG-20251102-06: _initialize_memory - Test ConversationBufferMemory fallbacks → BUG_HUNT_TODO.md:29
 
-- [ ] BUG-20251102-11: ConversationStore.add_message - Test with/without sources → BUG_HUNT_TODO.md:49
+- [x] BUG-20251102-11: ConversationStore.add_message - Test with/without sources (Agent: GPT-5.1-Codex-Max, Completed: 2025-11-22) → BUG_HUNT_TODO.md:49
 
 - [ ] BUG-20251102-16: ConversationStore.delete_conversation - Test non-existent → BUG_HUNT_TODO.md:69
 

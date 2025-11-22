@@ -76,6 +76,43 @@ def test_add_message_with_sources(conversation_store):
     conversation = conversation_store.load_conversation(conversation_id)
     assert "sess1" in conversation["context"]["relevant_sessions"]
 
+def test_add_message_stores_sources_metadata(conversation_store):
+    conversation_id = conversation_store.create_conversation()
+    sources = [
+        {"id": "doc1", "metadata": {"session_id": "sess1", "title": "Doc 1"}},
+        {"id": "doc2", "metadata": {"session_id": "sess2", "page": 2}}
+    ]
+
+    message = conversation_store.add_message(
+        conversation_id,
+        "assistant",
+        "Response with rich sources",
+        sources
+    )
+
+    assert message["sources"] == sources
+
+    conversation = conversation_store.load_conversation(conversation_id)
+    stored_message = conversation["messages"][-1]
+    assert stored_message["sources"] == sources
+    assert conversation["context"]["relevant_sessions"] == ["sess1", "sess2"]
+
+def test_add_message_without_sources_excludes_field(conversation_store):
+    conversation_id = conversation_store.create_conversation()
+
+    message = conversation_store.add_message(
+        conversation_id,
+        "user",
+        "Question without provenance"
+    )
+
+    assert "sources" not in message
+
+    conversation = conversation_store.load_conversation(conversation_id)
+    stored_message = conversation["messages"][-1]
+    assert "sources" not in stored_message
+    assert conversation["context"]["relevant_sessions"] == []
+
 def test_add_message_relevant_sessions_accumulation(conversation_store):
     """Test that multiple messages with different sessions accumulate properly."""
     conversation_id = conversation_store.create_conversation()

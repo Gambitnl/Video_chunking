@@ -1181,7 +1181,7 @@ class DDSessionProcessor:
                             i + 1,
                             segments_dir,
                             manifest_path,
-                            classification
+                            classification.to_dict() if classification else None
                         )
 
                     # Finalize manifest
@@ -1249,36 +1249,30 @@ class DDSessionProcessor:
 
     def _stage_knowledge_extraction(
         self,
-        speaker_segments_with_labels: List[Dict],
-        classifications: List[ClassificationResult],
-        speaker_profiles: Dict[str, str],
+        output_dir: Path,
         skip_knowledge: bool
     ) -> StageResult:
         """
-        Stage 9/9: Extract campaign knowledge from IC transcript.
+        Stage 9/9: Extract campaign knowledge from session data.
 
         This stage uses an LLM to extract campaign entities (NPCs, quests, locations,
-        items, plot hooks) from the in-character transcript and merges them into
-        the campaign knowledge base.
+        items, plot hooks) from the session's intermediate files and merges them
+        into the campaign knowledge base.
 
         Args:
-            speaker_segments_with_labels: Segments from Stage 5
-            classifications: Classifications from Stage 6
-            speaker_profiles: Speaker profiles from Stage 7
-            skip_knowledge: If True, skip knowledge extraction
+            output_dir: The session's output directory, containing intermediate files.
+            skip_knowledge: If True, skip knowledge extraction.
 
         Returns:
             StageResult with:
-                - data["knowledge_data"]: Dict with extracted entities and counts
-                - data["total_entities"]: int - Total entities extracted
+                - data["knowledge_data"]: Dict with extracted entities and counts.
+                - data["total_entities"]: int - Total entities extracted.
 
         Dependencies:
-            - Stage 5 (Speaker Diarization)
-            - Stage 6 (Segment Classification)
-            - Stage 7 (Output Generation)
+            - Stage 6 (Segment Classification) via intermediate files.
 
         Can Fail:
-            - No (graceful degradation) - Knowledge extraction is optional
+            - No (graceful degradation) - Knowledge extraction is optional.
         """
         result = StageResult(
             stage=PipelineStage.KNOWLEDGE_EXTRACTED,
@@ -1301,101 +1295,94 @@ class DDSessionProcessor:
                     "knowledge_data": {},
                     "total_entities": 0
                 }
+                return result
 
-            else:
-                self.logger.info("Stage 9/9: Extracting campaign knowledge from IC transcript...")
+            self.logger.info("Stage 9/9: Extracting campaign knowledge from session data...")
+            StatusTracker.update_stage(
+                self.session_id,
+                9,
+                ProcessingStatus.RUNNING,
+                "Analyzing session for entities"
+            )
+
+            try:
+                # Initialize extraction components
+                extractor = KnowledgeExtractor()
+                knowledge_campaign_id = self.campaign_id or self.party_id or "default"
+                campaign_kb = CampaignKnowledgeBase(campaign_id=knowledge_campaign_id)
+
+                # Build party context
+                party_context_dict = None
+                if self.party_id:
+                    party = self.party_manager.get_party(self.party_id)
+                    if party:
+                        party_context_dict = {
+                            'character_names': self.character_names,
+                            'campaign': party.campaign or 'Unknown'
+                        }
+
+                # Extract knowledge from intermediate files
+                new_knowledge = extractor.extract_knowledge_from_session(
+                    session_path=output_dir,
+                    session_id=self.session_id,
+                    party_context=party_context_dict
+                )
+
+                # Merge into campaign knowledge base
+                campaign_kb.merge_new_knowledge(new_knowledge, self.session_id)
+
+                # Count extracted entities
+                entity_counts = {
+                    'quests': len(new_knowledge.get('quests', [])),
+                    'npcs': len(new_knowledge.get('npcs', [])),
+                    'plot_hooks': len(new_knowledge.get('plot_hooks', [])),
+                    'locations': len(new_knowledge.get('locations', [])),
+                    'items': len(new_knowledge.get('items', []))
+                }
+                total_entities = sum(entity_counts.values())
+
+                result.status = ProcessingStatus.COMPLETED
+                result.data = {
+                    "knowledge_data": {
+                        'extracted': entity_counts,
+                        'knowledge_file': str(campaign_kb.knowledge_file)
+                    },
+                    "total_entities": total_entities
+                }
+
+                self.logger.info(
+                    "Stage 9/9 complete: Extracted %d entities (Q:%d, NPC:%d, Plot:%d, Loc:%d, Item:%d)",
+                    total_entities,
+                    entity_counts['quests'],
+                    entity_counts['npcs'],
+                    entity_counts['plot_hooks'],
+                    entity_counts['locations'],
+                    entity_counts['items']
+                )
                 StatusTracker.update_stage(
                     self.session_id,
                     9,
-                    ProcessingStatus.RUNNING,
-                    "Analyzing IC transcript for entities"
+                    ProcessingStatus.COMPLETED,
+                    f"Extracted {total_entities} campaign entities"
                 )
 
-                try:
-                    # Initialize extraction components
-                    extractor = KnowledgeExtractor()
-                    knowledge_campaign_id = self.campaign_id or self.party_id or "default"
-                    campaign_kb = CampaignKnowledgeBase(campaign_id=knowledge_campaign_id)
+            except Exception as knowledge_error:
+                # Graceful degradation - log warning and continue
+                result.warnings.append(f"Knowledge extraction failed: {knowledge_error}")
+                self.logger.warning("Knowledge extraction failed: %s", knowledge_error, exc_info=True)
 
-                    # Get IC-only transcript
-                    ic_text = self.formatter.format_ic_only(
-                        speaker_segments_with_labels,
-                        classifications,
-                        speaker_profiles
-                    )
+                result.status = ProcessingStatus.COMPLETED # Still complete, just with a warning
+                result.data = {
+                    "knowledge_data": {'error': str(knowledge_error)},
+                    "total_entities": 0
+                }
 
-                    # Build party context
-                    party_context_dict = None
-                    if self.party_id:
-                        party = self.party_manager.get_party(self.party_id)
-                        if party:
-                            party_context_dict = {
-                                'character_names': self.character_names,
-                                'campaign': party.campaign or 'Unknown'
-                            }
-
-                    # Extract knowledge
-                    new_knowledge = extractor.extract_knowledge(
-                        ic_text,
-                        self.session_id,
-                        party_context_dict
-                    )
-
-                    # Merge into campaign knowledge base
-                    campaign_kb.merge_new_knowledge(new_knowledge, self.session_id)
-
-                    # Count extracted entities
-                    entity_counts = {
-                        'quests': len(new_knowledge.get('quests', [])),
-                        'npcs': len(new_knowledge.get('npcs', [])),
-                        'plot_hooks': len(new_knowledge.get('plot_hooks', [])),
-                        'locations': len(new_knowledge.get('locations', [])),
-                        'items': len(new_knowledge.get('items', []))
-                    }
-                    total_entities = sum(entity_counts.values())
-
-                    result.status = ProcessingStatus.COMPLETED
-                    result.data = {
-                        "knowledge_data": {
-                            'extracted': entity_counts,
-                            'knowledge_file': str(campaign_kb.knowledge_file)
-                        },
-                        "total_entities": total_entities
-                    }
-
-                    self.logger.info(
-                        "Stage 9/9 complete: Extracted %d entities (Q:%d, NPC:%d, Plot:%d, Loc:%d, Item:%d)",
-                        total_entities,
-                        entity_counts['quests'],
-                        entity_counts['npcs'],
-                        entity_counts['plot_hooks'],
-                        entity_counts['locations'],
-                        entity_counts['items']
-                    )
-                    StatusTracker.update_stage(
-                        self.session_id,
-                        9,
-                        ProcessingStatus.COMPLETED,
-                        f"Extracted {total_entities} campaign entities"
-                    )
-
-                except Exception as knowledge_error:
-                    # Graceful degradation - log warning and continue
-                    result.warnings.append(f"Knowledge extraction failed: {knowledge_error}")
-                    self.logger.warning("Knowledge extraction failed: %s", knowledge_error)
-
-                    result.status = ProcessingStatus.COMPLETED
-                    result.data = {
-                        "knowledge_data": {'error': str(knowledge_error)},
-                        "total_entities": 0
-                    }
-
-                    StatusTracker.update_stage(
-                        self.session_id,
-                        9,
-                        ProcessingStatus.FAILED,
-                        f"Extraction failed: {knowledge_error}"
-                    )
+                StatusTracker.update_stage(
+                    self.session_id,
+                    9,
+                    ProcessingStatus.FAILED,
+                    f"Extraction failed: {knowledge_error}"
+                )
 
         except Exception as e:
             result.status = ProcessingStatus.FAILED
@@ -2167,9 +2154,7 @@ class DDSessionProcessor:
 
             if not self._should_skip_stage(PipelineStage.KNOWLEDGE_EXTRACTED, completed_stages):
                 result = self._stage_knowledge_extraction(
-                    speaker_segments_with_labels,
-                    classifications,
-                    speaker_profiles,
+                    output_dir,
                     skip_knowledge
                 )
                 # Knowledge extraction is optional, always succeeds
@@ -2398,9 +2383,7 @@ class DDSessionProcessor:
                 )
 
         knowledge_result = self._stage_knowledge_extraction(
-            speaker_segments_with_labels,
-            classifications,
-            speaker_profiles,
+            output_dir,
             skip_knowledge
         )
         knowledge_data = {}

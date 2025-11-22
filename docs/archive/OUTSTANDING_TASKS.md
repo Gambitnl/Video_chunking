@@ -298,7 +298,7 @@ If you find a `[~]` task with timestamp >24 hours old:
 
 - [x] BUG-20251102-17: ConversationStore.get_chat_history - Test empty conversation (Agent: GPT-5.1-Codex, Completed: 2025-11-20) → BUG_HUNT_TODO.md:73
 
-- [ ] BUG-20251102-29: CampaignVectorStore.delete_session - Test session with no segments → BUG_HUNT_TODO.md:121
+- [x] BUG-20251102-29: CampaignVectorStore.delete_session - Test session with no segments (Agent: GPT-5.1-Codex-Max, Completed: 2025-11-21, pre-existing coverage verified) → BUG_HUNT_TODO.md:121
 
 - [ ] BUG-20251102-31: CampaignVectorStore.get_stats - Test empty/populated collections → BUG_HUNT_TODO.md:129
 

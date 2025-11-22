@@ -76,6 +76,146 @@ def test_add_message_with_sources(conversation_store):
     conversation = conversation_store.load_conversation(conversation_id)
     assert "sess1" in conversation["context"]["relevant_sessions"]
 
+def test_add_message_relevant_sessions_accumulation(conversation_store):
+    """Test that multiple messages with different sessions accumulate properly."""
+    conversation_id = conversation_store.create_conversation()
+
+    # Add first message with sess1
+    sources1 = [{"metadata": {"session_id": "sess1"}}]
+    conversation_store.add_message(conversation_id, "assistant", "Response 1", sources1)
+
+    # Add second message with sess2
+    sources2 = [{"metadata": {"session_id": "sess2"}}]
+    conversation_store.add_message(conversation_id, "assistant", "Response 2", sources2)
+
+    # Add third message with sess3
+    sources3 = [{"metadata": {"session_id": "sess3"}}]
+    conversation_store.add_message(conversation_id, "assistant", "Response 3", sources3)
+
+    # Verify all sessions are accumulated
+    conversation = conversation_store.load_conversation(conversation_id)
+    relevant_sessions = conversation["context"]["relevant_sessions"]
+    assert len(relevant_sessions) == 3
+    assert "sess1" in relevant_sessions
+    assert "sess2" in relevant_sessions
+    assert "sess3" in relevant_sessions
+
+def test_add_message_relevant_sessions_deduplication(conversation_store):
+    """Test that duplicate session_ids are not added (idempotency)."""
+    conversation_id = conversation_store.create_conversation()
+
+    # Add first message with sess1
+    sources1 = [{"metadata": {"session_id": "sess1"}}]
+    conversation_store.add_message(conversation_id, "assistant", "Response 1", sources1)
+
+    # Add second message with sess1 again (should not duplicate)
+    sources2 = [{"metadata": {"session_id": "sess1"}}]
+    conversation_store.add_message(conversation_id, "assistant", "Response 2", sources2)
+
+    # Add third message with sess2, then sess1 again
+    sources3 = [{"metadata": {"session_id": "sess2"}}]
+    conversation_store.add_message(conversation_id, "assistant", "Response 3", sources3)
+
+    sources4 = [{"metadata": {"session_id": "sess1"}}]
+    conversation_store.add_message(conversation_id, "assistant", "Response 4", sources4)
+
+    # Verify no duplicates - only sess1 and sess2
+    conversation = conversation_store.load_conversation(conversation_id)
+    relevant_sessions = conversation["context"]["relevant_sessions"]
+    assert len(relevant_sessions) == 2
+    assert relevant_sessions.count("sess1") == 1  # Only one occurrence
+    assert relevant_sessions.count("sess2") == 1
+    assert "sess1" in relevant_sessions
+    assert "sess2" in relevant_sessions
+
+def test_add_message_relevant_sessions_multiple_sources(conversation_store):
+    """Test sessions from multiple sources in same message."""
+    conversation_id = conversation_store.create_conversation()
+
+    # Add message with multiple sources containing different session_ids
+    sources = [
+        {"metadata": {"session_id": "sess1"}},
+        {"metadata": {"session_id": "sess2"}},
+        {"metadata": {"session_id": "sess3"}}
+    ]
+    conversation_store.add_message(conversation_id, "assistant", "Response from multiple sessions", sources)
+
+    # Verify all sessions are added
+    conversation = conversation_store.load_conversation(conversation_id)
+    relevant_sessions = conversation["context"]["relevant_sessions"]
+    assert len(relevant_sessions) == 3
+    assert "sess1" in relevant_sessions
+    assert "sess2" in relevant_sessions
+    assert "sess3" in relevant_sessions
+
+def test_add_message_relevant_sessions_multiple_sources_with_duplicates(conversation_store):
+    """Test multiple sources with duplicate session_ids in same message."""
+    conversation_id = conversation_store.create_conversation()
+
+    # Add message with multiple sources where some have the same session_id
+    sources = [
+        {"metadata": {"session_id": "sess1"}},
+        {"metadata": {"session_id": "sess2"}},
+        {"metadata": {"session_id": "sess1"}},  # Duplicate
+        {"metadata": {"session_id": "sess3"}},
+        {"metadata": {"session_id": "sess2"}}   # Duplicate
+    ]
+    conversation_store.add_message(conversation_id, "assistant", "Response", sources)
+
+    # Verify no duplicates
+    conversation = conversation_store.load_conversation(conversation_id)
+    relevant_sessions = conversation["context"]["relevant_sessions"]
+    assert len(relevant_sessions) == 3
+    assert relevant_sessions.count("sess1") == 1
+    assert relevant_sessions.count("sess2") == 1
+    assert relevant_sessions.count("sess3") == 1
+
+def test_add_message_relevant_sessions_edge_cases(conversation_store):
+    """Test edge cases: missing session_id, empty metadata, None values."""
+    conversation_id = conversation_store.create_conversation()
+
+    # Add message with sources missing session_id
+    sources_no_session = [
+        {"metadata": {"speaker": "Alice"}},  # No session_id
+        {"metadata": {}}  # Empty metadata
+    ]
+    conversation_store.add_message(conversation_id, "assistant", "Response 1", sources_no_session)
+
+    # Verify no sessions added
+    conversation = conversation_store.load_conversation(conversation_id)
+    assert len(conversation["context"]["relevant_sessions"]) == 0
+
+    # Add message with None/empty session_id values
+    sources_empty_session = [
+        {"metadata": {"session_id": None}},
+        {"metadata": {"session_id": ""}},
+        {"metadata": {"session_id": "sess1"}}  # Valid one
+    ]
+    conversation_store.add_message(conversation_id, "assistant", "Response 2", sources_empty_session)
+
+    # Verify only valid session added
+    conversation = conversation_store.load_conversation(conversation_id)
+    relevant_sessions = conversation["context"]["relevant_sessions"]
+    assert len(relevant_sessions) == 1
+    assert "sess1" in relevant_sessions
+
+def test_add_message_no_sources_does_not_modify_relevant_sessions(conversation_store):
+    """Test that adding message without sources doesn't affect relevant_sessions."""
+    conversation_id = conversation_store.create_conversation()
+
+    # Add initial message with sources
+    sources = [{"metadata": {"session_id": "sess1"}}]
+    conversation_store.add_message(conversation_id, "assistant", "Response with sources", sources)
+
+    # Add message without sources
+    conversation_store.add_message(conversation_id, "user", "Question without sources")
+
+    # Verify relevant_sessions unchanged
+    conversation = conversation_store.load_conversation(conversation_id)
+    relevant_sessions = conversation["context"]["relevant_sessions"]
+    assert len(relevant_sessions) == 1
+    assert "sess1" in relevant_sessions
+
 def test_add_message_to_nonexistent_conversation(conversation_store):
     with pytest.raises(ValueError):
         conversation_store.add_message("conv_nonexistent", "user", "Hello")

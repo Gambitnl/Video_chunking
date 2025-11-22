@@ -244,7 +244,7 @@ If you find a `[~]` task with timestamp >24 hours old:
 
 - [ ] BUG-20251102-19: HybridSearcher.search - Test varying top_k/semantic_weight → BUG_HUNT_TODO.md:81
 
-- [ ] BUG-20251102-20: HybridSearcher.search - Test when one search method fails → BUG_HUNT_TODO.md:85
+- [x] BUG-20251102-20: HybridSearcher.search - Test when one search method fails (Agent: GPT-5.1-Codex-Max, Completed: 2025-11-22) → BUG_HUNT_TODO.md:85
 
 - [ ] BUG-20251102-21: HybridSearcher._reciprocal_rank_fusion - Test complex scenarios → BUG_HUNT_TODO.md:89
 

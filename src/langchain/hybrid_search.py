@@ -41,36 +41,38 @@ class HybridSearcher:
         Returns:
             List of search results
         """
+        semantic_results: List[Dict] = []
+        keyword_results: List[Dict] = []
+
         try:
-            # Get semantic results
             semantic_results = self.vector_store.search(query, top_k=top_k * 2)
+        except Exception as exc:
+            logger.error("Semantic search failed during hybrid search", exc_info=True)
 
-            # Get keyword results
+        try:
             keyword_results_docs = self.keyword_retriever.retrieve(query, top_k=top_k * 2)
-
-            # Convert keyword results to dict format
             keyword_results = [
                 {
                     "text": doc.page_content,
                     "metadata": doc.metadata,
-                    "distance": 0.5  # Placeholder distance for keyword results
+                    "distance": 0.5
                 }
                 for doc in keyword_results_docs
             ]
+        except Exception as exc:
+            logger.error("Keyword retrieval failed during hybrid search", exc_info=True)
 
-            # Merge and re-rank using Reciprocal Rank Fusion
-            merged = self._reciprocal_rank_fusion(
-                semantic_results,
-                keyword_results,
-                weights=(semantic_weight, 1 - semantic_weight)
-            )
+        if not semantic_results and not keyword_results:
+            logger.error("Hybrid search failed: both semantic and keyword backends returned no results")
+            return []
 
-            return merged[:top_k]
+        merged = self._reciprocal_rank_fusion(
+            semantic_results,
+            keyword_results,
+            weights=(semantic_weight, 1 - semantic_weight)
+        )
 
-        except Exception as e:
-            logger.error(f"Error in hybrid search: {e}", exc_info=True)
-            # Fallback to semantic search only
-            return self.vector_store.search(query, top_k=top_k)
+        return merged[:top_k]
 
     def _reciprocal_rank_fusion(
         self,

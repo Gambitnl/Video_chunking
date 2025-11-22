@@ -152,6 +152,16 @@ This list summarizes preliminary findings from the bug hunt session on 2025-11-0
     *   **Issue**: If either `vector_store.search` or `keyword_retriever.retrieve` fails, the `HybridSearcher` should ideally still utilize the results from the functioning component or, at minimum, handle the error gracefully.
     *   **Why it's an issue**: A failure in one search component should not cripple the entire hybrid search. The system should be resilient enough to still provide some relevant results, or a clear error, preventing a complete loss of conversational context. This tests the fault tolerance and graceful degradation of the hybrid search.
 
+##### Implementation Notes & Reasoning (2025-11-22 GPT-5.1-Codex-Max)
+
+- Added per-backend exception handling in `HybridSearcher.search` so semantic and keyword searches fail independently, logging errors without blocking the remaining backend.
+- Expanded `tests/test_langchain_hybrid_search.py` to cover semantic failure with keyword fallback, keyword failure with semantic fallback, and dual failure returning an empty result set.
+
+##### Code Review Findings (2025-11-22 GPT-5.1-Codex-Max)
+
+- [APPROVED] Hybrid search now returns available results when one backend raises while logging the failure; both-backend failure surfaces as an empty list without raising.
+- New tests are deterministic via mocks and assert the Reciprocal Rank Fusion path is skipped when no results are available.
+
 -   **BUG-20251102-21**: `HybridSearcher._reciprocal_rank_fusion` - Test with more complex scenarios, including documents with identical content but different metadata. (Medium)
     *   **Issue**: The `_reciprocal_rank_fusion` method combines and re-ranks search results. This algorithm can be complex, especially when dealing with overlapping documents or those with very similar scores.
     *   **Why it's an issue**: Subtle flaws in the RRF implementation can lead to incorrect or unstable ranking, potentially hiding highly relevant documents or promoting less relevant ones. Thorough testing with diverse and challenging data sets is necessary to ensure the algorithm consistently produces optimal rankings.

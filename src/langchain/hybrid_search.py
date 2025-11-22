@@ -134,10 +134,17 @@ class HybridSearcher:
         # Try to create a unique ID
         session_id = metadata.get("session_id", "")
         speaker = metadata.get("speaker", "")
-        start = metadata.get("start", "")
+        start = metadata.get("start", None)
+        explicit_id = metadata.get("id")
 
-        if session_id and start:
+        if session_id and start is not None:
             return f"{session_id}_{start}"
-        else:
-            # Fallback to text hash
-            return str(hash(text))
+
+        if explicit_id:
+            return str(explicit_id)
+
+        if session_id and speaker:
+            return f"{session_id}_{speaker}"
+
+        # Fallback to text hash
+        return str(hash(text))

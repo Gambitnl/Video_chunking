@@ -180,6 +180,15 @@ This list summarizes preliminary findings from the bug hunt session on 2025-11-0
     *   **Issue**: The `HybridSearcher.search` method allows users to control the number of results (`top_k`) and the balance between semantic and keyword search (`semantic_weight`).
     *   **Why it's an issue**: Incorrect application of these parameters can lead to suboptimal search results, such as too few or too many documents, or a biased preference for one search type. Testing diverse `top_k` and `semantic_weight` values ensures the Reciprocal Rank Fusion (RRF) algorithm works correctly under varying configurations.
 
+##### Implementation Notes & Reasoning (2025-11-22 GPT-5.1-Codex-Max)
+
+- Added parameterized unit tests to assert that `HybridSearcher.search` scales backend `top_k` queries and truncates fused results to the caller's requested size across multiple values.
+- Added parameterized unit tests to validate that varying `semantic_weight` values influence RRF ordering, ensuring high semantic weights favor semantic hits and low weights favor keyword hits.
+
+##### Code Review Findings (2025-11-22 GPT-5.1-Codex-Max)
+
+- [APPROVED] Search uses the supplied `semantic_weight` tuple when invoking Reciprocal Rank Fusion and consistently limits results to the requested `top_k`; no code changes required beyond test coverage.
+
 -   **BUG-20251102-20**: `HybridSearcher.search` - Test when one of the underlying search methods (semantic or keyword) returns an error. (Medium)
     *   **Issue**: If either `vector_store.search` or `keyword_retriever.retrieve` fails, the `HybridSearcher` should ideally still utilize the results from the functioning component or, at minimum, handle the error gracefully.
     *   **Why it's an issue**: A failure in one search component should not cripple the entire hybrid search. The system should be resilient enough to still provide some relevant results, or a clear error, preventing a complete loss of conversational context. This tests the fault tolerance and graceful degradation of the hybrid search.
@@ -197,6 +206,17 @@ This list summarizes preliminary findings from the bug hunt session on 2025-11-0
 -   **BUG-20251102-21**: `HybridSearcher._reciprocal_rank_fusion` - Test with more complex scenarios, including documents with identical content but different metadata. (Medium)
     *   **Issue**: The `_reciprocal_rank_fusion` method combines and re-ranks search results. This algorithm can be complex, especially when dealing with overlapping documents or those with very similar scores.
     *   **Why it's an issue**: Subtle flaws in the RRF implementation can lead to incorrect or unstable ranking, potentially hiding highly relevant documents or promoting less relevant ones. Thorough testing with diverse and challenging data sets is necessary to ensure the algorithm consistently produces optimal rankings.
+
+##### Implementation Notes & Reasoning (2025-11-22 GPT-5.1-Codex-Max)
+
+- Added explicit metadata ID handling in `_get_doc_id` so documents with identical text but distinct identifiers remain unique during fusion rather than collapsing under the text hash fallback.
+- Expanded `_reciprocal_rank_fusion` unit coverage with overlapping semantic/keyword results, verifying combined weights push shared documents to the top while respecting per-backend ordering for unique entries.
+- Added regression coverage ensuring identical text with different metadata IDs are preserved as separate results, reflecting realistic hybrid retrieval outputs that reuse content across sessions.
+
+##### Code Review Findings (2025-11-22 GPT-5.1-Codex-Max)
+
+- [APPROVED] Reciprocal Rank Fusion now maintains distinct documents when metadata IDs differ, preventing unintended deduplication of reused text.
+- Additional tests confirm weighted scoring favors overlapping results and preserves backend-specific ordering for unique items; existing search behavior remains unchanged aside from safer ID resolution.
 
 -   **BUG-20251102-22**: `CampaignRetriever.retrieve` - Add integration tests with actual knowledge base and transcript files. (High)
     *   **Issue**: `CampaignRetriever` is responsible for keyword-based retrieval from knowledge base JSON files and raw transcript files. The current tests for `_load_knowledge_base` and caching are good, but the core `retrieve` method's interaction with the file system isn't fully tested.

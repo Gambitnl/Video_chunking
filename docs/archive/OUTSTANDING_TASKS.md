@@ -250,7 +250,7 @@ If you find a `[~]` task with timestamp >24 hours old:
 
 - [ ] BUG-20251102-23: CampaignRetriever._search_knowledge_bases - Test various query types → BUG_HUNT_TODO.md:97
 
-- [ ] BUG-20251102-24: CampaignRetriever._search_transcripts - Test matching scenarios → BUG_HUNT_TODO.md:101
+- [~] BUG-20251102-24: CampaignRetriever._search_transcripts - Test matching scenarios (Agent: Claude Sonnet 4.5, Started: 2025-11-22 16:30 UTC) -> BUG_HUNT_TODO.md:101
 
 - [ ] BUG-20251102-25: CampaignRetriever._load_knowledge_base - Test cache eviction → BUG_HUNT_TODO.md:105
 

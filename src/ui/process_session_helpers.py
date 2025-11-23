@@ -981,6 +981,90 @@ def check_file_processing_history(file) -> Tuple[str, bool]:
     return "\n".join(warning_lines), True
 
 
+def analyze_uploaded_file(file) -> str:
+    """
+    Analyze uploaded audio file and return file information.
+
+    Args:
+        file: Gradio file upload object
+
+    Returns:
+        Markdown-formatted file information (empty string if no file)
+    """
+    if not file:
+        return ""
+
+    try:
+        # Get file path from Gradio file object
+        file_path = Path(file.name) if hasattr(file, 'name') else Path(file)
+
+        if not file_path.exists():
+            return ""
+
+        # Get file size
+        size_bytes = file_path.stat().st_size
+        size_mb = size_bytes / (1024 * 1024)
+        size_gb = size_mb / 1024
+
+        # Format file size display
+        if size_gb >= 1.0:
+            size_display = f"{size_gb:.2f} GB"
+        else:
+            size_display = f"{size_mb:.1f} MB"
+
+        # Try to get audio duration
+        duration_display = "Unknown"
+        est_time_display = "Unknown"
+
+        try:
+            from src.audio_processor import AudioProcessor
+            processor = AudioProcessor()
+            duration_seconds = processor.get_duration(file_path)
+
+            # Format duration as hours:minutes
+            hours = int(duration_seconds // 3600)
+            minutes = int((duration_seconds % 3600) // 60)
+
+            if hours > 0:
+                duration_display = f"~{hours}h {minutes}m"
+            else:
+                duration_display = f"~{minutes}m"
+
+            # Estimate processing time (~15 minutes per GB)
+            est_time_min = int((size_gb * 15))
+            if est_time_min < 5:
+                est_time_display = "5-10 minutes"
+            elif est_time_min < 60:
+                est_time_display = f"{est_time_min}-{est_time_min + 15} minutes"
+            else:
+                est_hours = est_time_min // 60
+                est_time_display = f"{est_hours}-{est_hours + 1} hours"
+
+        except Exception as e:
+            # If duration extraction fails, still show file size
+            pass
+
+        # Build info display
+        info_lines = [
+            f"{SI.SUCCESS} **File Uploaded Successfully**",
+            f"",
+            f"**File:** `{file_path.name}`",
+            f"**Size:** {size_display}",
+        ]
+
+        if duration_display != "Unknown":
+            info_lines.append(f"**Duration:** {duration_display}")
+
+        if est_time_display != "Unknown":
+            info_lines.append(f"**Est. Processing Time:** {est_time_display}")
+
+        return "\n".join(info_lines)
+
+    except Exception as e:
+        # If anything goes wrong, return empty string rather than error
+        return ""
+
+
 # ============================================================================
 # UI Update Functions
 # ============================================================================

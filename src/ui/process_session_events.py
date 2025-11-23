@@ -35,6 +35,7 @@ from src.ui.process_session_helpers import (
     poll_runtime_updates,
     poll_overall_progress,
     check_file_processing_history,
+    analyze_uploaded_file,
     update_party_display as update_party_display_helper,
 )
 
@@ -117,18 +118,26 @@ class ProcessSessionEventWiring:
         """
         Wire events for file upload component.
 
-        Sets up file validation and processing history checks that trigger
-        when a user uploads an audio file.
+        Sets up file validation, info display, and processing history checks
+        that trigger when a user uploads an audio file.
         """
-        def check_file_history(file):
-            """Check if uploaded file was processed before."""
+        def handle_file_upload(file):
+            """Analyze file and check processing history."""
+            # Get file info (size, duration, estimated time)
+            file_info = analyze_uploaded_file(file)
+
+            # Check if file was processed before
             warning_text, is_visible = check_file_processing_history(file)
-            return gr.update(value=warning_text, visible=is_visible)
+
+            return file_info, gr.update(value=warning_text, visible=is_visible)
 
         self.components["audio_input"].change(
-            fn=check_file_history,
+            fn=handle_file_upload,
             inputs=[self.components["audio_input"]],
-            outputs=[self.components["file_warning_display"]],
+            outputs=[
+                self.components["file_info_display"],
+                self.components["file_warning_display"],
+            ],
         )
 
     # -------------------------------------------------------------------------

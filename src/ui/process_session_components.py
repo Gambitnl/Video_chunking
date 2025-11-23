@@ -122,6 +122,10 @@ class UploadSectionBuilder:
                 file_types=self.ALLOWED_AUDIO_EXTENSIONS,
             )
 
+            components["file_info_display"] = gr.Markdown(
+                value="",
+            )
+
             components["file_warning_display"] = gr.Markdown(
                 value="",
                 visible=False,

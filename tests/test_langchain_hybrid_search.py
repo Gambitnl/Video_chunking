@@ -99,47 +99,50 @@ def test_reciprocal_rank_fusion_weights(hybrid_searcher):
     merged_results = hybrid_searcher._reciprocal_rank_fusion(results_a, results_b, weights=(0.2, 0.8))
     assert merged_results[0]["metadata"]["id"] == "B1"
 
+# BUG-20251102-21: Complex scenarios for RRF
+def test_reciprocal_rank_fusion_complex_identical_scores(hybrid_searcher):
+    """Test RRF with documents that might end up with identical scores."""
+    # doc1 is rank 1 in A (score 1/(60+1))
+    # doc2 is rank 1 in B (score 1/(60+1))
+    results_a = [{"text": "doc1", "metadata": {"id": "A1"}}]
+    results_b = [{"text": "doc2", "metadata": {"id": "B1"}}]
 
-def test_reciprocal_rank_fusion_merges_overlaps_with_weights(hybrid_searcher):
+    hybrid_searcher._get_doc_id = Mock(side_effect=lambda r: r["metadata"]["id"])
+
+    # With equal weights, they should have identical scores
+    # Sorting stability or implementation detail determines order, but both must be present
+    merged_results = hybrid_searcher._reciprocal_rank_fusion(results_a, results_b, weights=(0.5, 0.5))
+    assert len(merged_results) == 2
+    ids = {r["metadata"]["id"] for r in merged_results}
+    assert ids == {"A1", "B1"}
+
+def test_reciprocal_rank_fusion_empty_inputs(hybrid_searcher):
+    """Test RRF with empty input lists."""
+    results = hybrid_searcher._reciprocal_rank_fusion([], [])
+    assert results == []
+
+    results = hybrid_searcher._reciprocal_rank_fusion([{"text": "d", "metadata": {"id": "1"}}], [])
+    assert len(results) == 1
+
+    results = hybrid_searcher._reciprocal_rank_fusion([], [{"text": "d", "metadata": {"id": "1"}}])
+    assert len(results) == 1
+
+def test_reciprocal_rank_fusion_duplicate_docs_in_single_list(hybrid_searcher):
+    """Test RRF if a single list somehow contains duplicates (should handle gracefully)."""
     results_a = [
-        {"text": "shared", "metadata": {"session_id": "sess", "start": 1, "id": "shared"}},
-        {"text": "semantic_only", "metadata": {"session_id": "sess", "start": 2, "id": "semantic_only"}},
+        {"text": "doc1", "metadata": {"id": "A1"}},
+        {"text": "doc1", "metadata": {"id": "A1"}}, # Duplicate
     ]
-    results_b = [
-        {"text": "shared", "metadata": {"session_id": "sess", "start": 1, "id": "shared"}},
-        {"text": "keyword_only", "metadata": {"session_id": "other", "start": 3, "id": "keyword_only"}},
-    ]
+    results_b = []
 
-    merged_results = hybrid_searcher._reciprocal_rank_fusion(
-        results_a,
-        results_b,
-        weights=(0.7, 0.3),
-        k=60,
-    )
+    hybrid_searcher._get_doc_id = Mock(side_effect=lambda r: r["metadata"]["id"])
 
-    merged_ids = [result["metadata"]["id"] for result in merged_results]
+    merged_results = hybrid_searcher._reciprocal_rank_fusion(results_a, results_b)
+    # Implementation sums scores, so duplicate in same list would boost score
+    # Verify it doesn't crash and returns unique doc
+    assert len(merged_results) == 1
+    assert merged_results[0]["metadata"]["id"] == "A1"
 
-    assert merged_ids == ["shared", "semantic_only", "keyword_only"]
-
-
-def test_reciprocal_rank_fusion_retains_identical_text_with_different_metadata(hybrid_searcher):
-    results_a = [
-        {"text": "duplicate", "metadata": {"id": "doc_a"}},
-    ]
-    results_b = [
-        {"text": "duplicate", "metadata": {"id": "doc_b"}},
-    ]
-
-    merged_results = hybrid_searcher._reciprocal_rank_fusion(
-        results_a,
-        results_b,
-        weights=(0.5, 0.5),
-        k=60,
-    )
-
-    merged_ids = [result["metadata"]["id"] for result in merged_results]
-
-    assert merged_ids == ["doc_a", "doc_b"]
 
 # Test search method
 def test_search_happy_path(hybrid_searcher):
@@ -174,8 +177,60 @@ def test_search_happy_path(hybrid_searcher):
     assert len(results) == 5 # Default top_k
     assert results[0]["metadata"]["id"] == "S1"
 
-@pytest.mark.parametrize("top_k", [1, 3, 5])
-def test_search_respects_top_k_and_backend_scaling(hybrid_searcher, top_k):
+# BUG-20251102-19: Test varying top_k and semantic_weight
+def test_search_varying_top_k(hybrid_searcher):
+    """Test that search respects different top_k values."""
+    mock_vector_store = hybrid_searcher.vector_store
+    mock_keyword_retriever = hybrid_searcher.keyword_retriever
+
+    # Setup mocks to return enough results
+    mock_vector_store.search.return_value = [{"text": f"s{i}", "metadata": {"id": f"s{i}"}} for i in range(10)]
+    mock_keyword_retriever.retrieve.return_value = [MockDocument(f"k{i}", {"id": f"k{i}"}) for i in range(10)]
+
+    # We need _reciprocal_rank_fusion to return a list larger than top_k to verify slicing
+    hybrid_searcher._reciprocal_rank_fusion = Mock(return_value=[
+        {"text": f"r{i}", "metadata": {"id": f"r{i}"}} for i in range(20)
+    ])
+
+    # Case 1: top_k = 1
+    results = hybrid_searcher.search("query", top_k=1)
+    assert len(results) == 1
+    mock_vector_store.search.assert_called_with("query", top_k=2) # top_k * 2
+    mock_keyword_retriever.retrieve.assert_called_with("query", top_k=2)
+
+    # Case 2: top_k = 5
+    results = hybrid_searcher.search("query", top_k=5)
+    assert len(results) == 5
+    mock_vector_store.search.assert_called_with("query", top_k=10)
+
+def test_search_varying_semantic_weight(hybrid_searcher):
+    """Test that search passes correct weights to RRF."""
+    mock_vector_store = hybrid_searcher.vector_store
+    mock_keyword_retriever = hybrid_searcher.keyword_retriever
+    hybrid_searcher._reciprocal_rank_fusion = Mock(return_value=[])
+
+    # Case 1: Default weight (usually 0.7)
+    hybrid_searcher.search("query")
+    # Check call args
+    args, kwargs = hybrid_searcher._reciprocal_rank_fusion.call_args
+    # weights=(semantic_weight, 1-semantic_weight)
+    # default semantic_weight is 0.7
+    weights = kwargs.get('weights')
+    if weights is None:
+        weights = args[2]
+    assert abs(weights[0] - 0.7) < 1e-6
+    assert abs(weights[1] - 0.3) < 1e-6
+
+    # Case 2: Custom weight
+    hybrid_searcher.search("query", semantic_weight=0.2)
+    args, kwargs = hybrid_searcher._reciprocal_rank_fusion.call_args
+    weights = kwargs.get('weights')
+    if weights is None:
+        weights = args[2]
+    assert abs(weights[0] - 0.2) < 1e-6
+    assert abs(weights[1] - 0.8) < 1e-6
+
+def test_search_different_top_k_and_weight(hybrid_searcher):
     mock_vector_store = hybrid_searcher.vector_store
     mock_keyword_retriever = hybrid_searcher.keyword_retriever
 

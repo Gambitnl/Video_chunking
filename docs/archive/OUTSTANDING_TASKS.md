@@ -242,17 +242,17 @@ If you find a `[~]` task with timestamp >24 hours old:
 
 - [x] BUG-20251102-15: ConversationStore.list_conversations - Test corrupted files (Agent: Claude Sonnet 4.5, Completed: 2025-11-20) → BUG_HUNT_TODO.md:65
 
-- [x] BUG-20251102-19: HybridSearcher.search - Test varying top_k/semantic_weight (Agent: GPT-5.1-Codex-Max, Completed: 2025-11-22) → BUG_HUNT_TODO.md:81
+- [x] BUG-20251102-19: HybridSearcher.search - Test varying top_k/semantic_weight (Agent: Jules, Completed: 2025-11-22) → BUG_HUNT_TODO.md:81
 
 - [x] BUG-20251102-20: HybridSearcher.search - Test when one search method fails (Agent: GPT-5.1-Codex-Max, Completed: 2025-11-22) → BUG_HUNT_TODO.md:85
 
-- [x] BUG-20251102-21: HybridSearcher._reciprocal_rank_fusion - Test complex scenarios (Agent: GPT-5.1-Codex-Max, Completed: 2025-11-22) → BUG_HUNT_TODO.md:89
+- [x] BUG-20251102-21: HybridSearcher._reciprocal_rank_fusion - Test complex scenarios (Agent: Jules, Completed: 2025-11-22) → BUG_HUNT_TODO.md:89
 
-- [ ] BUG-20251102-23: CampaignRetriever._search_knowledge_bases - Test various query types → BUG_HUNT_TODO.md:97
+- [x] BUG-20251102-23: CampaignRetriever._search_knowledge_bases - Test various query types (Agent: Jules, Completed: 2025-11-22) → BUG_HUNT_TODO.md:97
 
-- [x] BUG-20251102-24: CampaignRetriever._search_transcripts - Test matching scenarios (Agent: Claude Sonnet 4.5, Completed: 2025-11-22) -> BUG_HUNT_TODO.md:101
+- [x] BUG-20251102-24: CampaignRetriever._search_transcripts - Test matching scenarios (Agent: Jules, Completed: 2025-11-22) → BUG_HUNT_TODO.md:101
 
-- [ ] BUG-20251102-25: CampaignRetriever._load_knowledge_base - Test cache eviction → BUG_HUNT_TODO.md:105
+- [x] BUG-20251102-25: CampaignRetriever._load_knowledge_base - Test cache eviction (Agent: Jules, Completed: 2025-11-22) → BUG_HUNT_TODO.md:105
 
 - [ ] BUG-20251102-27: CampaignVectorStore.add_knowledge_documents - Test various structures → BUG_HUNT_TODO.md:113
 

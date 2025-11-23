@@ -120,6 +120,31 @@ class TestRetrieve:
         # Should return empty or handle gracefully
         assert isinstance(results, list)
 
+    # BUG-20251102-23: Test various query types
+    def test_retrieve_matches_specific_entity_types(self, retriever_with_data):
+        """Test that retrieval finds specific entity types based on keywords."""
+        # Test NPC retrieval
+        results = retriever_with_data.retrieve("Gandalf", top_k=5)
+        assert any(r.metadata.get("type") == "npc" and "Gandalf" in r.metadata.get("name", "") for r in results)
+
+        # Test Quest retrieval (using 'Ring' from 'Ring Quest')
+        results = retriever_with_data.retrieve("Ring", top_k=5)
+        assert any(r.metadata.get("type") == "quest" and "Ring" in r.metadata.get("name", "") for r in results)
+
+    # BUG-20251102-24: Test matching scenarios
+    def test_retrieve_matching_scenarios(self, retriever_with_data):
+        """Test different matching scenarios like case insensitivity and partial matches."""
+        # Case insensitivity
+        results_lower = retriever_with_data.retrieve("gandalf", top_k=5)
+        assert len(results_lower) > 0
+        assert any("Gandalf" in r.metadata.get("name", "") for r in results_lower)
+
+        # Partial match
+        results_partial = retriever_with_data.retrieve("wiz", top_k=5)
+        # "wiz" matches "wizard" in description
+        assert len(results_partial) > 0
+        assert any("wizard" in r.page_content for r in results_partial)
+
 
 class TestClearCache:
     """Tests for clear_cache method."""

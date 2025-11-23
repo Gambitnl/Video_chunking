@@ -4,7 +4,7 @@ from typing import Dict, Optional, List
 import gradio as gr
 
 from src.config import Config
-from src.ui.helpers import StatusMessages, UIComponents
+from src.ui.helpers import AccessibilityAttributes, StatusMessages, UIComponents
 from src.ui.social_insights_tab import create_social_insights_tab
 from src.ui.speaker_manager_tab import create_speaker_manager_tab
 from src.ui.config_manager import ConfigManager
@@ -20,6 +20,16 @@ def create_settings_tools_tab_modern(
     initial_console_level: str = "INFO",
 ) -> Dict[str, gr.components.Component]:
     """Create the Settings & Tools tab and return components requiring campaign updates."""
+
+    def _a11y(component: gr.components.Component, *, label: str, described_by: str | None = None, role: str | None = None, live: str | None = None, elem_id: str | None = None):
+        return AccessibilityAttributes.apply(
+            component,
+            label=label,
+            described_by=described_by,
+            role=role,
+            live=live,
+            elem_id=elem_id,
+        )
 
     available_log_levels = log_level_choices or ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]
     active_console_level = initial_console_level or "INFO"
@@ -48,17 +58,27 @@ def create_settings_tools_tab_modern(
                 "Run Health Check",
                 variant="primary",
                 size="sm",
+                accessible_label="Run health check",
+                elem_id="settings-health-check",
             )
             export_diagnostics_btn = UIComponents.create_action_button(
                 "Export Diagnostics",
                 variant="secondary",
                 size="sm",
+                accessible_label="Export diagnostics",
+                elem_id="settings-export-diagnostics",
             )
-            diagnostics_output = gr.Markdown(
-                value=StatusMessages.info(
-                    "Diagnostics",
-                    "Click 'Run Health Check' to verify system dependencies and configuration."
-                )
+            diagnostics_output = _a11y(
+                gr.Markdown(
+                    value=StatusMessages.info(
+                        "Diagnostics",
+                        "Click 'Run Health Check' to verify system dependencies and configuration."
+                    ),
+                    elem_id="settings-diagnostics-output",
+                ),
+                label="Diagnostics output",
+                role="status",
+                live="polite",
             )
 
         # Chat Management Section - Conversation History
@@ -73,17 +93,27 @@ def create_settings_tools_tab_modern(
                     "List Conversations",
                     variant="secondary",
                     size="sm",
+                    accessible_label="List conversations",
+                    elem_id="settings-list-conversations",
                 )
                 clear_all_conversations_btn = UIComponents.create_action_button(
                     "Clear All Conversations",
                     variant="stop",
                     size="sm",
+                    accessible_label="Clear all conversations",
+                    elem_id="settings-clear-conversations",
                 )
-            chat_output = gr.Markdown(
-                value=StatusMessages.info(
-                    "Conversation History",
-                    "Click 'List Conversations' to see saved campaign chat conversations."
-                )
+            chat_output = _a11y(
+                gr.Markdown(
+                    value=StatusMessages.info(
+                        "Conversation History",
+                        "Click 'List Conversations' to see saved campaign chat conversations."
+                    ),
+                    elem_id="settings-chat-output",
+                ),
+                label="Conversation history output",
+                role="status",
+                live="polite",
             )
 
         social_refs = create_social_insights_tab(
@@ -101,34 +131,55 @@ def create_settings_tools_tab_modern(
                 """
             )
 
-            groq_api_key_input = gr.Textbox(
-                label="Groq API Key",
-                placeholder="gsk_... (leave empty to keep existing)",
-                type="password",
-                interactive=True,
+            groq_api_key_input = _a11y(
+                gr.Textbox(
+                    label="Groq API Key",
+                    placeholder="gsk_... (leave empty to keep existing)",
+                    type="password",
+                    interactive=True,
+                    elem_id="settings-groq-key",
+                ),
+                label="Groq API key",
             )
-            openai_api_key_input = gr.Textbox(
-                label="OpenAI API Key",
-                placeholder="sk-... (leave empty to keep existing)",
-                type="password",
-                interactive=True,
+            openai_api_key_input = _a11y(
+                gr.Textbox(
+                    label="OpenAI API Key",
+                    placeholder="sk-... (leave empty to keep existing)",
+                    type="password",
+                    interactive=True,
+                    elem_id="settings-openai-key",
+                ),
+                label="OpenAI API key",
             )
-            hugging_face_api_key_input = gr.Textbox(
-                label="Hugging Face API Key",
-                placeholder="hf_... (leave empty to keep existing)",
-                type="password",
-                interactive=True,
+            hugging_face_api_key_input = _a11y(
+                gr.Textbox(
+                    label="Hugging Face API Key",
+                    placeholder="hf_... (leave empty to keep existing)",
+                    type="password",
+                    interactive=True,
+                    elem_id="settings-hf-key",
+                ),
+                label="Hugging Face API key",
             )
             save_api_keys_btn = UIComponents.create_action_button(
                 "Save API Keys",
                 variant="primary",
                 size="sm",
+                accessible_label="Save API keys",
+                aria_describedby="settings-api-status",
+                elem_id="settings-save-api",
             )
-            api_keys_status = gr.Markdown(
-                value=StatusMessages.info(
-                    "API Keys",
-                    "API keys will be loaded from your `.env` file if it exists."
-                )
+            api_keys_status = _a11y(
+                gr.Markdown(
+                    value=StatusMessages.info(
+                        "API Keys",
+                        "API keys will be loaded from your `.env` file if it exists."
+                    ),
+                    elem_id="settings-api-status",
+                ),
+                label="API key status",
+                role="status",
+                live="polite",
             )
 
         with gr.Accordion("Model Configuration", open=False):
@@ -139,54 +190,83 @@ def create_settings_tools_tab_modern(
             )
 
             with gr.Row():
-                whisper_backend_dropdown = gr.Dropdown(
-                    label="Whisper Backend",
-                    choices=ConfigManager.VALID_WHISPER_BACKENDS,
-                    value=current_config.get("WHISPER_BACKEND", Config.WHISPER_BACKEND),
-                    interactive=True,
-                    info="Choose transcription backend: local (Faster Whisper), groq, or openai"
+                whisper_backend_dropdown = _a11y(
+                    gr.Dropdown(
+                        label="Whisper Backend",
+                        choices=ConfigManager.VALID_WHISPER_BACKENDS,
+                        value=current_config.get("WHISPER_BACKEND", Config.WHISPER_BACKEND),
+                        interactive=True,
+                        info="Choose transcription backend: local (Faster Whisper), groq, or openai",
+                        elem_id="settings-whisper-backend",
+                    ),
+                    label="Whisper backend",
                 )
-                whisper_model_dropdown = gr.Dropdown(
-                    label="Whisper Model",
-                    choices=ConfigManager.VALID_WHISPER_MODELS,
-                    value=current_config.get("WHISPER_MODEL", Config.WHISPER_MODEL),
-                    interactive=True,
-                    info="Model size affects speed and accuracy"
+                whisper_model_dropdown = _a11y(
+                    gr.Dropdown(
+                        label="Whisper Model",
+                        choices=ConfigManager.VALID_WHISPER_MODELS,
+                        value=current_config.get("WHISPER_MODEL", Config.WHISPER_MODEL),
+                        interactive=True,
+                        info="Model size affects speed and accuracy",
+                        elem_id="settings-whisper-model",
+                    ),
+                    label="Whisper model",
                 )
-                whisper_language_dropdown = gr.Dropdown(
-                    label="Whisper Language",
-                    choices=ConfigManager.VALID_WHISPER_LANGUAGES,
-                    value=current_config.get("WHISPER_LANGUAGE", Config.WHISPER_LANGUAGE),
-                    interactive=True,
-                    info="Primary language for transcription"
+                whisper_language_dropdown = _a11y(
+                    gr.Dropdown(
+                        label="Whisper Language",
+                        choices=ConfigManager.VALID_WHISPER_LANGUAGES,
+                        value=current_config.get("WHISPER_LANGUAGE", Config.WHISPER_LANGUAGE),
+                        interactive=True,
+                        info="Primary language for transcription",
+                        elem_id="settings-whisper-language",
+                    ),
+                    label="Whisper language",
                 )
 
             with gr.Row():
-                diarization_backend_dropdown = gr.Dropdown(
-                    label="Diarization Backend",
-                    choices=ConfigManager.VALID_DIARIZATION_BACKENDS,
-                    value=current_config.get("DIARIZATION_BACKEND", Config.DIARIZATION_BACKEND),
-                    interactive=True,
-                    info="Speaker diarization backend"
+                diarization_backend_dropdown = _a11y(
+                    gr.Dropdown(
+                        label="Diarization Backend",
+                        choices=ConfigManager.VALID_DIARIZATION_BACKENDS,
+                        value=current_config.get("DIARIZATION_BACKEND", Config.DIARIZATION_BACKEND),
+                        interactive=True,
+                        info="Speaker diarization backend",
+                        elem_id="settings-diarization-backend",
+                    ),
+                    label="Diarization backend",
                 )
-                llm_backend_dropdown = gr.Dropdown(
-                    label="LLM Backend",
-                    choices=ConfigManager.VALID_LLM_BACKENDS,
-                    value=current_config.get("LLM_BACKEND", Config.LLM_BACKEND),
-                    interactive=True,
-                    info="Backend for narrative generation and classification"
+                llm_backend_dropdown = _a11y(
+                    gr.Dropdown(
+                        label="LLM Backend",
+                        choices=ConfigManager.VALID_LLM_BACKENDS,
+                        value=current_config.get("LLM_BACKEND", Config.LLM_BACKEND),
+                        interactive=True,
+                        info="Backend for narrative generation and classification",
+                        elem_id="settings-llm-backend",
+                    ),
+                    label="LLM backend",
                 )
 
             save_model_config_btn = UIComponents.create_action_button(
                 "Save Model Configuration",
                 variant="primary",
                 size="sm",
+                accessible_label="Save model configuration",
+                aria_describedby="settings-model-status",
+                elem_id="settings-save-model",
             )
-            model_config_status = gr.Markdown(
-                value=StatusMessages.info(
-                    "Model Configuration",
-                    "Current settings loaded from your configuration."
-                )
+            model_config_status = _a11y(
+                gr.Markdown(
+                    value=StatusMessages.info(
+                        "Model Configuration",
+                        "Current settings loaded from your configuration."
+                    ),
+                    elem_id="settings-model-status",
+                ),
+                label="Model configuration status",
+                role="status",
+                live="polite",
             )
 
         with gr.Accordion("Processing Settings", open=False):
@@ -197,73 +277,102 @@ def create_settings_tools_tab_modern(
             )
 
             with gr.Row():
-                chunk_length_input = gr.Number(
-                    label="Chunk Length (seconds)",
-                    value=ConfigManager.safe_int(
-                        current_config.get("CHUNK_LENGTH_SECONDS", Config.CHUNK_LENGTH_SECONDS),
-                        Config.CHUNK_LENGTH_SECONDS
+                chunk_length_input = _a11y(
+                    gr.Number(
+                        label="Chunk Length (seconds)",
+                        value=ConfigManager.safe_int(
+                            current_config.get("CHUNK_LENGTH_SECONDS", Config.CHUNK_LENGTH_SECONDS),
+                            Config.CHUNK_LENGTH_SECONDS
+                        ),
+                        minimum=60,
+                        maximum=3600,
+                        step=60,
+                        interactive=True,
+                        info="Duration of each audio chunk for processing",
+                        elem_id="settings-chunk-length",
                     ),
-                    minimum=60,
-                    maximum=3600,
-                    step=60,
-                    interactive=True,
-                    info="Duration of each audio chunk for processing"
+                    label="Chunk length seconds",
                 )
-                chunk_overlap_input = gr.Number(
-                    label="Chunk Overlap (seconds)",
-                    value=ConfigManager.safe_int(
-                        current_config.get("CHUNK_OVERLAP_SECONDS", Config.CHUNK_OVERLAP_SECONDS),
-                        Config.CHUNK_OVERLAP_SECONDS
+                chunk_overlap_input = _a11y(
+                    gr.Number(
+                        label="Chunk Overlap (seconds)",
+                        value=ConfigManager.safe_int(
+                            current_config.get("CHUNK_OVERLAP_SECONDS", Config.CHUNK_OVERLAP_SECONDS),
+                            Config.CHUNK_OVERLAP_SECONDS
+                        ),
+                        minimum=0,
+                        maximum=60,
+                        step=1,
+                        interactive=True,
+                        info="Overlap between chunks to avoid cutting words",
+                        elem_id="settings-chunk-overlap",
                     ),
-                    minimum=0,
-                    maximum=60,
-                    step=1,
-                    interactive=True,
-                    info="Overlap between chunks to avoid cutting words"
+                    label="Chunk overlap seconds",
                 )
-                audio_sample_rate_input = gr.Number(
-                    label="Audio Sample Rate (Hz)",
-                    value=ConfigManager.safe_int(
-                        current_config.get("AUDIO_SAMPLE_RATE", Config.AUDIO_SAMPLE_RATE),
-                        Config.AUDIO_SAMPLE_RATE
+                audio_sample_rate_input = _a11y(
+                    gr.Number(
+                        label="Audio Sample Rate (Hz)",
+                        value=ConfigManager.safe_int(
+                            current_config.get("AUDIO_SAMPLE_RATE", Config.AUDIO_SAMPLE_RATE),
+                            Config.AUDIO_SAMPLE_RATE
+                        ),
+                        minimum=8000,
+                        maximum=48000,
+                        step=1000,
+                        interactive=True,
+                        info="Sample rate for audio processing",
+                        elem_id="settings-audio-sample-rate",
                     ),
-                    minimum=8000,
-                    maximum=48000,
-                    step=1000,
-                    interactive=True,
-                    info="Sample rate for audio processing"
+                    label="Audio sample rate",
                 )
 
-            clean_stale_clips_checkbox = gr.Checkbox(
-                label="Clean Stale Audio Clips",
-                value=ConfigManager.safe_bool(
-                    current_config.get("CLEAN_STALE_CLIPS", str(Config.CLEAN_STALE_CLIPS)),
-                    Config.CLEAN_STALE_CLIPS
+            clean_stale_clips_checkbox = _a11y(
+                gr.Checkbox(
+                    label="Clean Stale Audio Clips",
+                    value=ConfigManager.safe_bool(
+                        current_config.get("CLEAN_STALE_CLIPS", str(Config.CLEAN_STALE_CLIPS)),
+                        Config.CLEAN_STALE_CLIPS
+                    ),
+                    interactive=True,
+                    info="Automatically remove old temporary audio files",
+                    elem_id="settings-clean-stale",
                 ),
-                interactive=True,
-                info="Automatically remove old temporary audio files"
+                label="Clean stale audio clips",
             )
 
-            save_intermediate_outputs_checkbox = gr.Checkbox(
-                label="Save Intermediate Stage Outputs",
-                value=ConfigManager.safe_bool(
-                    current_config.get("SAVE_INTERMEDIATE_OUTPUTS", str(Config.SAVE_INTERMEDIATE_OUTPUTS)),
-                    Config.SAVE_INTERMEDIATE_OUTPUTS
+            save_intermediate_outputs_checkbox = _a11y(
+                gr.Checkbox(
+                    label="Save Intermediate Stage Outputs",
+                    value=ConfigManager.safe_bool(
+                        current_config.get("SAVE_INTERMEDIATE_OUTPUTS", str(Config.SAVE_INTERMEDIATE_OUTPUTS)),
+                        Config.SAVE_INTERMEDIATE_OUTPUTS
+                    ),
+                    interactive=True,
+                    info="Save intermediate outputs (transcript, diarization, classification) to JSON files",
+                    elem_id="settings-save-intermediate",
                 ),
-                interactive=True,
-                info="Save intermediate outputs (transcript, diarization, classification) to JSON files"
+                label="Save intermediate stage outputs",
             )
 
             save_processing_config_btn = UIComponents.create_action_button(
                 "Save Processing Settings",
                 variant="primary",
                 size="sm",
+                accessible_label="Save processing settings",
+                aria_describedby="settings-processing-status",
+                elem_id="settings-save-processing",
             )
-            processing_config_status = gr.Markdown(
-                value=StatusMessages.info(
-                    "Processing Settings",
-                    "Current settings loaded from your configuration."
-                )
+            processing_config_status = _a11y(
+                gr.Markdown(
+                    value=StatusMessages.info(
+                        "Processing Settings",
+                        "Current settings loaded from your configuration."
+                    ),
+                    elem_id="settings-processing-status",
+                ),
+                label="Processing settings status",
+                role="status",
+                live="polite",
             )
 
         with gr.Accordion("Ollama Settings", open=False):
@@ -422,6 +531,8 @@ def create_settings_tools_tab_modern(
                 "🔄 Restart Application",
                 variant="secondary",
                 size="md",
+                accessible_label="Restart application",
+                elem_id="settings-restart-app",
             )
             restart_status = gr.Markdown(
                 value=StatusMessages.info(
@@ -429,6 +540,60 @@ def create_settings_tools_tab_modern(
                     "Click the button above to restart the application. "
                     "The app will close and reopen automatically in ~2 seconds."
                 )
+            )
+
+    all_settings_components = [
+        run_health_check_btn,
+        export_diagnostics_btn,
+        diagnostics_output,
+        list_conversations_btn,
+        clear_all_conversations_btn,
+        chat_output,
+        groq_api_key_input,
+        openai_api_key_input,
+        hugging_face_api_key_input,
+        save_api_keys_btn,
+        api_keys_status,
+        whisper_backend_dropdown,
+        whisper_model_dropdown,
+        whisper_language_dropdown,
+        diarization_backend_dropdown,
+        llm_backend_dropdown,
+        save_model_config_btn,
+        model_config_status,
+        chunk_length_input,
+        chunk_overlap_input,
+        audio_sample_rate_input,
+        clean_stale_clips_checkbox,
+        save_intermediate_outputs_checkbox,
+        save_processing_config_btn,
+        processing_config_status,
+        ollama_model_input,
+        ollama_fallback_model_input,
+        ollama_base_url_input,
+        save_ollama_config_btn,
+        ollama_config_status,
+        groq_max_calls_input,
+        groq_rate_period_input,
+        groq_rate_burst_input,
+        colab_poll_interval_input,
+        colab_timeout_input,
+        save_advanced_config_btn,
+        advanced_config_status,
+        log_level_dropdown,
+        apply_log_level_btn,
+        log_level_status,
+        restart_app_btn,
+        restart_status,
+    ]
+
+    for component in all_settings_components:
+        if isinstance(component, gr.components.Component):
+            AccessibilityAttributes.apply(
+                component,
+                label=getattr(component, "accessible_label", None)
+                or getattr(component, "label", None)
+                or getattr(component, "elem_id", "settings component"),
             )
 
     return {

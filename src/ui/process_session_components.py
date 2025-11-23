@@ -53,8 +53,29 @@ See Also:
 from typing import Any, Dict, List
 import gradio as gr
 
-from src.ui.helpers import InfoText, Placeholders, StatusMessages, UIComponents
+from src.ui.helpers import AccessibilityAttributes, InfoText, Placeholders, StatusMessages, UIComponents
 from src.ui.constants import StatusIndicators as SI
+
+
+def _a11y(
+    component: gr.components.Component,
+    *,
+    label: str,
+    described_by: str | None = None,
+    role: str | None = None,
+    live: str | None = None,
+    elem_id: str | None = None,
+) -> gr.components.Component:
+    """Attach accessibility metadata to a component and return it."""
+
+    return AccessibilityAttributes.apply(
+        component,
+        label=label,
+        described_by=described_by,
+        role=role,
+        live=live,
+        elem_id=elem_id,
+    )
 
 
 # ============================================================================
@@ -115,20 +136,42 @@ class UploadSectionBuilder:
         components = {}
 
         with gr.Group():
-            gr.Markdown("### Step 1: Upload Audio")
-
-            components["audio_input"] = gr.File(
-                label="Session Audio File",
-                file_types=self.ALLOWED_AUDIO_EXTENSIONS,
+            _a11y(
+                gr.Markdown("### Step 1: Upload Audio", elem_id="process-upload-heading"),
+                label="Upload audio heading",
+                role="heading",
             )
 
-            components["file_info_display"] = gr.Markdown(
-                value="",
+            components["audio_input"] = _a11y(
+                gr.File(
+                    label="Session Audio File",
+                    file_types=self.ALLOWED_AUDIO_EXTENSIONS,
+                    elem_id="process-audio-input",
+                ),
+                label="Session audio file",
+                described_by="process-audio-info",
+                role="button",
             )
 
-            components["file_warning_display"] = gr.Markdown(
-                value="",
-                visible=False,
+            components["file_info_display"] = _a11y(
+                gr.Markdown(
+                    value="",
+                    elem_id="process-audio-info",
+                ),
+                label="File upload guidance",
+                role="status",
+                live="polite",
+            )
+
+            components["file_warning_display"] = _a11y(
+                gr.Markdown(
+                    value="",
+                    visible=False,
+                    elem_id="process-audio-warning",
+                ),
+                label="File warning",
+                role="alert",
+                live="assertive",
             )
 
         return components
@@ -180,149 +223,250 @@ class ConfigurationSectionBuilder:
         components = {}
 
         with gr.Group():
-            gr.Markdown("### Step 2: Configure Session")
+            _a11y(
+                gr.Markdown("### Step 2: Configure Session", elem_id="process-configure-heading"),
+                label="Configure session heading",
+                role="heading",
+            )
 
             # Session ID
-            components["session_id_input"] = gr.Textbox(
+            components["session_id_input"] = _a11y(
+                gr.Textbox(
+                    label="Session ID",
+                    placeholder=Placeholders.SESSION_ID,
+                    info=InfoText.SESSION_ID,
+                    elem_id="process-session-id",
+                ),
                 label="Session ID",
-                placeholder=Placeholders.SESSION_ID,
-                info=InfoText.SESSION_ID,
+                described_by="process-session-id-help",
             )
 
             # Session ID validation status (real-time feedback)
-            components["session_id_validation"] = gr.Markdown(
-                value="",
-                visible=True,
+            components["session_id_validation"] = _a11y(
+                gr.Markdown(
+                    value="",
+                    visible=True,
+                    elem_id="process-session-id-help",
+                ),
+                label="Session ID guidance",
+                role="status",
+                live="polite",
             )
 
             # Party Selection
             with gr.Row():
-                components["party_selection_input"] = gr.Dropdown(
-                    label="Party Configuration",
-                    choices=self.available_parties,
-                    value=self.initial_defaults.get("party_selection") or "Manual Entry",
-                    info="Select an existing party profile or choose Manual Entry.",
+                components["party_selection_input"] = _a11y(
+                    gr.Dropdown(
+                        label="Party Configuration",
+                        choices=self.available_parties,
+                        value=self.initial_defaults.get("party_selection") or "Manual Entry",
+                        info="Select an existing party profile or choose Manual Entry.",
+                        elem_id="process-party-selection",
+                    ),
+                    label="Party configuration",
+                    described_by="process-party-details",
                 )
 
-            components["party_characters_display"] = gr.Markdown(
-                value="",
-                visible=False,
+            components["party_characters_display"] = _a11y(
+                gr.Markdown(
+                    value="",
+                    visible=False,
+                    elem_id="process-party-details",
+                ),
+                label="Party character details",
+                role="status",
+                live="polite",
             )
 
             # Speaker and Language Settings
             with gr.Row():
-                components["num_speakers_input"] = gr.Slider(
-                    minimum=2,
-                    maximum=10,
-                    value=self.initial_defaults.get("num_speakers", 4),
-                    step=1,
-                    label="Expected Speakers",
-                    info="Helps diarization accuracy. Typical table is 3 players + 1 DM.",
+                components["num_speakers_input"] = _a11y(
+                    gr.Slider(
+                        minimum=2,
+                        maximum=10,
+                        value=self.initial_defaults.get("num_speakers", 4),
+                        step=1,
+                        label="Expected Speakers",
+                        info="Helps diarization accuracy. Typical table is 3 players + 1 DM.",
+                        elem_id="process-expected-speakers",
+                    ),
+                    label="Expected speakers",
                 )
 
-                components["language_input"] = gr.Dropdown(
-                    label="Language",
-                    choices=["en", "nl"],
-                    value="nl",
-                    info="Select the language spoken in the session.",
+                components["language_input"] = _a11y(
+                    gr.Dropdown(
+                        label="Language",
+                        choices=["en", "nl"],
+                        value="nl",
+                        info="Select the language spoken in the session.",
+                        elem_id="process-language",
+                    ),
+                    label="Session language",
                 )
 
-                components["character_names_input"] = gr.Textbox(
-                    label="Character Names (comma-separated)",
-                    placeholder=Placeholders.CHARACTER_NAME,
-                    info="Used when Manual Entry is selected.",
+                components["character_names_input"] = _a11y(
+                    gr.Textbox(
+                        label="Character Names (comma-separated)",
+                        placeholder=Placeholders.CHARACTER_NAME,
+                        info="Used when Manual Entry is selected.",
+                        elem_id="process-character-names",
+                    ),
+                    label="Character names",
                 )
 
-                components["player_names_input"] = gr.Textbox(
-                    label="Player Names (comma-separated)",
-                    placeholder=Placeholders.PLAYER_NAME,
-                    info="Optional player name mapping for manual entry.",
+                components["player_names_input"] = _a11y(
+                    gr.Textbox(
+                        label="Player Names (comma-separated)",
+                        placeholder=Placeholders.PLAYER_NAME,
+                        info="Optional player name mapping for manual entry.",
+                        elem_id="process-player-names",
+                    ),
+                    label="Player names",
                 )
 
             # Backend Settings (Advanced)
-            with gr.Accordion("Advanced Backend Settings", open=False):
-                components["transcription_backend_input"] = gr.Dropdown(
-                    label="Transcription Backend",
-                    choices=["whisper", "groq"],
-                    value="whisper",
-                    info="Use local Whisper or cloud Groq API.",
+            with gr.Accordion("Advanced Backend Settings", open=False) as backend_accordion:
+                _a11y(backend_accordion, label="Advanced backend settings", role="group")
+                components["transcription_backend_input"] = _a11y(
+                    gr.Dropdown(
+                        label="Transcription Backend",
+                        choices=["whisper", "groq"],
+                        value="whisper",
+                        info="Use local Whisper or cloud Groq API.",
+                        elem_id="process-transcription-backend",
+                    ),
+                    label="Transcription backend",
                 )
-                components["diarization_backend_input"] = gr.Dropdown(
-                    label="Diarization Backend",
-                    choices=["pyannote", "hf_api"],
-                    value="pyannote",
-                    info="Use local PyAnnote or cloud Hugging Face API.",
+                components["diarization_backend_input"] = _a11y(
+                    gr.Dropdown(
+                        label="Diarization Backend",
+                        choices=["pyannote", "hf_api"],
+                        value="pyannote",
+                        info="Use local PyAnnote or cloud Hugging Face API.",
+                        elem_id="process-diarization-backend",
+                    ),
+                    label="Diarization backend",
                 )
-                components["classification_backend_input"] = gr.Dropdown(
-                    label="Classification Backend",
-                    choices=["ollama", "groq", "colab"],
-                    value="colab",
-                    info="Use local Ollama, cloud Groq API, or Google Colab GPU.",
+                components["classification_backend_input"] = _a11y(
+                    gr.Dropdown(
+                        label="Classification Backend",
+                        choices=["ollama", "groq", "colab"],
+                        value="colab",
+                        info="Use local Ollama, cloud Groq API, or Google Colab GPU.",
+                        elem_id="process-classification-backend",
+                    ),
+                    label="Classification backend",
                 )
 
             # Pipeline Control
-            components["run_until_stage_input"] = gr.Dropdown(
-                label="Run Pipeline Until",
-                choices=[
-                    ("Full Pipeline (All Stages)", "full"),
-                    ("Stage 4: Transcription Only", "stage_4"),
-                    ("Stage 5: Through Diarization", "stage_5"),
-                    ("Stage 6: Through Classification", "stage_6"),
-                    ("Stage 7: Through Output Generation (Skip Snippets & Knowledge)", "stage_7"),
-                ],
-                value="full",
-                info="Control which stages of the pipeline to execute",
+            components["run_until_stage_input"] = _a11y(
+                gr.Dropdown(
+                    label="Run Pipeline Until",
+                    choices=[
+                        ("Full Pipeline (All Stages)", "full"),
+                        ("Stage 4: Transcription Only", "stage_4"),
+                        ("Stage 5: Through Diarization", "stage_5"),
+                        ("Stage 6: Through Classification", "stage_6"),
+                        ("Stage 7: Through Output Generation (Skip Snippets & Knowledge)", "stage_7"),
+                    ],
+                    value="full",
+                    info="Control which stages of the pipeline to execute",
+                    elem_id="process-run-until",
+                ),
+                label="Run pipeline until",
             )
 
             # Skip Options (Advanced)
-            with gr.Accordion("Advanced Skip Options", open=False):
-                gr.Markdown("*These options are auto-set by 'Run Pipeline Until' but can be manually overridden*")
+            with gr.Accordion("Advanced Skip Options", open=False) as skip_accordion:
+                _a11y(skip_accordion, label="Advanced skip options", role="group")
+                _a11y(
+                    gr.Markdown("*These options are auto-set by 'Run Pipeline Until' but can be manually overridden*", elem_id="process-skip-helper"),
+                    label="Skip options helper",
+                    role="note",
+                )
                 with gr.Row():
-                    components["skip_diarization_input"] = gr.Checkbox(
-                        label="Skip Speaker Identification",
-                        value=self.initial_defaults.get("skip_diarization", False),
-                        info="Saves time but all segments will be UNKNOWN.",
+                    components["skip_diarization_input"] = _a11y(
+                        gr.Checkbox(
+                            label="Skip Speaker Identification",
+                            value=self.initial_defaults.get("skip_diarization", False),
+                            info="Saves time but all segments will be UNKNOWN.",
+                            elem_id="process-skip-diarization",
+                        ),
+                        label="Skip speaker identification",
+                        described_by="process-skip-helper",
                     )
-                    components["skip_classification_input"] = gr.Checkbox(
-                        label="Skip IC/OOC Classification",
-                        value=self.initial_defaults.get("skip_classification", False),
-                        info="Disables in-character versus out-of-character separation.",
+                    components["skip_classification_input"] = _a11y(
+                        gr.Checkbox(
+                            label="Skip IC/OOC Classification",
+                            value=self.initial_defaults.get("skip_classification", False),
+                            info="Disables in-character versus out-of-character separation.",
+                            elem_id="process-skip-classification",
+                        ),
+                        label="Skip IC or OOC classification",
+                        described_by="process-skip-helper",
                     )
-                    components["skip_snippets_input"] = gr.Checkbox(
-                        label="Skip Snippet Export",
-                        value=self.initial_defaults.get("skip_snippets", True),
-                        info="Skip exporting WAV snippets to save disk space.",
+                    components["skip_snippets_input"] = _a11y(
+                        gr.Checkbox(
+                            label="Skip Snippet Export",
+                            value=self.initial_defaults.get("skip_snippets", True),
+                            info="Skip exporting WAV snippets to save disk space.",
+                            elem_id="process-skip-snippets",
+                        ),
+                        label="Skip snippet export",
+                        described_by="process-skip-helper",
                     )
-                    components["skip_knowledge_input"] = gr.Checkbox(
-                        label="Skip Knowledge Extraction",
-                        value=self.initial_defaults.get("skip_knowledge", False),
-                        info="Disable automatic quest/NPC extraction.",
+                    components["skip_knowledge_input"] = _a11y(
+                        gr.Checkbox(
+                            label="Skip Knowledge Extraction",
+                            value=self.initial_defaults.get("skip_knowledge", False),
+                            info="Disable automatic quest/NPC extraction.",
+                            elem_id="process-skip-knowledge",
+                        ),
+                        label="Skip knowledge extraction",
+                        described_by="process-skip-helper",
                     )
 
-                with gr.Accordion("Advanced Processing Options", open=False):
+                with gr.Accordion("Advanced Processing Options", open=False) as processing_accordion:
+                    _a11y(processing_accordion, label="Advanced processing options", role="group")
                     with gr.Row():
-                        components["enable_audit_mode_input"] = gr.Checkbox(
-                            label="Enable Audit Mode",
-                            value=False,
-                            info="Save detailed classification prompts and responses for reproducibility. Increases disk usage but enables debugging.",
+                        components["enable_audit_mode_input"] = _a11y(
+                            gr.Checkbox(
+                                label="Enable Audit Mode",
+                                value=False,
+                                info="Save detailed classification prompts and responses for reproducibility. Increases disk usage but enables debugging.",
+                                elem_id="process-enable-audit",
+                            ),
+                            label="Enable audit mode",
                         )
-                        components["redact_prompts_input"] = gr.Checkbox(
-                            label="Redact Prompts in Logs",
-                            value=False,
-                            info="When audit mode is enabled, redact full dialogue text from audit logs.",
+                        components["redact_prompts_input"] = _a11y(
+                            gr.Checkbox(
+                                label="Redact Prompts in Logs",
+                                value=False,
+                                info="When audit mode is enabled, redact full dialogue text from audit logs.",
+                                elem_id="process-redact-prompts",
+                            ),
+                            label="Redact prompts in logs",
                         )
 
                     with gr.Row():
-                        components["generate_scenes_input"] = gr.Checkbox(
-                            label="Generate Scene Bundles",
-                            value=True,
-                            info="Automatically detect and bundle segments into narrative scenes.",
+                        components["generate_scenes_input"] = _a11y(
+                            gr.Checkbox(
+                                label="Generate Scene Bundles",
+                                value=True,
+                                info="Automatically detect and bundle segments into narrative scenes.",
+                                elem_id="process-generate-scenes",
+                            ),
+                            label="Generate scene bundles",
                         )
-                        components["scene_summary_mode_input"] = gr.Dropdown(
-                            choices=["template", "llm", "none"],
-                            value="template",
-                            label="Scene Summary Mode",
-                            info="How to generate scene summaries (template=fast, llm=detailed, none=skip)",
+                        components["scene_summary_mode_input"] = _a11y(
+                            gr.Dropdown(
+                                choices=["template", "llm", "none"],
+                                value="template",
+                                label="Scene Summary Mode",
+                                info="How to generate scene summaries (template=fast, llm=detailed, none=skip)",
+                                elem_id="process-scene-summary-mode",
+                            ),
+                            label="Scene summary mode",
                         )
 
         return components
@@ -355,12 +499,22 @@ class ProcessingControlsBuilder:
         components = {}
 
         with gr.Group():
-            gr.Markdown("### Step 3: Process")
+            _a11y(
+                gr.Markdown("### Step 3: Process", elem_id="process-step-heading"),
+                label="Process heading",
+                role="heading",
+            )
 
             # Processing readiness checklist
-            components["readiness_checklist"] = gr.Markdown(
-                value="### ⚠️ Configuration Incomplete\n\n- ✗ Audio file not uploaded\n- ✗ Session ID required\n- ✗ Party selection required\n- ✓ Expected speakers: 4",
-                visible=True,
+            components["readiness_checklist"] = _a11y(
+                gr.Markdown(
+                    value="### ⚠️ Configuration Incomplete\n\n- ✗ Audio file not uploaded\n- ✗ Session ID required\n- ✗ Party selection required\n- ✓ Expected speakers: 4",
+                    visible=True,
+                    elem_id="process-readiness",
+                ),
+                label="Processing readiness checklist",
+                role="status",
+                live="polite",
             )
 
             components["preflight_btn"] = UIComponents.create_action_button(
@@ -368,6 +522,9 @@ class ProcessingControlsBuilder:
                 variant="secondary",
                 size="md",
                 full_width=True,
+                accessible_label="Run preflight checks",
+                aria_describedby="process-readiness",
+                elem_id="process-preflight-btn",
             )
 
             components["process_btn"] = UIComponents.create_action_button(
@@ -375,6 +532,9 @@ class ProcessingControlsBuilder:
                 variant="primary",
                 size="lg",
                 full_width=True,
+                accessible_label="Start session processing",
+                aria_describedby="process-readiness",
+                elem_id="process-start-btn",
             )
 
             components["cancel_btn"] = UIComponents.create_action_button(
@@ -383,45 +543,82 @@ class ProcessingControlsBuilder:
                 size="md",
                 full_width=True,
                 visible=False,
+                accessible_label="Cancel processing",
+                elem_id="process-cancel-btn",
             )
 
             # Overall Progress Indicator (prominent, visible during processing)
-            components["overall_progress_display"] = gr.HTML(
-                value="",
-                visible=False,
+            components["overall_progress_display"] = _a11y(
+                gr.HTML(
+                    value="",
+                    visible=False,
+                    elem_id="process-overall-progress",
+                ),
+                label="Overall progress",
+                role="status",
+                live="polite",
             )
 
-            components["status_output"] = gr.Markdown(
-                value=StatusMessages.info(
-                    "Ready",
-                    "Provide a session ID and audio file, then click Start Processing."
-                )
+            components["status_output"] = _a11y(
+                gr.Markdown(
+                    value=StatusMessages.info(
+                        "Ready",
+                        "Provide a session ID and audio file, then click Start Processing."
+                    ),
+                    elem_id="process-status-output",
+                ),
+                label="Processing status",
+                role="status",
+                live="polite",
             )
 
-            components["transcription_progress"] = gr.Markdown(
-                value="",
-                visible=False,
+            components["transcription_progress"] = _a11y(
+                gr.Markdown(
+                    value="",
+                    visible=False,
+                    elem_id="process-transcription-progress",
+                ),
+                label="Transcription progress",
+                role="status",
+                live="polite",
             )
 
             # Enhanced Runtime Updates Section
             with gr.Accordion("Runtime Updates & Event Log", open=False) as runtime_accordion:
-                gr.Markdown("**Live processing status, stage progress, and detailed event log**")
+                _a11y(runtime_accordion, label="Runtime updates and event log", role="group", elem_id="process-runtime-updates")
+                _a11y(
+                    gr.Markdown("**Live processing status, stage progress, and detailed event log**", elem_id="process-runtime-helper"),
+                    label="Runtime helper",
+                    role="note",
+                )
 
                 # Stage Progress Overview
-                components["stage_progress_display"] = gr.Markdown(
-                    value="",
-                    visible=False,
+                components["stage_progress_display"] = _a11y(
+                    gr.Markdown(
+                        value="",
+                        visible=False,
+                        elem_id="process-stage-progress",
+                    ),
+                    label="Stage progress",
+                    role="status",
+                    live="polite",
                 )
 
                 # Persistent Event Log
-                components["event_log_display"] = gr.Textbox(
-                    label="Event Log",
-                    lines=15,
-                    max_lines=30,
-                    value="",
-                    interactive=False,
-                    # show_copy_button=False, # Deprecated in newer Gradio
-                    elem_classes=["event-log-textbox"],
+                components["event_log_display"] = _a11y(
+                    gr.Textbox(
+                        label="Event Log",
+                        lines=15,
+                        max_lines=30,
+                        value="",
+                        interactive=False,
+                        # show_copy_button=False, # Deprecated in newer Gradio
+                        elem_classes=["event-log-textbox"],
+                        elem_id="process-event-log",
+                    ),
+                    label="Event log",
+                    described_by="process-runtime-helper",
+                    role="log",
                 )
 
             components["runtime_accordion"] = runtime_accordion
@@ -457,7 +654,11 @@ class ResultsSectionBuilder:
         components = {}
 
         with gr.Group(visible=False, elem_id="process-results-section") as results_section:
-            gr.Markdown("### Step 4: Review Results")
+            _a11y(
+                gr.Markdown("### Step 4: Review Results", elem_id="process-review-heading"),
+                label="Review results heading",
+                role="heading",
+            )
             
             # IMPROVEMENT: Use HighlightedText for a richer, color-coded transcript view.
             color_map = {
@@ -466,35 +667,59 @@ class ResultsSectionBuilder:
                 "NPC_DIALOGUE": "purple",
                 "OOC_OTHER": "red",
             }
-            components["full_output"] = gr.HighlightedText(
-                label="Full Transcript (Color-Coded by Classification)",
-                color_map=color_map,
-                interactive=False,
-                show_legend=True,
+            components["full_output"] = _a11y(
+                gr.HighlightedText(
+                    label="Full Transcript (Color-Coded by Classification)",
+                    color_map=color_map,
+                    interactive=False,
+                    show_legend=True,
+                    elem_id="process-full-output",
+                ),
+                label="Full transcript with classifications",
+                role="article",
             )
 
             # Plain text version with copy button for easy copying
-            components["full_output_text"] = gr.Textbox(
-                label="Full Transcript (Plain Text)",
-                lines=10,
-                show_copy_button=True,
-                info="Click the copy button to copy the entire transcript"
+            components["full_output_text"] = _a11y(
+                gr.Textbox(
+                    label="Full Transcript (Plain Text)",
+                    lines=10,
+                    info="Click the copy button to copy the entire transcript",
+                    elem_id="process-full-output-text",
+                ),
+                label="Full transcript plain text",
             )
 
-            components["ic_output"] = gr.Textbox(
-                label="In-Character Transcript",
-                lines=10,
-                show_copy_button=True,
-                info="IC-only dialogue - click copy button to extract"
+            components["ic_output"] = _a11y(
+                gr.Textbox(
+                    label="In-Character Transcript",
+                    lines=10,
+                    info="IC-only dialogue - click copy button to extract",
+                    elem_id="process-ic-output",
+                ),
+                label="In-character transcript",
             )
-            components["ooc_output"] = gr.Textbox(
-                label="Out-of-Character Transcript",
-                lines=10,
-                show_copy_button=True,
-                info="OOC-only content - click copy button to extract"
+            components["ooc_output"] = _a11y(
+                gr.Textbox(
+                    label="Out-of-Character Transcript",
+                    lines=10,
+                    info="OOC-only content - click copy button to extract",
+                    elem_id="process-ooc-output",
+                ),
+                label="Out-of-character transcript",
             )
-            components["stats_output"] = gr.Markdown()
-            components["snippet_output"] = gr.Markdown()
+            components["stats_output"] = _a11y(
+                gr.Markdown(elem_id="process-stats-output"),
+                label="Processing statistics",
+                role="status",
+                live="polite",
+            )
+            components["snippet_output"] = _a11y(
+                gr.Markdown(elem_id="process-snippet-output"),
+                label="Snippet output",
+                role="status",
+                live="polite",
+            )
 
         components["results_section"] = results_section
 
@@ -521,14 +746,20 @@ class ResumeFromIntermediateBuilder:
 
         components = {}
 
-        with gr.Accordion("🔄 Resume from Intermediate Outputs", open=False):
-            gr.Markdown(
-                """
-                Resume processing from a previously saved intermediate stage. This allows you to:
-                - Edit intermediate outputs manually and reprocess
-                - Test different backends on the same data
-                - Skip expensive stages that are already complete
-                """
+        with gr.Accordion("🔄 Resume from Intermediate Outputs", open=False) as resume_accordion:
+            _a11y(resume_accordion, label="Resume from intermediate outputs", role="group", elem_id="process-resume-accordion")
+            _a11y(
+                gr.Markdown(
+                    """
+                    Resume processing from a previously saved intermediate stage. This allows you to:
+                    - Edit intermediate outputs manually and reprocess
+                    - Test different backends on the same data
+                    - Skip expensive stages that are already complete
+                    """,
+                    elem_id="process-resume-helper",
+                ),
+                label="Resume helper",
+                role="note",
             )
 
             # Discover sessions button and dropdown
@@ -537,33 +768,52 @@ class ResumeFromIntermediateBuilder:
                     "🔍 Find Sessions",
                     variant="secondary",
                     size="sm",
+                    accessible_label="Find sessions with intermediate outputs",
+                    aria_describedby="process-resume-helper",
+                    elem_id="process-resume-refresh",
                 )
 
-            components["resume_session_dropdown"] = gr.Dropdown(
-                label="Session to Resume",
-                choices=[],
-                value=None,
-                interactive=True,
-                info="Select a session with intermediate outputs",
+            components["resume_session_dropdown"] = _a11y(
+                gr.Dropdown(
+                    label="Session to Resume",
+                    choices=[],
+                    value=None,
+                    interactive=True,
+                    info="Select a session with intermediate outputs",
+                    elem_id="process-resume-session",
+                ),
+                label="Session to resume",
+                described_by="process-resume-helper",
             )
 
-            components["resume_stage_dropdown"] = gr.Dropdown(
-                label="Resume from Stage",
-                choices=[
-                    ("Stage 4: Merged Transcript → Run Diarization, Classification, Outputs", 4),
-                    ("Stage 5: Diarization → Run Classification, Outputs", 5),
-                    ("Stage 6: Classification → Regenerate Outputs Only", 6),
-                ],
-                value=5,
-                interactive=True,
-                info="Which stage to resume from",
+            components["resume_stage_dropdown"] = _a11y(
+                gr.Dropdown(
+                    label="Resume from Stage",
+                    choices=[
+                        ("Stage 4: Merged Transcript → Run Diarization, Classification, Outputs", 4),
+                        ("Stage 5: Diarization → Run Classification, Outputs", 5),
+                        ("Stage 6: Classification → Regenerate Outputs Only", 6),
+                    ],
+                    value=5,
+                    interactive=True,
+                    info="Which stage to resume from",
+                    elem_id="process-resume-stage",
+                ),
+                label="Resume from stage",
+                described_by="process-resume-helper",
             )
 
-            components["resume_session_info"] = gr.Markdown(
-                value=StatusMessages.info(
-                    "Session Info",
-                    "Click 'Find Sessions' to discover available sessions, then select one to see details."
-                )
+            components["resume_session_info"] = _a11y(
+                gr.Markdown(
+                    value=StatusMessages.info(
+                        "Session Info",
+                        "Click 'Find Sessions' to discover available sessions, then select one to see details."
+                    ),
+                    elem_id="process-resume-info",
+                ),
+                label="Resume session information",
+                role="status",
+                live="polite",
             )
 
             with gr.Row():
@@ -571,10 +821,19 @@ class ResumeFromIntermediateBuilder:
                     "▶️ Resume Processing",
                     variant="primary",
                     size="lg",
+                    accessible_label="Resume processing",
+                    aria_describedby="process-resume-helper",
+                    elem_id="process-resume-start",
                 )
 
-            components["resume_status"] = gr.Markdown(
-                value=""
+            components["resume_status"] = _a11y(
+                gr.Markdown(
+                    value="",
+                    elem_id="process-resume-status",
+                ),
+                label="Resume status",
+                role="status",
+                live="polite",
             )
 
         return components

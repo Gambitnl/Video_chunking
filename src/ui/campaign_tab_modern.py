@@ -3,12 +3,22 @@ from typing import Dict, Optional
 
 import gradio as gr
 
-from src.ui.helpers import StatusMessages
+from src.ui.helpers import AccessibilityAttributes, StatusMessages
 from src.ui.constants import StatusIndicators as SI
 
 
 def create_campaign_tab_modern(blocks: gr.Blocks) -> Dict[str, gr.components.Component]:
     """Create the Campaign tab and return references to key components."""
+
+    def _a11y(component: gr.components.Component, *, label: str, described_by: str | None = None, role: str | None = None, live: str | None = None, elem_id: str | None = None):
+        return AccessibilityAttributes.apply(
+            component,
+            label=label,
+            described_by=described_by,
+            role=role,
+            live=live,
+            elem_id=elem_id,
+        )
 
     with gr.Tab("Campaign"):
         gr.Markdown(
@@ -21,39 +31,65 @@ def create_campaign_tab_modern(blocks: gr.Blocks) -> Dict[str, gr.components.Com
 
         # Campaign selector and controls
         with gr.Row():
-            campaign_selector = gr.Dropdown(
-                label="Campaign",
-                choices=[],
-                value=None,
-                info="Select a campaign to view its details (updates from Campaign Launcher)",
-                scale=3
+            campaign_selector = _a11y(
+                gr.Dropdown(
+                    label="Campaign",
+                    choices=[],
+                    value=None,
+                    info="Select a campaign to view its details (updates from Campaign Launcher)",
+                    scale=3,
+                    elem_id="campaign-selector",
+                ),
+                label="Campaign selector",
             )
-            refresh_btn = gr.Button(
-                SI.ACTION_REFRESH,
-                variant="secondary",
-                size="sm",
-                scale=0
+            refresh_btn = _a11y(
+                gr.Button(
+                    SI.ACTION_REFRESH,
+                    variant="secondary",
+                    size="sm",
+                    scale=0,
+                    elem_id="campaign-refresh",
+                ),
+                label="Refresh campaigns",
+                role="button",
             )
 
         # Campaign Management Section
         with gr.Accordion("Manage Selected Campaign", open=False):
             with gr.Row():
-                new_campaign_name_input = gr.Textbox(
-                    label="New Campaign Name",
-                    placeholder="Enter new name and click rename...",
-                    scale=3
+                new_campaign_name_input = _a11y(
+                    gr.Textbox(
+                        label="New Campaign Name",
+                        placeholder="Enter new name and click rename...",
+                        scale=3,
+                        elem_id="campaign-rename-input",
+                    ),
+                    label="New campaign name",
                 )
-                rename_campaign_btn = gr.Button(
-                    "Rename Campaign",
-                    variant="primary",
-                    scale=1
+                rename_campaign_btn = _a11y(
+                    gr.Button(
+                        "Rename Campaign",
+                        variant="primary",
+                        scale=1,
+                        elem_id="campaign-rename-btn",
+                    ),
+                    label="Rename campaign",
                 )
             with gr.Row():
-                delete_campaign_btn = gr.Button(
-                    "Delete Selected Campaign",
-                    variant="stop",
+                delete_campaign_btn = _a11y(
+                    gr.Button(
+                        "Delete Selected Campaign",
+                        variant="stop",
+                        elem_id="campaign-delete-btn",
+                    ),
+                    label="Delete selected campaign",
                 )
-            manage_status_md = gr.Markdown(value="")
+            manage_status_md = _a11y(
+                gr.Markdown(value="", elem_id="campaign-manage-status"),
+                label="Campaign management status",
+                role="status",
+                live="polite",
+            )
 
         # Campaign Overview Section
         gr.Markdown("## Campaign Overview")

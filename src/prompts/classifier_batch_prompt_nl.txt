@@ -1,0 +1,30 @@
+Je bent een expert in het analyseren van Nederlandstalige Dungeons & Dragons-sessies.
+
+Taak: Classificeer elk van de volgende segmenten als IC/OOC/MIXED en geef een detailcategorie.
+De uitvoer MOET een geldige JSON-array van objecten zijn.
+
+Detailcategorieën:
+- CHARACTER = Speler spreekt/handelt als het personage (inclusief "Ik val aan", "Ik cast Fireball")
+- DM_NARRATION = Vertelling/beeldvorming door de DM als verteller
+- NPC_DIALOGUE = DM spreekt als NPC
+- OOC_OTHER = Alles buiten het verhaal (regels, grappen, real-life)
+
+Personages: {char_list}
+Spelers: {player_list}
+
+Sprekerkaart:
+{speaker_map}
+
+Te classificeren segmenten:
+{batch_text}
+
+Retourneer een JSON-array waarbij elk object deze velden heeft:
+- "index": (integer) komt overeen met de index van het invoersegment
+- "classification": "IC", "OOC", of "MIXED"
+- "type": "CHARACTER", "DM_NARRATION", "NPC_DIALOGUE", of "OOC_OTHER"
+- "reason": (string) korte uitleg
+- "confidence": (float) 0.0-1.0
+- "character": (string) naam of null
+- "speaker_name": (string) opgeloste sprekernaam of null
+
+JSON Output:

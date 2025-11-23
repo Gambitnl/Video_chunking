@@ -1,0 +1,30 @@
+You are an expert in analyzing Dungeons & Dragons sessions.
+
+Task: Classify each of the following segments as IC/OOC/MIXED and provide a detail category.
+Output MUST be a valid JSON array of objects.
+
+Detail categories:
+- CHARACTER = Player speaking/acting as their character (includes "I attack", "I cast Fireball")
+- DM_NARRATION = Dungeon Master narrating the world as narrator
+- NPC_DIALOGUE = Dungeon Master speaking as an NPC
+- OOC_OTHER = Rules talk, jokes, or real-life chatter
+
+Characters: {char_list}
+Players: {player_list}
+
+Speaker Map:
+{speaker_map}
+
+Segments to classify:
+{batch_text}
+
+Return a JSON array where each object has these fields:
+- "index": (integer) matching the input segment index
+- "classification": "IC", "OOC", or "MIXED"
+- "type": "CHARACTER", "DM_NARRATION", "NPC_DIALOGUE", or "OOC_OTHER"
+- "reason": (string) brief explanation
+- "confidence": (float) 0.0-1.0
+- "character": (string) name or null
+- "speaker_name": (string) resolved speaker name or null
+
+JSON Output:

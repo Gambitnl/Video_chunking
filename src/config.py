@@ -105,6 +105,8 @@ class Config:
     CLASSIFIER_CONTEXT_FUTURE_SECONDS: float = get_env_as_float("CLASSIFIER_CONTEXT_FUTURE_SECONDS", 30.0)
     CLASSIFIER_AUDIT_MODE: bool = get_env_as_bool("CLASSIFIER_AUDIT_MODE", False)
     CLASSIFIER_PROMPT_PREVIEW_CHARS: int = get_env_as_int("CLASSIFIER_PROMPT_PREVIEW_CHARS", 256)
+    CLASSIFICATION_USE_BATCHING: bool = get_env_as_bool("CLASSIFICATION_USE_BATCHING", True)
+    CLASSIFICATION_BATCH_SIZE: int = get_env_as_int("CLASSIFICATION_BATCH_SIZE", 10)
 
     # Paths
     PROJECT_ROOT: Path = Path(__file__).parent.parent

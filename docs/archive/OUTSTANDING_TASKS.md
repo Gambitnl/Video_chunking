@@ -453,10 +453,11 @@ If you find a `[~]` task with timestamp >24 hours old:
   - **Implementation**: Added validate_processing_readiness() with dynamic checklist and button state management
   → UX_IMPROVEMENTS.md:101-126
 
-- [ ] **UX-06**: Visual progress bars
-  - **Files**: `src/ui/process_session_components.py`, `src/ui/theme.py:154-166`
+- [x] **UX-06**: Visual progress bars (Agent: Claude Sonnet 4.5, Completed: 2025-11-22)
+  - **Files**: `src/ui/process_session_components.py`, `src/ui/process_session_helpers.py`
   - **Effort**: 2 days | **Conflict Risk**: ⚠️⚠️ MEDIUM
   - **Impact**: Professional appearance, better progress visibility
+  - **Implementation**: Replaced ASCII bars with HTML/CSS progress bars using existing theme styles
   → UX_IMPROVEMENTS.md:166-194
 
 - [ ] **UX-08**: Persistent campaign badge in header

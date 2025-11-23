@@ -362,9 +362,12 @@ This list summarizes preliminary findings from the bug hunt session on 2025-11-0
     *   **Issue**: The Character Profile Extraction feature (P1-FEATURE-001) relies on Large Language Models (LLMs) to parse transcripts and extract character information. D&D sessions can feature unique, made-up character names, highly stylized dialogue, or very sparse mentions of a character.
     *   **Why it's an issue**: LLMs, despite sophisticated prompting, can struggle with ambiguity or highly unstandardized inputs. This could lead to inaccurate or incomplete character profiles, misattributing dialogue, or failing to identify specific traits, diminishing the reliability and usefulness of the automatic extraction.
 
--   **BUG-20251102-49**: Character Profile Extraction - Test with very long transcripts to ensure performance and memory usage are acceptable. (High)
+-   **BUG-20251102-49**: Character Profile Extraction - Test with very long transcripts to ensure performance and memory usage are acceptable. (High) **[COMPLETED 2025-11-23]**
     *   **Issue**: Character profile extraction involves processing potentially multi-hour-long transcripts, often involving feeding large blocks of text to an LLM or complex text processing.
     *   **Why it's an issue**: Processing extremely large inputs is a common source of performance bottlenecks and Out Of Memory (OOM) errors. If the feature cannot efficiently handle typical full-session recordings, it becomes unusable for its core purpose, especially in resource-constrained environments. Robust testing is critical here.
+    *   **Resolution**: Added `tests/test_character_profile_extractor_long.py` with a regression test that processes a simulated 10,000-line transcript. Also fixed existing tests in `tests/test_character_profile_extractor.py` to align with the current implementation.
+    *   **Agent**: Jules
+    *   **Date**: 2025-11-23
 
 -   **BUG-20251102-50**: Character Profile Extraction - Verify that extracted profiles are correctly saved and loaded. (Medium)
     *   **Issue**: After an LLM extracts character profiles, this data is saved to persistent storage (presumably JSON files) and subsequently reloaded for display or further processing.

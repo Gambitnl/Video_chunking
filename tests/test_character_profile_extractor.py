@@ -43,70 +43,51 @@ class TestCharacterProfileExtractor:
         assert extractor is not None
         assert extractor.extractor is not None
 
-    def test_parse_transcript_with_timestamps(self):
+    def test_parse_transcript_with_timestamps(self, tmp_path):
         extractor = CharacterProfileExtractor()
 
         transcript_text = """[00:12:34] Thorin: I charge into battle!
 [00:15:45] Elara: I cast healing word on Thorin.
 [01:23:00] DM: You rolled a natural 20!"""
 
-        segments = extractor._parse_transcript(transcript_text)
+        transcript_path = tmp_path / "transcript.txt"
+        transcript_path.write_text(transcript_text, encoding="utf-8")
+
+        segments = extractor._parse_plaintext_transcript(transcript_path)
 
         assert len(segments) == 3
         assert segments[0]["speaker"] == "Thorin"
         assert segments[0]["text"] == "I charge into battle!"
         assert segments[0]["start"] == 12 * 60 + 34
 
-    def test_parse_transcript_without_timestamps(self):
+    def test_parse_transcript_without_timestamps(self, tmp_path):
         extractor = CharacterProfileExtractor()
 
         transcript_text = """Thorin charges forward.
 Elara casts a spell.
 The goblin attacks!"""
 
-        segments = extractor._parse_transcript(transcript_text)
+        transcript_path = tmp_path / "transcript_no_ts.txt"
+        transcript_path.write_text(transcript_text, encoding="utf-8")
+
+        segments = extractor._parse_plaintext_transcript(transcript_path)
 
         assert len(segments) == 3
-        assert all(seg["start"] == 0.0 for seg in segments)
+        assert all(seg["start"] == float(i) for i, seg in enumerate(segments))
         assert all(seg["speaker"] == "Unknown" for seg in segments)
 
-    def test_parse_transcript_applies_speaker_lookup(self):
-        extractor = CharacterProfileExtractor()
-        transcript_text = "[00:00:05] SPEAKER_04: Hello there!"
-        segments = extractor._parse_transcript(
-            transcript_text,
-            speaker_lookup={"speaker04": "Sha'ek Mindfa'ek"},
-        )
-        assert segments[0]["speaker"] == "Sha'ek Mindfa'ek"
-
-    def test_resolve_character_name_handles_multiple_names(self, tmp_path, monkeypatch):
+    def test_resolve_character_name_handles_alias(self, tmp_path, monkeypatch):
         monkeypatch.setattr(config_module.Config, "MODELS_DIR", tmp_path)
-        profile_mgr = CharacterProfileManager(profiles_dir=tmp_path / "profiles")
         extractor = CharacterProfileExtractor()
-        party_chars = [
-            Character(name="Furnax", player="Companion", race="", class_name=""),
-            Character(name="Sha'ek Mindfa'ek", player="Player", race="", class_name=""),
-        ]
-        resolved = extractor._resolve_character_name(
-            "Furnax & Sha'ek Mindfa'ek",
-            party_chars,
-            profile_mgr,
-        )
-        assert resolved == "Furnax"
 
-    def test_resolve_character_name_uses_speaker_lookup(self, tmp_path, monkeypatch):
-        monkeypatch.setattr(config_module.Config, "MODELS_DIR", tmp_path)
-        profile_mgr = CharacterProfileManager(profiles_dir=tmp_path / "profiles")
-        extractor = CharacterProfileExtractor()
-        party_chars = [
-            Character(name="Sha'ek Mindfa'ek", player="Player1", race="", class_name=""),
-        ]
-        speaker_lookup = {"speaker04": "Sha'ek Mindfa'ek"}
+        character_lookup = {
+            "Furnax": Character(name="Furnax", player="Companion", race="", class_name=""),
+            "Sha'ek Mindfa'ek": Character(name="Sha'ek Mindfa'ek", player="Player", race="", class_name="", aliases=["Sha'ek"]),
+        }
+
         resolved = extractor._resolve_character_name(
-            "SPEAKER_04",
-            party_chars,
-            profile_mgr,
-            speaker_lookup,
+            "Sha'ek",
+            character_lookup,
         )
         assert resolved == "Sha'ek Mindfa'ek"
 

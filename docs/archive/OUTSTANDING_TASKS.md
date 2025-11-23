@@ -474,10 +474,11 @@ If you find a `[~]` task with timestamp >24 hours old:
   - **Implementation**: Added show_copy_button=True to transcript textboxes, added plain text output with copy
   → UX_IMPROVEMENTS.md:435-475
 
-- [ ] **UX-16**: Empty state call-to-action cards
-  - **Files**: `src/ui/campaign_tab_modern.py:40-62`
+- [x] **UX-16**: Empty state call-to-action cards (Agent: Claude Sonnet 4.5, Completed: 2025-11-23)
+  - **Files**: `src/ui/campaign_tab_modern.py`, `src/ui/theme.py`
   - **Effort**: 1 day | **Conflict Risk**: ⚠️ LOW
   - **Impact**: Better onboarding, clear next actions
+  - **Implementation**: Replaced generic info messages with HTML cards, added CSS for empty states
   → UX_IMPROVEMENTS.md:506-550
 
 ### Phase 2: Medium Priority Enhancements (28 days, 8 tasks)

@@ -278,8 +278,69 @@ def test_delete_conversation(conversation_store):
     assert conversation_store.delete_conversation(conversation_id)
     assert not (conversation_store.conversations_dir / f"{conversation_id}.json").exists()
 
-def test_delete_nonexistent_conversation(conversation_store):
-    assert not conversation_store.delete_conversation("conv_nonexistent")
+def test_delete_nonexistent_conversation(conversation_store, caplog):
+    """
+    Test deleting a non-existent conversation.
+    BUG-20251102-16
+    """
+    caplog.set_level(logging.WARNING)
+
+    # Use a valid-looking but non-existent ID
+    non_existent_id = "conv_00000000"
+    result = conversation_store.delete_conversation(non_existent_id)
+
+    assert not result
+    assert f"Cannot delete, conversation not found: {non_existent_id}" in caplog.text
+
+def test_add_message_complex_sources(conversation_store):
+    """
+    Test adding a message with complex source metadata.
+    BUG-20251102-34
+    """
+    conversation_id = conversation_store.create_conversation()
+
+    # Varied source types and metadata depths
+    complex_sources = [
+        {
+            "id": "src_1",
+            "text": "Excerpt from ancient tome",
+            "metadata": {
+                "type": "knowledge",
+                "source": "Book of Vile Darkness",
+                "page": 42,
+                "tags": ["evil", "magic", "forbidden"],
+                "nested": {"author": "Vecna", "era": "Age of Arcanum"}
+            }
+        },
+        {
+            "id": "src_2",
+            "text": "Transcript segment",
+            "metadata": {
+                "type": "transcript",
+                "session_id": "session_123",
+                "speaker": "Grog",
+                "timestamp": 123.45
+            }
+        }
+    ]
+
+    conversation_store.add_message(
+        conversation_id,
+        "assistant",
+        "Here is what I found.",
+        sources=complex_sources
+    )
+
+    conversation = conversation_store.load_conversation(conversation_id)
+    message = conversation["messages"][-1]
+
+    # Verify structure integrity
+    assert len(message["sources"]) == 2
+    assert message["sources"][0]["metadata"]["nested"]["author"] == "Vecna"
+    assert message["sources"][1]["metadata"]["session_id"] == "session_123"
+
+    # Verify session context update
+    assert "session_123" in conversation["context"]["relevant_sessions"]
 
 def test_get_chat_history(conversation_store):
     conversation_id = conversation_store.create_conversation()

@@ -483,13 +483,29 @@ class CharacterProfileExtractor:
         if not normalized:
             return None
 
+        # Helper for fuzzy matching: remove all non-alphanumeric characters
+        def _simplify(s: str) -> str:
+            return "".join(c for c in s.lower() if c.isalnum())
+
+        simple_candidate = _simplify(candidate)
+
         for canonical_name, character in character_lookup.items():
+            # 1. Exact case-insensitive match
             if normalized == canonical_name.lower():
                 return canonical_name
 
+            # 2. Check aliases (case-insensitive)
             aliases = character.aliases or []
             if any(normalized == alias.lower() for alias in aliases):
                 return canonical_name
+
+            # 3. Fuzzy match: check simplified versions of name and aliases
+            # This handles "M & M" vs "M&M", "O'Connor" vs "OConnor", etc.
+            if simple_candidate:
+                if simple_candidate == _simplify(canonical_name):
+                    return canonical_name
+                if any(simple_candidate == _simplify(alias) for alias in aliases):
+                    return canonical_name
 
         return None
 

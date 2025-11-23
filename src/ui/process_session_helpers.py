@@ -107,6 +107,101 @@ def validate_session_id_realtime(session_id: str) -> str:
             )
 
 
+def validate_processing_readiness(
+    audio_file,
+    session_id: str,
+    party_selection: str,
+    character_names: str,
+    player_names: str,
+    num_speakers: int,
+) -> Tuple[bool, str]:
+    """
+    Validate if all requirements are met to enable the Process button.
+
+    Args:
+        audio_file: Gradio file upload object
+        session_id: User-provided session identifier
+        party_selection: Selected party ID or "Manual Entry"
+        character_names: Comma-separated character names
+        player_names: Comma-separated player names
+        num_speakers: Expected number of speakers
+
+    Returns:
+        Tuple of (is_ready: bool, checklist_markdown: str)
+    """
+    checks = []
+    is_ready = True
+
+    # Check 1: Audio file uploaded
+    if audio_file:
+        file_name = getattr(audio_file, "name", None) or getattr(audio_file, "orig_name", None)
+        if file_name:
+            file_extension = Path(file_name).suffix.lower()
+            if file_extension in ALLOWED_AUDIO_EXTENSIONS:
+                checks.append("- ✓ Audio file uploaded")
+            else:
+                checks.append(f"- ✗ Invalid audio format ({file_extension})")
+                is_ready = False
+        else:
+            checks.append("- ✗ Audio file not readable")
+            is_ready = False
+    else:
+        checks.append("- ✗ Audio file not uploaded")
+        is_ready = False
+
+    # Check 2: Session ID valid
+    if session_id and session_id.strip() and SESSION_ID_PATTERN.match(session_id.strip()):
+        checks.append("- ✓ Session ID valid")
+    elif not session_id or not session_id.strip():
+        checks.append("- ✗ Session ID required")
+        is_ready = False
+    else:
+        checks.append("- ✗ Session ID invalid (use only letters, numbers, _, -)")
+        is_ready = False
+
+    # Check 3: Party configuration
+    if party_selection and party_selection != "Manual Entry":
+        # Using a pre-defined party
+        checks.append(f"- ✓ Party configured ({party_selection})")
+    elif party_selection == "Manual Entry":
+        # Manual entry - check if character names are provided
+        if character_names and character_names.strip():
+            char_list = [c.strip() for c in character_names.split(",") if c.strip()]
+            if len(char_list) > 0:
+                checks.append(f"- ✓ {len(char_list)} character(s) specified")
+            else:
+                checks.append("- ✗ Character names required for Manual Entry")
+                is_ready = False
+        else:
+            checks.append("- ⚠️ Character names recommended for Manual Entry")
+            # Don't block processing, but warn
+    else:
+        checks.append("- ✗ Party selection required")
+        is_ready = False
+
+    # Check 4: Speaker count reasonable
+    try:
+        speakers = int(num_speakers)
+        if 2 <= speakers <= 10:
+            checks.append(f"- ✓ Expected speakers: {speakers}")
+        else:
+            checks.append(f"- ⚠️ Speaker count unusual ({speakers})")
+            # Don't block, just warn
+    except (ValueError, TypeError):
+        checks.append("- ✗ Speaker count invalid")
+        is_ready = False
+
+    # Build checklist markdown
+    if is_ready:
+        header = "### ✓ Ready to Process\n\n"
+    else:
+        header = "### ⚠️ Configuration Incomplete\n\n"
+
+    checklist = header + "\n".join(checks)
+
+    return is_ready, checklist
+
+
 def _utcnow() -> datetime:
     """Return the current UTC time (isolated for testing)."""
 

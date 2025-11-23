@@ -353,6 +353,12 @@ class ProcessingControlsBuilder:
         with gr.Group():
             gr.Markdown("### Step 3: Process")
 
+            # Processing readiness checklist
+            components["readiness_checklist"] = gr.Markdown(
+                value="### ⚠️ Configuration Incomplete\n\n- ✗ Audio file not uploaded\n- ✗ Session ID required\n- ✗ Party selection required\n- ✓ Expected speakers: 4",
+                visible=True,
+            )
+
             components["preflight_btn"] = UIComponents.create_action_button(
                 "Run Preflight Checks",
                 variant="secondary",

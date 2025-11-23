@@ -28,6 +28,7 @@ from src.ui.helpers import StatusMessages
 from src.ui.process_session_helpers import (
     validate_session_inputs,
     validate_session_id_realtime,
+    validate_processing_readiness,
     render_processing_response,
     prepare_processing_status,
     poll_transcription_progress,
@@ -93,13 +94,15 @@ class ProcessSessionEventWiring:
         Event wiring order:
             1. File upload events (validation, history)
             2. Session ID validation events (real-time)
-            3. Party selection events (character display)
-            4. Processing events (main workflow)
-            5. Preflight events (validation)
-            6. Polling events (live updates)
+            3. Processing readiness validation events (checklist + button state)
+            4. Party selection events (character display)
+            5. Processing events (main workflow)
+            6. Preflight events (validation)
+            7. Polling events (live updates)
         """
         self._wire_file_upload_events()
         self._wire_session_id_validation_events()
+        self._wire_readiness_validation_events()
         self._wire_party_selection_events()
         self._wire_processing_events()
         self._wire_cancel_events()
@@ -144,6 +147,50 @@ class ProcessSessionEventWiring:
             inputs=[self.components["session_id_input"]],
             outputs=[self.components["session_id_validation"]],
         )
+
+    # -------------------------------------------------------------------------
+    # Processing Readiness Validation Events
+    # -------------------------------------------------------------------------
+
+    def _wire_readiness_validation_events(self) -> None:
+        """
+        Wire events for processing readiness validation.
+
+        Monitors all configuration inputs and updates:
+        1. Readiness checklist showing what's configured
+        2. Process button enabled/disabled state
+
+        This prevents users from starting processing with incomplete configuration.
+        """
+        def check_readiness(audio_file, session_id, party_selection, character_names, player_names, num_speakers):
+            """Validate processing readiness and update UI."""
+            is_ready, checklist = validate_processing_readiness(
+                audio_file, session_id, party_selection, character_names, player_names, num_speakers
+            )
+            return checklist, gr.update(interactive=is_ready)
+
+        # Wire all inputs that affect readiness
+        inputs = [
+            self.components["audio_input"],
+            self.components["session_id_input"],
+            self.components["party_selection_input"],
+            self.components["character_names_input"],
+            self.components["player_names_input"],
+            self.components["num_speakers_input"],
+        ]
+
+        outputs = [
+            self.components["readiness_checklist"],
+            self.components["process_btn"],
+        ]
+
+        # Trigger validation on any input change
+        for component in inputs:
+            component.change(
+                fn=check_readiness,
+                inputs=inputs,
+                outputs=outputs,
+            )
 
     # -------------------------------------------------------------------------
     # Party Selection Events

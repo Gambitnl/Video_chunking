@@ -457,6 +457,31 @@ details > div {
     background: #94a3b8;
 }
 
+/* Campaign Badge - Sticky header showing active campaign */
+.campaign-badge-sticky {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+    color: white !important;
+    padding: 0.75rem 1rem;
+    text-align: center;
+    border-radius: 8px;
+    margin-bottom: 1rem;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.campaign-badge-sticky p {
+    margin: 0 !important;
+    color: white !important;
+    font-weight: 600;
+    font-size: 1rem;
+}
+
+.campaign-badge-sticky strong {
+    color: white !important;
+}
+
 /* Responsive adjustments */
 @media (max-width: 768px) {
     .stepper {
@@ -517,6 +542,54 @@ details > div {
     border-radius: 8px;
     padding: 1rem;
     border-left: 4px solid #6366f1;
+}
+
+/* Empty State Cards */
+.empty-state-card {
+    background: linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%);
+    border: 2px dashed #d1d5db;
+    border-radius: 12px;
+    padding: 3rem 2rem;
+    text-align: center;
+    margin: 2rem 0;
+}
+
+.empty-state-icon {
+    font-size: 4rem;
+    margin-bottom: 1rem;
+    line-height: 1;
+}
+
+.empty-state-card h3 {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: #374151;
+    margin-bottom: 0.75rem;
+}
+
+.empty-state-card p {
+    font-size: 1rem;
+    color: #6b7280;
+    margin-bottom: 1.5rem;
+    line-height: 1.6;
+}
+
+.empty-state-actions {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+.empty-state-card .info-badge {
+    display: inline-block;
+    background: #dbeafe;
+    color: #1e40af;
+    padding: 0.5rem 1rem;
+    border-radius: 9999px;
+    font-size: 0.875rem;
+    font-weight: 500;
+    margin: 0.25rem;
 }
 """
 

@@ -27,12 +27,15 @@ import gradio as gr
 from src.ui.helpers import StatusMessages
 from src.ui.process_session_helpers import (
     validate_session_inputs,
+    validate_session_id_realtime,
+    validate_processing_readiness,
     render_processing_response,
     prepare_processing_status,
     poll_transcription_progress,
     poll_runtime_updates,
     poll_overall_progress,
     check_file_processing_history,
+    analyze_uploaded_file,
     update_party_display as update_party_display_helper,
 )
 
@@ -91,12 +94,16 @@ class ProcessSessionEventWiring:
 
         Event wiring order:
             1. File upload events (validation, history)
-            2. Party selection events (character display)
-            3. Processing events (main workflow)
-            4. Preflight events (validation)
-            5. Polling events (live updates)
+            2. Session ID validation events (real-time)
+            3. Processing readiness validation events (checklist + button state)
+            4. Party selection events (character display)
+            5. Processing events (main workflow)
+            6. Preflight events (validation)
+            7. Polling events (live updates)
         """
         self._wire_file_upload_events()
+        self._wire_session_id_validation_events()
+        self._wire_readiness_validation_events()
         self._wire_party_selection_events()
         self._wire_processing_events()
         self._wire_cancel_events()
@@ -111,19 +118,88 @@ class ProcessSessionEventWiring:
         """
         Wire events for file upload component.
 
-        Sets up file validation and processing history checks that trigger
-        when a user uploads an audio file.
+        Sets up file validation, info display, and processing history checks
+        that trigger when a user uploads an audio file.
         """
-        def check_file_history(file):
-            """Check if uploaded file was processed before."""
+        def handle_file_upload(file):
+            """Analyze file and check processing history."""
+            # Get file info (size, duration, estimated time)
+            file_info = analyze_uploaded_file(file)
+
+            # Check if file was processed before
             warning_text, is_visible = check_file_processing_history(file)
-            return gr.update(value=warning_text, visible=is_visible)
+
+            return file_info, gr.update(value=warning_text, visible=is_visible)
 
         self.components["audio_input"].change(
-            fn=check_file_history,
+            fn=handle_file_upload,
             inputs=[self.components["audio_input"]],
-            outputs=[self.components["file_warning_display"]],
+            outputs=[
+                self.components["file_info_display"],
+                self.components["file_warning_display"],
+            ],
         )
+
+    # -------------------------------------------------------------------------
+    # Session ID Validation Events
+    # -------------------------------------------------------------------------
+
+    def _wire_session_id_validation_events(self) -> None:
+        """
+        Wire events for real-time Session ID validation.
+
+        Validates the session ID as the user types, providing immediate feedback
+        about invalid characters or format issues.
+        """
+        self.components["session_id_input"].change(
+            fn=validate_session_id_realtime,
+            inputs=[self.components["session_id_input"]],
+            outputs=[self.components["session_id_validation"]],
+        )
+
+    # -------------------------------------------------------------------------
+    # Processing Readiness Validation Events
+    # -------------------------------------------------------------------------
+
+    def _wire_readiness_validation_events(self) -> None:
+        """
+        Wire events for processing readiness validation.
+
+        Monitors all configuration inputs and updates:
+        1. Readiness checklist showing what's configured
+        2. Process button enabled/disabled state
+
+        This prevents users from starting processing with incomplete configuration.
+        """
+        def check_readiness(audio_file, session_id, party_selection, character_names, player_names, num_speakers):
+            """Validate processing readiness and update UI."""
+            is_ready, checklist = validate_processing_readiness(
+                audio_file, session_id, party_selection, character_names, player_names, num_speakers
+            )
+            return checklist, gr.update(interactive=is_ready)
+
+        # Wire all inputs that affect readiness
+        inputs = [
+            self.components["audio_input"],
+            self.components["session_id_input"],
+            self.components["party_selection_input"],
+            self.components["character_names_input"],
+            self.components["player_names_input"],
+            self.components["num_speakers_input"],
+        ]
+
+        outputs = [
+            self.components["readiness_checklist"],
+            self.components["process_btn"],
+        ]
+
+        # Trigger validation on any input change
+        for component in inputs:
+            component.change(
+                fn=check_readiness,
+                inputs=inputs,
+                outputs=outputs,
+            )
 
     # -------------------------------------------------------------------------
     # Party Selection Events
@@ -320,6 +396,7 @@ class ProcessSessionEventWiring:
                 self.components["status_output"],
                 self.components["results_section"],
                 self.components["full_output"],
+                self.components["full_output_text"],  # Plain text with copy button
                 self.components["ic_output"],
                 self.components["ooc_output"],
                 self.components["stats_output"],

@@ -122,6 +122,10 @@ class UploadSectionBuilder:
                 file_types=self.ALLOWED_AUDIO_EXTENSIONS,
             )
 
+            components["file_info_display"] = gr.Markdown(
+                value="",
+            )
+
             components["file_warning_display"] = gr.Markdown(
                 value="",
                 visible=False,
@@ -183,6 +187,12 @@ class ConfigurationSectionBuilder:
                 label="Session ID",
                 placeholder=Placeholders.SESSION_ID,
                 info=InfoText.SESSION_ID,
+            )
+
+            # Session ID validation status (real-time feedback)
+            components["session_id_validation"] = gr.Markdown(
+                value="",
+                visible=True,
             )
 
             # Party Selection
@@ -347,6 +357,12 @@ class ProcessingControlsBuilder:
         with gr.Group():
             gr.Markdown("### Step 3: Process")
 
+            # Processing readiness checklist
+            components["readiness_checklist"] = gr.Markdown(
+                value="### ⚠️ Configuration Incomplete\n\n- ✗ Audio file not uploaded\n- ✗ Session ID required\n- ✗ Party selection required\n- ✓ Expected speakers: 4",
+                visible=True,
+            )
+
             components["preflight_btn"] = UIComponents.create_action_button(
                 "Run Preflight Checks",
                 variant="secondary",
@@ -370,7 +386,7 @@ class ProcessingControlsBuilder:
             )
 
             # Overall Progress Indicator (prominent, visible during processing)
-            components["overall_progress_display"] = gr.Markdown(
+            components["overall_progress_display"] = gr.HTML(
                 value="",
                 visible=False,
             )
@@ -456,9 +472,27 @@ class ResultsSectionBuilder:
                 interactive=False,
                 show_legend=True,
             )
-            
-            components["ic_output"] = gr.Textbox(label="In-Character Transcript", lines=10)
-            components["ooc_output"] = gr.Textbox(label="Out-of-Character Transcript", lines=10)
+
+            # Plain text version with copy button for easy copying
+            components["full_output_text"] = gr.Textbox(
+                label="Full Transcript (Plain Text)",
+                lines=10,
+                show_copy_button=True,
+                info="Click the copy button to copy the entire transcript"
+            )
+
+            components["ic_output"] = gr.Textbox(
+                label="In-Character Transcript",
+                lines=10,
+                show_copy_button=True,
+                info="IC-only dialogue - click copy button to extract"
+            )
+            components["ooc_output"] = gr.Textbox(
+                label="Out-of-Character Transcript",
+                lines=10,
+                show_copy_button=True,
+                info="OOC-only content - click copy button to extract"
+            )
             components["stats_output"] = gr.Markdown()
             components["snippet_output"] = gr.Markdown()
 
@@ -602,7 +636,10 @@ class ProcessSessionTabBuilder:
             "Campaign",
             "No campaign selected. Use the Campaign Launcher above to choose one."
         )
-        all_components["campaign_badge"] = gr.Markdown(value=badge_value)
+        all_components["campaign_badge"] = gr.Markdown(
+            value=badge_value,
+            elem_classes=["campaign-badge-sticky"]
+        )
 
         # Build each section
         upload_builder = UploadSectionBuilder()

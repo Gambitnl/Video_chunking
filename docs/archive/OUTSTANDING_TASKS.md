@@ -432,6 +432,135 @@ If you find a `[~]` task with timestamp >24 hours old:
 
 ---
 
+## UX Improvements
+
+[ACTIVE] **20 UX Improvements** (from UX_IMPROVEMENTS.md - comprehensive UI/UX enhancement project)
+
+**Source**: [UX_IMPROVEMENTS.md](../../UX_IMPROVEMENTS.md)
+
+**Total Effort**: ~58 days across 3 phases
+
+### Phase 1: High Priority Quick Wins (12 days, 6 tasks)
+
+- [x] **UX-01**: Real-time Session ID validation (Agent: Claude Sonnet 4.5, Completed: 2025-11-22)
+  - **Files**: `src/ui/process_session_tab_modern.py:79`, `src/ui/process_session_components.py:182-186`, `src/ui/process_session_events.py`
+  - **Effort**: 1 day | **Conflict Risk**: ⚠️ LOW
+  - **Impact**: Prevents form submission errors, immediate user feedback
+  - **Implementation**: Added validate_session_id_realtime() with character-specific error messages, wired to change event
+  → UX_IMPROVEMENTS.md:22-58
+
+- [x] **UX-03**: Validate party configuration before enabling Process button (Agent: Claude Sonnet 4.5, Completed: 2025-11-22)
+  - **Files**: `src/ui/process_session_components.py`, `src/ui/process_session_helpers.py`, `src/ui/process_session_events.py`
+  - **Effort**: 2 days | **Conflict Risk**: ⚠️⚠️ MEDIUM
+  - **Impact**: Prevents incomplete processing attempts, better UX
+  - **Implementation**: Added validate_processing_readiness() with dynamic checklist and button state management
+  → UX_IMPROVEMENTS.md:101-126
+
+- [x] **UX-06**: Visual progress bars (Agent: Claude Sonnet 4.5, Completed: 2025-11-22)
+  - **Files**: `src/ui/process_session_components.py`, `src/ui/process_session_helpers.py`
+  - **Effort**: 2 days | **Conflict Risk**: ⚠️⚠️ MEDIUM
+  - **Impact**: Professional appearance, better progress visibility
+  - **Implementation**: Replaced ASCII bars with HTML/CSS progress bars using existing theme styles
+  → UX_IMPROVEMENTS.md:166-194
+
+- [x] **UX-08**: Persistent campaign badge in header (Agent: Claude Sonnet 4.5, Completed: 2025-11-22)
+  - **Files**: `src/ui/process_session_components.py`, `src/ui/theme.py`
+  - **Effort**: 1 day | **Conflict Risk**: ⚠️ LOW
+  - **Impact**: Constant campaign context awareness
+  - **Implementation**: Added sticky CSS class with gradient background, applied to campaign badge
+  → UX_IMPROVEMENTS.md:220-259
+
+- [x] **UX-14**: Per-segment copy buttons to transcripts (Agent: Claude Sonnet 4.5, Completed: 2025-11-22)
+  - **Files**: `src/ui/process_session_components.py`, `src/ui/process_session_helpers.py`, `src/ui/process_session_events.py`
+  - **Effort**: 2 days | **Conflict Risk**: ⚠️ LOW
+  - **Impact**: Faster workflows, easy quote extraction
+  - **Implementation**: Added show_copy_button=True to transcript textboxes, added plain text output with copy
+  → UX_IMPROVEMENTS.md:435-475
+
+- [x] **UX-16**: Empty state call-to-action cards (Agent: Claude Sonnet 4.5, Completed: 2025-11-23)
+  - **Files**: `src/ui/campaign_tab_modern.py`, `src/ui/theme.py`
+  - **Effort**: 1 day | **Conflict Risk**: ⚠️ LOW
+  - **Impact**: Better onboarding, clear next actions
+  - **Implementation**: Replaced generic info messages with HTML cards, added CSS for empty states
+  → UX_IMPROVEMENTS.md:506-550
+
+### Phase 2: Medium Priority Enhancements (28 days, 8 tasks)
+
+- [x] **UX-02**: File size preview on upload (Agent: Claude Sonnet 4.5, Completed: 2025-11-23)
+  - **Files**: `src/ui/process_session_helpers.py`, `src/ui/process_session_components.py`, `src/ui/process_session_events.py`
+  - **Effort**: 2 days | **Conflict Risk**: ⚠️ LOW
+  - **Implementation**: Added analyze_uploaded_file() with AudioProcessor integration, shows size/duration/est. time
+  → UX_IMPROVEMENTS.md:62-98
+
+- [ ] **UX-07**: Estimated time remaining
+  - **Files**: `src/status_tracker.py`, `src/ui/process_session_events.py`
+  - **Effort**: 3 days | **Conflict Risk**: ⚠️⚠️ MEDIUM
+  → UX_IMPROVEMENTS.md:196-217
+
+- [ ] **UX-10**: Reorganize settings tab accordions by category
+  - **Files**: `src/ui/settings_tools_tab_modern.py:61-398`
+  - **Effort**: 2 days | **Conflict Risk**: ⚠️⚠️ MEDIUM
+  → UX_IMPROVEMENTS.md:288-319
+
+- [ ] **UX-11**: Quick setup wizard for first-time users
+  - **Files**: `app.py`, new `src/ui/setup_wizard.py`
+  - **Effort**: 5 days | **Conflict Risk**: ⚠️⚠️⚠️ HIGH
+  → UX_IMPROVEMENTS.md:321-357
+
+- [ ] **UX-13**: Convert session library to interactive table
+  - **Files**: `src/ui/campaign_tab_modern.py:56-63`
+  - **Effort**: 3 days | **Conflict Risk**: ⚠️⚠️ MEDIUM
+  → UX_IMPROVEMENTS.md:398-432
+
+- [ ] **UX-15**: Add syntax highlighting to transcript output
+  - **Files**: `src/ui/process_session_components.py`, `src/ui/theme.py`
+  - **Effort**: 2 days | **Conflict Risk**: ⚠️ LOW
+  → UX_IMPROVEMENTS.md:477-503
+
+- [ ] **UX-17**: Add keyboard shortcuts
+  - **Files**: `app.py`, `src/ui/theme.py`
+  - **Effort**: 3 days | **Conflict Risk**: ⚠️⚠️ MEDIUM
+  → UX_IMPROVEMENTS.md:555-613
+
+- [ ] **UX-20**: Add tooltips for complex configuration options
+  - **Files**: `src/ui/settings_tools_tab_modern.py`
+  - **Effort**: 2 days | **Conflict Risk**: ⚠️ LOW
+  → UX_IMPROVEMENTS.md:724-787
+
+### Phase 3: Polish & Accessibility (18 days, 6 tasks)
+
+- [ ] **UX-04**: Add duplicate Session ID prevention
+  - **Files**: `src/ui/process_session_helpers.py`
+  - **Effort**: 2 days | **Conflict Risk**: ⚠️ LOW
+  → UX_IMPROVEMENTS.md:128-143
+
+- [ ] **UX-05**: Add format-specific upload guidance
+  - **Files**: `src/ui/process_session_components.py:104`
+  - **Effort**: 1 day | **Conflict Risk**: ⚠️ LOW
+  → UX_IMPROVEMENTS.md:145-162
+
+- [ ] **UX-09**: Add stage-by-stage visual timeline
+  - **Files**: `src/ui/process_session_components.py:64-94`
+  - **Effort**: 3 days | **Conflict Risk**: ⚠️⚠️ MEDIUM
+  → UX_IMPROVEMENTS.md:262-284
+
+- [ ] **UX-12**: Add accordion state persistence
+  - **Files**: `src/ui/settings_tools_tab_modern.py` + JavaScript
+  - **Effort**: 2 days | **Conflict Risk**: ⚠️ LOW
+  → UX_IMPROVEMENTS.md:360-393
+
+- [ ] **UX-18**: Add ARIA labels and screen reader support
+  - **Files**: All UI component files
+  - **Effort**: 3 days | **Conflict Risk**: ⚠️⚠️⚠️ HIGH
+  → UX_IMPROVEMENTS.md:616-663
+
+- [ ] **UX-19**: Add mobile-responsive layout
+  - **Files**: `src/ui/theme.py:431-443`
+  - **Effort**: 5 days | **Conflict Risk**: ⚠️⚠️ MEDIUM
+  → UX_IMPROVEMENTS.md:666-720
+
+---
+
 ## Archived - Completed Features (2025)
 
 > **Note**: Tasks below are completed and archived for historical reference.

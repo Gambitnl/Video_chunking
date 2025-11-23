@@ -65,6 +65,143 @@ ALLOWED_AUDIO_EXTENSIONS: Tuple[str, ...] = (".m4a", ".mp3", ".wav", ".flac")
 SESSION_ID_PATTERN = re.compile(r"^[A-Za-z0-9_-]+$")
 
 
+def validate_session_id_realtime(session_id: str) -> str:
+    """
+    Validate session ID in real-time and return status message.
+
+    Args:
+        session_id: User-provided session identifier
+
+    Returns:
+        Markdown-formatted validation status message (empty string if no input)
+    """
+    # Don't show anything if the field is empty
+    if not session_id or not session_id.strip():
+        return ""
+
+    session_id = session_id.strip()
+
+    # Check against pattern
+    if SESSION_ID_PATTERN.match(session_id):
+        return StatusMessages.success(
+            "Valid",
+            f"Session ID `{session_id}` is valid"
+        )
+    else:
+        # Find invalid characters
+        invalid_chars = set()
+        for char in session_id:
+            if not (char.isalnum() or char in "_-"):
+                invalid_chars.add(char)
+
+        if invalid_chars:
+            invalid_str = " ".join(repr(c) for c in sorted(invalid_chars))
+            return StatusMessages.error(
+                "Invalid",
+                f"Session ID contains invalid characters: {invalid_str}. Only letters, numbers, underscores (_), and hyphens (-) are allowed."
+            )
+        else:
+            return StatusMessages.error(
+                "Invalid",
+                "Session ID format is invalid. Use only letters, numbers, underscores (_), and hyphens (-)."
+            )
+
+
+def validate_processing_readiness(
+    audio_file,
+    session_id: str,
+    party_selection: str,
+    character_names: str,
+    player_names: str,
+    num_speakers: int,
+) -> Tuple[bool, str]:
+    """
+    Validate if all requirements are met to enable the Process button.
+
+    Args:
+        audio_file: Gradio file upload object
+        session_id: User-provided session identifier
+        party_selection: Selected party ID or "Manual Entry"
+        character_names: Comma-separated character names
+        player_names: Comma-separated player names
+        num_speakers: Expected number of speakers
+
+    Returns:
+        Tuple of (is_ready: bool, checklist_markdown: str)
+    """
+    checks = []
+    is_ready = True
+
+    # Check 1: Audio file uploaded
+    if audio_file:
+        file_name = getattr(audio_file, "name", None) or getattr(audio_file, "orig_name", None)
+        if file_name:
+            file_extension = Path(file_name).suffix.lower()
+            if file_extension in ALLOWED_AUDIO_EXTENSIONS:
+                checks.append("- ✓ Audio file uploaded")
+            else:
+                checks.append(f"- ✗ Invalid audio format ({file_extension})")
+                is_ready = False
+        else:
+            checks.append("- ✗ Audio file not readable")
+            is_ready = False
+    else:
+        checks.append("- ✗ Audio file not uploaded")
+        is_ready = False
+
+    # Check 2: Session ID valid
+    if session_id and session_id.strip() and SESSION_ID_PATTERN.match(session_id.strip()):
+        checks.append("- ✓ Session ID valid")
+    elif not session_id or not session_id.strip():
+        checks.append("- ✗ Session ID required")
+        is_ready = False
+    else:
+        checks.append("- ✗ Session ID invalid (use only letters, numbers, _, -)")
+        is_ready = False
+
+    # Check 3: Party configuration
+    if party_selection and party_selection != "Manual Entry":
+        # Using a pre-defined party
+        checks.append(f"- ✓ Party configured ({party_selection})")
+    elif party_selection == "Manual Entry":
+        # Manual entry - check if character names are provided
+        if character_names and character_names.strip():
+            char_list = [c.strip() for c in character_names.split(",") if c.strip()]
+            if len(char_list) > 0:
+                checks.append(f"- ✓ {len(char_list)} character(s) specified")
+            else:
+                checks.append("- ✗ Character names required for Manual Entry")
+                is_ready = False
+        else:
+            checks.append("- ⚠️ Character names recommended for Manual Entry")
+            # Don't block processing, but warn
+    else:
+        checks.append("- ✗ Party selection required")
+        is_ready = False
+
+    # Check 4: Speaker count reasonable
+    try:
+        speakers = int(num_speakers)
+        if 2 <= speakers <= 10:
+            checks.append(f"- ✓ Expected speakers: {speakers}")
+        else:
+            checks.append(f"- ⚠️ Speaker count unusual ({speakers})")
+            # Don't block, just warn
+    except (ValueError, TypeError):
+        checks.append("- ✗ Speaker count invalid")
+        is_ready = False
+
+    # Build checklist markdown
+    if is_ready:
+        header = "### ✓ Ready to Process\n\n"
+    else:
+        header = "### ⚠️ Configuration Incomplete\n\n"
+
+    checklist = header + "\n".join(checks)
+
+    return is_ready, checklist
+
+
 def _utcnow() -> datetime:
     """Return the current UTC time (isolated for testing)."""
 
@@ -357,7 +494,7 @@ def render_processing_response(response: Dict[str, Any]) -> Tuple:
         response: Response dictionary from process_session function
 
     Returns:
-        Tuple of (status_md, results_visible, full, ic, ooc, stats_md, snippet_md, scroll_js, cancel_btn_update)
+        Tuple of (status_md, results_visible, full, full_text, ic, ooc, stats_md, snippet_md, scroll_js, cancel_btn_update)
 
     Implementation Notes (2025-11-18):
         BUG-20251103-007: Improved auto-scroll reliability
@@ -365,6 +502,10 @@ def render_processing_response(response: Dict[str, Any]) -> Tuple:
         - Added retry logic (5 attempts, 200ms intervals) for robustness
         - Checks both element existence AND visibility (offsetParent !== null)
         - Handles edge cases where results section renders slowly
+
+    Implementation Notes (2025-11-22):
+        UX-14: Added full_text output for copy button support
+        - Returns plain text version of full transcript for easy copying
     """
     # JavaScript to scroll to results section
     # Uses retry logic to handle Gradio's rendering delays
@@ -400,8 +541,9 @@ def render_processing_response(response: Dict[str, Any]) -> Tuple:
             StatusMessages.error("Processing Failed", "Unexpected response from pipeline."),
             gr.update(visible=False),
             None, # highlighted_transcript
-            "",
-            "",
+            "",  # full_text
+            "",  # ic
+            "",  # ooc
             StatusMessages.info("Statistics", "No statistics available."),
             StatusMessages.info("Snippet Export", "No snippet information available."),
             gr.update(visible=False),
@@ -417,6 +559,7 @@ def render_processing_response(response: Dict[str, Any]) -> Tuple:
             ),
             gr.update(visible=False),
             response.get("highlighted_transcript") or None,
+            response.get("full", ""),  # full_text
             response.get("ic", ""),
             response.get("ooc", ""),
             StatusMessages.info("Statistics", "No statistics available."),
@@ -435,6 +578,7 @@ def render_processing_response(response: Dict[str, Any]) -> Tuple:
         StatusMessages.success("Processing Complete", response.get("message", "Session processed successfully.")),
         gr.update(visible=True),
         response.get("highlighted_transcript") or [], # Use new highlighted data for full_output
+        response.get("full", ""),  # full_text for copy button
         response.get("ic", ""),
         response.get("ooc", ""),
         stats_markdown,
@@ -735,57 +879,57 @@ def poll_overall_progress(session_id_value: str) -> gr.update:
             current_stage_name = current_stage.get("name", "Processing")
             current_stage_details = current_stage.get("details") or {}
 
-    # Build progress bar visualization (using ASCII characters)
-    bar_width = 30
-    filled_width = int((overall_percent / 100) * bar_width)
-    empty_width = bar_width - filled_width
-    progress_bar = "#" * filled_width + "-" * empty_width
+    # Build HTML display with visual progress bar
+    html_parts = []
+    html_parts.append('<div style="padding: 1rem; background: #f9fafb; border-radius: 8px; border: 1px solid #e5e7eb;">')
+    html_parts.append('<h3 style="margin: 0 0 1rem 0; color: #111827;">Overall Progress</h3>')
 
-    # Build display
-    lines = ["### Overall Progress"]
-    lines.append("")
-    lines.append(f"`{progress_bar}` **{overall_percent}%**")
-    lines.append("")
+    # Visual progress bar
+    html_parts.append('<div class="progress-bar" style="height: 12px; margin-bottom: 0.5rem;">')
+    html_parts.append(f'<div class="progress-fill" style="width: {overall_percent}%;"></div>')
+    html_parts.append('</div>')
+    html_parts.append(f'<p style="text-align: center; font-weight: 600; color: #6366f1; margin: 0.5rem 0 1rem 0; font-size: 1.1rem;">{overall_percent}%</p>')
 
     # Current stage info
     if failed_stages > 0:
-        lines.append(f"{SI.ERROR} **Status:** Failed at {current_stage_name}")
+        html_parts.append(f'<p style="color: #dc2626; font-weight: 600; margin: 0.5rem 0;">{SI.ERROR} Status: Failed at {current_stage_name}</p>')
     elif current_stage_id:
-        lines.append(f"{SI.PROCESSING} **Current Stage:** {current_stage_name}")
+        html_parts.append(f'<p style="color: #6366f1; font-weight: 600; margin: 0.5rem 0;">{SI.PROCESSING} Current Stage: {current_stage_name}</p>')
 
         # Add stage-specific progress if available
         if "progress_percent" in current_stage_details:
             stage_percent = current_stage_details["progress_percent"]
-            lines.append(f"  -> Stage Progress: {stage_percent}%")
+            html_parts.append(f'<p style="margin: 0.25rem 0 0.25rem 1.5rem; color: #6b7280;">Stage Progress: {stage_percent}%</p>')
 
         if "chunks_transcribed" in current_stage_details and "total_chunks" in current_stage_details:
             chunks_done = current_stage_details["chunks_transcribed"]
             chunks_total = current_stage_details["total_chunks"]
-            lines.append(f"  -> Chunks: {chunks_done}/{chunks_total}")
+            html_parts.append(f'<p style="margin: 0.25rem 0 0.25rem 1.5rem; color: #6b7280;">Chunks: {chunks_done}/{chunks_total}</p>')
 
         if "eta_minutes" in current_stage_details:
             eta_minutes = current_stage_details["eta_minutes"]
-            lines.append(f"  -> ETA: {eta_minutes} minutes")
+            html_parts.append(f'<p style="margin: 0.25rem 0 0.25rem 1.5rem; color: #6b7280;">ETA: {eta_minutes} minutes</p>')
     else:
-        lines.append(f"{SI.INFO} Waiting to start processing...")
+        html_parts.append(f'<p style="color: #6b7280; margin: 0.5rem 0;">{SI.INFO} Waiting to start processing...</p>')
 
     # Summary stats
-    lines.append("")
-    lines.append(f"**Progress:** {completed_stages}/{total_stages} stages completed")
+    html_parts.append(f'<p style="font-weight: 600; margin: 1rem 0 0.5rem 0; color: #111827;">Progress: {completed_stages}/{total_stages} stages completed</p>')
 
     # High-level timing summary using completed durations
     elapsed_seconds, eta_seconds, next_stage_name = _compute_progress_timings(snapshot, total_stages)
 
     if elapsed_seconds is not None:
-        lines.append(f"{SI.INFO} Elapsed: {_format_duration(elapsed_seconds)}")
+        html_parts.append(f'<p style="margin: 0.25rem 0; color: #6b7280;">{SI.INFO} Elapsed: {_format_duration(elapsed_seconds)}</p>')
 
     if eta_seconds is not None:
-        lines.append(f"{SI.INFO} ETA: ~{_format_duration(eta_seconds)} remaining")
+        html_parts.append(f'<p style="margin: 0.25rem 0; color: #6b7280;">{SI.INFO} ETA: ~{_format_duration(eta_seconds)} remaining</p>')
 
     if next_stage_name:
-        lines.append(f"{SI.INFO} Next: {next_stage_name}")
+        html_parts.append(f'<p style="margin: 0.25rem 0; color: #6b7280;">{SI.INFO} Next: {next_stage_name}</p>')
 
-    return gr.update(value="\n".join(lines), visible=True)
+    html_parts.append('</div>')
+
+    return gr.update(value="".join(html_parts), visible=True)
 
 
 # ============================================================================
@@ -835,6 +979,90 @@ def check_file_processing_history(file) -> Tuple[str, bool]:
     ]
 
     return "\n".join(warning_lines), True
+
+
+def analyze_uploaded_file(file) -> str:
+    """
+    Analyze uploaded audio file and return file information.
+
+    Args:
+        file: Gradio file upload object
+
+    Returns:
+        Markdown-formatted file information (empty string if no file)
+    """
+    if not file:
+        return ""
+
+    try:
+        # Get file path from Gradio file object
+        file_path = Path(file.name) if hasattr(file, 'name') else Path(file)
+
+        if not file_path.exists():
+            return ""
+
+        # Get file size
+        size_bytes = file_path.stat().st_size
+        size_mb = size_bytes / (1024 * 1024)
+        size_gb = size_mb / 1024
+
+        # Format file size display
+        if size_gb >= 1.0:
+            size_display = f"{size_gb:.2f} GB"
+        else:
+            size_display = f"{size_mb:.1f} MB"
+
+        # Try to get audio duration
+        duration_display = "Unknown"
+        est_time_display = "Unknown"
+
+        try:
+            from src.audio_processor import AudioProcessor
+            processor = AudioProcessor()
+            duration_seconds = processor.get_duration(file_path)
+
+            # Format duration as hours:minutes
+            hours = int(duration_seconds // 3600)
+            minutes = int((duration_seconds % 3600) // 60)
+
+            if hours > 0:
+                duration_display = f"~{hours}h {minutes}m"
+            else:
+                duration_display = f"~{minutes}m"
+
+            # Estimate processing time (~15 minutes per GB)
+            est_time_min = int((size_gb * 15))
+            if est_time_min < 5:
+                est_time_display = "5-10 minutes"
+            elif est_time_min < 60:
+                est_time_display = f"{est_time_min}-{est_time_min + 15} minutes"
+            else:
+                est_hours = est_time_min // 60
+                est_time_display = f"{est_hours}-{est_hours + 1} hours"
+
+        except Exception as e:
+            # If duration extraction fails, still show file size
+            pass
+
+        # Build info display
+        info_lines = [
+            f"{SI.SUCCESS} **File Uploaded Successfully**",
+            f"",
+            f"**File:** `{file_path.name}`",
+            f"**Size:** {size_display}",
+        ]
+
+        if duration_display != "Unknown":
+            info_lines.append(f"**Duration:** {duration_display}")
+
+        if est_time_display != "Unknown":
+            info_lines.append(f"**Est. Processing Time:** {est_time_display}")
+
+        return "\n".join(info_lines)
+
+    except Exception as e:
+        # If anything goes wrong, return empty string rather than error
+        return ""
 
 
 # ============================================================================

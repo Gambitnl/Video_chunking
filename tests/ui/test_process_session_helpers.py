@@ -397,10 +397,22 @@ class TestRenderProcessingResponse:
             "knowledge": {},
         }
 
-        (status, visible, full, ic, ooc, stats, snippet, scroll, cancel_btn) = render_processing_response(response)
+        (
+            status,
+            visible,
+            full_highlighted,
+            full_plain,
+            ic,
+            ooc,
+            stats,
+            snippet,
+            scroll,
+            cancel_btn,
+        ) = render_processing_response(response)
 
         assert "success" in status.lower()
-        assert full == []
+        assert full_highlighted == []
+        assert full_plain == "Full transcript"
         assert ic == "IC transcript"
         assert ooc == "OOC transcript"
 
@@ -412,7 +424,18 @@ class TestRenderProcessingResponse:
             "details": "File not found",
         }
 
-        (status, visible, full, ic, ooc, stats, snippet, scroll, cancel_btn) = render_processing_response(response)
+        (
+            status,
+            visible,
+            full_highlighted,
+            full_plain,
+            ic,
+            ooc,
+            stats,
+            snippet,
+            scroll,
+            cancel_btn,
+        ) = render_processing_response(response)
 
         assert "failed" in status.lower()
         assert "File not found" in status
@@ -421,7 +444,18 @@ class TestRenderProcessingResponse:
         """Test rendering with invalid response type."""
         response = "not a dict"
 
-        (status, visible, full, ic, ooc, stats, snippet, scroll, cancel_btn) = render_processing_response(response)
+        (
+            status,
+            visible,
+            full_highlighted,
+            full_plain,
+            ic,
+            ooc,
+            stats,
+            snippet,
+            scroll,
+            cancel_btn,
+        ) = render_processing_response(response)
 
         assert "unexpected response" in status.lower()
 
@@ -435,7 +469,18 @@ class TestRenderProcessingResponse:
             "knowledge": {},
         }
 
-        (status, visible, full, ic, ooc, stats, snippet, scroll, cancel_btn) = render_processing_response(response)
+        (
+            status,
+            visible,
+            full_highlighted,
+            full_plain,
+            ic,
+            ooc,
+            stats,
+            snippet,
+            scroll,
+            cancel_btn,
+        ) = render_processing_response(response)
 
         # scroll should be a gr.update with JavaScript
         assert scroll is not None

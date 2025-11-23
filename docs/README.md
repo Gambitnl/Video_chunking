@@ -59,6 +59,8 @@ This directory contains all the documentation for the D&D Session Processor. Bel
 
 - **[IC_OOC_CLASSIFICATION_ANALYSIS.md](./IC_OOC_CLASSIFICATION_ANALYSIS.md)**: **MULTI-AGENT DISCUSSION** - Detailed analysis of IC/OOC classification quality, character attribution issues, and enhancement proposals (P0-P4). Structured for collaborative AI agent review and implementation planning.
 - **[UI_STATUS.md](./UI_STATUS.md)**: A debugging and status guide for the Party Management UI tab.
+- **[UI_IMPROVEMENTS_TASKS.md](./UI_IMPROVEMENTS_TASKS.md)**: Consolidated list of the twenty identified UI improvements with priority and effort summaries for planning, now including a current status check of what is still required and which fixes (like button loading states) are complete.
+- **[UI_IMPROVEMENTS_SOLUTIONS.md](./UI_IMPROVEMENTS_SOLUTIONS.md)**: High-quality solution blueprint for all twenty UI improvements with component-level steps, acceptance criteria, and dated implementation notes for completed items.
 - **[MASTER_PLAN.md](./MASTER_PLAN.md)**: The single source of truth for all open work items, sprint planning, and project status.
 - **[CRITICAL_REVIEW_WORKFLOW.md](./CRITICAL_REVIEW_WORKFLOW.md)**: A step-by-step guide to the Critical Reviewer Agent methodology for rigorous code review with documented reasoning.
 - **[CRITICAL_REVIEWER_SETUP_SUMMARY.md](./CRITICAL_REVIEWER_SETUP_SUMMARY.md)**: Summary of the Critical Reviewer Agent integration, including all files created/modified and how to use the system.

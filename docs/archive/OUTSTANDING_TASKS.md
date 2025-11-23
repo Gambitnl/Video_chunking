@@ -23,6 +23,9 @@
   - Verify fix in `src/diarizer.py`
   - Add regression test in `tests/test_diarizer.py`
 
+- [x] BUG-20251107-02: Add Progress Logging to Stage 6 IC/OOC Classification (Agent: Jules, Completed: 2025-11-23) → BUG_HUNT_TODO.md:544
+- [x] BUG-20251107-03: Implement Batched Classification for Stage 6 Performance Optimization (Agent: Jules, Completed: 2025-11-23) → BUG_HUNT_TODO.md:576
+
 ---
 
 

@@ -382,7 +382,7 @@ class ProcessingControlsBuilder:
             )
 
             # Overall Progress Indicator (prominent, visible during processing)
-            components["overall_progress_display"] = gr.Markdown(
+            components["overall_progress_display"] = gr.HTML(
                 value="",
                 visible=False,
             )

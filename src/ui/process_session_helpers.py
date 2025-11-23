@@ -872,57 +872,57 @@ def poll_overall_progress(session_id_value: str) -> gr.update:
             current_stage_name = current_stage.get("name", "Processing")
             current_stage_details = current_stage.get("details") or {}
 
-    # Build progress bar visualization (using ASCII characters)
-    bar_width = 30
-    filled_width = int((overall_percent / 100) * bar_width)
-    empty_width = bar_width - filled_width
-    progress_bar = "#" * filled_width + "-" * empty_width
+    # Build HTML display with visual progress bar
+    html_parts = []
+    html_parts.append('<div style="padding: 1rem; background: #f9fafb; border-radius: 8px; border: 1px solid #e5e7eb;">')
+    html_parts.append('<h3 style="margin: 0 0 1rem 0; color: #111827;">Overall Progress</h3>')
 
-    # Build display
-    lines = ["### Overall Progress"]
-    lines.append("")
-    lines.append(f"`{progress_bar}` **{overall_percent}%**")
-    lines.append("")
+    # Visual progress bar
+    html_parts.append('<div class="progress-bar" style="height: 12px; margin-bottom: 0.5rem;">')
+    html_parts.append(f'<div class="progress-fill" style="width: {overall_percent}%;"></div>')
+    html_parts.append('</div>')
+    html_parts.append(f'<p style="text-align: center; font-weight: 600; color: #6366f1; margin: 0.5rem 0 1rem 0; font-size: 1.1rem;">{overall_percent}%</p>')
 
     # Current stage info
     if failed_stages > 0:
-        lines.append(f"{SI.ERROR} **Status:** Failed at {current_stage_name}")
+        html_parts.append(f'<p style="color: #dc2626; font-weight: 600; margin: 0.5rem 0;">{SI.ERROR} Status: Failed at {current_stage_name}</p>')
     elif current_stage_id:
-        lines.append(f"{SI.PROCESSING} **Current Stage:** {current_stage_name}")
+        html_parts.append(f'<p style="color: #6366f1; font-weight: 600; margin: 0.5rem 0;">{SI.PROCESSING} Current Stage: {current_stage_name}</p>')
 
         # Add stage-specific progress if available
         if "progress_percent" in current_stage_details:
             stage_percent = current_stage_details["progress_percent"]
-            lines.append(f"  -> Stage Progress: {stage_percent}%")
+            html_parts.append(f'<p style="margin: 0.25rem 0 0.25rem 1.5rem; color: #6b7280;">Stage Progress: {stage_percent}%</p>')
 
         if "chunks_transcribed" in current_stage_details and "total_chunks" in current_stage_details:
             chunks_done = current_stage_details["chunks_transcribed"]
             chunks_total = current_stage_details["total_chunks"]
-            lines.append(f"  -> Chunks: {chunks_done}/{chunks_total}")
+            html_parts.append(f'<p style="margin: 0.25rem 0 0.25rem 1.5rem; color: #6b7280;">Chunks: {chunks_done}/{chunks_total}</p>')
 
         if "eta_minutes" in current_stage_details:
             eta_minutes = current_stage_details["eta_minutes"]
-            lines.append(f"  -> ETA: {eta_minutes} minutes")
+            html_parts.append(f'<p style="margin: 0.25rem 0 0.25rem 1.5rem; color: #6b7280;">ETA: {eta_minutes} minutes</p>')
     else:
-        lines.append(f"{SI.INFO} Waiting to start processing...")
+        html_parts.append(f'<p style="color: #6b7280; margin: 0.5rem 0;">{SI.INFO} Waiting to start processing...</p>')
 
     # Summary stats
-    lines.append("")
-    lines.append(f"**Progress:** {completed_stages}/{total_stages} stages completed")
+    html_parts.append(f'<p style="font-weight: 600; margin: 1rem 0 0.5rem 0; color: #111827;">Progress: {completed_stages}/{total_stages} stages completed</p>')
 
     # High-level timing summary using completed durations
     elapsed_seconds, eta_seconds, next_stage_name = _compute_progress_timings(snapshot, total_stages)
 
     if elapsed_seconds is not None:
-        lines.append(f"{SI.INFO} Elapsed: {_format_duration(elapsed_seconds)}")
+        html_parts.append(f'<p style="margin: 0.25rem 0; color: #6b7280;">{SI.INFO} Elapsed: {_format_duration(elapsed_seconds)}</p>')
 
     if eta_seconds is not None:
-        lines.append(f"{SI.INFO} ETA: ~{_format_duration(eta_seconds)} remaining")
+        html_parts.append(f'<p style="margin: 0.25rem 0; color: #6b7280;">{SI.INFO} ETA: ~{_format_duration(eta_seconds)} remaining</p>')
 
     if next_stage_name:
-        lines.append(f"{SI.INFO} Next: {next_stage_name}")
+        html_parts.append(f'<p style="margin: 0.25rem 0; color: #6b7280;">{SI.INFO} Next: {next_stage_name}</p>')
 
-    return gr.update(value="\n".join(lines), visible=True)
+    html_parts.append('</div>')
+
+    return gr.update(value="".join(html_parts), visible=True)
 
 
 # ============================================================================

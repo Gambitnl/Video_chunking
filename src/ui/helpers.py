@@ -12,6 +12,22 @@ class StatusMessages:
     """Helper class for formatting consistent status messages across the UI."""
 
     @staticmethod
+    def _sanitize_text(text: str) -> str:
+        """Remove sensitive file paths from text."""
+        if not text:
+            return ""
+
+        import re
+        # Redact common path patterns
+        # 1. Unix absolute paths: starts with / and contains at least 2 segments
+        # regex: (?<!\w)(/[a-zA-Z0-9_\-\.]+(?:/[a-zA-Z0-9_\-\.]+)+)
+        text = re.sub(r'(?<!\w)(/[a-zA-Z0-9_\-\.]+(?:/[a-zA-Z0-9_\-\.]+)+)', '<path_redacted>', text)
+
+        # 2. Windows drive paths
+        text = re.sub(r'[a-zA-Z]:\\[a-zA-Z0-9_\-\.]+(?:\\[a-zA-Z0-9_\-\.]+)+', '<path_redacted>', text)
+        return text
+
+    @staticmethod
     def error(title: str, message: str, details: str = "") -> str:
         """
         Format an error message for display.
@@ -24,9 +40,13 @@ class StatusMessages:
         Returns:
             Markdown-formatted error message
         """
-        md = f"**Error: {title}**\n\n{message}"
-        if details:
-            md += f"\n\n**Details:**\n```\n{details}\n```"
+        # Sanitize inputs to prevent path leakage
+        clean_message = StatusMessages._sanitize_text(message)
+        clean_details = StatusMessages._sanitize_text(details)
+
+        md = f"**Error: {title}**\n\n{clean_message}"
+        if clean_details:
+            md += f"\n\n**Details:**\n```\n{clean_details}\n```"
         return md
 
     @staticmethod

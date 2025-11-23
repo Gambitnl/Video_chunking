@@ -467,10 +467,11 @@ If you find a `[~]` task with timestamp >24 hours old:
   - **Implementation**: Added sticky CSS class with gradient background, applied to campaign badge
   → UX_IMPROVEMENTS.md:220-259
 
-- [ ] **UX-14**: Per-segment copy buttons to transcripts
-  - **Files**: `src/ui/process_session_components.py` (Results section)
+- [x] **UX-14**: Per-segment copy buttons to transcripts (Agent: Claude Sonnet 4.5, Completed: 2025-11-22)
+  - **Files**: `src/ui/process_session_components.py`, `src/ui/process_session_helpers.py`, `src/ui/process_session_events.py`
   - **Effort**: 2 days | **Conflict Risk**: ⚠️ LOW
   - **Impact**: Faster workflows, easy quote extraction
+  - **Implementation**: Added show_copy_button=True to transcript textboxes, added plain text output with copy
   → UX_IMPROVEMENTS.md:435-475
 
 - [ ] **UX-16**: Empty state call-to-action cards

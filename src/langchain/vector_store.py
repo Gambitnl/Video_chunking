@@ -139,14 +139,18 @@ class CampaignVectorStore:
 
                 # Generate IDs based on document type and name
                 ids = []
+                metadatas = []
                 for i, doc in enumerate(batch_docs):
-                    doc_type = doc["metadata"].get("type", "unknown")
-                    name = doc["metadata"].get("name", f"doc_{batch_start + i}")
+                    # Handle cases where metadata key is missing OR value is None
+                    metadata = doc.get("metadata") or {}
+
+                    doc_type = metadata.get("type", "unknown")
+                    name = metadata.get("name", f"doc_{batch_start + i}")
+
                     # Sanitize name for ID
                     safe_name = name.replace(" ", "_").replace("/", "_")
                     ids.append(f"{doc_type}_{safe_name}_{batch_start + i}")
-
-                metadatas = [doc["metadata"] for doc in batch_docs]
+                    metadatas.append(metadata)
 
                 self.knowledge_collection.add(
                     documents=texts,

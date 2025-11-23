@@ -7,7 +7,7 @@ from pathlib import Path
 sys.path.append(str(Path(__file__).resolve().parent))
 import subprocess
 from pathlib import Path
-from threading import Event
+from threading import Event, RLock
 
 import gradio as gr
 import requests
@@ -82,6 +82,9 @@ from src.restart_manager import RestartManager
 # Global dictionary to track cancel events for active processing sessions
 # Key: session_id, Value: threading.Event
 _active_cancel_events: Dict[str, Event] = {}
+
+# Global lock for campaign modification operations to prevent race conditions
+campaign_modification_lock = RLock()
 
 def ui_load_api_keys() -> Tuple[str, str, str, str]:
     """Load API keys on UI startup and format for Gradio."""
@@ -304,20 +307,24 @@ campaign_names = campaign_manager.get_campaign_names()
 def _refresh_campaign_names() -> Dict[str, str]:
     """Forces a reload of campaign data from disk and returns an updated name map."""
     global campaign_names
-    # By calling _load_campaigns() directly, we bypass any in-memory cache and
-    # ensure the CampaignManager has the latest data from the campaigns.json file.
-    # This is critical after operations like creation or deletion.
-    campaign_manager.campaigns = campaign_manager._load_campaigns()
-    campaign_names = campaign_manager.get_campaign_names()
-    logger.debug(f"Refreshed campaign names: {list(campaign_names.values())}")
-    return campaign_names
+    with campaign_modification_lock:
+        # By calling _load_campaigns() directly, we bypass any in-memory cache and
+        # ensure the CampaignManager has the latest data from the campaigns.json file.
+        # This is critical after operations like creation or deletion.
+        campaign_manager.campaigns = campaign_manager._load_campaigns()
+        campaign_names = campaign_manager.get_campaign_names()
+        logger.debug(f"Refreshed campaign names: {list(campaign_names.values())}")
+        return campaign_names
 
 
-def _campaign_id_from_name(display_name: Optional[str]) -> Optional[str]:
+def _campaign_id_from_name(display_name: Optional[str], campaign_names_map: Optional[Dict[str, str]] = None) -> Optional[str]:
     """Resolve campaign_id from display name."""
     if not display_name:
         return None
-    names = _refresh_campaign_names()
+
+    # Use provided map or refresh if not provided
+    names = campaign_names_map if campaign_names_map is not None else _refresh_campaign_names()
+
     for cid, name in names.items():
         if name == display_name:
             return cid
@@ -829,6 +836,10 @@ def process_session(
 
     except Exception as e:
         logger.exception("Error during session processing in Gradio UI")
+
+        # Sanitize error message to avoid leaking internal paths
+        error_msg = StatusMessages._sanitize_text(str(e))
+
         log_audit_event(
             "ui.session.process.error",
             actor="ui",
@@ -837,12 +848,12 @@ def process_session(
             metadata={
                 "session_id": session_id or "session",
                 "campaign_id": campaign_id,
-                "error": str(e),
+                "error": error_msg,
             },
         )
         return {
             "status": "error",
-            "message": str(e),
+            "message": error_msg,
             "details": f"See log for details: {get_log_file_path()}",
         }
 
@@ -1197,94 +1208,108 @@ with gr.Blocks(
             StatusMessages.info("Snippet Export", "No snippet information available."),
         )
 
-    def _build_full_ui_update(campaign_id: Optional[str]) -> tuple:
-        """
-        Builds a tuple of Gradio updates for a full UI refresh based on a campaign_id.
-        This is the refactored, centralized UI update logic.
-        """
-        process_updates = _compute_process_updates(campaign_id)
-        campaign_names_map = _refresh_campaign_names()
-        campaign_choices = list(campaign_names_map.values())
-        selected_campaign_name = campaign_names_map.get(campaign_id) if campaign_id else None
+def _build_full_ui_update(campaign_id: Optional[str], campaign_names_map: Optional[Dict[str, str]] = None) -> tuple:
+    """
+    Builds a tuple of Gradio updates for a full UI refresh based on a campaign_id.
+    This is the refactored, centralized UI update logic.
 
-        # Main dropdowns
-        dropdown_update = gr.update(choices=campaign_choices, value=selected_campaign_name)
-        campaign_selector_update = dropdown_update
+    Args:
+        campaign_id: The ID of the campaign to load
+        campaign_names_map: Optional pre-fetched map of campaign IDs to names to avoid re-fetching
+    """
+    process_updates = _compute_process_updates(campaign_id)
 
-        # Campaign Tab
-        overview_update = gr.update(value=_campaign_overview_markdown(campaign_id))
-        knowledge_update = gr.update(value=_knowledge_summary_markdown(campaign_id))
-        session_library_update = gr.update(value=_session_library_markdown(campaign_id))
+    # Use provided map or refresh if not provided
+    # This optimization prevents double IO hits during campaign loads
+    names_map = campaign_names_map if campaign_names_map is not None else _refresh_campaign_names()
 
-        # Characters Tab
-        (
-            character_profiles_update,
-            character_table_update,
-            character_select_update,
-            character_export_update,
-            character_overview_update,
-        ) = _character_tab_updates(campaign_id)
-        extract_party_update = _extract_party_dropdown_update(campaign_id)
+    campaign_choices = list(names_map.values())
+    selected_campaign_name = names_map.get(campaign_id) if campaign_id else None
 
-        # Stories Tab
-        story_session_update = gr.update(value=_session_library_markdown(campaign_id))
-        narrative_hint_update = gr.update(value=_narrative_hint_markdown(campaign_id))
+    # Main dropdowns
+    dropdown_update = gr.update(choices=campaign_choices, value=selected_campaign_name)
+    campaign_selector_update = dropdown_update
 
-        # Settings & Tools Tab
-        diagnostics_update = gr.update(value=_diagnostics_markdown(campaign_id))
-        chat_update = gr.update(value=_chat_status_markdown(campaign_id))
+    # Campaign Tab
+    overview_update = gr.update(value=_campaign_overview_markdown(campaign_id))
+    knowledge_update = gr.update(value=_knowledge_summary_markdown(campaign_id))
+    session_library_update = gr.update(value=_session_library_markdown(campaign_id))
 
-        # Social Insights
-        social_campaign_choices = ["All Campaigns"] + campaign_choices
-        social_campaign_value = selected_campaign_name or "All Campaigns"
-        social_campaign_update = gr.update(choices=social_campaign_choices, value=social_campaign_value)
-        social_sessions = story_manager.list_sessions(campaign_id=campaign_id) if campaign_id else story_manager.list_sessions()
-        social_session_update = gr.update(choices=social_sessions, value=social_sessions[0] if social_sessions else None)
-        social_keyword_update = gr.update(value=StatusMessages.info("Social Insights", "Select a session and run analysis."))
-        social_nebula_update = gr.update(value=None)
+    # Characters Tab
+    (
+        character_profiles_update,
+        character_table_update,
+        character_select_update,
+        character_export_update,
+        character_overview_update,
+    ) = _character_tab_updates(campaign_id)
+    extract_party_update = _extract_party_dropdown_update(campaign_id)
 
-        # Artifact Explorer
-        artifacts_session_picker_update = gr.update(choices=[], value=None)
-        artifacts_file_list_update = gr.update(value=None)
-        artifacts_file_preview_update = gr.update(value="")
-        artifacts_download_button_update = gr.update(visible=False)
-        artifacts_status_update = gr.update(value=StatusMessages.info("Ready", "Select a session to begin."))
+    # Stories Tab
+    story_session_update = gr.update(value=_session_library_markdown(campaign_id))
+    narrative_hint_update = gr.update(value=_narrative_hint_markdown(campaign_id))
 
-        return (
-            campaign_id,
-            dropdown_update,
-            *process_updates,
-            overview_update,
-            knowledge_update,
-            session_library_update,
-            campaign_selector_update,
-            character_profiles_update,
-            character_table_update,
-            character_select_update,
-            character_export_update,
-            character_overview_update,
-            extract_party_update,
-            story_session_update,
-            narrative_hint_update,
-            diagnostics_update,
-            chat_update,
-            social_campaign_update,
-            social_session_update,
-            social_keyword_update,
-            social_nebula_update,
-            artifacts_session_picker_update,
-            artifacts_file_list_update,
-            artifacts_file_preview_update,
-            artifacts_download_button_update,
-            artifacts_status_update,
-        )
+    # Settings & Tools Tab
+    diagnostics_update = gr.update(value=_diagnostics_markdown(campaign_id))
+    chat_update = gr.update(value=_chat_status_markdown(campaign_id))
+
+    # Social Insights
+    social_campaign_choices = ["All Campaigns"] + campaign_choices
+    social_campaign_value = selected_campaign_name or "All Campaigns"
+    social_campaign_update = gr.update(choices=social_campaign_choices, value=social_campaign_value)
+    social_sessions = story_manager.list_sessions(campaign_id=campaign_id) if campaign_id else story_manager.list_sessions()
+    social_session_update = gr.update(choices=social_sessions, value=social_sessions[0] if social_sessions else None)
+    social_keyword_update = gr.update(value=StatusMessages.info("Social Insights", "Select a session and run analysis."))
+    social_nebula_update = gr.update(value=None)
+
+    # Artifact Explorer
+    artifacts_session_picker_update = gr.update(choices=[], value=None)
+    artifacts_file_list_update = gr.update(value=None)
+    artifacts_file_preview_update = gr.update(value="")
+    artifacts_download_button_update = gr.update(visible=False)
+    artifacts_status_update = gr.update(value=StatusMessages.info("Ready", "Select a session to begin."))
+
+    return (
+        campaign_id,
+        dropdown_update,
+        *process_updates,
+        overview_update,
+        knowledge_update,
+        session_library_update,
+        campaign_selector_update,
+        character_profiles_update,
+        character_table_update,
+        character_select_update,
+        character_export_update,
+        character_overview_update,
+        extract_party_update,
+        story_session_update,
+        narrative_hint_update,
+        diagnostics_update,
+        chat_update,
+        social_campaign_update,
+        social_session_update,
+        social_keyword_update,
+        social_nebula_update,
+        artifacts_session_picker_update,
+        artifacts_file_list_update,
+        artifacts_file_preview_update,
+        artifacts_download_button_update,
+        artifacts_status_update,
+    )
 
     def _load_campaign(display_name: Optional[str], current_campaign_id: Optional[str]):
-        campaign_id = _campaign_id_from_name(display_name) or current_campaign_id or initial_campaign_id
+        # Fetch campaign names ONCE
+        names_map = _refresh_campaign_names()
+
+        # Resolve ID using the fetched map
+        campaign_id = _campaign_id_from_name(display_name, campaign_names_map=names_map) or current_campaign_id or initial_campaign_id
+
         summary = _campaign_summary_message(campaign_id)
         manifest = _build_campaign_manifest(campaign_id)
 
-        ui_updates = _build_full_ui_update(campaign_id)
+        # Pass the map to build update so it doesn't fetch again
+        ui_updates = _build_full_ui_update(campaign_id, campaign_names_map=names_map)
         _persist_active_campaign(campaign_id)
 
         return (
@@ -1313,7 +1338,11 @@ with gr.Blocks(
                 *[gr.update()] * 39, # Keep rest of UI unchanged
             )
 
-        new_campaign_id, _ = campaign_manager.create_blank_campaign(name=proposed_name)
+        with campaign_modification_lock:
+            new_campaign_id, _ = campaign_manager.create_blank_campaign(name=proposed_name)
+
+            # Refresh name map after creation
+            names_map = _refresh_campaign_names()
 
         knowledge = CampaignKnowledgeBase(campaign_id=new_campaign_id)
         if not knowledge.knowledge_file.exists():
@@ -1324,7 +1353,7 @@ with gr.Blocks(
         summary = _campaign_summary_message(new_campaign_id, is_new=True)
         manifest = _build_campaign_manifest(new_campaign_id)
 
-        ui_updates = _build_full_ui_update(new_campaign_id)
+        ui_updates = _build_full_ui_update(new_campaign_id, campaign_names_map=names_map)
 
         return (
             ui_updates[0], # new_campaign_id
@@ -1336,20 +1365,25 @@ with gr.Blocks(
 
     def _handle_rename_campaign(campaign_display_name: str, new_name: str, active_campaign_id: Optional[str]):
         """Handler for the rename campaign button."""
-        campaign_id = _campaign_id_from_name(campaign_display_name) or active_campaign_id
+        # Initial fetch to resolve ID
+        initial_map = _refresh_campaign_names()
+        campaign_id = _campaign_id_from_name(campaign_display_name, campaign_names_map=initial_map) or active_campaign_id
+
         if not campaign_id:
             return StatusMessages.error("Rename Failed", "No campaign selected to rename."), *[gr.update()] * 42
 
         if not new_name or not new_name.strip():
             return StatusMessages.error("Rename Failed", "New campaign name cannot be empty."), *[gr.update()] * 42
 
-        success = campaign_manager.rename_campaign(campaign_id, new_name)
-        if not success:
-            return StatusMessages.error("Rename Failed", f"Could not rename to '{new_name}'. Check logs for details (e.g., name already in use)."), *[gr.update()] * 42
+        with campaign_modification_lock:
+            success = campaign_manager.rename_campaign(campaign_id, new_name)
+            if not success:
+                return StatusMessages.error("Rename Failed", f"Could not rename to '{new_name}'. Check logs for details (e.g., name already in use)."), *[gr.update()] * 42
 
-        # On success, refresh everything
-        _refresh_campaign_names()
-        ui_updates = _build_full_ui_update(campaign_id)
+            # On success, refresh everything
+            updated_map = _refresh_campaign_names()
+
+        ui_updates = _build_full_ui_update(campaign_id, campaign_names_map=updated_map)
         
         return (
             StatusMessages.success("Rename Successful", f"Campaign renamed to '{new_name}'."),
@@ -1358,22 +1392,26 @@ with gr.Blocks(
 
     def _handle_delete_campaign(campaign_display_name: str, active_campaign_id: Optional[str]):
         """Handler for the delete campaign button."""
-        campaign_id = _campaign_id_from_name(campaign_display_name) or active_campaign_id
+        initial_map = _refresh_campaign_names()
+        campaign_id = _campaign_id_from_name(campaign_display_name, campaign_names_map=initial_map) or active_campaign_id
+
         if not campaign_id:
             return StatusMessages.error("Delete Failed", "No campaign selected to delete."), None, None, *[gr.update()] * 42
 
-        success = campaign_manager.delete_campaign(campaign_id)
-        if not success:
-            return StatusMessages.error("Delete Failed", f"Could not delete campaign '{campaign_display_name}'. Check logs.")
+        with campaign_modification_lock:
+            success = campaign_manager.delete_campaign(campaign_id)
+            if not success:
+                return StatusMessages.error("Delete Failed", f"Could not delete campaign '{campaign_display_name}'. Check logs.")
 
-        # On success, refresh and load the first available campaign
-        _refresh_campaign_names()
-        new_active_id = next(iter(campaign_names.keys()), None)
+            # On success, refresh and load the first available campaign
+            updated_map = _refresh_campaign_names()
+
+        new_active_id = next(iter(updated_map.keys()), None)
         _persist_active_campaign(new_active_id)
 
         summary = _campaign_summary_message(new_active_id)
         manifest = _build_campaign_manifest(new_active_id)
-        ui_updates = _build_full_ui_update(new_active_id)
+        ui_updates = _build_full_ui_update(new_active_id, campaign_names_map=updated_map)
 
         return (
             StatusMessages.success("Delete Successful", f"Campaign '{campaign_display_name}' has been deleted."),
@@ -1384,9 +1422,11 @@ with gr.Blocks(
 
     def _refresh_campaign_tab(campaign_display_name: Optional[str], current_campaign_id: Optional[str]):
         """Refresh the Campaign tab with current data for the selected campaign."""
-        campaign_id = _campaign_id_from_name(campaign_display_name) or current_campaign_id
-
+        # Single refresh
         campaign_names_map = _refresh_campaign_names()
+
+        campaign_id = _campaign_id_from_name(campaign_display_name, campaign_names_map=campaign_names_map) or current_campaign_id
+
         campaign_choices = list(campaign_names_map.values())
         selected_campaign_name = campaign_names_map.get(campaign_id) if campaign_id else None
 
@@ -1592,7 +1632,7 @@ with gr.Blocks(
         # Generate all UI updates for this campaign
         summary = _campaign_summary_message(campaign_id)
         manifest = _build_campaign_manifest(campaign_id)
-        ui_updates = _build_full_ui_update(campaign_id)
+        ui_updates = _build_full_ui_update(campaign_id, campaign_names_map=names)
 
         return (
             ui_updates[0], # active_campaign_state
@@ -1608,6 +1648,7 @@ with gr.Blocks(
     )
 
     def _handle_refresh_campaign_list():
+        # Refresh once and return
         names = _refresh_campaign_names()
         return gr.update(choices=list(names.values()))
 

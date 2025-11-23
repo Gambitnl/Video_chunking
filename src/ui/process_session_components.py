@@ -325,7 +325,7 @@ class ConfigurationSectionBuilder:
                 )
 
             # Backend Settings (Advanced)
-            with gr.Accordion("Advanced Backend Settings", open=False) as backend_accordion:
+            with gr.Accordion("Advanced Backend Settings", open=False, elem_id="process-backend-settings") as backend_accordion:
                 _a11y(backend_accordion, label="Advanced backend settings", role="group")
                 components["transcription_backend_input"] = _a11y(
                     gr.Dropdown(
@@ -377,7 +377,7 @@ class ConfigurationSectionBuilder:
             )
 
             # Skip Options (Advanced)
-            with gr.Accordion("Advanced Skip Options", open=False) as skip_accordion:
+            with gr.Accordion("Advanced Skip Options", open=False, elem_id="process-skip-options") as skip_accordion:
                 _a11y(skip_accordion, label="Advanced skip options", role="group")
                 _a11y(
                     gr.Markdown("*These options are auto-set by 'Run Pipeline Until' but can be manually overridden*", elem_id="process-skip-helper"),
@@ -426,7 +426,7 @@ class ConfigurationSectionBuilder:
                         described_by="process-skip-helper",
                     )
 
-                with gr.Accordion("Advanced Processing Options", open=False) as processing_accordion:
+                with gr.Accordion("Advanced Processing Options", open=False, elem_id="process-processing-options") as processing_accordion:
                     _a11y(processing_accordion, label="Advanced processing options", role="group")
                     with gr.Row():
                         components["enable_audit_mode_input"] = _a11y(

@@ -486,6 +486,23 @@ details > div {
 @media (max-width: 768px) {
     .stepper {
         flex-direction: column;
+        padding: 1rem;
+        gap: 1rem;
+    }
+
+    .step {
+        width: 100%;
+        flex-direction: row;
+        justify-content: flex-start;
+        gap: 1rem;
+    }
+
+    .step-number {
+        margin-bottom: 0;
+        min-width: 32px;
+        width: 32px;
+        height: 32px;
+        font-size: 0.9rem;
     }
 
     .step-connector {
@@ -493,7 +510,44 @@ details > div {
     }
 
     .gradio-container {
+        padding: 0.5rem !important;
+        min-width: 100% !important;
+    }
+
+    .card {
         padding: 1rem;
+    }
+
+    .file-upload {
+        padding: 1rem;
+    }
+
+    /* Stack buttons on mobile */
+    .row {
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+
+    .campaign-badge-sticky {
+        position: static;
+        margin-bottom: 0.5rem;
+    }
+}
+
+/* Print styles */
+@media print {
+    .no-print {
+        display: none !important;
+    }
+
+    .card {
+        border: none;
+        box-shadow: none;
+    }
+
+    .gradio-container {
+        padding: 0 !important;
+        max-width: 100% !important;
     }
 }
 

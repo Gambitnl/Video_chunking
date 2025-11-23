@@ -1081,8 +1081,8 @@ initial_manifest = _build_campaign_manifest(initial_campaign_id)
 # Create Gradio interface
 with gr.Blocks(
     title="D&D Session Processor",
-    theme=theme,
-    css=MODERN_CSS,
+    # theme=theme, # Removed theme argument for Gradio 6.0 compatibility
+    # css=MODERN_CSS, # Removed css argument for Gradio 6.0 compatibility
 ) as demo:
     active_campaign_state = gr.State(value=initial_campaign_id)
 

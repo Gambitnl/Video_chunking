@@ -420,7 +420,7 @@ class ProcessingControlsBuilder:
                     max_lines=30,
                     value="",
                     interactive=False,
-                    show_copy_button=True,
+                    # show_copy_button=False, # Deprecated in newer Gradio
                     elem_classes=["event-log-textbox"],
                 )
 

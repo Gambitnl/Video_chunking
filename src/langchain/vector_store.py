@@ -141,7 +141,9 @@ class CampaignVectorStore:
                 ids = []
                 metadatas = []
                 for i, doc in enumerate(batch_docs):
-                    metadata = doc.get("metadata", {})
+                    # Handle cases where metadata key is missing OR value is None
+                    metadata = doc.get("metadata") or {}
+
                     doc_type = metadata.get("type", "unknown")
                     name = metadata.get("name", f"doc_{batch_start + i}")
 

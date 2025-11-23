@@ -254,6 +254,10 @@ class TestAddKnowledgeDocuments:
             {
                 "text": "Doc with empty metadata",
                 "metadata": {}
+            },
+            {
+                "text": "Doc with None metadata",
+                "metadata": None
             }
         ]
 

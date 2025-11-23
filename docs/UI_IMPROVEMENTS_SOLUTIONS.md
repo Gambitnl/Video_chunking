@@ -23,6 +23,16 @@ This guide documents high-quality solutions for the twenty UI improvements ident
 - Risks: Additional outputs in the process/preflight event chains add coupling to component wiring; future button additions should use `ButtonStates` to maintain consistency.
 - Recommendation: After integrating other UI tabs, reuse `ButtonStates` for campaign/settings actions and add regression tests to confirm button interactivity toggles as expected during queued operations.
 
+### Implementation Notes (2025-11-23 - ARIA labels and accessibility attributes)
+- Implemented `AccessibilityAttributes` helper plus `UIComponents` propagation so buttons, dropdowns, file uploads, and sliders carry explicit labels, described-by anchors, and optional live-region metadata.
+- Wired aria-live status outputs for process, campaign, characters, and settings tabs, including resume flows and results views, ensuring status text is announced politely.
+- Added focused tests covering helper metadata and process tab status outputs to guard against regressions.
+
+### Code Review Findings (2025-11-23 - ARIA labels and accessibility attributes)
+- Positive: Accessible labels now flow through helper-generated components, and key status regions are marked with live updates for screen readers.
+- Risk: Automatic slugging of element identifiers could collide if labels repeat; future tabs should supply explicit `elem_id` values when adding new controls.
+- Recommendation: Extend keyboard navigation coverage next to leverage the new IDs and described-by hooks for shortcut hint surfacing.
+
 ---
 
 ## Solutions by Category

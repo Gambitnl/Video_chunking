@@ -8,7 +8,7 @@ The table below captures whether each improvement is still required based on the
 
 | # | Improvement | Priority | Effort | Status | Notes |
 |---|-------------|----------|--------|--------|-------|
-| 1 | Missing ARIA labels and accessibility attributes | High | Medium | Still required | No ARIA attributes or roles are set on buttons, uploads, or inputs in `src/ui/process_session_components.py`, and there are no aria-specific helpers in `src/ui/helpers.py`.
+| 1 | Missing ARIA labels and accessibility attributes | High | Medium | Completed | ARIA helpers now propagate labels, described-by targets, and live regions across process, campaign, characters, and settings tabs (2025-11-23).
 | 2 | No keyboard navigation support | High | High | Still required | There are no keyboard shortcut bindings or tabindex management utilities wired in any UI module.
 | 3 | Missing focus indicators | Medium | Low | Still required | `src/ui/theme.py` defines focus styles only for text inputs, leaving buttons, accordions, and custom components without visible focus rings.
 | 4 | Buttons do not show loading states | High | Low | Completed | Added `ButtonStates` helper and wired process/preflight buttons to show `[WORKING]` labels and disable concurrent actions while processing.

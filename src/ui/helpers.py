@@ -178,6 +178,63 @@ class FileValidation:
         return None
 
 
+class AccessibilityAttributes:
+    """Utility methods for attaching accessibility metadata to components."""
+
+    @staticmethod
+    def _slugify(label: str) -> str:
+        """Convert a label into a safe slug for element identifiers."""
+
+        safe_label = label.lower().replace(" ", "-")
+        return "".join(ch for ch in safe_label if ch.isalnum() or ch in {"-", "_"})
+
+    @staticmethod
+    def apply(
+        component: gr.components.Component,
+        *,
+        label: Optional[str] = None,
+        described_by: Optional[str] = None,
+        role: Optional[str] = None,
+        live: Optional[str] = None,
+        elem_id: Optional[str] = None,
+    ) -> gr.components.Component:
+        """Attach accessibility-related metadata to a Gradio component.
+
+        Args:
+            component: Component to annotate.
+            label: Textual aria/accessible label.
+            described_by: Optional target id for aria-describedby.
+            role: Optional aria role to expose to assistive tech.
+            live: Optional aria-live value (e.g., "polite", "assertive").
+            elem_id: Override or set the element id for targeting.
+
+        Returns:
+            The same component with metadata attributes attached.
+        """
+
+        resolved_label = label or getattr(component, "label", None) or getattr(component, "value", "")
+
+        if elem_id:
+            component.elem_id = elem_id
+        elif getattr(component, "elem_id", None) is None and resolved_label:
+            component.elem_id = AccessibilityAttributes._slugify(resolved_label)
+
+        component.accessible_label = resolved_label
+        component.aria_describedby = described_by
+        component.aria_role = role
+        component.aria_live = live
+
+        if live:
+            existing_classes = component.elem_classes or []
+            if isinstance(existing_classes, str):
+                existing_classes = [existing_classes]
+            if "aria-live" not in existing_classes:
+                existing_classes.append("aria-live")
+            component.elem_classes = existing_classes
+
+        return component
+
+
 class UIComponents:
     """Helper class for creating common UI component patterns."""
 
@@ -188,6 +245,12 @@ class UIComponents:
         size: str = "md",
         full_width: bool = False,
         visible: bool = True,
+        *,
+        accessible_label: Optional[str] = None,
+        aria_describedby: Optional[str] = None,
+        elem_id: Optional[str] = None,
+        role: Optional[str] = None,
+        elem_classes: Optional[List[str]] = None,
     ) -> gr.Button:
         """
         Create a consistently-styled action button.
@@ -203,13 +266,21 @@ class UIComponents:
             Gradio Button component
         """
         scale = 0 if not full_width else 1
-
-        return gr.Button(
+        button = gr.Button(
             label,
             variant=variant,
             size=size,
             scale=scale,
             visible=visible,
+            elem_id=elem_id,
+            elem_classes=elem_classes,
+        )
+
+        return AccessibilityAttributes.apply(
+            button,
+            label=accessible_label or label,
+            described_by=aria_describedby,
+            role=role,
         )
 
 
@@ -263,11 +334,20 @@ class ButtonStates:
         Returns:
             Gradio Markdown component configured for status display
         """
-        return gr.Markdown(
+        status_component = gr.Markdown(
             value=initial_message or StatusMessages.info(
                 "Ready",
                 "Waiting for input..."
-            )
+            ),
+            elem_id="status-messages",
+        )
+
+        return AccessibilityAttributes.apply(
+            status_component,
+            label="Status messages",
+            role="status",
+            live="polite",
+            elem_id="status-messages",
         )
 
 

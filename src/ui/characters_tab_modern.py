@@ -7,7 +7,7 @@ from typing import Callable, Dict, List, Optional, Tuple
 import gradio as gr
 
 from src.character_profile import CharacterProfileManager
-from src.ui.helpers import Placeholders, StatusMessages, UIComponents
+from src.ui.helpers import AccessibilityAttributes, Placeholders, StatusMessages, UIComponents
 
 
 def character_tab_snapshot(
@@ -72,6 +72,16 @@ def create_characters_tab_modern(
 ) -> Dict[str, gr.components.Component]:
     """Create the Characters tab and return references to campaign-aware components."""
 
+    def _a11y(component: gr.components.Component, *, label: str, described_by: str | None = None, role: str | None = None, live: str | None = None, elem_id: str | None = None):
+        return AccessibilityAttributes.apply(
+            component,
+            label=label,
+            described_by=described_by,
+            role=role,
+            live=live,
+            elem_id=elem_id,
+        )
+
     active_state = active_campaign_state or gr.State(value=initial_campaign_id)
     initial_snapshot = character_tab_snapshot(initial_campaign_id)
 
@@ -90,21 +100,37 @@ def create_characters_tab_modern(
             """
         )
 
-        profiles_md = gr.Markdown(value=initial_snapshot["status"])
+        profiles_md = _a11y(
+            gr.Markdown(value=initial_snapshot["status"], elem_id="characters-status"),
+            label="Character profiles status",
+            role="status",
+            live="polite",
+        )
 
         with gr.Row():
-            char_table = gr.Dataframe(
-                headers=["Character", "Player", "Race/Class", "Level", "Sessions"],
-                datatype=["str", "str", "str", "number", "number"],
-                label="Characters",
-                interactive=False,
-                wrap=True,
-                value=initial_snapshot["table"],
+            char_table = _a11y(
+                gr.Dataframe(
+                    headers=["Character", "Player", "Race/Class", "Level", "Sessions"],
+                    datatype=["str", "str", "str", "number", "number"],
+                    label="Characters",
+                    interactive=False,
+                    wrap=True,
+                    value=initial_snapshot["table"],
+                    elem_id="characters-table",
+                ),
+                label="Characters table",
+                role="table",
             )
 
-            char_overview_output = gr.Markdown(
-                value=_default_overview(),
-                elem_classes="character-overview-scrollable",
+            char_overview_output = _a11y(
+                gr.Markdown(
+                    value=_default_overview(),
+                    elem_classes="character-overview-scrollable",
+                    elem_id="characters-overview",
+                ),
+                label="Character overview",
+                role="status",
+                live="polite",
             )
 
         existing_css = blocks.css or ""
@@ -116,77 +142,141 @@ def create_characters_tab_modern(
 """
 
         with gr.Row():
-            char_select = gr.Dropdown(
-                label="Select Character",
-                choices=initial_snapshot["characters"],
-                value=initial_snapshot["characters"][0] if initial_snapshot["characters"] else None,
-                interactive=True,
+            char_select = _a11y(
+                gr.Dropdown(
+                    label="Select Character",
+                    choices=initial_snapshot["characters"],
+                    value=initial_snapshot["characters"][0] if initial_snapshot["characters"] else None,
+                    interactive=True,
+                    elem_id="characters-select",
+                ),
+                label="Select character",
             )
             view_char_btn = UIComponents.create_action_button(
                 "View Character Overview",
                 variant="primary",
+                accessible_label="View character overview",
+                aria_describedby="characters-overview",
+                elem_id="characters-view-btn",
             )
             char_refresh_btn = UIComponents.create_action_button(
                 "Refresh List",
                 variant="secondary",
                 size="sm",
+                accessible_label="Refresh character list",
+                elem_id="characters-refresh-btn",
             )
 
         with gr.Row():
             with gr.Column():
                 gr.Markdown("### Export / Import")
-                export_char_dropdown = gr.Dropdown(
-                    label="Character to Export",
-                    choices=initial_snapshot["characters"],
-                    value=initial_snapshot["characters"][0] if initial_snapshot["characters"] else None,
+                export_char_dropdown = _a11y(
+                    gr.Dropdown(
+                        label="Character to Export",
+                        choices=initial_snapshot["characters"],
+                        value=initial_snapshot["characters"][0] if initial_snapshot["characters"] else None,
+                        elem_id="characters-export-dropdown",
+                    ),
+                    label="Character to export",
                 )
-                export_char_btn = UIComponents.create_action_button("Export Character", variant="secondary")
-                export_char_file = gr.File(label="Download Character Profile")
-                export_char_status = gr.Markdown(
-                    value=StatusMessages.info(
-                        "Export Character Profile",
-                        "Select a character and click Export to download their profile."
-                    )
+                export_char_btn = UIComponents.create_action_button(
+                    "Export Character",
+                    variant="secondary",
+                    accessible_label="Export selected character",
+                    elem_id="characters-export-btn",
+                )
+                export_char_file = _a11y(
+                    gr.File(label="Download Character Profile", elem_id="characters-export-file"),
+                    label="Download character profile",
+                    role="status",
+                    live="polite",
+                )
+                export_char_status = _a11y(
+                    gr.Markdown(
+                        value=StatusMessages.info(
+                            "Export Character Profile",
+                            "Select a character and click Export to download their profile."
+                        ),
+                        elem_id="characters-export-status",
+                    ),
+                    label="Export character status",
+                    role="status",
+                    live="polite",
                 )
 
-                import_char_file = gr.File(label="Upload Character JSON", file_types=[".json"])
-                import_char_btn = UIComponents.create_action_button("Import Character", variant="primary")
-                import_char_status = gr.Markdown(
-                    value=StatusMessages.info(
-                        "Import Character Profile",
-                        "Upload a character JSON export to add it to the campaign."
-                    )
+                import_char_file = _a11y(
+                    gr.File(label="Upload Character JSON", file_types=[".json"], elem_id="characters-import-file"),
+                    label="Upload character JSON",
+                )
+                import_char_btn = UIComponents.create_action_button(
+                    "Import Character",
+                    variant="primary",
+                    accessible_label="Import character",
+                    elem_id="characters-import-btn",
+                )
+                import_char_status = _a11y(
+                    gr.Markdown(
+                        value=StatusMessages.info(
+                            "Import Character Profile",
+                            "Upload a character JSON export to add it to the campaign."
+                        ),
+                        elem_id="characters-import-status",
+                    ),
+                    label="Import character status",
+                    role="status",
+                    live="polite",
                 )
 
             with gr.Column():
                 gr.Markdown("### Automatic Profile Extraction")
-                extract_transcript_file = gr.File(
-                    label="IC-Only Transcript (TXT)",
-                    file_types=[".txt"],
+                extract_transcript_file = _a11y(
+                    gr.File(
+                        label="IC-Only Transcript (TXT)",
+                        file_types=[".txt"],
+                        elem_id="characters-extract-transcript",
+                    ),
+                    label="IC-only transcript upload",
                 )
                 extract_party_choices = [party for party in available_parties if party != "Manual Entry"]
-                extract_party_dropdown = gr.Dropdown(
-                    choices=extract_party_choices,
-                    label="Party Configuration",
-                    value=(
-                        extract_party_choices[0]
-                        if extract_party_choices
-                        else None
+                extract_party_dropdown = _a11y(
+                    gr.Dropdown(
+                        choices=extract_party_choices,
+                        label="Party Configuration",
+                        value=(
+                            extract_party_choices[0]
+                            if extract_party_choices
+                            else None
+                        ),
+                        elem_id="characters-extract-party",
                     ),
+                    label="Party configuration for extraction",
                 )
-                extract_session_id = gr.Textbox(
-                    label="Session ID",
-                    placeholder=Placeholders.SESSION_ID,
+                extract_session_id = _a11y(
+                    gr.Textbox(
+                        label="Session ID",
+                        placeholder=Placeholders.SESSION_ID,
+                        elem_id="characters-extract-session",
+                    ),
+                    label="Session ID for extraction",
                 )
                 extract_btn = UIComponents.create_action_button(
                     "Extract from Transcript",
                     variant="primary",
+                    accessible_label="Extract profiles from transcript",
+                    aria_describedby="characters-extract-status",
+                    elem_id="characters-extract-btn",
                 )
-                extract_status = gr.Markdown(
-                    value=StatusMessages.info(
-                        "Ready for Extraction",
-                        "Upload an IC-only transcript, select a party, provide the session ID, and click Extract."
-                    )
+                extract_status = _a11y(
+                    gr.Markdown(
+                        value=StatusMessages.info(
+                            "Ready for Extraction",
+                            "Upload an IC-only transcript, select a party, provide the session ID, and click Extract."
+                        ),
+                        elem_id="characters-extract-status",
+                    ),
+                    label="Extraction status",
+                    role="status",
+                    live="polite",
                 )
 
         def load_character_list(campaign_id: Optional[str]):

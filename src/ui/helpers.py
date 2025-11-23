@@ -212,6 +212,28 @@ class UIComponents:
             visible=visible,
         )
 
+
+class ButtonStates:
+    """Factory helpers for consistent button loading and ready states."""
+
+    @staticmethod
+    def busy(label: str) -> gr.update:
+        """Return a disabled button update with loading text."""
+
+        return gr.update(value=label, interactive=False)
+
+    @staticmethod
+    def ready(label: str) -> gr.update:
+        """Return an enabled button update with the default label."""
+
+        return gr.update(value=label, interactive=True)
+
+    @staticmethod
+    def disabled(label: str) -> gr.update:
+        """Return a disabled button update without implying loading."""
+
+        return gr.update(value=label, interactive=False)
+
     @staticmethod
     def create_copy_button(target_component) -> gr.Button:
         """

@@ -24,7 +24,7 @@ from typing import Any, Callable, Dict, Optional
 
 import gradio as gr
 
-from src.ui.helpers import StatusMessages
+from src.ui.helpers import ButtonStates, StatusMessages
 from src.ui.process_session_helpers import (
     validate_session_inputs,
     validate_session_id_realtime,
@@ -84,6 +84,10 @@ class ProcessSessionEventWiring:
         self.preflight_fn = preflight_fn
         self.active_campaign_state = active_campaign_state
         self.cancel_fn = cancel_fn
+        self.process_button_label = "Start Processing"
+        self.process_button_busy_label = "[WORKING] Starting processing"
+        self.preflight_button_label = "Run Preflight Checks"
+        self.preflight_button_busy_label = "[WORKING] Running preflight checks"
 
     def wire_all_events(self) -> None:
         """
@@ -288,11 +292,15 @@ class ProcessSessionEventWiring:
                     gr.update(),  # status_output
                     gr.update(),  # results_section
                     gr.update(),  # full_output
+                    gr.update(),  # full_output_text
                     gr.update(),  # ic_output
                     gr.update(),  # ooc_output
                     gr.update(),  # stats_output
                     gr.update(),  # snippet_output
                     gr.update(visible=False),  # scroll_trigger
+                    ButtonStates.ready(self.process_button_label),
+                    ButtonStates.ready(self.preflight_button_label),
+                    gr.update(visible=False),  # Hide cancel button when processing fails
                 )
 
             # Validate inputs
@@ -318,9 +326,13 @@ class ProcessSessionEventWiring:
                     "",  # Clear outputs
                     "",
                     "",
+                    "",
                     StatusMessages.info("Statistics", "No statistics available."),
                     StatusMessages.info("Snippet Export", "No snippet information available."),
                     gr.update(visible=False),  # No scroll trigger
+                    ButtonStates.ready(self.process_button_label),
+                    ButtonStates.ready(self.preflight_button_label),
+                    gr.update(visible=False),  # Hide cancel button when processing fails
                 )
 
             # All validation passed - proceed with processing
@@ -347,11 +359,71 @@ class ProcessSessionEventWiring:
             )
 
             # Render the processing response (format transcripts, stats, etc.)
-            return render_processing_response(response)
+            (
+                status_message,
+                results_visibility,
+                full_output,
+                full_output_text,
+                ic_output,
+                ooc_output,
+                stats_markdown,
+                snippet_markdown,
+                scroll_update,
+                cancel_update,
+            ) = render_processing_response(response)
+
+            return (
+                status_message,
+                results_visibility,
+                full_output,
+                full_output_text,
+                ic_output,
+                ooc_output,
+                stats_markdown,
+                snippet_markdown,
+                scroll_update,
+                ButtonStates.ready(self.process_button_label),
+                ButtonStates.ready(self.preflight_button_label),
+                cancel_update,
+            )
+
+        def prepare_with_loading(
+            audio_file,
+            session_id,
+            party_selection,
+            character_names,
+            player_names,
+            num_speakers,
+        ):
+            status, results_update, should_proceed, log_clear, cancel_btn = prepare_processing_status(
+                audio_file,
+                session_id,
+                party_selection,
+                character_names,
+                player_names,
+                num_speakers,
+            )
+
+            process_btn_update = ButtonStates.ready(self.process_button_label)
+            preflight_btn_update = ButtonStates.ready(self.preflight_button_label)
+
+            if should_proceed:
+                process_btn_update = ButtonStates.busy(self.process_button_busy_label)
+                preflight_btn_update = ButtonStates.disabled(self.preflight_button_label)
+
+            return (
+                status,
+                results_update,
+                should_proceed,
+                log_clear,
+                cancel_btn,
+                process_btn_update,
+                preflight_btn_update,
+            )
 
         # Wire the process button with two-stage workflow
         self.components["process_btn"].click(
-            fn=prepare_processing_status,
+            fn=prepare_with_loading,
             inputs=[
                 self.components["audio_input"],
                 self.components["session_id_input"],
@@ -366,6 +438,8 @@ class ProcessSessionEventWiring:
                 self.components["should_process_state"],
                 self.components["event_log_display"],
                 self.components["cancel_btn"],
+                self.components["process_btn"],
+                self.components["preflight_btn"],
             ],
             queue=False,
         ).then(
@@ -402,6 +476,8 @@ class ProcessSessionEventWiring:
                 self.components["stats_output"],
                 self.components["snippet_output"],
                 self.components["scroll_trigger"],
+                self.components["process_btn"],
+                self.components["preflight_btn"],
                 self.components["cancel_btn"],
             ],
             queue=True,
@@ -490,9 +566,34 @@ class ProcessSessionEventWiring:
                 campaign_id,
             )
             # Hide results section after preflight (not showing transcripts)
-            return response, gr.update(visible=False)
+            return (
+                response,
+                gr.update(visible=False),
+                ButtonStates.ready(self.preflight_button_label),
+                ButtonStates.ready(self.process_button_label),
+            )
+
+        def start_preflight_state():
+            """Set loading states before running preflight checks."""
+
+            return (
+                StatusMessages.loading("Running preflight checks"),
+                gr.update(visible=False),
+                ButtonStates.busy(self.preflight_button_busy_label),
+                ButtonStates.disabled(self.process_button_label),
+            )
 
         self.components["preflight_btn"].click(
+            fn=start_preflight_state,
+            inputs=[],
+            outputs=[
+                self.components["status_output"],
+                self.components["results_section"],
+                self.components["preflight_btn"],
+                self.components["process_btn"],
+            ],
+            queue=False,
+        ).then(
             fn=run_preflight_handler,
             inputs=[
                 self.components["party_selection_input"],
@@ -510,8 +611,10 @@ class ProcessSessionEventWiring:
             outputs=[
                 self.components["status_output"],
                 self.components["results_section"],
+                self.components["preflight_btn"],
+                self.components["process_btn"],
             ],
-            queue=False,
+            queue=True,
         )
 
     # -------------------------------------------------------------------------

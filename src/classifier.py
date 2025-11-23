@@ -4,7 +4,7 @@ import os
 import re
 import json
 import time
-from typing import List, Dict, Optional, Any
+from typing import Callable, List, Dict, Optional, Any
 from dataclasses import dataclass
 from abc import ABC, abstractmethod
 from pathlib import Path
@@ -140,7 +140,8 @@ class BaseClassifier(ABC):
         character_names: List[str],
         player_names: List[str],
         speaker_map: Optional[Dict[str, Dict[str, Any]]] = None,
-        temporal_metadata: Optional[List[Dict[str, Any]]] = None
+        temporal_metadata: Optional[List[Dict[str, Any]]] = None,
+        progress_callback: Optional[Callable[[int, int], None]] = None,
     ) -> List[ClassificationResult]:
         """Classify segments as IC or OOC"""
         pass
@@ -373,7 +374,8 @@ class OllamaClassifier(BaseClassifier):
         character_names: List[str],
         player_names: List[str],
         speaker_map: Optional[Dict[str, Dict[str, Any]]] = None,
-        temporal_metadata: Optional[List[Dict[str, Any]]] = None
+        temporal_metadata: Optional[List[Dict[str, Any]]] = None,
+        progress_callback: Optional[Callable[[int, int], None]] = None,
     ) -> List[ClassificationResult]:
         """Classify each segment using LLM reasoning."""
         if not segments:
@@ -384,6 +386,8 @@ class OllamaClassifier(BaseClassifier):
         session_duration = self._get_session_duration(segments)
         past_classifications: List[Classification] = []
         results: List[ClassificationResult] = []
+        total_segments = len(segments)
+        progress_interval = 25
 
         for i, segment in enumerate(segments):
             context_segments = self._gather_context_segments(segments, i)
@@ -418,6 +422,11 @@ class OllamaClassifier(BaseClassifier):
             )
             results.append(result)
             past_classifications.append(result.classification)
+
+            if progress_callback and (
+                (i + 1) % progress_interval == 0 or (i + 1) == total_segments
+            ):
+                progress_callback(i + 1, total_segments)
 
         return results
 
@@ -969,10 +978,14 @@ class GroqClassifier(BaseClassifier):
         character_names: List[str],
         player_names: List[str],
         speaker_map: Optional[Dict[str, Dict[str, Any]]] = None,
-        temporal_metadata: Optional[List[Dict[str, Any]]] = None
+        temporal_metadata: Optional[List[Dict[str, Any]]] = None,
+        progress_callback: Optional[Callable[[int, int], None]] = None,
     ) -> List[ClassificationResult]:
         """Classify each segment using the Groq API."""
         results = []
+        total_segments = len(segments)
+        progress_interval = 25
+
         for i, segment in enumerate(segments):
             prev_text = segments[i-1]['text'] if i > 0 else ""
             current_text = segment['text']
@@ -991,6 +1004,11 @@ class GroqClassifier(BaseClassifier):
                     confidence=ConfidenceDefaults.DEFAULT,
                     reasoning="Classification failed, defaulted to IC"
                 ))
+            finally:
+                if progress_callback and (
+                    (i + 1) % progress_interval == 0 or (i + 1) == total_segments
+                ):
+                    progress_callback(i + 1, total_segments)
         return results
 
     @retry_with_backoff()
@@ -1128,7 +1146,8 @@ Personage: <naam of N/A>"""
         character_names: List[str],
         player_names: List[str],
         speaker_map: Optional[Dict[str, Dict[str, Any]]] = None,
-        temporal_metadata: Optional[List[Dict[str, Any]]] = None
+        temporal_metadata: Optional[List[Dict[str, Any]]] = None,
+        progress_callback: Optional[Callable[[int, int], None]] = None,
     ) -> List[ClassificationResult]:
         """
         Classify segments by uploading to Google Drive and waiting for Colab to process.
@@ -1196,6 +1215,9 @@ Personage: <naam of N/A>"""
                         ClassificationResult.from_dict(c)
                         for c in result_data["classifications"]
                     ]
+
+                    if progress_callback:
+                        progress_callback(len(segments), len(segments))
 
                     # Clean up files
                     try:

@@ -889,12 +889,32 @@ class DDSessionProcessor:
                     "Classifying IC/OOC segments"
                 )
 
+                classification_start = perf_counter()
+
+                def _classification_progress(processed: int, total: int) -> None:
+                    elapsed = perf_counter() - classification_start
+                    rate = processed / elapsed if elapsed > 0 else 0.0
+                    remaining = max(total - processed, 0)
+                    eta_minutes = (remaining / rate) / 60 if rate > 0 else None
+                    message = f"Classified {processed}/{total} segments"
+                    if eta_minutes is not None:
+                        message += f" (~{eta_minutes:.1f}m remaining)"
+
+                    self.logger.info("Stage 6 progress: %s", message)
+                    StatusTracker.update_stage(
+                        self.session_id,
+                        6,
+                        ProcessingStatus.RUNNING,
+                        message
+                    )
+
                 try:
                     # Perform classification
                     classifications = self.classifier.classify_segments(
                         speaker_segments_with_labels,
                         self.character_names,
-                        self.player_names
+                        self.player_names,
+                        progress_callback=_classification_progress,
                     )
 
                     ic_count = sum(1 for c in classifications if c.classification == "IC")

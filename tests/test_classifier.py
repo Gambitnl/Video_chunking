@@ -13,6 +13,11 @@ def patched_config():
         MockConfig.GROQ_MAX_CALLS_PER_SECOND = 2
         MockConfig.GROQ_RATE_LIMIT_PERIOD_SECONDS = 1.0
         MockConfig.GROQ_RATE_LIMIT_BURST = 2
+        MockConfig.CLASSIFIER_CONTEXT_MAX_SEGMENTS = 5
+        MockConfig.CLASSIFIER_CONTEXT_PAST_SECONDS = 60
+        MockConfig.CLASSIFIER_CONTEXT_FUTURE_SECONDS = 30
+        MockConfig.CLASSIFIER_PROMPT_PREVIEW_CHARS = 120
+        MockConfig.CLASSIFIER_AUDIT_MODE = False
         # Create a dummy prompt file path
         MockConfig.PROJECT_ROOT.return_value = MagicMock()
         type(MockConfig).PROJECT_ROOT = MagicMock()
@@ -388,6 +393,7 @@ class TestClassificationResult:
         expected_dict = {
             "segment_index": 0,
             "classification": "IC",
+            "classification_type": "UNKNOWN",
             "confidence": 0.9,
             "reasoning": "Test reason",
             "character": "Aragorn",

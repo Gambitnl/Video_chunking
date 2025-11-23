@@ -1,7 +1,7 @@
 from datetime import datetime
 import uuid
 from pathlib import Path
-from unittest.mock import MagicMock, patch
+from unittest.mock import ANY, MagicMock, patch
 
 import pytest
 
@@ -42,6 +42,7 @@ def _stage(stage: PipelineStage, data=None) -> StageResult:
     )
 
 
+@patch("src.pipeline.HybridChunker")
 @patch("src.pipeline.TranscriberFactory")
 @patch("src.pipeline.DiarizerFactory")
 @patch("src.pipeline.ClassifierFactory")
@@ -49,6 +50,7 @@ def test_stage_segments_classification_calls_classifier(
     MockClassifierFactory,
     MockDiarizerFactory,
     MockTranscriberFactory,
+    MockHybridChunker,
 ):
     mock_classifier = MagicMock()
     MockClassifierFactory.create.return_value = mock_classifier
@@ -77,7 +79,48 @@ def test_stage_segments_classification_calls_classifier(
         segments,
         ["Hero"],
         ["Alice"],
+        progress_callback=ANY,
     )
+
+
+@patch("src.pipeline.ClassifierFactory")
+@patch("src.pipeline.HybridChunker")
+@patch("src.pipeline.StatusTracker.update_stage")
+def test_stage_segments_classification_reports_progress(
+    mock_update_stage,
+    MockHybridChunker,
+    MockClassifierFactory,
+):
+    MockClassifierFactory.create.return_value = MagicMock()
+    processor = DDSessionProcessor("progress-status")
+    processor.character_names = ["Hero"]
+    processor.player_names = ["Alice"]
+
+    def _classify_with_progress(segments, character_names, player_names, progress_callback=None):
+        if progress_callback:
+            progress_callback(1, len(segments))
+        return [
+            ClassificationResult(
+                segment_index=0,
+                classification=Classification.IN_CHARACTER,
+                classification_type=ClassificationType.CHARACTER,
+                confidence=0.9,
+                reasoning="Test",
+            )
+        ]
+
+    processor.classifier = MagicMock()
+    processor.classifier.classify_segments.side_effect = _classify_with_progress
+
+    segments = [
+        {"text": "Hello", "start_time": 0.0, "end_time": 1.0, "speaker": "SPEAKER_00"}
+    ]
+
+    stage_result = processor._stage_segments_classification(segments, skip_classification=False)
+
+    assert stage_result.status == ProcessingStatus.COMPLETED
+    progress_messages = [call.args[3] for call in mock_update_stage.call_args_list if len(call.args) >= 4]
+    assert any("Classified 1/1 segments" in message for message in progress_messages)
 
 
 @patch.object(DDSessionProcessor, "_stage_knowledge_extraction")
@@ -89,7 +132,9 @@ def test_stage_segments_classification_calls_classifier(
 @patch.object(DDSessionProcessor, "_stage_audio_transcription")
 @patch.object(DDSessionProcessor, "_stage_audio_chunking")
 @patch.object(DDSessionProcessor, "_stage_audio_conversion")
+@patch("src.pipeline.HybridChunker")
 def test_process_runs_classification_stage(
+    MockHybridChunker,
     mock_stage_audio_conversion,
     mock_stage_audio_chunking,
     mock_stage_audio_transcription,

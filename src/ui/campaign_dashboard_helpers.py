@@ -346,7 +346,11 @@ def session_library_markdown(
                 lines.append(f"- **{sid}**: {reason}")
                 if session:
                     output_dir = Config.OUTPUT_DIR / sid
-                    lines.append(f"  - Path: `{output_dir.relative_to(Config.PROJECT_ROOT)}`")
+                    try:
+                        rel_path = output_dir.relative_to(Config.PROJECT_ROOT)
+                    except ValueError:
+                        rel_path = output_dir
+                    lines.append(f"  - Path: `{rel_path}`")
 
             lines.append("")
             lines.append("</details>")

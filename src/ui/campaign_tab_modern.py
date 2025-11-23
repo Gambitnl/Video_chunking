@@ -55,7 +55,8 @@ def create_campaign_tab_modern(blocks: gr.Blocks) -> Dict[str, gr.components.Com
             )
 
         # Campaign Management Section
-        with gr.Accordion("Manage Selected Campaign", open=False):
+        with gr.Accordion("Manage Selected Campaign", open=False, elem_id="campaign-manage-accordion"):
+            gr.Markdown("### Rename or Delete Campaign")
             with gr.Row():
                 new_campaign_name_input = _a11y(
                     gr.Textbox(

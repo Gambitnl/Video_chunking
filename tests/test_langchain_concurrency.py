@@ -218,3 +218,57 @@ def test_concurrent_campaign_chat_client_usage(tmp_path):
         assert "chat_history" in history
         # We don't strictly assert length as threading order is non-deterministic for append,
         # but we assert it didn't crash.
+
+
+def test_concurrent_campaign_chat_chain_usage():
+    """
+    Test concurrent usage of CampaignChatChain.
+    """
+    from src.langchain.campaign_chat import CampaignChatChain
+
+    # We need to mock the internal chain because we don't want to rely on real LangChain
+    # logic which might need real API keys or be slow.
+
+    mock_llm = MagicMock()
+    mock_retriever = MagicMock()
+
+    # We need to patch where ConversationalRetrievalChain is imported from.
+    # Since it is imported inside __init__, we have to patch the module it comes from.
+    # We will try to patch both potential sources.
+
+    # langchain 1.0.8 does not seem to expose langchain.chains directly or it is empty.
+    # langchain_classic seems to have it.
+    # We will just mock langchain_classic one, and if that fails, we can add more logic.
+
+    with patch("langchain_classic.chains.ConversationalRetrievalChain.from_llm") as mock_from_llm_lcc:
+
+        # Setup the mock chain instance
+        mock_chain_instance = MagicMock()
+        # The chain is called with a dict {"question": ...}
+        # It returns a dict
+        mock_chain_instance.return_value = {
+            "answer": "Mock Chain Response",
+            "source_documents": [MagicMock(page_content="Content", metadata={})]
+        }
+
+        # Configure both patches to return our mock instance
+        mock_from_llm_lcc.return_value = mock_chain_instance
+
+        # Create chain
+        # NOTE: The __init__ will trigger the import. One of the patches should catch it
+        # depending on what is installed/imported.
+        chain = CampaignChatChain(mock_llm, mock_retriever)
+
+        num_requests = 10
+
+        def ask_worker(i):
+            response = chain.ask(f"Question {i}")
+            return response
+
+        with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
+            futures = [executor.submit(ask_worker, i) for i in range(num_requests)]
+            results = [f.result() for f in concurrent.futures.as_completed(futures)]
+
+        assert len(results) == num_requests
+        for res in results:
+            assert res["answer"] == "Mock Chain Response"

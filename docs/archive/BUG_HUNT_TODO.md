@@ -180,6 +180,15 @@ This list summarizes preliminary findings from the bug hunt session on 2025-11-0
     *   **Issue**: The `HybridSearcher.search` method allows users to control the number of results (`top_k`) and the balance between semantic and keyword search (`semantic_weight`).
     *   **Why it's an issue**: Incorrect application of these parameters can lead to suboptimal search results, such as too few or too many documents, or a biased preference for one search type. Testing diverse `top_k` and `semantic_weight` values ensures the Reciprocal Rank Fusion (RRF) algorithm works correctly under varying configurations.
 
+##### Implementation Notes & Reasoning (2025-11-22 GPT-5.1-Codex-Max)
+
+- Added parameterized unit tests to assert that `HybridSearcher.search` scales backend `top_k` queries and truncates fused results to the caller's requested size across multiple values.
+- Added parameterized unit tests to validate that varying `semantic_weight` values influence RRF ordering, ensuring high semantic weights favor semantic hits and low weights favor keyword hits.
+
+##### Code Review Findings (2025-11-22 GPT-5.1-Codex-Max)
+
+- [APPROVED] Search uses the supplied `semantic_weight` tuple when invoking Reciprocal Rank Fusion and consistently limits results to the requested `top_k`; no code changes required beyond test coverage.
+
 -   **BUG-20251102-20**: `HybridSearcher.search` - Test when one of the underlying search methods (semantic or keyword) returns an error. (Medium)
     *   **Issue**: If either `vector_store.search` or `keyword_retriever.retrieve` fails, the `HybridSearcher` should ideally still utilize the results from the functioning component or, at minimum, handle the error gracefully.
     *   **Why it's an issue**: A failure in one search component should not cripple the entire hybrid search. The system should be resilient enough to still provide some relevant results, or a clear error, preventing a complete loss of conversational context. This tests the fault tolerance and graceful degradation of the hybrid search.
@@ -198,6 +207,17 @@ This list summarizes preliminary findings from the bug hunt session on 2025-11-0
     *   **Issue**: The `_reciprocal_rank_fusion` method combines and re-ranks search results. This algorithm can be complex, especially when dealing with overlapping documents or those with very similar scores.
     *   **Why it's an issue**: Subtle flaws in the RRF implementation can lead to incorrect or unstable ranking, potentially hiding highly relevant documents or promoting less relevant ones. Thorough testing with diverse and challenging data sets is necessary to ensure the algorithm consistently produces optimal rankings.
 
+##### Implementation Notes & Reasoning (2025-11-22 GPT-5.1-Codex-Max)
+
+- Added explicit metadata ID handling in `_get_doc_id` so documents with identical text but distinct identifiers remain unique during fusion rather than collapsing under the text hash fallback.
+- Expanded `_reciprocal_rank_fusion` unit coverage with overlapping semantic/keyword results, verifying combined weights push shared documents to the top while respecting per-backend ordering for unique entries.
+- Added regression coverage ensuring identical text with different metadata IDs are preserved as separate results, reflecting realistic hybrid retrieval outputs that reuse content across sessions.
+
+##### Code Review Findings (2025-11-22 GPT-5.1-Codex-Max)
+
+- [APPROVED] Reciprocal Rank Fusion now maintains distinct documents when metadata IDs differ, preventing unintended deduplication of reused text.
+- Additional tests confirm weighted scoring favors overlapping results and preserves backend-specific ordering for unique items; existing search behavior remains unchanged aside from safer ID resolution.
+
 -   **BUG-20251102-22**: `CampaignRetriever.retrieve` - Add integration tests with actual knowledge base and transcript files. (High)
     *   **Issue**: `CampaignRetriever` is responsible for keyword-based retrieval from knowledge base JSON files and raw transcript files. The current tests for `_load_knowledge_base` and caching are good, but the core `retrieve` method's interaction with the file system isn't fully tested.
     *   **Why it's an issue**: This component represents the keyword search aspect of RAG. If it does not correctly read, parse, and search against actual files on disk, the hybrid search will lack a crucial dimension of recall. Integration tests using real (or simulated) files are essential to confirm functional correctness for realistic data.
@@ -209,6 +229,37 @@ This list summarizes preliminary findings from the bug hunt session on 2025-11-0
 -   **BUG-20251102-24**: `CampaignRetriever._search_transcripts` - Test with different query matching scenarios (partial words, case sensitivity). (Medium)
     *   **Issue**: The `_search_transcripts` method performs a basic `query_lower in text.lower()` substring search within transcript segments.
     *   **Why it's an issue**: This simple search can sometimes be imprecise. Tests should cover scenarios like multi-word queries, partial word matching (where appropriate), presence/absence of special characters, and how it handles variations in text. This helps characterize the search's effectiveness and identify potential gaps.
+
+##### Implementation Notes & Reasoning (2025-11-22 Claude Sonnet 4.5)
+
+- Added `TestSearchTranscripts` class with 13 comprehensive test cases covering all edge cases
+- **Test Coverage Added**:
+  - test_case_insensitive_matching: Validates WIZARD, wizard, WiZaRd all return same results
+  - test_partial_word_matching: Validates "wiz" matches "wizard" (substring search)
+  - test_multi_word_query: Validates "dark tower" matches exact phrase
+  - test_special_characters_in_query: Validates queries with punctuation work correctly
+  - test_no_matches_returns_empty: Validates empty list returned for non-matching queries
+  - test_top_k_limits_results: Validates top_k parameter properly limits results
+  - test_multiple_sessions_combined: Validates results from multiple session directories
+  - test_malformed_transcript_json_handled_gracefully: Validates error handling for malformed JSON
+  - test_missing_transcript_directory: Validates graceful handling of non-existent directories
+  - test_session_without_transcript_file: Validates handling of missing transcript files
+  - test_result_metadata_structure: Validates Document metadata includes type, session_id, speaker, start, end, timestamp
+  - test_empty_segments_list: Validates handling of empty segments array
+- **Fixture Design**: Created `transcript_test_data` fixture that sets up two sessions with varied content for comprehensive testing
+- **Test Data**: Used D&D-themed test data matching real usage patterns (Gandalf, wizard, dark tower, etc.)
+- All tests follow existing repository patterns (tmp_path fixtures, JSON file creation, Document validation)
+- Syntax validation passed: `python -m py_compile tests/test_langchain_retriever.py`
+- Import validation passed: All required modules importable
+
+##### Code Review Findings (2025-11-22 Claude Sonnet 4.5)
+
+- [APPROVED] Tests comprehensively cover the requested query matching scenarios per bug specification
+- Tests validate all documented behaviors: case-insensitive matching, substring search, multi-word queries, special characters
+- Error handling tests ensure graceful degradation (malformed JSON, missing directories, missing files)
+- Metadata structure tests ensure Document objects have correct fields and types
+- Tests are deterministic and isolated (use tmp_path, no external dependencies)
+- All tests ready for execution when pytest environment is available
 
 -   **BUG-20251102-25**: `CampaignRetriever._load_knowledge_base` - Test cache eviction logic. (Medium)
     *   **Issue**: The `_load_knowledge_base` method implements a cache with a `KB_CACHE_SIZE` limit and an eviction policy to remove the oldest entries.

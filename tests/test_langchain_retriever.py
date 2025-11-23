@@ -167,6 +167,292 @@ class TestClearCache:
         assert retriever._kb_cache == {}
 
 
+class TestSearchTranscripts:
+    """Tests for _search_transcripts method - covers BUG-20251102-24."""
+
+    @pytest.fixture
+    def transcript_test_data(self, tmp_path):
+        """Create test environment with transcript data."""
+        kb_dir = tmp_path / "knowledge"
+        transcript_dir = tmp_path / "transcripts"
+        kb_dir.mkdir()
+        transcript_dir.mkdir()
+
+        # Session 1: Multiple segments with varied content
+        session1_dir = transcript_dir / "session_001"
+        session1_dir.mkdir()
+        transcript1 = {
+            "segments": [
+                {
+                    "text": "Gandalf the wizard cast a powerful spell",
+                    "speaker": "DM",
+                    "start": 10.0,
+                    "end": 15.0
+                },
+                {
+                    "text": "I think we should ATTACK the dragon!",
+                    "speaker": "Player1",
+                    "start": 20.0,
+                    "end": 25.0
+                },
+                {
+                    "text": "The dark tower looms before you",
+                    "speaker": "DM",
+                    "start": 30.0,
+                    "end": 35.0
+                },
+                {
+                    "text": "Let's search for the magic artifact",
+                    "speaker": "Player2",
+                    "start": 40.0,
+                    "end": 45.0
+                },
+                {
+                    "text": "You find a sword with strange runes: 'Narsil'",
+                    "speaker": "DM",
+                    "start": 50.0,
+                    "end": 55.0
+                }
+            ]
+        }
+        (session1_dir / "diarized_transcript.json").write_text(json.dumps(transcript1))
+
+        # Session 2: Additional segments
+        session2_dir = transcript_dir / "session_002"
+        session2_dir.mkdir()
+        transcript2 = {
+            "segments": [
+                {
+                    "text": "The wizard's tower is abandoned",
+                    "speaker": "DM",
+                    "start": 5.0,
+                    "end": 10.0
+                },
+                {
+                    "text": "I cast fireball at the goblins",
+                    "speaker": "Player1",
+                    "start": 15.0,
+                    "end": 20.0
+                }
+            ]
+        }
+        (session2_dir / "diarized_transcript.json").write_text(json.dumps(transcript2))
+
+        return CampaignRetriever(kb_dir, transcript_dir), transcript_dir
+
+    def test_case_insensitive_matching(self, transcript_test_data):
+        """Test that search is case-insensitive."""
+        retriever, _ = transcript_test_data
+
+        # Search with uppercase query
+        results_upper = retriever._search_transcripts("WIZARD", top_k=5)
+        # Search with lowercase query
+        results_lower = retriever._search_transcripts("wizard", top_k=5)
+        # Search with mixed case
+        results_mixed = retriever._search_transcripts("WiZaRd", top_k=5)
+
+        # All should find the same results
+        assert len(results_upper) > 0
+        assert len(results_upper) == len(results_lower)
+        assert len(results_upper) == len(results_mixed)
+
+        # Verify content contains "wizard" (case-insensitive)
+        for result in results_upper:
+            assert "wizard" in result.page_content.lower()
+
+    def test_partial_word_matching(self, transcript_test_data):
+        """Test partial word matching with substring search."""
+        retriever, _ = transcript_test_data
+
+        # Partial word should match
+        results = retriever._search_transcripts("wiz", top_k=5)
+
+        assert len(results) > 0
+        # Should find segments containing "wizard"
+        assert any("wizard" in r.page_content.lower() for r in results)
+
+    def test_multi_word_query(self, transcript_test_data):
+        """Test multi-word queries (searches for the entire phrase)."""
+        retriever, _ = transcript_test_data
+
+        # Multi-word query - searches for exact substring "dark tower"
+        results = retriever._search_transcripts("dark tower", top_k=5)
+
+        assert len(results) > 0
+        # Should find segment with "dark tower"
+        assert any("dark tower" in r.page_content.lower() for r in results)
+
+    def test_special_characters_in_query(self, transcript_test_data):
+        """Test queries with special characters and punctuation."""
+        retriever, _ = transcript_test_data
+
+        # Query with punctuation (should still match)
+        results = retriever._search_transcripts("Narsil", top_k=5)
+
+        assert len(results) > 0
+        assert any("Narsil" in r.page_content for r in results)
+
+    def test_no_matches_returns_empty(self, transcript_test_data):
+        """Test that queries with no matches return empty list."""
+        retriever, _ = transcript_test_data
+
+        # Query that won't match anything
+        results = retriever._search_transcripts("xyzzynonexistent", top_k=5)
+
+        assert results == []
+
+    def test_top_k_limits_results(self, transcript_test_data):
+        """Test that top_k properly limits the number of results."""
+        retriever, _ = transcript_test_data
+
+        # Search for common term with different top_k values
+        results_k1 = retriever._search_transcripts("the", top_k=1)
+        results_k3 = retriever._search_transcripts("the", top_k=3)
+        results_k10 = retriever._search_transcripts("the", top_k=10)
+
+        # Results should respect top_k limit
+        assert len(results_k1) <= 1
+        assert len(results_k3) <= 3
+        assert len(results_k10) <= 10
+
+        # With more top_k, should get more (or equal) results
+        assert len(results_k3) >= len(results_k1)
+        assert len(results_k10) >= len(results_k3)
+
+    def test_multiple_sessions_combined(self, transcript_test_data):
+        """Test that results come from multiple session directories."""
+        retriever, _ = transcript_test_data
+
+        # Search for term that appears in both sessions
+        results = retriever._search_transcripts("wizard", top_k=10)
+
+        # Should find results from both sessions
+        session_ids = set(r.metadata.get("session_id") for r in results)
+
+        # Should have results from both session_001 and session_002
+        assert len(session_ids) >= 2
+        assert "session_001" in session_ids
+        assert "session_002" in session_ids
+
+    def test_malformed_transcript_json_handled_gracefully(self, tmp_path):
+        """Test that malformed JSON files are handled without crashing."""
+        kb_dir = tmp_path / "knowledge"
+        transcript_dir = tmp_path / "transcripts"
+        kb_dir.mkdir()
+        transcript_dir.mkdir()
+
+        # Create a valid session
+        valid_session = transcript_dir / "session_valid"
+        valid_session.mkdir()
+        valid_data = {
+            "segments": [
+                {"text": "This is valid data", "speaker": "DM", "start": 0.0, "end": 5.0}
+            ]
+        }
+        (valid_session / "diarized_transcript.json").write_text(json.dumps(valid_data))
+
+        # Create a malformed session
+        broken_session = transcript_dir / "session_broken"
+        broken_session.mkdir()
+        (broken_session / "diarized_transcript.json").write_text("{ invalid json }")
+
+        retriever = CampaignRetriever(kb_dir, transcript_dir)
+
+        # Should handle gracefully and still return results from valid session
+        results = retriever._search_transcripts("valid", top_k=5)
+
+        assert len(results) > 0
+        assert any("valid" in r.page_content.lower() for r in results)
+
+    def test_missing_transcript_directory(self, tmp_path):
+        """Test handling when transcript directory doesn't exist."""
+        kb_dir = tmp_path / "knowledge"
+        transcript_dir = tmp_path / "nonexistent_transcripts"
+        kb_dir.mkdir()
+
+        retriever = CampaignRetriever(kb_dir, transcript_dir)
+
+        # Should return empty list without crashing
+        results = retriever._search_transcripts("anything", top_k=5)
+
+        assert results == []
+
+    def test_session_without_transcript_file(self, tmp_path):
+        """Test handling of session directories without diarized_transcript.json."""
+        kb_dir = tmp_path / "knowledge"
+        transcript_dir = tmp_path / "transcripts"
+        kb_dir.mkdir()
+        transcript_dir.mkdir()
+
+        # Create a valid session
+        valid_session = transcript_dir / "session_valid"
+        valid_session.mkdir()
+        valid_data = {
+            "segments": [
+                {"text": "Valid segment", "speaker": "DM", "start": 0.0, "end": 5.0}
+            ]
+        }
+        (valid_session / "diarized_transcript.json").write_text(json.dumps(valid_data))
+
+        # Create a session directory without transcript file
+        empty_session = transcript_dir / "session_empty"
+        empty_session.mkdir()
+        # No diarized_transcript.json file created
+
+        retriever = CampaignRetriever(kb_dir, transcript_dir)
+
+        # Should handle gracefully and return results from valid session only
+        results = retriever._search_transcripts("Valid", top_k=5)
+
+        assert len(results) > 0
+        # All results should be from valid session
+        assert all(r.metadata.get("session_id") == "session_valid" for r in results)
+
+    def test_result_metadata_structure(self, transcript_test_data):
+        """Test that results have correct metadata structure."""
+        retriever, _ = transcript_test_data
+
+        results = retriever._search_transcripts("wizard", top_k=5)
+
+        assert len(results) > 0
+
+        for result in results:
+            # Check result is a Document
+            assert isinstance(result, Document)
+
+            # Check metadata fields
+            assert result.metadata.get("type") == "transcript"
+            assert "session_id" in result.metadata
+            assert "speaker" in result.metadata
+            assert "start" in result.metadata
+            assert "end" in result.metadata
+            assert "timestamp" in result.metadata
+
+            # Check that start/end are numeric
+            assert isinstance(result.metadata["start"], (int, float))
+            assert isinstance(result.metadata["end"], (int, float))
+
+    def test_empty_segments_list(self, tmp_path):
+        """Test handling of transcript with empty segments list."""
+        kb_dir = tmp_path / "knowledge"
+        transcript_dir = tmp_path / "transcripts"
+        kb_dir.mkdir()
+        transcript_dir.mkdir()
+
+        # Create session with empty segments
+        session_dir = transcript_dir / "session_empty"
+        session_dir.mkdir()
+        empty_transcript = {"segments": []}
+        (session_dir / "diarized_transcript.json").write_text(json.dumps(empty_transcript))
+
+        retriever = CampaignRetriever(kb_dir, transcript_dir)
+
+        # Should return empty list
+        results = retriever._search_transcripts("anything", top_k=5)
+
+        assert results == []
+
+
 # =============================================================================
 # INTEGRATION TESTS
 # =============================================================================

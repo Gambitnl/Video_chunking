@@ -222,8 +222,15 @@ class OllamaClientFactory:
         Returns:
             List of model names
         """
-        if isinstance(models_response, dict):
-            return [m['name'] for m in models_response.get('models', [])]
+        # Handle ListResponse object from ollama library
+        if hasattr(models_response, 'models'):
+            return [
+                m.model if hasattr(m, 'model') else str(m)
+                for m in models_response.models
+            ]
+        # Handle dict response (older API format)
+        elif isinstance(models_response, dict):
+            return [m.get('name', m.get('model', '')) for m in models_response.get('models', [])]
         return []
 
     def test_model_available(

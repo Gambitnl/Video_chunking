@@ -174,7 +174,7 @@ def process(
         )
 
         # Show success message
-        console.print("\n[bold green]✓ Processing completed successfully![/bold green]")
+        console.print("\n[bold green][OK] Processing completed successfully![/bold green]")
         console.print(f"[dim]Verbose log: {get_log_file_path()}[/dim]")
         _audit(
             ctx,
@@ -186,7 +186,7 @@ def process(
         )
 
     except Exception as e:
-        console.print(f"\n[bold red]✗ Processing failed: {e}[/bold red]")
+        console.print(f"\n[bold red][FAIL] Processing failed: {e}[/bold red]")
         console.print(f"[dim]Inspect log for details: {get_log_file_path()}[/dim]")
         _audit(
             ctx,
@@ -214,7 +214,7 @@ def map_speaker(ctx, session_id, speaker_id, person_name):
     manager = SpeakerProfileManager()
     manager.map_speaker(session_id, speaker_id, person_name)
 
-    console.print(f"[green]✓ Mapped {speaker_id} → {person_name} for session {session_id}[/green]")
+    console.print(f"[green][OK] Mapped {speaker_id} -> {person_name} for session {session_id}[/green]")
     _audit(
         ctx,
         "cli.speakers.map",
@@ -611,12 +611,27 @@ def check_setup():
     except ImportError:
         checks.append(("pyannote.audio", False, "Not installed"))
 
-    # Check Ollama connection
+    # Check Ollama connection and model availability
     try:
-        import ollama
-        client = ollama.Client(host=Config.OLLAMA_BASE_URL)
-        client.list()
-        checks.append(("Ollama", True, f"Running at {Config.OLLAMA_BASE_URL}"))
+        from src.llm_factory import OllamaClientFactory, OllamaConfig
+        factory = OllamaClientFactory()
+        ollama_config = OllamaConfig(host=Config.OLLAMA_BASE_URL)
+        client = factory.create_client(
+            config=ollama_config,
+            test_connection=True,
+            max_retries=1
+        )
+
+        # Check if configured model is available
+        available_models = factory._fetch_available_models(client)
+        if available_models and Config.OLLAMA_MODEL in available_models:
+            checks.append(("Ollama", True, f"Running with model '{Config.OLLAMA_MODEL}'"))
+        elif available_models:
+            model_list = ", ".join(available_models[:3])
+            checks.append(("Ollama", False,
+                f"Model '{Config.OLLAMA_MODEL}' not found. Available: {model_list}"))
+        else:
+            checks.append(("Ollama", True, f"Running at {Config.OLLAMA_BASE_URL} (no models)"))
     except Exception as e:
         checks.append(("Ollama", False, f"Not running - {str(e)[:50]}"))
 
@@ -627,7 +642,7 @@ def check_setup():
     table.add_column("Details", style="dim")
 
     for name, success, details in checks:
-        status = "[green]✓[/green]" if success else "[red]✗[/red]"
+        status = "[green]OK[/green]" if success else "[red]FAIL[/red]"
         table.add_row(name, status, details)
 
     console.print(table)
@@ -635,9 +650,9 @@ def check_setup():
     # Overall status
     all_ok = all(check[1] for check in checks)
     if all_ok:
-        console.print("\n[bold green]✓ All dependencies are ready![/bold green]")
+        console.print("\n[bold green][OK] All dependencies are ready![/bold green]")
     else:
-        console.print("\n[bold yellow]⚠ Some dependencies are missing. Please install them.[/bold yellow]")
+        console.print("\n[bold yellow][WARNING] Some dependencies are missing. Please install them.[/bold yellow]")
         console.print("\nRun: pip install -r requirements.txt")
 
 @click.group()
@@ -855,18 +870,18 @@ def migrate_sessions_cmd(campaign_id, dry_run, filter, output):
     )
 
     # Display results
-    console.print(f"[bold green]✓ Sessions migrated:[/bold green] {report.sessions_migrated}")
-    console.print(f"[bold yellow]⊘ Sessions skipped:[/bold yellow] {report.sessions_skipped}")
+    console.print(f"[bold green][OK] Sessions migrated:[/bold green] {report.sessions_migrated}")
+    console.print(f"[bold yellow][SKIP] Sessions skipped:[/bold yellow] {report.sessions_skipped}")
 
     if report.errors:
-        console.print(f"\n[bold red]✗ Errors ({len(report.errors)}):[/bold red]")
+        console.print(f"\n[bold red][FAIL] Errors ({len(report.errors)}):[/bold red]")
         for error in report.errors:
             console.print(f"  - {error}")
 
     if output:
         markdown_report = migration.generate_migration_report_markdown(sessions_report=report)
         Path(output).write_text(markdown_report, encoding='utf-8')
-        console.print(f"\n[bold green]✓ Report saved to:[/bold green] {output}")
+        console.print(f"\n[bold green][OK] Report saved to:[/bold green] {output}")
 
     if dry_run and report.sessions_migrated > 0:
         console.print(f"\n[bold yellow]This was a dry run. Run without --dry-run to apply changes.[/bold yellow]")
@@ -899,18 +914,18 @@ def migrate_profiles_cmd(campaign_id, dry_run, characters, output):
     )
 
     # Display results
-    console.print(f"[bold green]✓ Profiles migrated:[/bold green] {report.profiles_migrated}")
-    console.print(f"[bold yellow]⊘ Profiles skipped:[/bold yellow] {report.profiles_skipped}")
+    console.print(f"[bold green][OK] Profiles migrated:[/bold green] {report.profiles_migrated}")
+    console.print(f"[bold yellow][SKIP] Profiles skipped:[/bold yellow] {report.profiles_skipped}")
 
     if report.errors:
-        console.print(f"\n[bold red]✗ Errors ({len(report.errors)}):[/bold red]")
+        console.print(f"\n[bold red][FAIL] Errors ({len(report.errors)}):[/bold red]")
         for error in report.errors:
             console.print(f"  - {error}")
 
     if output:
         markdown_report = migration.generate_migration_report_markdown(profiles_report=report)
         Path(output).write_text(markdown_report, encoding='utf-8')
-        console.print(f"\n[bold green]✓ Report saved to:[/bold green] {output}")
+        console.print(f"\n[bold green][OK] Report saved to:[/bold green] {output}")
 
     if dry_run and report.profiles_migrated > 0:
         console.print(f"\n[bold yellow]This was a dry run. Run without --dry-run to save changes.[/bold yellow]")
@@ -938,18 +953,18 @@ def migrate_narratives_cmd(campaign_id, dry_run, output):
     )
 
     # Display results
-    console.print(f"[bold green]✓ Narratives migrated:[/bold green] {report.narratives_migrated}")
-    console.print(f"[bold yellow]⊘ Narratives skipped:[/bold yellow] {report.narratives_skipped}")
+    console.print(f"[bold green][OK] Narratives migrated:[/bold green] {report.narratives_migrated}")
+    console.print(f"[bold yellow][SKIP] Narratives skipped:[/bold yellow] {report.narratives_skipped}")
 
     if report.errors:
-        console.print(f"\n[bold red]✗ Errors ({len(report.errors)}):[/bold red]")
+        console.print(f"\n[bold red][FAIL] Errors ({len(report.errors)}):[/bold red]")
         for error in report.errors:
             console.print(f"  - {error}")
 
     if output:
         markdown_report = migration.generate_migration_report_markdown(narratives_report=report)
         Path(output).write_text(markdown_report, encoding='utf-8')
-        console.print(f"\n[bold green]✓ Report saved to:[/bold green] {output}")
+        console.print(f"\n[bold green][OK] Report saved to:[/bold green] {output}")
 
     if dry_run and report.narratives_migrated > 0:
         console.print(f"\n[bold yellow]This was a dry run. Run without --dry-run to apply changes.[/bold yellow]")
@@ -1304,7 +1319,7 @@ def batch(
 
     # Validate that at least one input source is provided
     if not input_dir and not files:
-        console.print("[red]✗ Error: Must provide either --input-dir or --files[/red]")
+        console.print("[red][ERROR] Must provide either --input-dir or --files[/red]")
         console.print("[dim]Use --help for usage information[/dim]")
         raise click.Abort()
 
@@ -1327,7 +1342,7 @@ def batch(
     audio_files = sorted(set(audio_files))
 
     if not audio_files:
-        console.print("[red]✗ No audio files found to process.[/red]")
+        console.print("[red][ERROR] No audio files found to process.[/red]")
         if input_dir:
             console.print(f"[dim]Checked directory: {input_dir}[/dim]")
             console.print("[dim]Supported formats: .m4a, .mp3, .wav, .flac, .ogg, .aac[/dim]")
@@ -1358,7 +1373,7 @@ def batch(
         )
 
         # Display summary
-        console.print("\n[bold green]✓ Batch processing completed![/bold green]")
+        console.print("\n[bold green][OK] Batch processing completed![/bold green]")
         console.print(f"\n{report.summary_markdown()}")
 
         # Save report
@@ -1372,11 +1387,11 @@ def batch(
         console.print(f"[dim]Verbose log: {get_log_file_path()}[/dim]")
 
     except KeyboardInterrupt:
-        console.print("\n[yellow]⚠ Batch processing interrupted by user[/yellow]")
+        console.print("\n[yellow][WARNING] Batch processing interrupted by user[/yellow]")
         console.print("[dim]Progress has been checkpointed. Use --resume to continue.[/dim]")
         raise click.Abort()
     except Exception as e:
-        console.print(f"\n[bold red]✗ Batch processing failed: {e}[/bold red]")
+        console.print(f"\n[bold red][FAIL] Batch processing failed: {e}[/bold red]")
         console.print(f"[dim]Inspect log for details: {get_log_file_path()}[/dim]")
         raise click.Abort()
 

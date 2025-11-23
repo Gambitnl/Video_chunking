@@ -441,3 +441,112 @@ def test_generate_migration_report_markdown():
     assert "## Character Profiles" in markdown
     assert "Migrated**: 3" in markdown
     assert "Error 1" in markdown
+
+
+def test_migrate_with_empty_json(tmp_path, temp_campaign, monkeypatch):
+    """Test migration handles empty JSON files gracefully."""
+    from src import config
+
+    # Setup
+    output_dir = tmp_path / "output"
+    output_dir.mkdir()
+    monkeypatch.setattr(config.Config, 'OUTPUT_DIR', output_dir)
+    monkeypatch.setattr(config.Config, 'MODELS_DIR', temp_campaign)
+
+    # Create session with empty data file
+    session_dir = output_dir / "20251101_120000_Empty"
+    session_dir.mkdir()
+    data_file = session_dir / "Empty_data.json"
+    data_file.write_text("{}", encoding='utf-8')
+
+    # Run migration
+    migration = CampaignMigration()
+    report = migration.migrate_session_metadata(
+        campaign_id="test_campaign",
+        dry_run=False
+    )
+
+    # Should report 0 migrated, 0 skipped, and likely an error or just handled
+    # Since metadata is empty, key lookup might fail if not careful
+    # The code does `data.get('metadata', {})` so it should be fine.
+
+    assert report.sessions_migrated == 1
+
+    with open(data_file, 'r', encoding='utf-8') as f:
+        data = json.load(f)
+
+    assert "metadata" in data
+    assert data["metadata"]["campaign_id"] == "test_campaign"
+
+
+def test_migrate_with_corrupted_json(tmp_path, temp_campaign, monkeypatch):
+    """Test migration handles corrupted JSON files."""
+    from src import config
+
+    # Setup
+    output_dir = tmp_path / "output"
+    output_dir.mkdir()
+    monkeypatch.setattr(config.Config, 'OUTPUT_DIR', output_dir)
+    monkeypatch.setattr(config.Config, 'MODELS_DIR', temp_campaign)
+
+    # Create session with corrupted data file
+    session_dir = output_dir / "20251101_120000_Corrupt"
+    session_dir.mkdir()
+    data_file = session_dir / "Corrupt_data.json"
+    data_file.write_text("{ this is not valid json }", encoding='utf-8')
+
+    # Run migration
+    migration = CampaignMigration()
+    report = migration.migrate_session_metadata(
+        campaign_id="test_campaign",
+        dry_run=False
+    )
+
+    # Should report error
+    assert report.sessions_migrated == 0
+    assert len(report.errors) == 1
+    assert "Corrupt_data.json" in report.errors[0]
+
+
+def test_migrate_partial_success(tmp_path, temp_campaign, monkeypatch):
+    """Test migration continues after encountering an error."""
+    from src import config
+
+    # Setup
+    output_dir = tmp_path / "output"
+    output_dir.mkdir()
+    monkeypatch.setattr(config.Config, 'OUTPUT_DIR', output_dir)
+    monkeypatch.setattr(config.Config, 'MODELS_DIR', temp_campaign)
+
+    # Session 1: Good
+    s1 = output_dir / "20251101_120000_Good"
+    s1.mkdir()
+    (s1 / "Good_data.json").write_text(json.dumps({"metadata": {"session_id": "good"}}), encoding='utf-8')
+
+    # Session 2: Corrupt
+    s2 = output_dir / "20251102_120000_Bad"
+    s2.mkdir()
+    (s2 / "Bad_data.json").write_text("invalid json", encoding='utf-8')
+
+    # Session 3: Good
+    s3 = output_dir / "20251103_120000_Good2"
+    s3.mkdir()
+    (s3 / "Good2_data.json").write_text(json.dumps({"metadata": {"session_id": "good2"}}), encoding='utf-8')
+
+    # Run migration
+    migration = CampaignMigration()
+    report = migration.migrate_session_metadata(
+        campaign_id="test_campaign",
+        dry_run=False
+    )
+
+    # Verify results
+    assert report.sessions_migrated == 2
+    assert len(report.errors) == 1
+
+    # Verify s1 and s3 were updated
+    with open(s1 / "Good_data.json", 'r') as f:
+        assert json.load(f)["metadata"]["campaign_id"] == "test_campaign"
+
+    with open(s3 / "Good2_data.json", 'r') as f:
+        assert json.load(f)["metadata"]["campaign_id"] == "test_campaign"

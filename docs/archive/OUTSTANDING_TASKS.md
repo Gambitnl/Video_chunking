@@ -267,7 +267,7 @@ If you find a `[~]` task with timestamp >24 hours old:
 
 - [ ] BUG-20251102-48: Character Profile Extraction - Test unusual names/dialogue → BUG_HUNT_TODO.md:200
 
-- [ ] BUG-20251102-49: Character Profile Extraction - Test long transcripts (HIGH) → BUG_HUNT_TODO.md:204
+- [x] BUG-20251102-49: Character Profile Extraction - Test long transcripts (Agent: Jules, Completed: 2025-11-23) → BUG_HUNT_TODO.md:204
 
 - [ ] BUG-20251102-50: Character Profile Extraction - Verify save/load → BUG_HUNT_TODO.md:208
 

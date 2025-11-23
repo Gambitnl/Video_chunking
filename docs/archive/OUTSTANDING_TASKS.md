@@ -460,10 +460,11 @@ If you find a `[~]` task with timestamp >24 hours old:
   - **Implementation**: Replaced ASCII bars with HTML/CSS progress bars using existing theme styles
   → UX_IMPROVEMENTS.md:166-194
 
-- [ ] **UX-08**: Persistent campaign badge in header
-  - **Files**: `src/ui/process_session_components.py`, `app.py`
+- [x] **UX-08**: Persistent campaign badge in header (Agent: Claude Sonnet 4.5, Completed: 2025-11-22)
+  - **Files**: `src/ui/process_session_components.py`, `src/ui/theme.py`
   - **Effort**: 1 day | **Conflict Risk**: ⚠️ LOW
   - **Impact**: Constant campaign context awareness
+  - **Implementation**: Added sticky CSS class with gradient background, applied to campaign badge
   → UX_IMPROVEMENTS.md:220-259
 
 - [ ] **UX-14**: Per-segment copy buttons to transcripts

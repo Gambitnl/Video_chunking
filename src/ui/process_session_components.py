@@ -614,7 +614,10 @@ class ProcessSessionTabBuilder:
             "Campaign",
             "No campaign selected. Use the Campaign Launcher above to choose one."
         )
-        all_components["campaign_badge"] = gr.Markdown(value=badge_value)
+        all_components["campaign_badge"] = gr.Markdown(
+            value=badge_value,
+            elem_classes=["campaign-badge-sticky"]
+        )
 
         # Build each section
         upload_builder = UploadSectionBuilder()

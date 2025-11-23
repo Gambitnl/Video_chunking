@@ -457,6 +457,31 @@ details > div {
     background: #94a3b8;
 }
 
+/* Campaign Badge - Sticky header showing active campaign */
+.campaign-badge-sticky {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+    color: white !important;
+    padding: 0.75rem 1rem;
+    text-align: center;
+    border-radius: 8px;
+    margin-bottom: 1rem;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.campaign-badge-sticky p {
+    margin: 0 !important;
+    color: white !important;
+    font-weight: 600;
+    font-size: 1rem;
+}
+
+.campaign-badge-sticky strong {
+    color: white !important;
+}
+
 /* Responsive adjustments */
 @media (max-width: 768px) {
     .stepper {

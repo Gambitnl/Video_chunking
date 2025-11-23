@@ -494,7 +494,7 @@ def render_processing_response(response: Dict[str, Any]) -> Tuple:
         response: Response dictionary from process_session function
 
     Returns:
-        Tuple of (status_md, results_visible, full, ic, ooc, stats_md, snippet_md, scroll_js, cancel_btn_update)
+        Tuple of (status_md, results_visible, full, full_text, ic, ooc, stats_md, snippet_md, scroll_js, cancel_btn_update)
 
     Implementation Notes (2025-11-18):
         BUG-20251103-007: Improved auto-scroll reliability
@@ -502,6 +502,10 @@ def render_processing_response(response: Dict[str, Any]) -> Tuple:
         - Added retry logic (5 attempts, 200ms intervals) for robustness
         - Checks both element existence AND visibility (offsetParent !== null)
         - Handles edge cases where results section renders slowly
+
+    Implementation Notes (2025-11-22):
+        UX-14: Added full_text output for copy button support
+        - Returns plain text version of full transcript for easy copying
     """
     # JavaScript to scroll to results section
     # Uses retry logic to handle Gradio's rendering delays
@@ -537,8 +541,9 @@ def render_processing_response(response: Dict[str, Any]) -> Tuple:
             StatusMessages.error("Processing Failed", "Unexpected response from pipeline."),
             gr.update(visible=False),
             None, # highlighted_transcript
-            "",
-            "",
+            "",  # full_text
+            "",  # ic
+            "",  # ooc
             StatusMessages.info("Statistics", "No statistics available."),
             StatusMessages.info("Snippet Export", "No snippet information available."),
             gr.update(visible=False),
@@ -554,6 +559,7 @@ def render_processing_response(response: Dict[str, Any]) -> Tuple:
             ),
             gr.update(visible=False),
             response.get("highlighted_transcript") or None,
+            response.get("full", ""),  # full_text
             response.get("ic", ""),
             response.get("ooc", ""),
             StatusMessages.info("Statistics", "No statistics available."),
@@ -572,6 +578,7 @@ def render_processing_response(response: Dict[str, Any]) -> Tuple:
         StatusMessages.success("Processing Complete", response.get("message", "Session processed successfully.")),
         gr.update(visible=True),
         response.get("highlighted_transcript") or [], # Use new highlighted data for full_output
+        response.get("full", ""),  # full_text for copy button
         response.get("ic", ""),
         response.get("ooc", ""),
         stats_markdown,

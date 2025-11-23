@@ -468,9 +468,27 @@ class ResultsSectionBuilder:
                 interactive=False,
                 show_legend=True,
             )
-            
-            components["ic_output"] = gr.Textbox(label="In-Character Transcript", lines=10)
-            components["ooc_output"] = gr.Textbox(label="Out-of-Character Transcript", lines=10)
+
+            # Plain text version with copy button for easy copying
+            components["full_output_text"] = gr.Textbox(
+                label="Full Transcript (Plain Text)",
+                lines=10,
+                show_copy_button=True,
+                info="Click the copy button to copy the entire transcript"
+            )
+
+            components["ic_output"] = gr.Textbox(
+                label="In-Character Transcript",
+                lines=10,
+                show_copy_button=True,
+                info="IC-only dialogue - click copy button to extract"
+            )
+            components["ooc_output"] = gr.Textbox(
+                label="Out-of-Character Transcript",
+                lines=10,
+                show_copy_button=True,
+                info="OOC-only content - click copy button to extract"
+            )
             components["stats_output"] = gr.Markdown()
             components["snippet_output"] = gr.Markdown()
 

@@ -387,6 +387,7 @@ class ProcessSessionEventWiring:
                 self.components["status_output"],
                 self.components["results_section"],
                 self.components["full_output"],
+                self.components["full_output_text"],  # Plain text with copy button
                 self.components["ic_output"],
                 self.components["ooc_output"],
                 self.components["stats_output"],

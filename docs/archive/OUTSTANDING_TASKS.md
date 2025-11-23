@@ -483,9 +483,10 @@ If you find a `[~]` task with timestamp >24 hours old:
 
 ### Phase 2: Medium Priority Enhancements (28 days, 8 tasks)
 
-- [ ] **UX-02**: File size preview on upload
-  - **Files**: `src/ui/process_session_components.py:101-130`
+- [x] **UX-02**: File size preview on upload (Agent: Claude Sonnet 4.5, Completed: 2025-11-23)
+  - **Files**: `src/ui/process_session_helpers.py`, `src/ui/process_session_components.py`, `src/ui/process_session_events.py`
   - **Effort**: 2 days | **Conflict Risk**: ⚠️ LOW
+  - **Implementation**: Added analyze_uploaded_file() with AudioProcessor integration, shows size/duration/est. time
   → UX_IMPROVEMENTS.md:62-98
 
 - [ ] **UX-07**: Estimated time remaining

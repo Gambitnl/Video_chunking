@@ -57,29 +57,50 @@ def create_campaign_tab_modern(blocks: gr.Blocks) -> Dict[str, gr.components.Com
 
         # Campaign Overview Section
         gr.Markdown("## Campaign Overview")
-        overview_md = gr.Markdown(
-            value=StatusMessages.info(
-                "No Campaign Selected",
-                "Select a campaign above or load one from the Campaign Launcher to see campaign metrics."
-            )
+        overview_md = gr.HTML(
+            value="""
+            <div class="empty-state-card">
+                <div class="empty-state-icon">🎲</div>
+                <h3>No Campaign Selected</h3>
+                <p>Get started by creating your first campaign or loading an existing one to see campaign metrics, session history, and progress tracking.</p>
+                <div class="empty-state-actions">
+                    <span class="info-badge">→ Use Campaign Launcher tab to get started</span>
+                </div>
+            </div>
+            """
         )
 
         # Knowledge Base Section
         gr.Markdown("## Knowledge Base")
-        knowledge_md = gr.Markdown(
-            value=StatusMessages.info(
-                "Knowledge Base",
-                "Knowledge summaries will appear here after selecting a campaign with processed sessions."
-            )
+        knowledge_md = gr.HTML(
+            value="""
+            <div class="empty-state-card">
+                <div class="empty-state-icon">📚</div>
+                <h3>Knowledge Base Empty</h3>
+                <p>Your campaign's knowledge base tracks NPCs, locations, quests, items, and factions across all sessions.</p>
+                <div class="empty-state-actions">
+                    <span class="info-badge">💡 Process sessions to build knowledge</span>
+                    <span class="info-badge">🔍 View extracted entities here</span>
+                </div>
+            </div>
+            """
         )
 
         # Session Library Section
         gr.Markdown("## Session Library")
-        session_library_md = gr.Markdown(
-            value=StatusMessages.info(
-                "Session Library",
-                "Processed sessions for the selected campaign will be listed here with clickable navigation."
-            )
+        session_library_md = gr.HTML(
+            value="""
+            <div class="empty-state-card">
+                <div class="empty-state-icon">🎬</div>
+                <h3>No Sessions Yet</h3>
+                <p>Process your first D&D session recording to build your campaign library. Sessions appear here with transcripts, timestamps, and speaker identification.</p>
+                <div class="empty-state-actions">
+                    <span class="info-badge">🎙️ Upload audio in Process Session tab</span>
+                    <span class="info-badge">⚙️ Configure speakers and settings</span>
+                    <span class="info-badge">🚀 Start processing</span>
+                </div>
+            </div>
+            """
         )
 
     return {

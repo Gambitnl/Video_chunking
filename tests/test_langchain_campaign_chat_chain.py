@@ -117,6 +117,7 @@ def test_campaign_chat_chain_followup_question_with_context():
     ]
     llm = SequenceLLM([
         "The Shadow Lord is the main antagonist",
+        "Where is the Shadow Lord's fortress?", # Rephrased question step
         "His fortress is in the Shadowfell"
     ])
     retriever = StaticRetriever(documents)

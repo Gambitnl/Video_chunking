@@ -292,7 +292,7 @@ class TestCampaignChatClientErrorPaths:
             with patch.object(CampaignChatClient, '_load_system_prompt', return_value='System'):
                 mock_llm = Mock(return_value="Response")
 
-                with patch.object(CampaignChatClient, '_initialize_llm', return_value=mock_llm):
+                with patch('src.langchain.campaign_chat.LLMFactory.create_llm', return_value=mock_llm):
                     client = CampaignChatClient()
                     client.memory = Mock()
                     client.memory.save_context.side_effect = RuntimeError("Memory storage failed")
@@ -313,7 +313,7 @@ class TestCampaignChatClientErrorPaths:
             with patch.object(CampaignChatClient, '_load_system_prompt', return_value='System'):
                 mock_llm = Mock(return_value="Response")
 
-                with patch.object(CampaignChatClient, '_initialize_llm', return_value=mock_llm):
+                with patch('src.langchain.campaign_chat.LLMFactory.create_llm', return_value=mock_llm):
                     client = CampaignChatClient()
                     client.memory = Mock()
 
@@ -421,7 +421,10 @@ class TestEmbeddingServiceErrorPaths:
 
         with patch('sentence_transformers.SentenceTransformer') as mock_st:
             mock_model = MagicMock()
-            mock_model.encode.return_value = [0.1] * 384
+            # Mock numpy array behavior
+            mock_array = MagicMock()
+            mock_array.tolist.return_value = [0.1] * 384
+            mock_model.encode.return_value = mock_array
             mock_st.return_value = mock_model
 
             service = EmbeddingService()
@@ -436,7 +439,10 @@ class TestEmbeddingServiceErrorPaths:
 
         with patch('sentence_transformers.SentenceTransformer') as mock_st:
             mock_model = MagicMock()
-            mock_model.encode.return_value = [[0.1] * 384, [0.2] * 384]
+            # Mock numpy array behavior (has tolist method)
+            mock_array = MagicMock()
+            mock_array.tolist.return_value = [[0.1] * 384, [0.2] * 384]
+            mock_model.encode.return_value = mock_array
             mock_st.return_value = mock_model
 
             service = EmbeddingService()
@@ -473,7 +479,7 @@ class TestEmbeddingServiceErrorPaths:
             try:
                 result = service.embed("test")
                 # If it succeeds, result should be usable
-            except (TypeError, ValueError):
+            except (TypeError, ValueError, AttributeError):
                 # Expected if implementation validates return type
                 pass
 

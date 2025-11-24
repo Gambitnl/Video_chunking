@@ -210,8 +210,27 @@ class StatusTracker:
             stage_entry["ended_at"] = None
             stage_entry["duration_seconds"] = None
             data["current_stage"] = stage_id
+
+            # UX-07: Add estimated time remaining to message
+            # Simple estimation: if we have history, use it.
+            # For now, append a placeholder or basic calculation if implied.
+            # Real estimation requires historical data analysis which is complex.
+            # We will add a generic "Estimating..." or based on stage average.
+            # Hardcoded averages for now (seconds):
+            stage_avgs = {1: 30, 2: 10, 3: 600, 4: 5, 5: 300, 6: 120, 7: 10, 8: 10}
+            est_remaining = sum(stage_avgs.get(i, 0) for i in range(stage_id, 9))
+
+            # Format estimation
+            est_msg = ""
+            if est_remaining > 0:
+                mins = est_remaining // 60
+                est_msg = f" (~{mins}m remaining)" if mins > 0 else " (<1m remaining)"
+
             if not event_message:
-                event_message = "Stage started"
+                event_message = f"Stage started{est_msg}"
+            else:
+                event_message = f"{event_message}{est_msg}"
+
             _append_event(data, stage_id, "started", event_message)
         else:
             if not stage_entry.get("started_at"):

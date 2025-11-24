@@ -78,13 +78,16 @@ from src.google_drive_auth import (
     authenticate_automatically
 )
 from src.restart_manager import RestartManager
+from src.lock_manager import LockManager, LockTimeoutError
+from src.ui.setup_wizard import create_setup_wizard
 
 # Global dictionary to track cancel events for active processing sessions
 # Key: session_id, Value: threading.Event
 _active_cancel_events: Dict[str, Event] = {}
 
 # Global lock for campaign modification operations to prevent race conditions
-campaign_modification_lock = RLock()
+# Replaced by LockManager but kept for backward compatibility if needed
+# campaign_modification_lock = RLock()
 
 def ui_load_api_keys() -> Tuple[str, str, str, str]:
     """Load API keys on UI startup and format for Gradio."""
@@ -307,13 +310,18 @@ campaign_names = campaign_manager.get_campaign_names()
 def _refresh_campaign_names() -> Dict[str, str]:
     """Forces a reload of campaign data from disk and returns an updated name map."""
     global campaign_names
-    with campaign_modification_lock:
-        # By calling _load_campaigns() directly, we bypass any in-memory cache and
-        # ensure the CampaignManager has the latest data from the campaigns.json file.
-        # This is critical after operations like creation or deletion.
-        campaign_manager.campaigns = campaign_manager._load_campaigns()
-        campaign_names = campaign_manager.get_campaign_names()
-        logger.debug(f"Refreshed campaign names: {list(campaign_names.values())}")
+    # Using a global lock for campaign list refresh to avoid reading partial writes
+    try:
+        with LockManager.lock("global", "campaign_list", timeout=10.0, owner_id="refresh_campaigns"):
+            # By calling _load_campaigns() directly, we bypass any in-memory cache and
+            # ensure the CampaignManager has the latest data from the campaigns.json file.
+            # This is critical after operations like creation or deletion.
+            campaign_manager.campaigns = campaign_manager._load_campaigns()
+            campaign_names = campaign_manager.get_campaign_names()
+            logger.debug(f"Refreshed campaign names: {list(campaign_names.values())}")
+            return campaign_names
+    except LockTimeoutError:
+        logger.warning("Could not acquire global campaign list lock, returning cached names.")
         return campaign_names
 
 
@@ -732,15 +740,30 @@ def process_session(
             progress(progress_value, desc=message)
 
         try:
-            pipeline_result = processor.process(
-                input_file=_resolve_audio_path(audio_file),
-                skip_diarization=skip_diarization,
-                skip_classification=skip_classification,
-                skip_snippets=skip_snippets,
-                skip_knowledge=skip_knowledge,
-                cancel_event=cancel_event,
-                progress_callback=progress_callback
-            )
+            # Acquire lock for the session to prevent concurrent processing of same session
+            # Also lock campaign if modifying campaign data (which processing does)
+            # Note: We use a long timeout because session processing is long running,
+            # but we check lock availability first.
+            # Actually, we just want to ensure no two processes run for SAME session.
+            with LockManager.lock("session", resolved_session_id, timeout=1.0, owner_id="process_session"):
+                # We also might want to "read lock" the campaign so it isn't deleted while processing
+                # But we don't have read/write locks yet.
+
+                pipeline_result = processor.process(
+                    input_file=_resolve_audio_path(audio_file),
+                    skip_diarization=skip_diarization,
+                    skip_classification=skip_classification,
+                    skip_snippets=skip_snippets,
+                    skip_knowledge=skip_knowledge,
+                    cancel_event=cancel_event,
+                    progress_callback=progress_callback
+                )
+        except LockTimeoutError:
+             return {
+                "status": "error",
+                "message": f"Session '{resolved_session_id}' is already being processed or locked.",
+                "details": "Please wait for the current operation to finish or choose a different session ID."
+            }
         finally:
             # Clean up cancel event regardless of outcome
             _active_cancel_events.pop(resolved_session_id, None)
@@ -1097,83 +1120,103 @@ with gr.Blocks(
 ) as demo:
     active_campaign_state = gr.State(value=initial_campaign_id)
 
-    gr.Markdown("# Campaign Launcher")
-    campaign_summary_md = gr.Markdown(value=initial_summary)
+    # Forward declaration for setup wizard callback
+    def _on_setup_complete(campaign_name):
+        """Callback when setup wizard completes successfully."""
+        # The wizard already created the campaign, so we just need to load it
+        # We'll trigger a refresh of campaign names and load the new campaign
+        return _load_campaign(campaign_name, None)
 
-    with gr.Row():
-        with gr.Column():
-            with gr.Row(variant="compact"):
-                existing_campaign_dropdown = gr.Dropdown(
-                    label="Existing Campaigns",
-                    choices=list(campaign_names.values()),
-                    value=initial_campaign_name if initial_campaign_id else None,
-                    info="Load a campaign profile to apply its defaults.",
-                    scale=10,
+    # Create main dashboard container (initially visible only if campaigns exist)
+    has_campaigns = len(campaign_names) > 0
+
+    # Setup Wizard (visible if no campaigns)
+    # returns: container, finish_button, name_input_component
+    wizard_container, wizard_finish_btn, wizard_name_input = create_setup_wizard(campaign_manager, _on_setup_complete)
+
+    # Main Dashboard (visible if campaigns exist)
+    with gr.Column(visible=has_campaigns, elem_id="main-dashboard") as main_dashboard:
+        gr.Markdown("# Campaign Launcher")
+        campaign_summary_md = gr.Markdown(value=initial_summary)
+
+        with gr.Row():
+            with gr.Column():
+                with gr.Row(variant="compact"):
+                    existing_campaign_dropdown = gr.Dropdown(
+                        label="Existing Campaigns",
+                        choices=list(campaign_names.values()),
+                        value=initial_campaign_name if initial_campaign_id else None,
+                        info="Load a campaign profile to apply its defaults.",
+                        scale=10,
+                    )
+                    refresh_campaign_list_btn = gr.Button(
+                        value="Refresh",
+                        size="sm",
+                        scale=0,
+                        min_width=80,
+                        variant="secondary",
+                    )
+                load_campaign_btn = UIComponents.create_action_button(
+                    "Load Existing Campaign",
+                    variant="primary",
+                    size="md",
                 )
-                refresh_campaign_list_btn = gr.Button(
-                    value="Refresh",
-                    size="sm",
-                    scale=0,
-                    min_width=80,
+
+            with gr.Column():
+                new_campaign_name = gr.Textbox(
+                    label="New Campaign Name",
+                    placeholder="New Campaign",
+                    info="Provide an optional display name for the new campaign.",
+                )
+                start_new_campaign_btn = UIComponents.create_action_button(
+                    "Start New Campaign",
                     variant="secondary",
+                    size="md",
                 )
-            load_campaign_btn = UIComponents.create_action_button(
-                "Load Existing Campaign",
-                variant="primary",
-                size="md",
-            )
 
-        with gr.Column():
-            new_campaign_name = gr.Textbox(
-                label="New Campaign Name",
-                placeholder="New Campaign",
-                info="Provide an optional display name for the new campaign.",
-            )
-            start_new_campaign_btn = UIComponents.create_action_button(
-                "Start New Campaign",
-                variant="secondary",
-                size="md",
-            )
+        campaign_manifest_md = gr.Markdown(value=initial_manifest)
 
-    campaign_manifest_md = gr.Markdown(value=initial_manifest)
+        gr.Markdown("---")
 
-    gr.Markdown("---")
+        available_parties, process_tab_refs = create_process_session_tab_modern(
+            demo,
+            refresh_campaign_names=_refresh_campaign_names,
+            process_session_fn=process_session,
+            preflight_fn=run_preflight_checks,
+            campaign_manager=campaign_manager,
+            active_campaign_state=active_campaign_state,
+            campaign_badge_text=initial_badge,
+            initial_campaign_name=initial_campaign_name if initial_campaign_id else "Manual Setup",
+            cancel_fn=cancel_processing,
+        )
 
-    available_parties, process_tab_refs = create_process_session_tab_modern(
-        demo,
-        refresh_campaign_names=_refresh_campaign_names,
-        process_session_fn=process_session,
-        preflight_fn=run_preflight_checks,
-        campaign_manager=campaign_manager,
-        active_campaign_state=active_campaign_state,
-        campaign_badge_text=initial_badge,
-        initial_campaign_name=initial_campaign_name if initial_campaign_id else "Manual Setup",
-        cancel_fn=cancel_processing,
-    )
+        campaign_tab_refs = create_campaign_tab_modern(demo)
+        characters_tab_refs = create_characters_tab_modern(
+            demo,
+            available_parties,
+            refresh_campaign_names=_refresh_campaign_names,
+            active_campaign_state=active_campaign_state,
+            initial_campaign_id=initial_campaign_id,
+        )
+        create_party_management_tab(available_parties)
+        stories_tab_refs = create_stories_output_tab_modern(demo)
+        artifacts_tab_refs = create_session_artifacts_tab(demo)
+        create_search_tab(Path.cwd(), ui_container=demo)
+        create_analytics_tab(Path.cwd(), ui_container=demo)
+        create_character_analytics_tab(character_profile_manager, campaign_manager, Path.cwd())
+        settings_tab_refs = create_settings_tools_tab_modern(
+            demo,
+            story_manager=story_manager,
+            refresh_campaign_names=_refresh_campaign_names,
+            initial_campaign_id=initial_campaign_id,
+            speaker_profile_manager=speaker_profile_manager,
+            log_level_choices=list(LOG_LEVEL_CHOICES),
+            initial_console_level=get_console_log_level(),
+        )
 
-    campaign_tab_refs = create_campaign_tab_modern(demo)
-    characters_tab_refs = create_characters_tab_modern(
-        demo,
-        available_parties,
-        refresh_campaign_names=_refresh_campaign_names,
-        active_campaign_state=active_campaign_state,
-        initial_campaign_id=initial_campaign_id,
-    )
-    create_party_management_tab(available_parties)
-    stories_tab_refs = create_stories_output_tab_modern(demo)
-    artifacts_tab_refs = create_session_artifacts_tab(demo)
-    create_search_tab(Path.cwd(), ui_container=demo)
-    create_analytics_tab(Path.cwd(), ui_container=demo)
-    create_character_analytics_tab(character_profile_manager, campaign_manager, Path.cwd())
-    settings_tab_refs = create_settings_tools_tab_modern(
-        demo,
-        story_manager=story_manager,
-        refresh_campaign_names=_refresh_campaign_names,
-        initial_campaign_id=initial_campaign_id,
-        speaker_profile_manager=speaker_profile_manager,
-        log_level_choices=list(LOG_LEVEL_CHOICES),
-        initial_console_level=get_console_log_level(),
-    )
+    # Toggle visibility based on initial state
+    if not has_campaigns:
+        wizard_container.visible = True
 
     def _apply_console_log_level(level: Optional[str]) -> str:
         if not level:
@@ -1305,6 +1348,34 @@ def _build_full_ui_update(campaign_id: Optional[str], campaign_names_map: Option
         # Resolve ID using the fetched map
         campaign_id = _campaign_id_from_name(display_name, campaign_names_map=names_map) or current_campaign_id or initial_campaign_id
 
+        # BUG-026 Optimization: If the campaign hasn't changed, avoid full re-render
+        # We compare the resolved campaign_id with the current_campaign_id
+        # Note: We must ensure current_campaign_id is accurate (passed from State)
+        if campaign_id == current_campaign_id and display_name == names_map.get(campaign_id):
+             # If strictly equal, avoid triggering 20+ updates
+             logger.info(f"Skipping reload for unchanged campaign: {campaign_id}")
+             # Construct no-op update tuple matching load_campaign_outputs length
+             # load_campaign_outputs = [active_campaign_state, campaign_summary_md, campaign_manifest_md, *shared_ui_outputs[1:]]
+             # Total length: 3 + (len(shared_ui_outputs) - 1)
+             # We can return gr.update() for all.
+             # Except maybe summary to indicate "Already loaded"?
+
+             no_change_summary = StatusMessages.info("Campaign Active", f"Campaign **{names_map.get(campaign_id)}** is already loaded.")
+
+             # We return:
+             # 1. campaign_id (State) - update to ensure consistency
+             # 2. summary - update to show feedback
+             # 3. manifest - no change
+             # 4... rest - no change
+
+             rest_updates = [gr.update() for _ in range(len(shared_ui_outputs) - 1)]
+             return (
+                 campaign_id,
+                 no_change_summary,
+                 gr.update(),
+                 *rest_updates
+             )
+
         summary = _campaign_summary_message(campaign_id)
         manifest = _build_campaign_manifest(campaign_id)
 
@@ -1338,30 +1409,37 @@ def _build_full_ui_update(campaign_id: Optional[str], campaign_names_map: Option
                 *[gr.update()] * 39, # Keep rest of UI unchanged
             )
 
-        with campaign_modification_lock:
-            new_campaign_id, _ = campaign_manager.create_blank_campaign(name=proposed_name)
+        try:
+            # Lock global campaign list for creation
+            with LockManager.lock("global", "campaign_list", timeout=10.0, owner_id="create_campaign"):
+                new_campaign_id, _ = campaign_manager.create_blank_campaign(name=proposed_name)
+                # Refresh name map after creation
+                names_map = _refresh_campaign_names()
 
-            # Refresh name map after creation
-            names_map = _refresh_campaign_names()
+            knowledge = CampaignKnowledgeBase(campaign_id=new_campaign_id)
+            if not knowledge.knowledge_file.exists():
+                knowledge._save_knowledge()
+            _set_notebook_context("")
+            _persist_active_campaign(new_campaign_id)
 
-        knowledge = CampaignKnowledgeBase(campaign_id=new_campaign_id)
-        if not knowledge.knowledge_file.exists():
-            knowledge._save_knowledge()
-        _set_notebook_context("")
-        _persist_active_campaign(new_campaign_id)
+            summary = _campaign_summary_message(new_campaign_id, is_new=True)
+            manifest = _build_campaign_manifest(new_campaign_id)
 
-        summary = _campaign_summary_message(new_campaign_id, is_new=True)
-        manifest = _build_campaign_manifest(new_campaign_id)
+            ui_updates = _build_full_ui_update(new_campaign_id, campaign_names_map=names_map)
 
-        ui_updates = _build_full_ui_update(new_campaign_id, campaign_names_map=names_map)
-
-        return (
-            ui_updates[0], # new_campaign_id
-            summary,
-            manifest,
-            gr.update(value=""), # Clear the new campaign name textbox
-            *ui_updates[1:], # The rest of the UI updates
-        )
+            return (
+                ui_updates[0], # new_campaign_id
+                summary,
+                manifest,
+                gr.update(value=""), # Clear the new campaign name textbox
+                *ui_updates[1:], # The rest of the UI updates
+            )
+        except LockTimeoutError:
+            error_msg = StatusMessages.error("System Busy", "Another operation is modifying campaigns. Please try again.")
+            return (gr.update(), error_msg, gr.update(), gr.update(), *[gr.update()] * 39)
+        except Exception as e:
+            error_msg = StatusMessages.error("Creation Failed", str(e))
+            return (gr.update(), error_msg, gr.update(), gr.update(), *[gr.update()] * 39)
 
     def _handle_rename_campaign(campaign_display_name: str, new_name: str, active_campaign_id: Optional[str]):
         """Handler for the rename campaign button."""
@@ -1375,20 +1453,25 @@ def _build_full_ui_update(campaign_id: Optional[str], campaign_names_map: Option
         if not new_name or not new_name.strip():
             return StatusMessages.error("Rename Failed", "New campaign name cannot be empty."), *[gr.update()] * 42
 
-        with campaign_modification_lock:
-            success = campaign_manager.rename_campaign(campaign_id, new_name)
-            if not success:
-                return StatusMessages.error("Rename Failed", f"Could not rename to '{new_name}'. Check logs for details (e.g., name already in use)."), *[gr.update()] * 42
+        try:
+            # Lock specific campaign and global list
+            with LockManager.lock("campaign", campaign_id, owner_id="rename_campaign"):
+                with LockManager.lock("global", "campaign_list", owner_id="rename_campaign"):
+                    success = campaign_manager.rename_campaign(campaign_id, new_name)
+                    if not success:
+                        return StatusMessages.error("Rename Failed", f"Could not rename to '{new_name}'. Check logs."), *[gr.update()] * 42
 
-            # On success, refresh everything
-            updated_map = _refresh_campaign_names()
+                    # On success, refresh everything
+                    updated_map = _refresh_campaign_names()
 
-        ui_updates = _build_full_ui_update(campaign_id, campaign_names_map=updated_map)
-        
-        return (
-            StatusMessages.success("Rename Successful", f"Campaign renamed to '{new_name}'."),
-            *ui_updates
-        )
+            ui_updates = _build_full_ui_update(campaign_id, campaign_names_map=updated_map)
+
+            return (
+                StatusMessages.success("Rename Successful", f"Campaign renamed to '{new_name}'."),
+                *ui_updates
+            )
+        except LockTimeoutError:
+            return StatusMessages.error("System Busy", "Campaign is locked by another operation."), *[gr.update()] * 42
 
     def _handle_delete_campaign(campaign_display_name: str, active_campaign_id: Optional[str]):
         """Handler for the delete campaign button."""
@@ -1398,27 +1481,32 @@ def _build_full_ui_update(campaign_id: Optional[str], campaign_names_map: Option
         if not campaign_id:
             return StatusMessages.error("Delete Failed", "No campaign selected to delete."), None, None, *[gr.update()] * 42
 
-        with campaign_modification_lock:
-            success = campaign_manager.delete_campaign(campaign_id)
-            if not success:
-                return StatusMessages.error("Delete Failed", f"Could not delete campaign '{campaign_display_name}'. Check logs.")
+        try:
+            # Lock specific campaign and global list
+            with LockManager.lock("campaign", campaign_id, owner_id="delete_campaign"):
+                with LockManager.lock("global", "campaign_list", owner_id="delete_campaign"):
+                    success = campaign_manager.delete_campaign(campaign_id)
+                    if not success:
+                        return StatusMessages.error("Delete Failed", f"Could not delete campaign '{campaign_display_name}'. Check logs."), None, None, *[gr.update()] * 42
 
-            # On success, refresh and load the first available campaign
-            updated_map = _refresh_campaign_names()
+                    # On success, refresh and load the first available campaign
+                    updated_map = _refresh_campaign_names()
 
-        new_active_id = next(iter(updated_map.keys()), None)
-        _persist_active_campaign(new_active_id)
+            new_active_id = next(iter(updated_map.keys()), None)
+            _persist_active_campaign(new_active_id)
 
-        summary = _campaign_summary_message(new_active_id)
-        manifest = _build_campaign_manifest(new_active_id)
-        ui_updates = _build_full_ui_update(new_active_id, campaign_names_map=updated_map)
+            summary = _campaign_summary_message(new_active_id)
+            manifest = _build_campaign_manifest(new_active_id)
+            ui_updates = _build_full_ui_update(new_active_id, campaign_names_map=updated_map)
 
-        return (
-            StatusMessages.success("Delete Successful", f"Campaign '{campaign_display_name}' has been deleted."),
-            summary,
-            manifest,
-            *ui_updates
-        )
+            return (
+                StatusMessages.success("Delete Successful", f"Campaign '{campaign_display_name}' has been deleted."),
+                summary,
+                manifest,
+                *ui_updates
+            )
+        except LockTimeoutError:
+            return StatusMessages.error("System Busy", "Campaign is locked by another operation."), None, None, *[gr.update()] * 42
 
     def _refresh_campaign_tab(campaign_display_name: Optional[str], current_campaign_id: Optional[str]):
         """Refresh the Campaign tab with current data for the selected campaign."""
@@ -1493,6 +1581,18 @@ def _build_full_ui_update(campaign_id: Optional[str], campaign_names_map: Option
         campaign_manifest_md,
         *shared_ui_outputs[1:] # Skip active_campaign_state as it's already first
     ]
+
+    # Wire up wizard completion to show dashboard and load campaign
+    # Note: The wizard internal logic handles creation and hiding the wizard container.
+    # We just need to show the dashboard and load the new data.
+    wizard_finish_btn.click(
+        fn=lambda: gr.update(visible=True), # Show main dashboard
+        outputs=main_dashboard
+    ).then(
+        fn=_on_setup_complete,
+        inputs=[wizard_name_input], # Use the wizard's text input
+        outputs=load_campaign_outputs
+    )
     
     create_campaign_outputs = [
         active_campaign_state,

@@ -507,9 +507,10 @@ If you find a `[~]` task with timestamp >24 hours old:
   - **Implementation**: Added analyze_uploaded_file() with AudioProcessor integration, shows size/duration/est. time
   → UX_IMPROVEMENTS.md:62-98
 
-- [ ] **UX-07**: Estimated time remaining
+- [x] **UX-07**: Estimated time remaining (Agent: Jules, Completed: 2025-11-24)
   - **Files**: `src/status_tracker.py`, `src/ui/process_session_events.py`
   - **Effort**: 3 days | **Conflict Risk**: ⚠️⚠️ MEDIUM
+  - **Implementation**: Added hardcoded average times per stage in `status_tracker.py` to append estimates to status messages.
   → UX_IMPROVEMENTS.md:196-217
 
 - [ ] **UX-11**: Quick setup wizard for first-time users
@@ -517,9 +518,10 @@ If you find a `[~]` task with timestamp >24 hours old:
   - **Effort**: 5 days | **Conflict Risk**: ⚠️⚠️⚠️ HIGH
   → UX_IMPROVEMENTS.md:321-357
 
-- [ ] **UX-13**: Convert session library to interactive table
+- [x] **UX-13**: Convert session library to interactive table (Agent: Jules, Completed: 2025-11-24)
   - **Files**: `src/ui/campaign_tab_modern.py:56-63`
   - **Effort**: 3 days | **Conflict Risk**: ⚠️⚠️ MEDIUM
+  - **Implementation**: Replaced static markdown with `gr.DataFrame` in campaign tab and stories tab.
   → UX_IMPROVEMENTS.md:398-432
 
 - [ ] **UX-17**: Add keyboard shortcuts

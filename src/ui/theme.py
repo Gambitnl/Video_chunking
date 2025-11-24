@@ -292,6 +292,24 @@ details > div {
     color: white;
 }
 
+.info-icon:hover::after {
+    content: attr(data-tooltip);
+    position: absolute;
+    bottom: 125%;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 0.5rem;
+    background: #1e293b;
+    color: white;
+    border-radius: 6px;
+    font-size: 0.875rem;
+    white-space: normal;
+    width: 250px;
+    z-index: 1000;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+    pointer-events: none;
+}
+
 /* Status badges */
 .badge {
     display: inline-flex;
@@ -645,6 +663,7 @@ details > div {
     font-weight: 500;
     margin: 0.25rem;
 }
+
 """
 
 def create_modern_theme():

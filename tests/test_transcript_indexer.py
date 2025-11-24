@@ -26,7 +26,7 @@ def test_indexer_initialization(tmp_path):
     indexer = TranscriptIndexer(tmp_path)
     assert indexer.output_dir == tmp_path
     assert indexer.cache_dir.exists()
-    assert indexer.cache_file == indexer.cache_dir / "transcript_index.pkl"
+    assert indexer.cache_file == indexer.cache_dir / "transcript_index.json"
 
 
 def test_build_empty_index(tmp_path):

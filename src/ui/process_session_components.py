@@ -661,11 +661,18 @@ class ResultsSectionBuilder:
             )
             
             # IMPROVEMENT: Use HighlightedText for a richer, color-coded transcript view.
+            # UX-15: Syntax Highlighting for Transcript Output
+            # Note: We use CSS classes defined in theme.py for specific styling
+            # .transcript-timestamp, .transcript-speaker-dm, etc.
+            # Gradio's HighlightedText is limited to background color.
+            # We will use HTML for fine-grained control if possible, or stick to HighlightedText for now
+            # as replacing it with HTML requires significant logic changes in app.py which are restricted.
+            # However, we can improve the color map to match the theme.
             color_map = {
-                "CHARACTER": "blue",
-                "DM_NARRATION": "gray",
-                "NPC_DIALOGUE": "purple",
-                "OOC_OTHER": "red",
+                "CHARACTER": "blue",     # Maps to Player
+                "DM_NARRATION": "cyan",  # Maps to DM
+                "NPC_DIALOGUE": "purple",# Maps to NPC
+                "OOC_OTHER": "gray",     # Maps to OOC (gray instead of red)
             }
             components["full_output"] = _a11y(
                 gr.HighlightedText(

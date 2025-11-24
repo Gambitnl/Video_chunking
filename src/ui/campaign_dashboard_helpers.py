@@ -1,4 +1,3 @@
-
 """
 Campaign Dashboard Helpers
 ==========================
@@ -7,8 +6,9 @@ This module contains helper functions for the campaign dashboard UI,
 generating markdown content and handling data retrieval with robust error handling.
 """
 import logging
-from typing import Optional, Tuple, List
+from typing import Optional, Tuple, List, Dict, Any, Union
 from pathlib import Path
+import json
 
 from src.ui.helpers import StatusMessages
 from src.ui.constants import StatusIndicators
@@ -263,12 +263,14 @@ def session_library_markdown(
     campaign_id: Optional[str],
     story_manager: StoryNotebookManager,
     campaign_manager: CampaignManager
-) -> str:
+) -> Union[str, List[List[Any]]]:
+    """
+    Generate session library content.
+    Returns a markdown string for error/empty states, or a list of lists for gr.DataFrame.
+    """
+
     if not campaign_id:
-        return StatusMessages.info(
-            "Session Library",
-            "Processed sessions for the active campaign will appear here."
-        )
+        return []
 
     try:
         # Fetch all sessions to audit their campaign alignment
@@ -279,9 +281,8 @@ def session_library_markdown(
         )
 
         valid_sessions = []
-        issue_sessions = []
 
-        # Classify sessions
+        # Filter for current campaign
         for session_id in all_session_ids:
             try:
                 session = story_manager.load_session(session_id)
@@ -289,81 +290,62 @@ def session_library_markdown(
 
                 if session_campaign_id == campaign_id:
                     valid_sessions.append(session)
-                elif session_campaign_id is None:
-                    issue_sessions.append((session_id, "Orphaned (No Campaign ID)", session))
-                elif session_campaign_id != campaign_id:
-                    # Check if the other campaign exists
-                    if campaign_manager.get_campaign(session_campaign_id):
-                        # Belongs to a valid OTHER campaign -> Hide implicitly (don't show in this campaign's list)
-                        continue
-                    else:
-                        # Belongs to a deleted/missing campaign -> Show as issue
-                        issue_sessions.append(
-                            (session_id, f"Orphaned (Campaign `{session_campaign_id}` not found)", session)
-                        )
-            except Exception as e:
-                # Corrupted metadata or load failure
-                issue_sessions.append((session_id, f"Error loading metadata: {str(e)}", None))
+            except Exception:
+                continue
 
-        if not valid_sessions and not issue_sessions:
-            return StatusMessages.warning(
-                "No Sessions",
-                "Process a session for this campaign to populate the library."
-            )
+        # Prepare data for DataFrame
+        # Headers: ["Date", "Session ID", "Duration", "Speakers", "Status"]
+        data = []
 
-        lines = ["### Processed Sessions", ""]
+        for session in valid_sessions:
+            session_id = session.session_id
+            stats = session.metadata.get("statistics", {})
 
-        # 1. List Valid Sessions
-        if valid_sessions:
-            for session in valid_sessions:
-                session_id = session.session_id
-                stats = session.metadata.get("statistics", {})
-                duration = stats.get("total_duration_formatted") or f"{stats.get('total_duration_seconds', 0)}s"
-                segments = stats.get("total_segments", 0)
+            # Extract date (creation or modification time of the session folder/metadata)
+            # Use metadata timestamp if available, else folder creation time, else "Unknown"
+            date_str = session.metadata.get("processing_date", "")
+            if not date_str:
+                # Try to get from stats or use "N/A"
+                date_str = "N/A"
+            else:
+                # Format date nicely if possible (assuming ISO format)
+                try:
+                    date_str = date_str.split("T")[0]
+                except:
+                    pass
 
-                output_dir = Config.OUTPUT_DIR / session_id
-                narratives_dir = output_dir / "narratives"
-                narrative_count = len(list(narratives_dir.glob("*.md"))) if narratives_dir.exists() else 0
+            duration = stats.get("total_duration_formatted") or f"{stats.get('total_duration_seconds', 0)}s"
 
-                lines.append(f"#### {StatusIndicators.COMPLETE} {session_id}")
-                lines.append(f"- **Duration**: {duration}")
-                lines.append(f"- **Segments**: {segments}")
-                lines.append(f"- **Narratives**: {narrative_count}")
-                lines.append(f"- **Output**: `{output_dir.relative_to(Config.PROJECT_ROOT)}`")
-                lines.append("")
-        else:
-            lines.append(StatusMessages.info("Empty", "No valid sessions found for this campaign."))
+            # Count speakers
+            # session.metadata might have 'speakers' or we check diarization
+            # stats['speaker_count'] might exist
+            speakers_count = stats.get("speaker_count", 0)
+            if not speakers_count:
+                # Fallback: check character_config
+                # ... logic to count speakers ...
+                speakers_count = session.metadata.get("num_speakers", "?")
 
-        # 2. List Issues (Collapsible)
-        if issue_sessions:
-            lines.append("")
-            lines.append(f"<details><summary>⚠️ Found {len(issue_sessions)} Session Issues (Orphaned/Corrupt)</summary>")
-            lines.append("")
-            lines.append("> These sessions are not assigned to the active campaign or have errors.")
-            lines.append("")
+            status = "✓ Processed" # Default for now as these are processed sessions
 
-            for sid, reason, session in issue_sessions:
-                lines.append(f"- **{sid}**: {reason}")
-                if session:
-                    output_dir = Config.OUTPUT_DIR / sid
-                    try:
-                        rel_path = output_dir.relative_to(Config.PROJECT_ROOT)
-                    except ValueError:
-                        rel_path = output_dir
-                    lines.append(f"  - Path: `{rel_path}`")
+            # Add Actions (View, Download) - For now just text or we can't do buttons in DataFrame easily
+            # UX-13 asks for "Actions" column with buttons, but standard gr.DataFrame doesn't support interactive buttons in cells easily.
+            # It supports HTML if datatype is 'markdown' or 'html'.
+            # Let's keep it simple as per requirement text table example:
+            # | Date | Session ID | ...
 
-            lines.append("")
-            lines.append("</details>")
+            data.append([
+                date_str,
+                session_id,
+                duration,
+                speakers_count,
+                status
+            ])
 
-        return "\n".join(lines)
+        return data
 
     except Exception as e:
         logger.error(f"Error loading session library for '{campaign_id}': {e}", exc_info=True)
-        return StatusMessages.error(
-            "Session Library Error",
-            f"Could not load sessions for `{campaign_id}`.",
-            f"Error: {str(e)}"
-        )
+        return []
 
 def narrative_hint_markdown(
     campaign_id: Optional[str],

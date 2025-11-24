@@ -584,15 +584,10 @@ class TestKnowledgeBaseLoadingIntegration:
         location_types = [r.metadata.get("type") for r in location_results]
         assert "location" in location_types
 
-        # Note: The current retriever implementation has a mismatch - it expects quest["name"]
-        # but real campaign data uses quest["title"]. This causes quests to fail to load from
-        # the real data format. The test passes when quests have "name" field.
-        # This documents current behavior and will help identify when the issue is fixed.
+        # Note: The retriever now supports generic search using json dumps, so it finds "title" even if it expects "name".
         quest_results = retriever_with_real_data.retrieve("Storm", top_k=10)
-        # With the current real_campaign_data fixture using "title", quests won't be found
-        # If the retriever is fixed to use "title", this test would find results
-        # For now, we verify that no quest results are found due to the schema mismatch
-        assert not quest_results
+        # Should find quest results
+        assert len([r for r in quest_results if r.metadata.get("type") == "quest"]) > 0
 
     def test_handle_malformed_json(self, campaign_dirs):
         """Test handling of malformed JSON files."""
@@ -908,12 +903,9 @@ class TestRetrievalWithRealDataIntegration:
         # Search for quest by keyword
         results = retriever_with_comprehensive_data.retrieve("storm", top_k=10)
 
-        # Note: Due to the schema mismatch (retriever expects quest["name"] but data uses quest["title"]),
-        # quests won't be found in the knowledge base. This documents the known limitation.
-        # When the retriever is fixed to support quest["title"], this test will need to be updated.
         quest_results = [r for r in results if r.metadata.get("type") == "quest"]
-        # Currently, no quest results are expected due to the schema mismatch
-        assert len(quest_results) == 0
+        # Quest results are now expected
+        assert len(quest_results) > 0
 
         # However, we should still find results from other sources (transcripts, NPCs, locations)
         assert len(results) > 0

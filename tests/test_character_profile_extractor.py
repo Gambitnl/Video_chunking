@@ -1,5 +1,28 @@
 """Tests for CharacterProfileExtractor end-to-end workflow."""
+import sys
+from unittest.mock import MagicMock
+
+# Mock heavy dependencies before imports
+sys.modules["torch"] = MagicMock()
+sys.modules["torchaudio"] = MagicMock()
+sys.modules["pyannote"] = MagicMock()
+sys.modules["pyannote.audio"] = MagicMock()
+sys.modules["scipy"] = MagicMock()
+sys.modules["scipy.signal"] = MagicMock()
+sys.modules["scipy.io"] = MagicMock()
+sys.modules["scipy.io.wavfile"] = MagicMock()
+sys.modules["sklearn"] = MagicMock()
+sys.modules["sklearn.cluster"] = MagicMock()
+sys.modules["pandas"] = MagicMock()
+sys.modules["soundfile"] = MagicMock()
+sys.modules["librosa"] = MagicMock()
+sys.modules["pydub"] = MagicMock()
+sys.modules["faster_whisper"] = MagicMock()
+sys.modules["groq"] = MagicMock()
+sys.modules["ollama"] = MagicMock()
+
 import json
+import time
 import unittest
 from pathlib import Path
 from tempfile import TemporaryDirectory
@@ -105,6 +128,7 @@ The goblin attacks!"""
             "Jean-Luc": Character(name="Jean-Luc", player="P2", race="", class_name=""),
             "The Great 790": Character(name="The Great 790", player="P3", race="", class_name="", aliases=["790", "Seven-Ninety"]),
             "M & M": Character(name="M & M", player="P4", race="", class_name="", aliases=["MnM"]),
+            "Robot 🤖": Character(name="Robot 🤖", player="Bot", race="", class_name=""),
         }
 
         # Exact
@@ -117,6 +141,10 @@ The goblin attacks!"""
         # Fuzzy / Simplified Matching
         self.assertEqual(extractor._resolve_character_name("M&M", party_chars), "M & M")
         self.assertEqual(extractor._resolve_character_name("M & M", party_chars), "M & M")
+
+        # Emoji Support (Note: _simplify strips emojis, so 'Robot 🤖' matches 'Robot')
+        self.assertEqual(extractor._resolve_character_name("Robot 🤖", party_chars), "Robot 🤖")
+        self.assertEqual(extractor._resolve_character_name("Robot", party_chars), "Robot 🤖")
 
     def test_parse_complex_dialogue_lines(self):
         """Test parsing of unusual dialogue patterns (BUG-20251102-48)."""
@@ -304,3 +332,94 @@ The goblin attacks!"""
             self.assertIn("session_123", profile.sessions_appeared)
             self.assertEqual(profile.total_sessions, len(profile.sessions_appeared))
             self.assertEqual(profile.campaign_id, "campaign_xyz")
+
+    def test_performance_large_transcript(self):
+        """Test parsing performance on a large transcript (BUG-20251102-49)."""
+        extractor = CharacterProfileExtractor()
+
+        # Generate a large transcript (e.g., 20,000 lines)
+        large_transcript_path = self.tmp_path / "large_transcript.txt"
+        lines = []
+        for i in range(20000):
+            lines.append(f"[{i:02d}:00:00] Speaker{i%5}: This is line {i} of the transcript.")
+
+        large_transcript_path.write_text("\n".join(lines), encoding="utf-8")
+
+        start_time = time.time()
+        segments = extractor._parse_plaintext_transcript(large_transcript_path)
+        duration = time.time() - start_time
+
+        self.assertEqual(len(segments), 20000)
+        # We expect parsing to be reasonably fast (e.g., < 5 seconds for 20k lines)
+        self.assertLess(duration, 5.0, f"Parsing took too long: {duration:.2f}s")
+
+        # Verify memory/structure isn't corrupt
+        self.assertEqual(segments[0]["speaker"], "Speaker0")
+        self.assertEqual(segments[-1]["text"], "This is line 19999 of the transcript.")
+
+    def test_profile_persistence_integrity(self):
+        """Verify that profiles are correctly saved and loaded with all data preserved (BUG-20251102-50)."""
+        from src.character_profile import (
+            CharacterProfile, CharacterAction, CharacterItem,
+            CharacterRelationship, CharacterDevelopment, CharacterQuote,
+            CharacterProfileManager
+        )
+
+        profiles_dir = self.tmp_path / "integrity_profiles"
+        profile_mgr = CharacterProfileManager(profiles_dir=profiles_dir)
+
+        char_name = "IntegrityCheck"
+
+        # 1. Create a profile with complex data
+        profile = CharacterProfile(
+            name=char_name,
+            player="Tester",
+            race="Construct",
+            class_name="Artificer",
+            campaign_id="test_camp_1",
+            aliases=["IC", "Checky"]
+        )
+
+        # Add rich data
+        profile.notable_actions.append(
+            CharacterAction(session="sess_1", description="Created a golem", type="magic")
+        )
+        profile.inventory.append(
+            CharacterItem(name="Wrench of Power", category="weapon", session_acquired="sess_1")
+        )
+        profile.relationships.append(
+            CharacterRelationship(name="The Creator", relationship_type="creator", description="My maker")
+        )
+        profile.development_notes.append(
+            CharacterDevelopment(session="sess_2", note="Realized I have a soul", category="personality")
+        )
+        profile.memorable_quotes.append(
+            CharacterQuote(session="sess_3", quote="I am alive!", context="After the lightning strike")
+        )
+
+        # 2. Save
+        profile_mgr.add_profile(char_name, profile)
+
+        # 3. Load freshly
+        new_mgr = CharacterProfileManager(profiles_dir=profiles_dir)
+        loaded_profile = new_mgr.get_profile(char_name)
+
+        self.assertIsNotNone(loaded_profile)
+        self.assertEqual(loaded_profile.name, char_name)
+        self.assertEqual(loaded_profile.player, "Tester")
+        self.assertEqual(loaded_profile.campaign_id, "test_camp_1")
+        self.assertListEqual(loaded_profile.aliases, ["IC", "Checky"])
+
+        # Verify nested objects
+        self.assertEqual(len(loaded_profile.notable_actions), 1)
+        self.assertEqual(loaded_profile.notable_actions[0].description, "Created a golem")
+        self.assertEqual(loaded_profile.notable_actions[0].type, "magic")
+
+        self.assertEqual(len(loaded_profile.inventory), 1)
+        self.assertEqual(loaded_profile.inventory[0].name, "Wrench of Power")
+
+        self.assertEqual(len(loaded_profile.relationships), 1)
+        self.assertEqual(loaded_profile.relationships[0].relationship_type, "creator")
+
+        self.assertEqual(len(loaded_profile.memorable_quotes), 1)
+        self.assertEqual(loaded_profile.memorable_quotes[0].quote, "I am alive!")

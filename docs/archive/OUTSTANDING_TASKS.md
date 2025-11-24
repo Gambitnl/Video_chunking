@@ -143,11 +143,11 @@ If you find a `[~]` task with timestamp >24 hours old:
 
 ### Active Work
 
-- [~] **P2-ANALYTICS: Session Analytics & Search** (Agent: GPT-5.1-Codex-Max, Started: 2025-11-20 11:41 UTC) → ROADMAP.md:379-420
-  - Session analytics dashboard
-  - Character analytics & filtering
-  - Session search functionality
-  - Complete OOC topic analysis (in progress)
+- [x] **P2-ANALYTICS: Session Analytics & Search** (Agent: Jules, Completed: 2025-11-24) → ROADMAP.md:379-420
+  - [x] Session analytics dashboard
+  - [x] Character analytics & filtering
+  - [x] Session search functionality
+  - [x] Complete OOC topic analysis (Completed)
 
 
 
@@ -217,7 +217,7 @@ If you find a `[~]` task with timestamp >24 hours old:
 
 - [x] BUG-20251102-32: General - Add performance tests for LangChain components (Agent: Jules, Completed: 2025-11-22) → BUG_HUNT_TODO.md:132
 
-- [~] BUG-20251102-33: General - Add concurrency tests for clients (Agent: Jules, Started: 2025-11-22 10:00 UTC) → BUG_HUNT_TODO.md:136
+- [x] BUG-20251102-33: General - Add concurrency tests for clients (Agent: Jules, Completed: 2025-11-24) → BUG_HUNT_TODO.md:136
 
 - [x] BUG-20251102-35: General - Add tests for error paths and edge cases (Agent: Claude Sonnet 4.5, Completed: 2025-11-21) → BUG_HUNT_TODO.md:145
 
@@ -392,7 +392,7 @@ If you find a `[~]` task with timestamp >24 hours old:
   - **Effort**: 1 hour | **Conflict Risk**: ⚠️⚠️ MEDIUM
   → BUG_HUNT_TODO.md:435
 
-- [~] **BUG-20251103-021**: Social Insights - No loading indicator during analysis (Agent: ChatGPT Codex, Started: 2025-11-20 10:10 UTC)
+- [x] BUG-20251103-021: Social Insights - No loading indicator during analysis (Agent: Jules, Completed: 2025-11-24)
   - **Files**: `src/ui/social_insights_tab.py:34-243`
   - **Effort**: 1 hour | **Conflict Risk**: ⚠️ LOW
   → BUG_HUNT_TODO.md:381
@@ -449,6 +449,21 @@ If you find a `[~]` task with timestamp >24 hours old:
   - **Implementation**: Added validate_session_id_realtime() with character-specific error messages, wired to change event
   → UX_IMPROVEMENTS.md:22-58
 
+- [x] **UX-10**: Reorganize settings tab accordions by category (Agent: Jules, Completed: 2025-11-24)
+  - **Files**: `src/ui/settings_tools_tab_modern.py:61-398`
+  - **Effort**: 2 days | **Conflict Risk**: ⚠️⚠️ MEDIUM
+  → UX_IMPROVEMENTS.md:288-319
+
+- [x] **UX-15**: Add syntax highlighting to transcript output (Agent: Jules, Completed: 2025-11-24)
+  - **Files**: `src/ui/process_session_components.py`, `src/ui/theme.py`
+  - **Effort**: 2 days | **Conflict Risk**: ⚠️ LOW
+  → UX_IMPROVEMENTS.md:477-503
+
+- [x] **UX-20**: Add tooltips for complex configuration options (Agent: Jules, Completed: 2025-11-24)
+  - **Files**: `src/ui/settings_tools_tab_modern.py`
+  - **Effort**: 2 days | **Conflict Risk**: ⚠️ LOW
+  → UX_IMPROVEMENTS.md:724-787
+
 - [x] **UX-03**: Validate party configuration before enabling Process button (Agent: Claude Sonnet 4.5, Completed: 2025-11-22)
   - **Files**: `src/ui/process_session_components.py`, `src/ui/process_session_helpers.py`, `src/ui/process_session_events.py`
   - **Effort**: 2 days | **Conflict Risk**: ⚠️⚠️ MEDIUM
@@ -498,12 +513,6 @@ If you find a `[~]` task with timestamp >24 hours old:
   - **Implementation**: Added hardcoded average times per stage in `status_tracker.py` to append estimates to status messages.
   → UX_IMPROVEMENTS.md:196-217
 
-- [x] **UX-10**: Reorganize settings tab accordions by category (Agent: Jules, Completed: 2025-11-24)
-  - **Files**: `src/ui/settings_tools_tab_modern.py:61-398`
-  - **Effort**: 2 days | **Conflict Risk**: ⚠️⚠️ MEDIUM
-  - **Implementation**: Grouped settings into "AI Services", "Processing", and "Advanced" accordions.
-  → UX_IMPROVEMENTS.md:288-319
-
 - [ ] **UX-11**: Quick setup wizard for first-time users
   - **Files**: `app.py`, new `src/ui/setup_wizard.py`
   - **Effort**: 5 days | **Conflict Risk**: ⚠️⚠️⚠️ HIGH
@@ -515,22 +524,10 @@ If you find a `[~]` task with timestamp >24 hours old:
   - **Implementation**: Replaced static markdown with `gr.DataFrame` in campaign tab and stories tab.
   → UX_IMPROVEMENTS.md:398-432
 
-- [x] **UX-15**: Add syntax highlighting to transcript output (Agent: Jules, Completed: 2025-11-24)
-  - **Files**: `src/ui/process_session_components.py`, `src/ui/theme.py`
-  - **Effort**: 2 days | **Conflict Risk**: ⚠️ LOW
-  - **Implementation**: Updated `gr.HighlightedText` color map to differentiate speakers, DM, and OOC text.
-  → UX_IMPROVEMENTS.md:477-503
-
 - [ ] **UX-17**: Add keyboard shortcuts
   - **Files**: `app.py`, `src/ui/theme.py`
   - **Effort**: 3 days | **Conflict Risk**: ⚠️⚠️ MEDIUM
   → UX_IMPROVEMENTS.md:555-613
-
-- [x] **UX-20**: Add tooltips for complex configuration options (Agent: Jules, Completed: 2025-11-24)
-  - **Files**: `src/ui/settings_tools_tab_modern.py`
-  - **Effort**: 2 days | **Conflict Risk**: ⚠️ LOW
-  - **Implementation**: Added CSS-based tooltips using `data-tooltip` attribute and `.info-icon` class.
-  → UX_IMPROVEMENTS.md:724-787
 
 ### Phase 3: Polish & Accessibility (18 days, 6 tasks)
 

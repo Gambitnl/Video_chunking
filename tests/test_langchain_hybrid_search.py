@@ -247,6 +247,7 @@ def test_search_different_top_k_and_weight(hybrid_searcher):
     hybrid_searcher._reciprocal_rank_fusion = Mock(return_value=fused_results)
 
     query = "another query"
+    top_k = 5
     results = hybrid_searcher.search(query, top_k=top_k, semantic_weight=0.6)
 
     mock_vector_store.search.assert_called_once_with(query, top_k=top_k * 2)

@@ -65,11 +65,11 @@ class CampaignRetriever:
             List of Document objects
         """
         try:
-            # Search knowledge bases (NPCs, quests, locations)
-            kb_results = self._search_knowledge_bases(query, top_k=3)
+            # Search knowledge bases (NPCs, quests, locations) - request more to allow ranking
+            kb_results = self._search_knowledge_bases(query, top_k=top_k)
 
             # Search session transcripts
-            transcript_results = self._search_transcripts(query, top_k=2)
+            transcript_results = self._search_transcripts(query, top_k=top_k)
 
             # Combine and rank by relevance
             all_results = kb_results + transcript_results
@@ -98,53 +98,26 @@ class CampaignRetriever:
                 try:
                     kb = self._load_knowledge_base(kb_file)
 
-                    # Search NPCs
-                    for npc in kb.get("npcs", []):
-                        if self._matches_query(
-                            query_lower,
-                            npc.get("name", "").lower(),
-                            npc.get("description", "").lower()
-                        ):
-                            results.append(Document(
-                                content=f"NPC: {npc['name']} - {npc.get('description', 'No description')}",
-                                metadata={
-                                    "type": "npc",
-                                    "source": kb_file.name,
-                                    "name": npc["name"]
-                                }
-                            ))
+                    # Generic search across categories
+                    for category in ["npcs", "quests", "locations", "items"]:
+                        for entity in kb.get(category, []):
+                            # Use full JSON dump for comprehensive search across all fields
+                            entity_text = json.dumps(entity).lower()
 
-                    # Search quests
-                    for quest in kb.get("quests", []):
-                        if self._matches_query(
-                            query_lower,
-                            quest.get("name", "").lower(),
-                            quest.get("description", "").lower()
-                        ):
-                            results.append(Document(
-                                content=f"Quest: {quest['name']} - {quest.get('description', 'No description')}",
-                                metadata={
-                                    "type": "quest",
-                                    "source": kb_file.name,
-                                    "name": quest["name"]
-                                }
-                            ))
+                            if self._matches_query(query_lower, entity_text):
+                                name = entity.get("name") or entity.get("title") or "Unknown"
+                                description = entity.get("description", "No description")
+                                type_name = category[:-1] if category.endswith("s") else category
 
-                    # Search locations
-                    for location in kb.get("locations", []):
-                        if self._matches_query(
-                            query_lower,
-                            location.get("name", "").lower(),
-                            location.get("description", "").lower()
-                        ):
-                            results.append(Document(
-                                content=f"Location: {location['name']} - {location.get('description', 'No description')}",
-                                metadata={
-                                    "type": "location",
-                                    "source": kb_file.name,
-                                    "name": location["name"]
-                                }
-                            ))
+                                # Include full entity details in content so LLM can answer questions about nested fields
+                                results.append(Document(
+                                    content=f"{type_name.capitalize()}: {json.dumps(entity, ensure_ascii=False)}",
+                                    metadata={
+                                        "type": type_name,
+                                        "source": kb_file.name,
+                                        "name": name
+                                    }
+                                ))
 
                 except (json.JSONDecodeError, KeyError) as e:
                     logger.warning(f"Error loading knowledge base {kb_file}: {e}")
@@ -153,7 +126,9 @@ class CampaignRetriever:
         except Exception as e:
             logger.error(f"Error searching knowledge bases: {e}", exc_info=True)
 
-        return results[:top_k]
+        # Rank results to prioritize exact matches and relevant types before slicing
+        ranked_results = self._rank_results(results, query)
+        return ranked_results[:top_k]
 
     def _search_transcripts(self, query: str, top_k: int) -> List[Document]:
         """Search session transcripts using simple keyword matching."""

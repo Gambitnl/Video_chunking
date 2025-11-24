@@ -145,11 +145,14 @@ class CampaignVectorStore:
                     metadata = doc.get("metadata") or {}
 
                     doc_type = metadata.get("type", "unknown")
+                    # Sanitize type for ID to prevent illegal characters
+                    safe_type = doc_type.replace(" ", "_").replace("/", "_")
+
                     name = metadata.get("name", f"doc_{batch_start + i}")
 
                     # Sanitize name for ID
                     safe_name = name.replace(" ", "_").replace("/", "_")
-                    ids.append(f"{doc_type}_{safe_name}_{batch_start + i}")
+                    ids.append(f"{safe_type}_{safe_name}_{batch_start + i}")
                     metadatas.append(metadata)
 
                 self.knowledge_collection.add(

@@ -492,14 +492,16 @@ If you find a `[~]` task with timestamp >24 hours old:
   - **Implementation**: Added analyze_uploaded_file() with AudioProcessor integration, shows size/duration/est. time
   → UX_IMPROVEMENTS.md:62-98
 
-- [ ] **UX-07**: Estimated time remaining
+- [x] **UX-07**: Estimated time remaining (Agent: Jules, Completed: 2025-11-24)
   - **Files**: `src/status_tracker.py`, `src/ui/process_session_events.py`
   - **Effort**: 3 days | **Conflict Risk**: ⚠️⚠️ MEDIUM
+  - **Implementation**: Added hardcoded average times per stage in `status_tracker.py` to append estimates to status messages.
   → UX_IMPROVEMENTS.md:196-217
 
-- [ ] **UX-10**: Reorganize settings tab accordions by category
+- [x] **UX-10**: Reorganize settings tab accordions by category (Agent: Jules, Completed: 2025-11-24)
   - **Files**: `src/ui/settings_tools_tab_modern.py:61-398`
   - **Effort**: 2 days | **Conflict Risk**: ⚠️⚠️ MEDIUM
+  - **Implementation**: Grouped settings into "AI Services", "Processing", and "Advanced" accordions.
   → UX_IMPROVEMENTS.md:288-319
 
 - [ ] **UX-11**: Quick setup wizard for first-time users
@@ -507,14 +509,16 @@ If you find a `[~]` task with timestamp >24 hours old:
   - **Effort**: 5 days | **Conflict Risk**: ⚠️⚠️⚠️ HIGH
   → UX_IMPROVEMENTS.md:321-357
 
-- [ ] **UX-13**: Convert session library to interactive table
+- [x] **UX-13**: Convert session library to interactive table (Agent: Jules, Completed: 2025-11-24)
   - **Files**: `src/ui/campaign_tab_modern.py:56-63`
   - **Effort**: 3 days | **Conflict Risk**: ⚠️⚠️ MEDIUM
+  - **Implementation**: Replaced static markdown with `gr.DataFrame` in campaign tab and stories tab.
   → UX_IMPROVEMENTS.md:398-432
 
-- [ ] **UX-15**: Add syntax highlighting to transcript output
+- [x] **UX-15**: Add syntax highlighting to transcript output (Agent: Jules, Completed: 2025-11-24)
   - **Files**: `src/ui/process_session_components.py`, `src/ui/theme.py`
   - **Effort**: 2 days | **Conflict Risk**: ⚠️ LOW
+  - **Implementation**: Updated `gr.HighlightedText` color map to differentiate speakers, DM, and OOC text.
   → UX_IMPROVEMENTS.md:477-503
 
 - [ ] **UX-17**: Add keyboard shortcuts
@@ -522,9 +526,10 @@ If you find a `[~]` task with timestamp >24 hours old:
   - **Effort**: 3 days | **Conflict Risk**: ⚠️⚠️ MEDIUM
   → UX_IMPROVEMENTS.md:555-613
 
-- [ ] **UX-20**: Add tooltips for complex configuration options
+- [x] **UX-20**: Add tooltips for complex configuration options (Agent: Jules, Completed: 2025-11-24)
   - **Files**: `src/ui/settings_tools_tab_modern.py`
   - **Effort**: 2 days | **Conflict Risk**: ⚠️ LOW
+  - **Implementation**: Added CSS-based tooltips using `data-tooltip` attribute and `.info-icon` class.
   → UX_IMPROVEMENTS.md:724-787
 
 ### Phase 3: Polish & Accessibility (18 days, 6 tasks)

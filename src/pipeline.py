@@ -383,38 +383,56 @@ class DDSessionProcessor:
             def _chunk_progress_callback(chunk, duration):
                 try:
                     chunk_progress["count"] = chunk.chunk_index + 1
-                    details = {
-                        "chunks_created": chunk_progress["count"],
-                        "latest_chunk_index": chunk.chunk_index,
-                        "latest_chunk_end": round(chunk.end_time, 2)
-                    }
                     if duration and duration > 0:
                         percent = min(100.0, max(0.0, (chunk.end_time / duration) * 100))
-                        details["progress_percent"] = round(percent, 1)
                     else:
                         percent = 0.0
 
-                    StatusTracker.update_stage(
-                        self.session_id,
-                        2,
-                        "running",
-                        message=f"Chunking... {chunk_progress['count']} chunk{'s' if chunk_progress['count'] != 1 else ''}",
-                        details=details
-                    )
-
-                    # Log every 5% or every 30 seconds
+                    # Throttling: Log/Update Status every 5% or every 30 seconds
+                    # We also update status slightly more frequently for smoother UI (e.g. every 1% or 2s)
+                    now = perf_counter()
+                    should_update_status = False
                     should_log = False
+
+                    if not "last_status_time" in chunk_progress:
+                        chunk_progress["last_status_time"] = now
+
+                    # Log check
                     if percent - chunk_progress["last_logged_percent"] >= 5.0:
                         should_log = True
-                    else:
-                        now = perf_counter()
-                        if now - chunk_progress["last_log_time"] >= 30.0:
-                            should_log = True
-                            chunk_progress["last_log_time"] = now
+                    elif now - chunk_progress["last_log_time"] >= 30.0:
+                        should_log = True
+
+                    # Status update check (more frequent than logging)
+                    if should_log:
+                        should_update_status = True
+                    elif percent - chunk_progress.get("last_status_percent", -5.0) >= 1.0:
+                        should_update_status = True
+                    elif now - chunk_progress["last_status_time"] >= 2.0:
+                        should_update_status = True
+
+                    if should_update_status:
+                        chunk_progress["last_status_percent"] = percent
+                        chunk_progress["last_status_time"] = now
+
+                        details = {
+                            "chunks_created": chunk_progress["count"],
+                            "latest_chunk_index": chunk.chunk_index,
+                            "latest_chunk_end": round(chunk.end_time, 2),
+                            "progress_percent": round(percent, 1)
+                        }
+
+                        StatusTracker.update_stage(
+                            self.session_id,
+                            2,
+                            "running",
+                            message=f"Chunking... {chunk_progress['count']} chunk{'s' if chunk_progress['count'] != 1 else ''}",
+                            details=details
+                        )
 
                     if should_log:
                         chunk_progress["last_logged_percent"] = percent
-                        chunk_progress["last_log_time"] = perf_counter()
+                        chunk_progress["last_log_time"] = now
                         self.logger.info(
                             "Stage 2/9 progress: %d chunk(s) created (%.1f%% of audio processed)",
                             chunk_progress["count"],

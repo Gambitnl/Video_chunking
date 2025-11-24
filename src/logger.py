@@ -1,5 +1,6 @@
 """Centralized logging system for D&D Session Processor"""
 import logging
+import os
 from pathlib import Path
 from datetime import datetime
 from typing import Optional, Union, Sequence
@@ -146,16 +147,101 @@ class SessionLogger:
             return logging.getLevelName(self.file_handler.level)
         return logging.getLevelName(logging.DEBUG)
 
+    def _read_last_lines(self, filepath: Path, n_lines: int) -> list[str]:
+        """
+        Efficiently read the last n lines of a file without reading the entire file.
+        """
+        if not filepath.exists():
+            return []
+
+        block_size = 65536  # 64KB blocks
+        lines_found = []
+
+        try:
+            with open(filepath, 'rb') as f:
+                f.seek(0, os.SEEK_END)
+                file_size = f.tell()
+                if file_size == 0:
+                    return []
+
+                remaining_bytes = file_size
+                buffer = b""
+
+                while remaining_bytes > 0 and len(lines_found) <= n_lines:
+                    # Determine how much to read
+                    read_size = min(block_size, remaining_bytes)
+                    remaining_bytes -= read_size
+
+                    f.seek(remaining_bytes)
+                    chunk = f.read(read_size)
+
+                    # Prepend chunk to buffer
+                    buffer = chunk + buffer
+
+                    # Check lines
+                    lines = buffer.split(b'\n')
+
+                    # If the file ends with a newline, the last element is empty.
+                    # We usually don't want to count that as a "line" for the purpose of "last N lines"
+                    # unless the file actually has empty lines at the end.
+                    # But standard tools like tail usually ignore the trailing newline split.
+
+                    valid_lines_count = len(lines)
+                    if lines and lines[-1] == b"":
+                        valid_lines_count -= 1
+
+                    # If we haven't reached start of file, the first line might be partial (lines[0])
+                    if remaining_bytes > 0:
+                        # We have (valid_lines_count - 1) full lines in this chunk (excluding first partial)
+                        # We check if we have enough full lines to satisfy request
+                        if valid_lines_count > n_lines:
+                            # We have enough.
+                            # If lines[-1] is empty, we exclude it from the "last n lines" consideration if we want text lines.
+                            # But let's just return the last n lines from the split.
+
+                            # If lines[-1] is empty, we might return it.
+                            # If we want 50 lines, and we have 51, and the 51st is empty.
+                            # lines[-50:] would include the empty one.
+
+                            # Let's filter out the very last empty element if it exists and we have enough lines without it.
+                            start_idx = -n_lines
+                            if lines[-1] == b"":
+                                # If we strip the last empty one, do we still have enough?
+                                if len(lines) - 1 >= n_lines:
+                                     return [l.decode('utf-8', errors='replace') for l in lines[-n_lines-1:-1]]
+                                else:
+                                     # Not enough without the partial line at start?
+                                     # We continue reading.
+                                     pass
+                            else:
+                                return [l.decode('utf-8', errors='replace') for l in lines[-n_lines:]]
+                    else:
+                        # Reached start of file
+                        # If the last line is empty, ignore it if we have enough lines
+                         if lines[-1] == b"" and len(lines) > n_lines:
+                             return [l.decode('utf-8', errors='replace') for l in lines[-n_lines-1:-1]]
+                         return [l.decode('utf-8', errors='replace') for l in lines[-n_lines:]]
+
+                # If we exit loop (read whole file)
+                lines = buffer.split(b'\n')
+                if lines and lines[-1] == b"" and len(lines) > n_lines:
+                     return [l.decode('utf-8', errors='replace') for l in lines[-n_lines-1:-1]]
+                return [l.decode('utf-8', errors='replace') for l in lines[-n_lines:]]
+
+        except Exception as e:
+            # Fallback to simple read if something complex fails, or just log error
+            self.logger.error(f"Error reading last lines: {e}")
+            return []
+
     def get_recent_logs(self, lines: int = 100) -> str:
         """Get recent log entries"""
         if not self.log_file.exists():
             return "No log file found."
 
         try:
-            with open(self.log_file, 'r', encoding='utf-8') as f:
-                all_lines = f.readlines()
-                recent_lines = all_lines[-lines:]
-                return ''.join(recent_lines)
+            # Use the robust tail implementation
+            recent_lines = self._read_last_lines(self.log_file, lines)
+            return '\n'.join(recent_lines) + '\n'
         except Exception as e:
             return f"Error reading log file: {e}"
 
@@ -165,16 +251,23 @@ class SessionLogger:
             return "No log file found."
 
         try:
-            with open(self.log_file, 'r', encoding='utf-8') as f:
-                all_lines = f.readlines()
-                error_lines = [
-                    line for line in all_lines
-                    if 'ERROR' in line or 'WARNING' in line or 'CRITICAL' in line
-                ]
-                recent_errors = error_lines[-lines:]
-                if not recent_errors:
-                    return "No errors or warnings found."
-                return ''.join(recent_errors)
+            # For error logs, we might need to scan more than 'lines' to find 'lines' errors.
+            # But reading the whole file is bad.
+            # Compromise: Read last 20000 lines (approx 2-3MB) and filter errors.
+            # If not enough, that's life. We don't want to scan 1GB.
+
+            scan_depth = max(lines * 100, 20000)
+            candidates = self._read_last_lines(self.log_file, scan_depth)
+
+            error_lines = [
+                line for line in candidates
+                if 'ERROR' in line or 'WARNING' in line or 'CRITICAL' in line
+            ]
+
+            recent_errors = error_lines[-lines:]
+            if not recent_errors:
+                return "No errors or warnings found in recent logs."
+            return '\n'.join(recent_errors) + '\n'
         except Exception as e:
             return f"Error reading log file: {e}"
 

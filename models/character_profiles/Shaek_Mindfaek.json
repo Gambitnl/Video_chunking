@@ -13,10 +13,10 @@
     "The Broken",
     "The Defect"
   ],
-  "campaign_id": "team_op",
+  "campaign_id": "campaign_003",
   "campaign_name": "Gaia Adventures - Culdor Academy",
   "first_session": "Session 1 (29-Nov-2024)",
-  "last_updated": "2025-11-17T16:47:37.273015",
+  "last_updated": "2025-11-24T21:38:50.768906",
   "notable_actions": [
     {
       "session": "Session 1",
@@ -227,6 +227,288 @@
       "timestamp": null,
       "description": "Commanded the wyverns to stop attacking.",
       "type": "combat"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "timestamp": null,
+      "description": "Explaining the rules of dice rolling in a complex manner.",
+      "type": "rules"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "timestamp": null,
+      "description": "Rolls perception to check for hidden threats, showing his vigilance.",
+      "type": "combat"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "timestamp": null,
+      "description": "Assumes the role of a lookout for a short period, showing adaptability.",
+      "type": "ally"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "timestamp": null,
+      "description": "Uses Revivify to save a character's life using Spare the Dying",
+      "type": "combat"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "timestamp": null,
+      "description": "Sha'ek plans to investigate the ship, starting with a search of a specific area.",
+      "type": "social"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "timestamp": null,
+      "description": "Explains the importance and potential dangers of a mysterious person to his team.",
+      "type": "general"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "timestamp": null,
+      "description": "Casts the Bless spell to enhance his allies.",
+      "type": "combat"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "timestamp": null,
+      "description": "Initiates a combat move with his flail.",
+      "type": "combat"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "timestamp": null,
+      "description": "Casts a shield spell to protect himself.",
+      "type": "magic"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "timestamp": null,
+      "description": "Determined to explore the area despite potential dangers.",
+      "type": "exploration"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "timestamp": null,
+      "description": "Actively engages in combat planning and execution.",
+      "type": "general"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "timestamp": null,
+      "description": "Successfully hit the target with dual arrows.",
+      "type": "combat"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "timestamp": null,
+      "description": "Delivers a significant amount of damage with bonus action.",
+      "type": "combat"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "timestamp": null,
+      "description": "Uses flail to test a trap or enemy, rolls a critical hit (24)",
+      "type": "combat"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "timestamp": null,
+      "description": "Successfully hits the target with a flail attack, causing paralysis and dealing damage.",
+      "type": "combat"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "timestamp": null,
+      "description": "Healing himself with basic healing expertise after being injured by wyverns.",
+      "type": "social"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "timestamp": null,
+      "description": "Cast Chromatic on an enemy for fire damage",
+      "type": "combat"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "timestamp": null,
+      "description": "Checks his health status after taking damage",
+      "type": "combat"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "timestamp": null,
+      "description": "Reacted quickly to a potential attack by using shield.",
+      "type": "combat"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "timestamp": null,
+      "description": "Successfully defended against a bite attack using his shield.",
+      "type": "combat"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "timestamp": null,
+      "description": "Rolls a high damage critical hit on an enemy",
+      "type": "combat"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "timestamp": null,
+      "description": "Re-rolls a critical hit, emphasizing the use of his character's unique ability",
+      "type": "combat"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "timestamp": null,
+      "description": "Used advantage to attack and deal damage with a critical hit.",
+      "type": "combat"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "timestamp": null,
+      "description": "Failed to use Cone of Cold effectively due to lack of counterspells.",
+      "type": "combat"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "timestamp": null,
+      "description": "Demonstrates tactical use of abilities in a high-stakes situation.",
+      "type": "combat"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "timestamp": null,
+      "description": "Created a clever distraction item during combat",
+      "type": "combat"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "timestamp": null,
+      "description": "Successfully used a distraction item to create an advantage against enemies",
+      "type": "combat"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "timestamp": null,
+      "description": "Gained an advantage by successfully casting a distraction spell",
+      "type": "combat"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "timestamp": null,
+      "description": "Drops 'Flesh' spell to focus on another action.",
+      "type": "combat"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "timestamp": null,
+      "description": "Misses the roll after using inspiration.",
+      "type": "general"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "timestamp": null,
+      "description": "Considers using Witchbolt in a high-stakes situation, showing strategic thinking.",
+      "type": "magical"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "timestamp": null,
+      "description": "Failed to cast a Witchbolt spell with a roll of 19.",
+      "type": "combat"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "timestamp": null,
+      "description": "Decides to follow the first ship's lead during combat.",
+      "type": "combat"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "timestamp": null,
+      "description": "Failed to use a shield and took damage.",
+      "type": "combat"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "timestamp": null,
+      "description": "Executes a critical strike that pierces through an opponent's jaw.",
+      "type": "combat"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "timestamp": null,
+      "description": "Contemplates using the stationary zeils to pass through a wall.",
+      "type": "social"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "timestamp": null,
+      "description": "Successfully identified and assessed the situation",
+      "type": "combat"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "timestamp": null,
+      "description": "Executes a successful hit on the monster",
+      "type": "combat"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "timestamp": null,
+      "description": "Sha'ek decides to jump into the void using a Secret Agent move.",
+      "type": "combat"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "timestamp": null,
+      "description": "Attempts to break the wyverns' cage.",
+      "type": "combat"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "timestamp": null,
+      "description": "Assists Arlette in breaking free from her bindings.",
+      "type": "general"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "timestamp": null,
+      "description": "Attempts to blind Furnax using a blindness spell, but fails the roll",
+      "type": "combat"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "timestamp": null,
+      "description": "Attempts to engage Furnax with a request for assistance, but receives a negative response",
+      "type": "social"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "timestamp": null,
+      "description": "Participated in a combat victory against an enemy.",
+      "type": "combat"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "timestamp": null,
+      "description": "Performs a high-flying acrobatic move to distract wyverns and create an opening.",
+      "type": "combat"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "timestamp": null,
+      "description": "Attempts to maneuver through a gap between wagons.",
+      "type": "social"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "timestamp": null,
+      "description": "Executing a critical shot to ensure Adelette's defeat.",
+      "type": "combat"
     }
   ],
   "inventory": [
@@ -277,6 +559,48 @@
       "description": "Sha'ek found and used a bag of tricks that contained various magical items to distract his enemies.",
       "session_acquired": "test_s6_17nov_0901am",
       "category": "acquisition"
+    },
+    {
+      "name": "Refers to a magical item or book that may be important for his character.",
+      "description": "Sha'ek mentions a book that could potentially be useful, indicating he might need to examine it further.",
+      "session_acquired": "test_s6_nov23_2345pm",
+      "category": "general"
+    },
+    {
+      "name": "Uses the Dispel Magic spell on a creature, though it's not a dispel.",
+      "description": "Sha'ek attempts to use a dispelling spell, but realizes it was a misinterpretation of the situation.",
+      "session_acquired": "test_s6_nov23_2345pm",
+      "category": "combat"
+    },
+    {
+      "name": "Gains potions from Artex, now has a total of 4 greater and 2 normal.",
+      "description": "Sha'ek Mindfa'ek recounts receiving potions from Artex, detailing the total inventory of his party.",
+      "session_acquired": "test_s6_nov23_2345pm",
+      "category": "gained"
+    },
+    {
+      "name": "No explicit mention of inventory changes, but his defensive actions suggest he is well-equipped.",
+      "description": "The conversation implies that Sha'ek Mindfa'ek has a shield and possibly other defensive items, though no specific item is mentioned.",
+      "session_acquired": "test_s6_nov23_2345pm",
+      "category": "general"
+    },
+    {
+      "name": "Used items from his inventory to deal with the situation.",
+      "description": "Sha'ek opened a bag and grabbed items to distribute among enemies.",
+      "session_acquired": "test_s6_nov23_2345pm",
+      "category": "general"
+    },
+    {
+      "name": "Sha'ek is given a Hypnotic Pet, indicating the potential for future mind control or calming effects.",
+      "description": "A Hypnotic Pet is offered to Sha'ek, which could be useful in future scenarios involving influence or calming.",
+      "session_acquired": "test_s6_nov23_2345pm",
+      "category": "item"
+    },
+    {
+      "name": "Gains a new combat maneuver through his acrobatics.",
+      "description": "Sha'ek's ability to perform acrobatic maneuvers adds a new tool to his combat repertoire.",
+      "session_acquired": "test_s6_nov23_2345pm",
+      "category": "combat"
     }
   ],
   "relationships": [
@@ -345,6 +669,42 @@
       "relationship_type": "ally",
       "description": null,
       "first_met": "test_s6_17nov_0901am"
+    },
+    {
+      "name": "Mentions Josje, indicating a past connection or alliance.",
+      "relationship_type": "general",
+      "description": null,
+      "first_met": "test_s6_nov23_2345pm"
+    },
+    {
+      "name": "Exhibits a sense of leadership and concern for the team's well-being.",
+      "relationship_type": "general",
+      "description": null,
+      "first_met": "test_s6_nov23_2345pm"
+    },
+    {
+      "name": "Mentions preparing an ability for a specific ally, indicating trust and potential bond.",
+      "relationship_type": "ally",
+      "description": null,
+      "first_met": "test_s6_nov23_2345pm"
+    },
+    {
+      "name": "Sha'ek seeks Furnax's assistance in dealing with a hostile creature, indicating potential cooperation.",
+      "relationship_type": "general",
+      "description": null,
+      "first_met": "test_s6_nov23_2345pm"
+    },
+    {
+      "name": "Collaborates with Pipira Shimmerlock for a risky approach",
+      "relationship_type": "ally",
+      "description": null,
+      "first_met": "test_s6_nov23_2345pm"
+    },
+    {
+      "name": "Supports Arlette in her struggle for freedom.",
+      "relationship_type": "general",
+      "description": null,
+      "first_met": "test_s6_nov23_2345pm"
     }
   ],
   "development_notes": [
@@ -622,6 +982,706 @@
       "session": "test_s6_17nov_0901am",
       "note": "Expressed his desire to mend the boat after acknowledging its damage.",
       "category": "general"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Acknowledging the hierarchical structure of their organization and adjusting his approach accordingly.",
+      "category": "social"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Taking a more formal and cautious approach in his interactions.",
+      "category": "social"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Considering the logistics and security of guarding the ship, Sha'ek shows a thoughtful approach to problem-solving.",
+      "category": "social"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Demonstrates caution and skepticism towards trusting unvetted individuals, showing a careful and strategic mindset.",
+      "category": "social"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Balances the need for security with practical considerations, such as the number of people needed and their reliability.",
+      "category": "social"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Shows a methodical and strategic approach to problem-solving, considering multiple aspects of the situation.",
+      "category": "social"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Sha'ek is taking on additional responsibilities and shows leadership by organizing the watch shifts.",
+      "category": "social"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Sha'ek is willing to take on additional shifts, showing a sense of duty and responsibility.",
+      "category": "general"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Sha'ek demonstrates strategic thinking by suggesting a schedule for the group's watch shifts.",
+      "category": "general"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Sha'ek is concerned about a potential risk of suicide, showing empathy and a sense of responsibility.",
+      "category": "general"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Sha'ek is demonstrating leadership by organizing the group's schedule and considering potential risks.",
+      "category": "general"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Reflecting on the importance of maintaining focus and attention in critical moments.",
+      "category": "general"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Expressing frustration and self-criticism over minor setbacks.",
+      "category": "general"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Expressing the difficulty of remembering one's own identity and name.",
+      "category": "general"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Discussing past experiences and their impact on current situations.",
+      "category": "general"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Prepares carefully for potential threats, showing tactical awareness and caution.",
+      "category": "social"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Considers the twins' discomfort and potential for escape, showing empathy and strategic thinking.",
+      "category": "general"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Considers the twins' physical constraints, showing attention to detail and strategic planning.",
+      "category": "general"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Admits to not having completed his lookout duties properly, showing self-awareness.",
+      "category": "general"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Acknowledges the dynamic nature of tasks and their importance in maintaining the ship.",
+      "category": "general"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Notes the absence of significant events during his watch, reflecting on the routine.",
+      "category": "general"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Exploring the concept of wizards and their groups, indicating curiosity about magical powers.",
+      "category": "social"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Acknowledging the presence of wizards, but unsure about their groupings or existence.",
+      "category": "general"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Musing about wizard attire, including hats and accessories.",
+      "category": "general"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Referencing a Final Fantasy character, possibly indicating personal interests or knowledge.",
+      "category": "general"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Reflects on past decisions and possessions, indicating a desire to be more involved in the party's activities.",
+      "category": "social"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Acknowledges past choices and the need for more social interaction with team members.",
+      "category": "social"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Acknowledges a need to be more trusting and welcoming of the team’s visits, showcasing character growth.",
+      "category": "social"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Expresses concern about the group's well-being and the game's progress",
+      "category": "social"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Acknowledges the importance of maintaining a balanced campaign and managing group dynamics",
+      "category": "social"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Struggles with managing time and resources for questioning people.",
+      "category": "general"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Acknowledges a past one-shot experience, indicating he has played with others in the past.",
+      "category": "general"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Expresses skepticism about the ease of confirming his loyalty, hinting at potential hidden motives.",
+      "category": "general"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Reacting to betrayal by a fellow party member during an infiltration mission.",
+      "category": "social"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Recognizing the complexity and challenge of betrayal in a high-stakes mission.",
+      "category": "social"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Sha'ek reflects on his failed bodyguard role and the wizard he was protecting.",
+      "category": "general"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Sha'ek acknowledges his own role in a failed mission and the wizard he was protecting.",
+      "category": "general"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Sha'ek discusses the requirements and potential issues with using Zone of Truth.",
+      "category": "general"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Reflects on the nature of cults and their goals in the world.",
+      "category": "moral choice"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Acknowledges the existence and goals of other cults, hinting at a larger narrative.",
+      "category": "moral choice"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Discusses the nature of knowledge and its distribution among characters.",
+      "category": "intellectual"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Confidently states their cult is the most important, indicating a sense of power and purpose.",
+      "category": "ego"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Engaged in gathering information through conversations and research.",
+      "category": "social"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Planning to conduct a werewolf investigation after completing the current task.",
+      "category": "general"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Acknowledges the group's work and emphasizes his reliability.",
+      "category": "general"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Demonstrates resourcefulness by planning to conduct interviews and gather information.",
+      "category": "general"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Received a new Arcana to use, indicating potential growth in magical abilities.",
+      "category": "general"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Acknowledges the limitations of the item's power and its potential growth with use.",
+      "category": "general"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Notes the potential for growth with continued use of the item.",
+      "category": "general"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Acknowledges past usage of the item and its effect on his character.",
+      "category": "general"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Sha'ek recognizes the complexity of his situation and acknowledges that he cannot fully trust his team.",
+      "category": "general"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Sha'ek reveals that he has found a book about the Kjotts, which seems to be a personal diary of one of the girls.",
+      "category": "general"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Sha'ek learns that the girl who wrote the book, Alette, has been with the Kjotts for a short time.",
+      "category": "general"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Sha'ek is reflecting on the complexity of his mission and the potential for betrayal.",
+      "category": "general"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Sha'ek is cautious and methodical in his approach to the mission, showing a focus on detail.",
+      "category": "general"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Demonstrates caution and wisdom in handling potentially sensitive information.",
+      "category": "general"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Contemplates the use of his Bag of Distraction and questions its reliability.",
+      "category": "general"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Reflects on past experiences and the reliability of his magical items.",
+      "category": "general"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Considers the timing and availability of certain tasks, illustrating his strategic thinking.",
+      "category": "general"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Decides to take advantage of the current situation by stealing a diary.",
+      "category": "general"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Reflects on the passage of time and its impact on their mission.",
+      "category": "general"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Shows skepticism about the group's behavior and their ability to skip the intro.",
+      "category": "general"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Demonstrates awareness of the group's behavior and hints at a potential conflict.",
+      "category": "general"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Expresses his desire to understand the group's motivations and actions.",
+      "category": "general"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Acknowledges the need for caution with a new monster, showing a strategic and cautious approach.",
+      "category": "monster evaluation"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Recognizes that the creature is a natural one rather than a man-made construct.",
+      "category": "general"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Realizes the creature's nature and decides on a course of action.",
+      "category": "general"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Prepares for combat by casting spells and moving into position.",
+      "category": "general"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Shows off his magical capabilities to others, indicating confidence and self-assurance.",
+      "category": "general"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Shows tactical thinking and awareness of potential threats in the area.",
+      "category": "general"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Demonstrates strategic thinking and preparedness for combat scenarios.",
+      "category": "general"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Expressed a need to calm down after an initial outburst.",
+      "category": "emotional"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Admits to using magic items, suggesting increased reliance on magical gear.",
+      "category": "general"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Questions the team’s approach to dealing with the creature.",
+      "category": "general"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Confirms the accuracy of a trap or enemy, questioning another character's rolls",
+      "category": "social"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Incorporates a bonus action to create a healing cloud around himself, showing strategic thinking and self-preservation.",
+      "category": "general"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Gains understanding of the healing properties of his flail, showing character growth in resource management.",
+      "category": "general"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Acknowledging the assistance from his allies and focusing on healing.",
+      "category": "social"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Showing his appreciation for the healing provided by Pipira Shimmerlock.",
+      "category": "social"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Discusses weapon mastery and class choices, indicating a strategic mindset.",
+      "category": "general"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Describes the conditions under which he can cast a spell without a spellbook, showing flexibility in his approach.",
+      "category": "general"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "States his intention to remain hidden, highlighting his cautious and stealthy nature.",
+      "category": "general"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Reflects on the nature of his character and future",
+      "category": "personal"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Showed resourcefulness and quick thinking in dangerous situations.",
+      "category": "combat"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Acknowledged the effectiveness of his defensive strategy.",
+      "category": "combat"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Expressed a sense of relief or satisfaction with his defensive strategy.",
+      "category": "emotional"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Reflected on the value of his defensive abilities in high-stress situations.",
+      "category": "combat"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Shows resourcefulness by using his shield effectively in combat.",
+      "category": "combat"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Takes initiative to help a teammate during the attack, but finds it ineffective.",
+      "category": "social"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Shows understanding of the game mechanics regarding helping allies in combat.",
+      "category": "combat"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Acknowledges his character's unique ability to re-roll damage once per round",
+      "category": "personal"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Clarifies his character's paralysis effect on an enemy",
+      "category": "combat"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Reflected on the luck and felt lucky, showing a moment of self-awareness.",
+      "category": "internal"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Used multiple luck advantages and actions, showing adaptability in combat.",
+      "category": "combat"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Used inspiration and multiple luck dice, showing strategic thinking.",
+      "category": "combat"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Showed resourcefulness by using a chaotic shuffle to distribute items.",
+      "category": "general"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Showed adaptability by improvising with his inventory.",
+      "category": "general"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Shows reluctance to use a move, possibly indicating character growth and caution in combat.",
+      "category": "combat"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Acknowledges the risk of using a high-risk move, highlighting cautious decision-making.",
+      "category": "combat"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Shows resourcefulness and creativity in using items for combat advantage",
+      "category": "combat"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Demonstrates adaptability and resourcefulness in combat situations",
+      "category": "combat"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Sha'ek seems uncertain and is dealing with a temporary incapacitation that affects his ability to react.",
+      "category": "social"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Sha'ek contemplates a James Bond-like move, indicating a desire for dramatic flair in his actions.",
+      "category": "social"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Focuses on flavor and effect rather than exact mechanics.",
+      "category": "general"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Confused about spell mechanics.",
+      "category": "general"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Decides to take cover after failing the roll.",
+      "category": "general"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Demonstrates understanding of game rules and frustration with them.",
+      "category": "general"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Discusses limitations of his current abilities and considers a different approach.",
+      "category": "general"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Acknowledges his reliance on specific magical abilities and the need to find alternatives.",
+      "category": "general"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Demonstrates frustration and questioning of game mechanics, indicating a growing awareness or concern.",
+      "category": "general"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Shows persistence in attempting to cast a spell despite initial failure, indicating determination.",
+      "category": "general"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Expresses frustration with a misunderstanding regarding his shield ability.",
+      "category": "general"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Questions the duration of his blur spell and calculates remaining rounds.",
+      "category": "general"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Demonstrated frustration with game mechanics, showing a need for better understanding.",
+      "category": "general"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Showed determination and resourcefulness in calculating the outcome of his concentration save.",
+      "category": "general"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Acknowledged as damaged, but still contributing significantly to the combat.",
+      "category": "general"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Sha'ek plans to scout the area and gather information about a potentially dangerous creature.",
+      "category": "scouting"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Sha'ek demonstrates his cautious and strategic approach in dealing with potential threats.",
+      "category": "general"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Considers using the stationary zeils for stabilizing.",
+      "category": "social"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Considers the consequences of their actions and potential legal issues",
+      "category": "social"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Provided tactical advice to Fan'nar Khe'Lek, showing mentorship.",
+      "category": "general"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Sha'ek considers helping Pipira despite personal risks, showing a willingness to support allies.",
+      "category": "social"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Sha'ek contemplates using an AoE effect to avoid drawing attention, showcasing strategic thinking.",
+      "category": "strategy"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Sha'ek’s strategic thinking is evident as he considers the risks and benefits of different actions.",
+      "category": "strategy"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Expresses frustration with ineffective spells.",
+      "category": "general"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Shows determination and resilience in overcoming challenges.",
+      "category": "general"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Decides to blind Furnax, showing strategic thinking and a willingness to take risks",
+      "category": "social"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Abandons the plan to blind Furnax and seeks assistance from others, showing adaptability in face of failure",
+      "category": "social"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Expresses reluctance to allow a prisoner to escape due to her powers.",
+      "category": "moral choice"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Questions the group's decision to allow escapees to remain inside.",
+      "category": "moral choice"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Shares past experiences and emotions related to a pet named Odin.",
+      "category": "emotional beat"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Discusses local wildlife and hunting practices in the area, indicating his familiarity with the environment.",
+      "category": "emotional beat"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Expressed doubts about the safety of meat from certain sources.",
+      "category": "emotional"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Acknowledged Pipira Shimmerlock's contribution to the battle.",
+      "category": "emotional"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Shows a strategic approach in combat by using his acrobatics to create openings.",
+      "category": "combat"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Uses his acrobatics to distract and create an opportunity, showcasing his ability to think on his feet.",
+      "category": "combat"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Struggles with the situation, showing persistence and determination.",
+      "category": "general"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Considers using a spell to move objects, showing resourcefulness.",
+      "category": "general"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Displaying a methodical and calculated approach in combat.",
+      "category": "general"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Displaying a strategic and methodical approach to combat.",
+      "category": "general"
     }
   ],
   "memorable_quotes": [
@@ -779,6 +1839,281 @@
       "session": "test_s6_17nov_0901am",
       "quote": "Er is niemand dood... Maar de rando's...",
       "context": "Sha'ek Mindfa'ek confirmed that no one was killed in the battle, but some were injured."
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "quote": "Expressing a shift in perspective from a 'verstekeling' to now being a 'gevangenen'.",
+      "context": "Sha'ek has a significant emotional moment when addressing the captain about their changed status."
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "quote": "Hallo kapitein.",
+      "context": "Sha'ek is greeting the captain with respect and formality, indicating his current position within the team."
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "quote": "Geen long rest.",
+      "context": "Sha'ek hesitates about interviewing all candidates and decides against it due to practical concerns."
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "quote": "'Ik dacht, ik ga het misschien wel even.' and 'Kijk hem trots zijn.'",
+      "context": "Sha'ek expresses pride in taking on the night watch."
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "quote": "900 laag kan goed zijn, hoog kan goed zijn, midden kan krep zijn, kan van alles.",
+      "context": "Sha'ek reflects on the unpredictability and insignificance of dice rolls in various contexts."
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "quote": "De reis is zelf te maken. Dat is niet dat er pas iets gebeurt. Maar nee, met de rollen wat er nu is.",
+      "context": "Sha'ek reflects on the importance of daily tasks in the overall quest."
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "quote": "Ik zou hem graag omschrijven als zo'n paarse filterhoed zo. Met dan van die gele sterren en maandjes erop. En dan zo'n paarse keel. Alsoof ik een heks krijg je toch. Of van rood. Dit is aan boord zijn we na het midden van de wizards.",
+      "context": "Sha'ek expressed his wish to create a wizard character for a specific event, describing an imaginative visual."
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "quote": "Fuck. Dan stopt het campagne.\nJa. Dan is niet meer leuk.",
+      "context": "Sha'ek Mindfa'ek discusses the impact of other players being absent when it matters."
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "quote": "Nee, binnen 10 minuten heb ik het echt wel geregeld om 3 simpele vragen te stellen aan 9 mensen. Ja, met dat ik dezelfde troet heb. Maar ik nodig ook Pasta en Pip uit met diezelfde vragen.",
+      "context": "Sha'ek is discussing the logistics of questioning multiple people within a limited timeframe and mentions using tools for such tasks."
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "quote": "Oh, had ik jullie echt niet doorgestuurd? Dat is echt zonde.",
+      "context": "Sha'ek reflects on his past actions and their current impact, indicating a level of self-awareness and planning."
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "quote": "Dat was makkelijk.",
+      "context": "Sha'ek Mindfa'ek comments on the simplicity of confirming his loyalty and lack of secrets with Pipira Shimmerlock."
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "quote": "Het is elke soort honger die je je kan voorstellen. Wat je kan voorstellen is... Greed kan ook naar oorlog leiden.",
+      "context": "Sha'ek discusses the multifaceted nature of famine, explaining it as more than just physical hunger."
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "quote": "Is er een patroon, zeg maar, dat er grote groepen mensen worden ontvroerd en dan plotseling...",
+      "context": "Sha'ek reveals that there is an ongoing investigation into mysterious incidents involving the disappearance of large groups of people."
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "quote": "‘Ze channelde haar magie in die stenen en begint een beetje te gloeien en zo... wordt stof.’",
+      "context": "Sha'ek narrates a scene where he channels magic into an item, causing it to glow and eventually turn to dust."
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "quote": "Echt, waarschijnlijk geen lichtje.",
+      "context": "Sha'ek is describing his search plan based on previous events involving the girls."
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "quote": "In dit geval bijna een deken van kou, maar dat is wel een soort van bijna een omhelzing",
+      "context": "Sha'ek is explaining the sensation associated with an item or person, emphasizing its positive nature despite being cold."
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "quote": "Oh no! Ik ben tondoof, ik weet het niet.",
+      "context": "Sha'ek is unsure if a single bell or multiple bells caused the noise."
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "quote": "De de de de de. Zo'n Pornhub muziek. Ting, ting, ting, ting. Ik dacht gewoon de intro van Tony.",
+      "context": "Sha'ek tries to identify and understand the sound that disturbed him."
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "quote": "Ik ga niet. Weet je wel.",
+      "context": "Sha'ek Mindfa'ek expresses his reluctance to take on the role of watching over the ship's other concerns."
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "quote": "Ik ga niet. Weet je wel. 22.",
+      "context": "Sha'ek Mindfa'ek discusses his own experience with watching and mentions the high number of NPCs involved."
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "quote": "Ik heb mijn duizel op meegemaakt. Ja, hij is wel stil. We beginnen dus.",
+      "context": "Sha'ek Mindfa'ek shares his experience with watching on the ship, including the high number of NPCs involved."
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "quote": "Bless is for us three.",
+      "context": "Sha'ek confirms the spell he casts is for his party."
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "quote": "En concentration, Blast. Ik cast shield.",
+      "context": "Sha'ek prepares for an attack with multiple magical items."
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "quote": "Wat een schip, hoor.",
+      "context": "Sha'ek contemplates the design of the area, likening it to a ship and speculating on its functionality."
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "quote": "Wispy strands van magie. En die lijken de klauw van de wyvern net. Of de bijt.",
+      "context": "Sha'ek details the appearance of a magical attack, highlighting its ethereal quality."
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "quote": "‘een meisje met die oogtjes? een meisje?'",
+      "context": "Sha'ek Mindfa'ek questioned his vision of a girl with eyes in a cat, showing some level of confusion or uncertainty."
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "quote": "holy shit\n... het lijkt inderdaad echt alsof het gesteent genoeg gemaakt is om het wezen aan te vullen om het vader compleet te maken",
+      "context": "Sha'ek discusses the appearance of the creature and the effectiveness of their attacks."
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "quote": "zie je dan een soort van ja zo'n soort fijne mist stof",
+      "context": "Sha'ek Mindfa'ek describes the effect of his flail as creating a 'soort van fijne mist stof'."
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "quote": "Het is 1 keer per dag. Ja. En een minuut lang heal.",
+      "context": "Sha'ek Mindfa'ek refers to his flail as an 'OP flail', indicating his confidence in its capabilities."
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "quote": "Oh, wacht. Er staat niks verder over een... Plus 6. Mmm. Ik heb maar een plus 1 van mijn Lucky Shard.",
+      "context": "Sha'ek Mindfa'ek recognizes the importance of being healed, emphasizing its significance for his survival."
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "quote": "Ik kies dan voor de damage. Op 10. Dat is 12 fire damage.",
+      "context": "Sha'ek is detailing how he will use his weapon mastery to maximize his fire damage output."
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "quote": "Ik ben toch nog niet eraf geschreven. Cover? Oké. Met hoe je daar staat en plus twee.",
+      "context": "Sha'ek is showing resilience and commitment to his role."
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "quote": "Shield!",
+      "context": "Sha'ek emphatically used the word 'shield' multiple times to underscore his defensive action."
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "quote": "'Sjioet! Met mijn schild, zo.' 'Multitrack, bite, net 1.'",
+      "context": "Sha'ek Mindfa'ek expresses surprise and describes the outcome of a bite attack."
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "quote": "Holy shit!",
+      "context": "Sha'ek reacts with surprise and excitement after hitting an enemy for significant damage."
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "quote": "Dat doet...\nThat does...",
+      "context": "Sha'ek Mindfa'ek inquired about the effects of Psychic damage, showing a moment of curiosity."
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "quote": "Naar die motherfuckers.",
+      "context": "Sha'ek decided to use a chaotic shuffle to deal with his enemies."
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "quote": "Wat had ik daar nou voor zin?",
+      "context": "Sha'ek questioned the effectiveness of his actions, showing uncertainty."
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "quote": "Eh, hoeveel damage had je gewonnen? 10. En wat is de drawback? Dat je nou dood gaat.",
+      "context": "Sha'ek questions the use of his most powerful ability, indicating a cautious approach to combat."
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "quote": "Sha'ek wonders if he will be incapacitated next turn and whether the HP recovery is sufficient.",
+      "context": "Sha'ek expresses concern about his condition and the effectiveness of the HP recovery spell."
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "quote": "De palisse. Dat komt me niet uit he, maar.",
+      "context": "Sha'ek Mindfa'ek is frustrated by the limited movement he can perform as a bonus action."
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "quote": "En dan wil ik Witchbolt casten.",
+      "context": "Sha'ek Mindfa'ek considers using Witchbolt, a spell that might not be as straightforward as expected."
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "quote": "Leuk gemist.",
+      "context": "Sha'ek Mindfa'ek expresses frustration after failing to cast a spell, saying 'Leuk gemist.' (Nice try)."
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "quote": "Yeah. No longer have the blur. Want you to know I had fun with that, but it’s tricky to handle.",
+      "context": "Sha'ek expressed his enjoyment of a game effect while acknowledging its complexity."
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "quote": "Yeah, I find it really interesting and challenging. Yeah, but you know what? It’s always difficult to manage those spells well.",
+      "context": "Sha'ek expressed his overall enjoyment of the game despite the difficulty."
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "quote": "Ik ga, als het niet de weer gaat, die kant op.",
+      "context": "Sha'ek declares his intention to go in a certain direction."
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "quote": "Zal ik dan vanuit hier een lijn opzij proberen?",
+      "context": "Sha'ek Mindfa'ek expresses his plan to use the stationary zeils for stabilizing himself."
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "quote": "Gewoon zoals Secret.",
+      "context": "Sha'ek describes his approach as similar to a Secret Agent move, highlighting its innovative aspect."
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "quote": "Ik wil bij jullie bij zijn bijvoorbeeld. 15 of hoger.",
+      "context": "Sha'ek expresses a wish to support his teammates, showing a caring and supportive side of his personality."
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "quote": "Ik eet liever zo'n beest wat hier in het wild geschoten wordt, dan eentje die uit een fabriek komt. Uit zo'n megastal. Misschien komt die ook uit de fabriek. Die heeft het eerst zelf een beetje rondgezorgd.",
+      "context": "Sha'ek Mindfa'ek shared his personal views on the origin of meat, reflecting his values and preferences."
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "quote": "Ik ben geen attack aan het doen, dit is gewoon flair.",
+      "context": "Sha'ek explains the purpose and nature of his acrobatics during battle."
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "quote": "Drie bij drie.",
+      "context": "Sha'ek describes the size of the gap he is trying to maneuver through, providing a specific measurement."
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "quote": "Speed nul. Dat is mijn command.",
+      "context": "Sha'ek is struggling with the situation, trying to maintain control while others are incapacitated."
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "quote": "Maar daarom dat ze zich eigenlijk nog vlastig vast heeft.",
+      "context": "Sha'ek is dealing with the situation, trying to maintain control while others are incapacitated."
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "quote": "Ik ga people menden.",
+      "context": "Sha'ek is appointed to the medical team for the group's ongoing repair efforts."
     }
   ],
   "sessions_appeared": [
@@ -786,16 +2121,19 @@
     "Session 2",
     "Session 3",
     "Session6_test_16nov_0315am",
-    "test_s6_17nov_0901am"
+    "test_s6_17nov_0901am",
+    "test_s6_nov23_2345pm"
   ],
-  "total_sessions": 5,
+  "total_sessions": 6,
   "current_goals": [
     "Investigate the disappearances at Culdor Academy",
     "Understand the connection between spider webs and necromantic magic",
     "Protect the party from corruption",
     "Decides to learn a new skill, indicating ongoing character development and goal setting.",
     "Progressing with the party towards a goal, likely related to freeing someone or something.",
-    "Advances towards freeing a trapped individual by using Y-Bones and ropes."
+    "Advances towards freeing a trapped individual by using Y-Bones and ropes.",
+    "Recapitulates the potion distribution and planning for future battles.",
+    "Sha'ek successfully uses his Wisdom saves to avoid a potential confrontation, advancing the scenario."
   ],
   "completed_goals": [],
   "dm_notes": "",

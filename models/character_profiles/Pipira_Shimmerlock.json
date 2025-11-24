@@ -12,10 +12,10 @@
     "Pip",
     "Pipira"
   ],
-  "campaign_id": "team_op",
+  "campaign_id": "campaign_003",
   "campaign_name": "Gaia Adventures - Culdor Academy",
   "first_session": "Session 1 (29-Nov-2024)",
-  "last_updated": "2025-11-17T16:47:37.324123",
+  "last_updated": "2025-11-24T21:38:50.819377",
   "notable_actions": [
     {
       "session": "Session 1",
@@ -76,6 +76,78 @@
       "timestamp": null,
       "description": "Pipira carefully observes her surroundings for any signs of danger.",
       "type": "exploration"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "timestamp": null,
+      "description": "Rolls perception to check for hidden threats, showing her vigilance.",
+      "type": "combat"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "timestamp": null,
+      "description": "Calculating damage for wyvern attacks",
+      "type": "combat"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "timestamp": null,
+      "description": "Contributed a critical hit with an arrow.",
+      "type": "combat"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "timestamp": null,
+      "description": "Successfully healing Sha'ek Mindfa'ek with a lucky shard.",
+      "type": "social"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "timestamp": null,
+      "description": "Casts 'Spirit Shroud' spell.",
+      "type": "combat"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "timestamp": null,
+      "description": "Rushed Sha'ek Mindfa'ek",
+      "type": "combat"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "timestamp": null,
+      "description": "Rolls for damage with a custom spell",
+      "type": "combat"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "timestamp": null,
+      "description": "Cast Chromatic Orb spell",
+      "type": "combat"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "timestamp": null,
+      "description": "Successfully rolled a high damage check in combat.",
+      "type": "combat"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "timestamp": null,
+      "description": "Successfully freed herself from restraints during the encounter",
+      "type": "combat"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "timestamp": null,
+      "description": "Requests to use Misty Step for a tricky situation",
+      "type": "social"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "timestamp": null,
+      "description": "Decides to mend the boat with square feet per time",
+      "type": "social"
     }
   ],
   "inventory": [
@@ -108,6 +180,12 @@
       "description": "Spell scroll found in mage's house",
       "session_acquired": "Session 3",
       "category": "magical"
+    },
+    {
+      "name": "Prepared a slot for the spell Revivify to ensure readiness in emergencies.",
+      "description": "Pipira discusses having a prepared slot for the Revivify spell, indicating foresight and caution.",
+      "session_acquired": "test_s6_nov23_2345pm",
+      "category": "preparation"
     }
   ],
   "relationships": [
@@ -128,6 +206,42 @@
       "relationship_type": "ally",
       "description": null,
       "first_met": "Session6_test_16nov_0315am"
+    },
+    {
+      "name": "References a past disagreement with Joshua, indicating ongoing tensions or conflicts within the group.",
+      "relationship_type": "social",
+      "description": null,
+      "first_met": "test_s6_nov23_2345pm"
+    },
+    {
+      "name": "Offering to let another character choose the waiting condition",
+      "relationship_type": "ally",
+      "description": null,
+      "first_met": "test_s6_nov23_2345pm"
+    },
+    {
+      "name": "Initiates a conversation about sharing spells and learning from each other.",
+      "relationship_type": "social",
+      "description": null,
+      "first_met": "test_s6_nov23_2345pm"
+    },
+    {
+      "name": "Exploring the dynamics with other players, possibly forming an alliance or cooperative relationship.",
+      "relationship_type": "social",
+      "description": null,
+      "first_met": "test_s6_nov23_2345pm"
+    },
+    {
+      "name": "Discussing with Furnax about combat strategy",
+      "relationship_type": "ally",
+      "description": null,
+      "first_met": "test_s6_nov23_2345pm"
+    },
+    {
+      "name": "Described the nature of tinkering items, showing mutual understanding and support.",
+      "relationship_type": "ally",
+      "description": null,
+      "first_met": "test_s6_nov23_2345pm"
     }
   ],
   "development_notes": [
@@ -335,6 +449,356 @@
       "session": "test_s6_17nov_0901am",
       "note": "Trying to leave her warden position and seeking other wizards for knowledge.",
       "category": "general"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Discusses the balance between learning and playing, showing a pragmatic approach to her role.",
+      "category": "social"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Defends her approach to the game, showing a desire to contribute positively and not be seen as a hindrance.",
+      "category": "social"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Tries to provide water and considers his role in the situation.",
+      "category": "general"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Acknowledges his own thirst and the potential risks of eating.",
+      "category": "general"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Pursues a personal mission to find relevant books on the ship.",
+      "category": "research"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Admits to not finding relevant information in the books she searched.",
+      "category": "research"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Decides to explore other books, even if not directly related.",
+      "category": "research"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Referring to 'Fuckelbergin' as a standard rating for books",
+      "category": "personal"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Acknowledging the book's origin and its relation to Mark Twain’s works",
+      "category": "personal"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Considers the twins' discomfort and potential for escape, showing empathy and strategic thinking.",
+      "category": "general"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Considers the twins' physical constraints, showing attention to detail and strategic planning.",
+      "category": "general"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Showing concern for a comrade's state and willingness to step in if needed.",
+      "category": "general"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Acknowledging their own lack of preparedness and admitting a need for planning.",
+      "category": "general"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Acknowledging a successful attempt at communication, but also the need for caution and further action.",
+      "category": "general"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Expresses concerns about her well-being and rest, hinting at a personal struggle.",
+      "category": "general"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Expresses feelings of infatuation towards another character",
+      "category": "social"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Acknowledges limitations and constraints on spell learning from peers",
+      "category": "social"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Discusses the concept of specializing in a particular spell school to gain advantages.",
+      "category": "social"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Asserts her capability to handle tasks effectively, showing determination and confidence.",
+      "category": "general"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Confidently states her readiness to handle the task, indicating a strong work ethic and determination.",
+      "category": "general"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Shows a strategic mindset and self-assured nature, suggesting she is well-prepared for future challenges.",
+      "category": "general"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Demonstrates a strategic and prepared mindset, likely growing in confidence and competence.",
+      "category": "general"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Asserts her capability and readiness to handle tasks effectively, indicating a strong work ethic and determination.",
+      "category": "general"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Exploring unconventional methods to gather intelligence on a mysterious house.",
+      "category": "social"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Acknowledging the limitations and potential risks of using magical abilities in combat.",
+      "category": "combat"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Struggling with the uncertainty and unpredictability of magical encounters.",
+      "category": "combat"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Checks if upcasting has any new effects, showing curiosity and attention to detail.",
+      "category": "investigation"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Discusses interview preparation, showing career interest and ambition.",
+      "category": "social"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Affirmatively states loyalty to the academy and confirms no known secrets that could harm the mission.",
+      "category": "social"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Reflecting on the negative impact of betrayal during a mission.",
+      "category": "social"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Seeking knowledge and understanding about the Four Horsemen of chaos.",
+      "category": "general"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Acknowledging the existence of halvingers and their connection to chaos.",
+      "category": "general"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Recognizing the ongoing issues caused by the Four Horsemen, including famine, disease, war, and death.",
+      "category": "general"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Reflecting on the complexity of the Four Horsemen's nature and their potential connection to a future group.",
+      "category": "general"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Expresses concern and determination to prepare for an uncertain situation.",
+      "category": "social"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Reflects on the creation and potential use of a magical item.",
+      "category": "social"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Discusses the infrequent use of her magical item and its potential utility.",
+      "category": "social"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Questions the utility of her teammate's items, showing a mixture of curiosity and skepticism.",
+      "category": "social"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Acknowledges the potential of her teammate's items and the value of their contributions.",
+      "category": "social"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Expresses concern about being the only changeling in her group and the potential implications.",
+      "category": "general"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Decides to find a quiet place to communicate with someone who appreciates silence.",
+      "category": "general"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Discusses the potential use of a book for character development, showing interest in her background.",
+      "category": "general"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Expresses concern about the changeling's possible past trauma.",
+      "category": "social"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Observes the complexity of alarms and their significance in the situation.",
+      "category": "general"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Acknowledges her dependence on Jorix and the impact it has on her focus.",
+      "category": "personal"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Attempts to regain focus on the task at hand, showing determination and resilience.",
+      "category": "personal"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Discusses the ongoing challenges and responsibilities on the ship with other characters.",
+      "category": "general"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Acknowledges the need for focused attention but expresses concerns about overworking.",
+      "category": "general"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Refers to using meta-knowledge and religious background for rolls.",
+      "category": "knowledge"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Acknowledges the need for rolling against unfamiliar monster types, showing caution and strategic thinking.",
+      "category": "strategy"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Discusses the nature of a new monster, indicating a shift in understanding and possibly fear.",
+      "category": "monster evaluation"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Struggling with concentration and using inspiration",
+      "category": "social"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Reflecting on the game's technicalities and the importance of discretion in combat.",
+      "category": "combat"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Discussing the use of Attack of Opportunity and Shield, showing strategic thinking in combat.",
+      "category": "combat"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Acknowledging the importance of situational awareness and planning in combat scenarios.",
+      "category": "combat"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Acknowledged potential for physical violence",
+      "category": "social"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Adapts to the situation with flexibility and creativity",
+      "category": "social"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Demonstrates patience and understanding in explaining game mechanics to Sha'ek.",
+      "category": "general"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Demonstrates knowledge and experience in game rules, helping Sha'ek with his confusion.",
+      "category": "general"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Pipira seems to be in a playful and confident mood, showing she can handle minor challenges with ease.",
+      "category": "social"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Pipira shows a strategic mindset, suggesting ways to deal with the hellhound without causing significant damage.",
+      "category": "social"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Pipira’s actions demonstrate her strategic thinking and resourcefulness, suggesting she is a capable problem-solver.",
+      "category": "social"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Pipira's interactions with Furnix indicate her playful and cooperative nature, suggesting a friendly relationship.",
+      "category": "social"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Discusses the nature of empathy and its origins.",
+      "category": "general"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Expresses discomfort with the graphic nature of animal hunting and butchery.",
+      "category": "general"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Shares personal experiences and beliefs about hunting, indicating a moral stance.",
+      "category": "general"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Mentions an empathetic nature and the impact of seeing something graphic or disturbing.",
+      "category": "general"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Showing concern for teammate's condition and willingness to take action.",
+      "category": "general"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Confirms the rules for Misty Step usage",
+      "category": "social"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Clarifies the process of boat mend",
+      "category": "social"
     }
   ],
   "memorable_quotes": [
@@ -457,6 +921,141 @@
       "session": "Session6_test_16nov_0315am",
       "quote": "Ze moesten echt worden neergehaald.",
       "context": "Pipira expresses a harsh reality of the situation, justifying the deaths of guards who tried to escape."
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "quote": "Ik laat vannacht samen liggen met jullie.",
+      "context": "Pipira Shimmerlock expresses a preference for socializing over completing tasks, indicating her current state of mind and priorities."
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "quote": "Dus eigenlijk, als je daar aankomt, de tweeling zit er ook allebei.",
+      "context": "Pipira discusses the situation with others, mentioning that both twins are present and there is a long period of silence."
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "quote": "Oké, wij gaan door. / We hebben ook eten gegeven, maar je ziet dat eigenlijk nog een plaat met eten. / Het bord is nog voor gewoon / dat stapeltje, niet aangetast op wat dan ook.",
+      "context": "Pipira discusses the untouched food and hints at possible problems with it."
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "quote": "Nog steeds te intimideren.\nIk wil nog altijd dat idee aan haar overdragen van ik ben bad cop.\nWeet je?\nIk ben de bad cop en iemand anders kan ooit good cop zijn,\nmaar ik wil in ieder geval echter inhameren bad cop.",
+      "context": "Pipira Shimmerlock discusses her intentions with others, focusing on intimidating Arlette and establishing a 'bad cop' role."
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "quote": "Fuckelbergin.",
+      "context": "Pipira and another character discuss an old, thick book that Pipira has found."
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "quote": "Het is eigenlijk het eerste boek dat ik ooit verzonnen heb.",
+      "context": "Pipira shares that 'Fuckelbergin' was the first book they ever invented."
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "quote": "Describes the twins' discomfort and the need to carefully observe their movements.",
+      "context": "Pipira discusses with Sha'ek on how to handle the situation if the twins become invisible or show signs of discomfort due to their bindings."
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "quote": "Kost de helft van de tijd. En? Voor de helft van de tijd en de helft van de kosten kan je van een andere wizard ook spels leren.",
+      "context": "Pipira Shimmerlock discusses a novel method of spell acquisition from their peers."
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "quote": "Ik ga met het Spitsen koppen.",
+      "context": "Pipira is declaring her intention to take charge of a task, likely indicating growth in leadership abilities."
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "quote": "Het is ook het moment dat je je spels mag wisselen in je spelboek.",
+      "context": "Pipira highlights an important opportunity for character development, emphasizing the significance of this moment."
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "quote": "Counterspel of Thunderstep, maar ik ga op Thunderstep.",
+      "context": "Pipira discusses potential counterspells and chooses Thunderstep for a wizard battle scenario."
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "quote": "Er ligt popcorn in die laag. Dat was poepcorn. Poepcorn in de onderbroek.",
+      "context": "Pipira humorously mentions finding 'poopy corn' under the table, indicating a light and playful moment in the group."
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "quote": "First line of defense.",
+      "context": "Pipira jokingly states they did not eat any corn and uses the phrase 'first line of defense' to deflect a potential accusation in a humorous manner."
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "quote": "Dat is echt wel zuur. We hebben echt niet genoten van die sessie. Van het einde van de sessie. Van het einde van die speler.",
+      "context": "Pipira criticizes the betrayal and expresses that they did not enjoy the session, especially its end."
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "quote": "Mijn little bag of... Distraction?",
+      "context": "Pipira Shimmerlock explains that the item she created for her teammate was meant to be a distraction."
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "quote": "Misschien zitten ze allemaal changelings.\nAllemaal changed.",
+      "context": "Pipira makes a cryptic statement about everyone potentially being changelings, hinting at deeper mysteries."
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "quote": "Wipe, wipe.",
+      "context": "Pipira discusses the cult's possible methods of controlling changelings, including memory wiping."
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "quote": "Dat is wel een beetje saar. Sorry Jorix.",
+      "context": "Pipira is trying to focus on the task at hand but is dealing with a personal issue related to Jorix."
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "quote": "Joriken. Jorix is een die past niet.",
+      "context": "Pipira is frustrated with Jorix's constant presence and trying to focus on the task at hand."
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "quote": "Twee rode ballen komen op je armen. Ik heb hier laatst geen plaat op. Jullie hebben wel eens van wyverns gehoord en waarschijnlijk ook wel gezien op de academie. Deze ziet echt vriendelijk uit. Deze ziet er paars uit. Helemaal fluffy. Deze ziet er wat anders uit. Even groot. Nog steeds large type.",
+      "context": "Pipira is describing an unusual vision or appearance of wyverns, showing her magical abilities and insight."
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "quote": "Dit moeten wij focussen. Op het schip.",
+      "context": "Pipira Shimmerlock discusses the number of NPCs on the ship and that they cannot put anyone in front to watch them."
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "quote": "Ik gebruik mijn real life kennis hiervoor. Logisch.\nJe mag altijd rollen.",
+      "context": "Pipira highlights the use of real-life knowledge in-game and emphasizes the importance of rolling."
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "quote": "Het is wel een beetje... We kunnen zoveel dodges doen zeg maar, zo'n rolletje wegrollen. Zoveel movie, I don't know.",
+      "context": "Pipira is expressing dissatisfaction with the current game dynamics, indicating her desire for a more fair and balanced gameplay experience."
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "quote": "Het is meer dan bluddyed eigenlijk. Voor de revisie.",
+      "context": "Pipira Shimmerlock detailed her custom spell, adding a unique touch to her character."
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "quote": "Een beetje zo deunen op de wind, stel ik me voor.",
+      "context": "Pipira Shimmerlock is explaining the nature of the stationary zeils to Sha'ek Mindfa'ek."
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "quote": "Don’t be afraid of a hellhound, he’s only one turn in, and he hasn’t had his second yet.",
+      "context": "During the session, Pipira was handling a minor challenge with a hellhound and making jokes about it."
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "quote": "Iedere keer zo'n klein plankje ervoor.",
+      "context": "Pipira explains how she will mend the boat."
     }
   ],
   "sessions_appeared": [
@@ -464,9 +1063,10 @@
     "Session 2",
     "Session 3",
     "Session6_test_16nov_0315am",
-    "test_s6_17nov_0901am"
+    "test_s6_17nov_0901am",
+    "test_s6_nov23_2345pm"
   ],
-  "total_sessions": 5,
+  "total_sessions": 6,
   "current_goals": [
     "Study the necromantic properties of the spider webs",
     "Learn new spells from found scrolls",

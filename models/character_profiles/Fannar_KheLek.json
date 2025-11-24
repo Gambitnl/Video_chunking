@@ -12,10 +12,10 @@
     "Pas'Ta",
     "Fan'nar"
   ],
-  "campaign_id": "campaign_004",
+  "campaign_id": "campaign_003",
   "campaign_name": "Gaia Adventures - Culdor Academy",
   "first_session": "Session 1 (29-Nov-2024)",
-  "last_updated": "2025-11-18T16:55:05.749244",
+  "last_updated": "2025-11-24T21:38:50.829888",
   "notable_actions": [
     {
       "session": "Session 1",
@@ -64,6 +64,108 @@
       "timestamp": null,
       "description": "Executes Furnix's order to perform a Frigid Howl.",
       "type": "combat"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "timestamp": null,
+      "description": "Declares he won't be present today, possibly due to a prior engagement or responsibility.",
+      "type": "general"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "timestamp": null,
+      "description": "Uses blur to gain tactical advantage.",
+      "type": "combat"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "timestamp": null,
+      "description": "Executed a successful multi-attack on an enemy, hitting with a lucky roll of 16.",
+      "type": "combat"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "timestamp": null,
+      "description": "Prepared to use a necromancy spell on a cat.",
+      "type": "combat"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "timestamp": null,
+      "description": "Failed to hit a target with an arrow.",
+      "type": "combat"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "timestamp": null,
+      "description": "Shot an arrow at a target, dealing significant damage.",
+      "type": "combat"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "timestamp": null,
+      "description": "Using a chromatic ore to aid in healing.",
+      "type": "social"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "timestamp": null,
+      "description": "Paralyzes an enemy, but the effect is unclear",
+      "type": "combat"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "timestamp": null,
+      "description": "Fan'nar hits the incapacitated target with a critical hit, dealing significant damage.",
+      "type": "combat"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "timestamp": null,
+      "description": "Fan'nar uses a bless spell on the incapacitated target, providing an additional bonus.",
+      "type": "combat"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "timestamp": null,
+      "description": "Attempts to use inspiration to reroll a failed die roll.",
+      "type": "general"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "timestamp": null,
+      "description": "Decides to reroll the failed die.",
+      "type": "general"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "timestamp": null,
+      "description": "Successfully deals damage to an opponent using a flare chain.",
+      "type": "combat"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "timestamp": null,
+      "description": "Attempts to explain the wyvern's anatomy and transformation process, showcasing knowledge.",
+      "type": "general"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "timestamp": null,
+      "description": "Utilizes Misty Step to gain an advantage",
+      "type": "combat"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "timestamp": null,
+      "description": "Planned a thunderstab attack on the suspended area beneath.",
+      "type": "combat"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "timestamp": null,
+      "description": "Preparing a rappelling technique to access the interior of a ship",
+      "type": "social"
     }
   ],
   "inventory": [
@@ -120,6 +222,12 @@
       "description": "Fan'nar Khe'Lek successfully inflicts damage with a creative description, potentially acquiring new items or abilities.",
       "session_acquired": "test_s6_extract_18nov_0817am",
       "category": "equipment upgrade"
+    },
+    {
+      "name": "Using a climbers kit with special boots and ropes to rappel down",
+      "description": "Fan'nar Khe'Lek prepares his equipment for the rappelling descent.",
+      "session_acquired": "test_s6_nov23_2345pm",
+      "category": "general"
     }
   ],
   "relationships": [
@@ -182,6 +290,18 @@
       "relationship_type": "ally",
       "description": null,
       "first_met": "test_s6_extract_18nov_0817am"
+    },
+    {
+      "name": "Joined in to help Sha'ek defend himself.",
+      "relationship_type": "ally",
+      "description": null,
+      "first_met": "test_s6_nov23_2345pm"
+    },
+    {
+      "name": "Provided information about the Cone of Cold's range, indicating a supportive relationship.",
+      "relationship_type": "ally",
+      "description": null,
+      "first_met": "test_s6_nov23_2345pm"
     }
   ],
   "development_notes": [
@@ -389,6 +509,66 @@
       "session": "test_s6_extract_18nov_0817am",
       "note": "Fan'nar seems to be in a state of distress, possibly due to his relationship with the noise-cancelling character.",
       "category": "emotional"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Deciding to remain calm and observe instead of acting impulsively.",
+      "category": "social"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Acknowledging the need for careful observation over impulsive actions.",
+      "category": "social"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Attempts to adapt his strategy despite group disagreement.",
+      "category": "none"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Supportive and strategic, providing insights for Sha'ek's exploration.",
+      "category": "general"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Acknowledged the luck involved in his attack, expressing a mix of relief and awareness of potential danger.",
+      "category": "emotional"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Showed resilience in the face of failure, recognizing his own luck and the potential for a worse outcome.",
+      "category": "emotional"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Shows an understanding of the nature and vulnerability of their opponents.",
+      "category": "general"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Reflects on the practical and eerie nature of his work, showing a blend of necessity and discomfort.",
+      "category": "general"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Demonstrates a mix of professional detachment and personal discomfort with the task at hand.",
+      "category": "general"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Showed resourcefulness in planning an attack to avoid falling.",
+      "category": "general"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Acknowledged the risk of a significant fall and the need for careful planning.",
+      "category": "general"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Struggling with his ability to accurately describe the ship's layout",
+      "category": "general"
     }
   ],
   "memorable_quotes": [
@@ -451,6 +631,46 @@
       "session": "test_s6_extract_18nov_0817am",
       "quote": "Ik heb een hypnotic pet voor jou.",
       "context": "The group decides on a strategy involving controlling enemies with an item."
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "quote": "Investigation, kijken of er iets aan de hand is, iets aan het doen is.",
+      "context": "Fan'nar Khe'Lek describes his intention to investigate the situation methodically."
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "quote": "Cast ik blur.\nOp.\nEh.\nIk become blucht.",
+      "context": "Fan'nar Khe'Lek is trying to prepare a reaction spell for combat, but faces resistance from the group."
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "quote": "want ik word echt maar een net 20 dan ben je ook in een burst passen",
+      "context": "Fan'nar Khe'Lek humorously reflected on how close he came to a critical injury, acknowledging his luck and the inherent danger of their situation."
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "quote": "Zeg maar de geestachtige aura die uit mijn flail... Uit de kop van mijn flail komt. Die begint zo om mij heen te draaien. En het heeft een beetje een... Een groene kleur.",
+      "context": "Fan'nar elaborates on the visual effects of his spell, adding color and flavor to the scene."
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "quote": "Gewoon geen 1. Ik sta erachter. Het is geen 1, maar een 11 lijkt me te weinig. Ja. Oké, de voorpunten is 20 plus, dus ik zal wel even... Dat is beter. Dus dat wordt dan eh... 17 damage.",
+      "context": "Fan'nar Khe'Lek expressed confidence in his ability to deal damage, even if the roll was not perfect."
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "quote": "Verandert ook in stof en dwart op de weg.",
+      "context": "Fan'nar Khe'Lek reflects on the temporary state of his opponent’s body after a close combat encounter."
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "quote": "Terwijl dat ze zo in stoffen gaan, blaas ik zo kleurrijke stokjes met ze in.",
+      "context": "Fan'nar Khe'Lek is explaining his method of preserving wyvern remains on a moving ship."
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "quote": "Toch dertig feet ongeveer zou dat zijn.",
+      "context": "Fan'nar Khe'Lek attempts to give a precise description of his location."
     }
   ],
   "sessions_appeared": [
@@ -459,15 +679,17 @@
     "Session 3",
     "Session6_test_16nov_0315am",
     "test_s6_17nov_0901am",
-    "test_s6_extract_18nov_0817am"
+    "test_s6_extract_18nov_0817am",
+    "test_s6_nov23_2345pm"
   ],
-  "total_sessions": 6,
+  "total_sessions": 7,
   "current_goals": [
     "Investigate the disappearances",
     "Support the party despite preferring to work alone",
     "Uncover the cult's plans",
     "Suggests the group should wait for others to act first.",
-    "Acknowledges the group has found a book that could be crucial for their mission."
+    "Acknowledges the group has found a book that could be crucial for their mission.",
+    "Planning to rappel down and access a specific area of the ship"
   ],
   "completed_goals": [],
   "dm_notes": "",

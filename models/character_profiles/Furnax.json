@@ -11,10 +11,10 @@
   "aliases": [
     "Furnax"
   ],
-  "campaign_id": "campaign_004",
+  "campaign_id": "campaign_003",
   "campaign_name": "Gaia Adventures - Culdor Academy",
   "first_session": "Session 1 (29-Nov-2024)",
-  "last_updated": "2025-11-18T16:55:06.215457",
+  "last_updated": "2025-11-24T21:38:50.824374",
   "notable_actions": [
     {
       "session": "Session6_test_16nov_0315am",
@@ -255,6 +255,30 @@
       "timestamp": null,
       "description": "Acknowledges that he might need to roleplay intimidation.",
       "type": "social"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "timestamp": null,
+      "description": "Threatening to splash water in someone's face if they don't listen, showing a confrontational side.",
+      "type": "social"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "timestamp": null,
+      "description": "Describes the character's current state and the immediate visual impacts of the situation.",
+      "type": "general"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "timestamp": null,
+      "description": "Evaluating the risk of jumping through a gap in layers.",
+      "type": "social"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "timestamp": null,
+      "description": "Uses Furnax to mend the plank and material on the boat",
+      "type": "social"
     }
   ],
   "inventory": [
@@ -391,6 +415,54 @@
       "relationship_type": "ally",
       "description": null,
       "first_met": "test_s6_extract_18nov_0817am"
+    },
+    {
+      "name": "Furnax is forming a potential exit strategy from Pipira's warcheck.",
+      "relationship_type": "ally",
+      "description": null,
+      "first_met": "test_s6_nov23_2345pm"
+    },
+    {
+      "name": "Attempts to join in the action but is interrupted.",
+      "relationship_type": "general",
+      "description": null,
+      "first_met": "test_s6_nov23_2345pm"
+    },
+    {
+      "name": "Acknowledged and described by another player as a 'glass cannon', indicating recognition of his combat style.",
+      "relationship_type": "general",
+      "description": null,
+      "first_met": "test_s6_nov23_2345pm"
+    },
+    {
+      "name": "Acknowledges another character's view of the situation, showing awareness and empathy.",
+      "relationship_type": "social",
+      "description": null,
+      "first_met": "test_s6_nov23_2345pm"
+    },
+    {
+      "name": "Seeking input from the team on how to proceed.",
+      "relationship_type": "social",
+      "description": null,
+      "first_met": "test_s6_nov23_2345pm"
+    },
+    {
+      "name": "Acknowledging Adelette's vigilance in the team.",
+      "relationship_type": "ally",
+      "description": null,
+      "first_met": "test_s6_nov23_2345pm"
+    },
+    {
+      "name": "Expresses a desire for companionship and acknowledgment from the captain, showing he values social interaction.",
+      "relationship_type": "general",
+      "description": null,
+      "first_met": "test_s6_nov23_2345pm"
+    },
+    {
+      "name": "Suggests that the group members are on the same side, despite losses.",
+      "relationship_type": "general",
+      "description": null,
+      "first_met": "test_s6_nov23_2345pm"
     }
   ],
   "development_notes": [
@@ -1023,6 +1095,101 @@
       "session": "test_s6_extract_18nov_0817am",
       "note": "Furnax shows a strategic and tactical approach, suggesting he is planning ahead.",
       "category": "social"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Furnax is showing signs of a complex emotional state, vacillating between different decisions.",
+      "category": "general"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Furnax is considering the mechanics and implications of a warcheck, showing strategic thinking.",
+      "category": "general"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Furnax is demonstrating a strategic approach to problem-solving, considering creative solutions.",
+      "category": "general"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Expresses concern for Pipira's comfort and safety.",
+      "category": "social"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Reacts to a misunderstanding about Pipira's stance and role in a mission.",
+      "category": "social"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Acknowledges the need to improve his intimidation tactics and considers role-playing more effectively.",
+      "category": "social"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Expresses concern about alcoholism and plans to manage it.",
+      "category": "general"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Decides on a character specialization from multiple options, showing decision-making skills and commitment.",
+      "category": "general"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Shows confusion and adaptability to sudden changes in the situation.",
+      "category": "general"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Acknowledges the chaos and unexpected outcomes of the situation, showing adaptability.",
+      "category": "general"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Reflecting on the team's dynamic and their role in it.",
+      "category": "emotional"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Refuses to engage with the group, possibly indicating a shift in their relationship or a strategic retreat",
+      "category": "social"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Demonstrating clear and strategic thinking during combat planning.",
+      "category": "combat"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Shows a pragmatic and decisive approach to handling the situation on the boat.",
+      "category": "general"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Mentions the difficulty of dealing with the situation alone, highlighting his isolation.",
+      "category": "general"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Shows a sense of isolation and the need for others, indicating his personality change.",
+      "category": "general"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Discusses potential future actions and the group's current state, hinting at a shift towards piracy.",
+      "category": "general"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Expresses concern about the group's losses and acknowledges that there were no fatalities.",
+      "category": "general"
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "note": "Acknowledges the group's current state and suggests they continue their journey with fewer members.",
+      "category": "general"
     }
   ],
   "memorable_quotes": [
@@ -1310,6 +1477,56 @@
       "session": "test_s6_extract_18nov_0817am",
       "quote": "Pas op voor 3 weken en dan is het een zondag.",
       "context": "Furnax hints at a future event happening on a Sunday in three weeks, possibly related to the magical chaos."
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "quote": "I can still leave her warcheck behind there,",
+      "context": "Furnax is considering leaving a trace of Furnix's warcheck while escaping from Pipira Shimmerlock."
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "quote": "Ik heb een kruid in haar verschoten. Dat zou ik benieuwen. Ik ben dus wel op haar in aan het praten in de tussentijd, gewoon een beetje, zeg maar... Wat zeg je? Je mag het roleplayen, je mag ook even zo wat je zelf helemaal vindt.",
+      "context": "Furnax proposes a trade or offer as an incentive for Pipira's involvement, showing his attempt to engage her more actively in the mission."
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "quote": "Als je die heet, is het hier een blaffe.",
+      "context": "Furnax uses the term 'blaffe' to express excitement or agreement, indicating his use of colloquial language in social interactions."
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "quote": "I'm on the dek, on the dek!",
+      "context": "Furnax reacts to an alarm, expressing surprise at being on the deck during an alert."
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "quote": "Fucking glass cannon over here.",
+      "context": "Furnax was described by another player as a 'glass cannon', emphasizing the character's combat style."
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "quote": "En twee, hoe zal ik het zeggen, van die white ones duiken er achteraan. En dan ziet ze van... Ze zit daar in de ketting vast.",
+      "context": "Furnax explains the chaotic scene with falling letters and characters in a free fall scenario."
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "quote": "Ja, jij ziet het heel goed hier. Maar jij ook wel. Je ziet wel dat ze spreekt.",
+      "context": "Furnax vividly describes how a character is hanging by their neck, adding to the tension of the scene."
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "quote": "Daar zit niet ook zo'n ding in. Dus ik liet mezelf eigenlijk naar beneden. Volgens mij zit daaronder een zeil.",
+      "context": "Furnax expresses concern about what lies beneath a dangerous layer, highlighting the uncertainty of their situation."
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "quote": "Dus vijftien feet, zeg maar. En ze moeten een Wisdom save rollen van vijftien.",
+      "context": "Furnax is detailing how Wyverns will behave in combat, emphasizing their incapacitation and eventual fall due to the environment."
+    },
+    {
+      "session": "test_s6_nov23_2345pm",
+      "quote": "Er was een ding in de boot om rood te worden.",
+      "context": "Furnax mentions an object on the boat that turns red, likely a reference to his ability to heat materials."
     }
   ],
   "sessions_appeared": [
@@ -1317,16 +1534,18 @@
     "Session 2",
     "Session 3",
     "Session6_test_16nov_0315am",
-    "test_s6_extract_18nov_0817am"
+    "test_s6_extract_18nov_0817am",
+    "test_s6_nov23_2345pm"
   ],
-  "total_sessions": 5,
+  "total_sessions": 6,
   "current_goals": [
     "Mentions the recent acquisition of spells related to a flying vessel, hinting at progress in his quest.",
     "Discusses the potential survival situation on the ship and suggests setting up a patrol schedule.",
     "Mentions the search for people connected to death and other harbingers.",
     "Describes the use of a mechanical item from the bag of distraction.",
     "Decides to cast Witchbolt after gathering information.",
-    "Furnax discusses the group's plan to deal with a demented enemy."
+    "Furnax discusses the group's plan to deal with a demented enemy.",
+    "Planning the next steps in their mission."
   ],
   "completed_goals": [],
   "dm_notes": "",

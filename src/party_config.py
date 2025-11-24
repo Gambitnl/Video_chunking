@@ -363,21 +363,39 @@ class CampaignManager:
 
         try:
             with open(self.config_file, 'r', encoding='utf-8') as f:
-                data = json.load(f)
+                try:
+                    data = json.load(f)
+                except json.JSONDecodeError as e:
+                    logger.error(f"Corrupt campaign file {self.config_file}: {e}")
+                    return {}
+
+            if not isinstance(data, dict):
+                logger.error(f"Campaign file must be a JSON object, got {type(data)}")
+                return {}
 
             campaigns = {}
             for campaign_id, campaign_data in data.items():
-                settings_data = campaign_data.get('settings', {})
-                settings = CampaignSettings(**settings_data)
+                try:
+                    settings_data = campaign_data.get('settings', {})
+                    settings = CampaignSettings(**settings_data)
 
-                campaign = Campaign(
-                    name=campaign_data['name'],
-                    party_id=campaign_data['party_id'],
-                    settings=settings,
-                    description=campaign_data.get('description'),
-                    notes=campaign_data.get('notes')
-                )
-                campaigns[campaign_id] = campaign
+                    # Validate required fields
+                    if 'name' not in campaign_data:
+                        raise ValueError("Missing required field: name")
+                    if 'party_id' not in campaign_data:
+                        raise ValueError("Missing required field: party_id")
+
+                    campaign = Campaign(
+                        name=campaign_data['name'],
+                        party_id=campaign_data['party_id'],
+                        settings=settings,
+                        description=campaign_data.get('description'),
+                        notes=campaign_data.get('notes')
+                    )
+                    campaigns[campaign_id] = campaign
+                except Exception as e:
+                    logger.warning(f"Skipping invalid campaign '{campaign_id}': {e}")
+                    continue
 
             return campaigns
         except Exception as e:

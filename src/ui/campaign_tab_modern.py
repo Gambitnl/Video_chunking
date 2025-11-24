@@ -123,27 +123,24 @@ def create_campaign_tab_modern(blocks: gr.Blocks) -> Dict[str, gr.components.Com
             """
         )
 
-        # Session Library Section
+        # Session Library Section (Interactive Table)
         gr.Markdown("## Session Library")
-        session_library_md = gr.HTML(
-            value="""
-            <div class="empty-state-card">
-                <div class="empty-state-icon">🎬</div>
-                <h3>No Sessions Yet</h3>
-                <p>Process your first D&D session recording to build your campaign library. Sessions appear here with transcripts, timestamps, and speaker identification.</p>
-                <div class="empty-state-actions">
-                    <span class="info-badge">🎙️ Upload audio in Process Session tab</span>
-                    <span class="info-badge">⚙️ Configure speakers and settings</span>
-                    <span class="info-badge">🚀 Start processing</span>
-                </div>
-            </div>
-            """
+        session_library = _a11y(
+            gr.DataFrame(
+                headers=["Date", "Session ID", "Duration", "Speakers", "Status"],
+                datatype=["str", "str", "str", "number", "str"],
+                interactive=False,
+                wrap=True,
+                value=[],
+                elem_id="campaign-session-library",
+            ),
+            label="Session library",
         )
 
     return {
         "overview": overview_md,
         "knowledge": knowledge_md,
-        "session_library": session_library_md,
+        "session_library": session_library,
         "campaign_selector": campaign_selector,
         "refresh_btn": refresh_btn,
         "new_campaign_name_input": new_campaign_name_input,

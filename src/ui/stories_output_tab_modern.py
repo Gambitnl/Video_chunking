@@ -27,11 +27,15 @@ def create_stories_output_tab_modern(blocks: gr.Blocks) -> Dict[str, gr.componen
             search_results_df = gr.DataFrame(label="Search Results", headers=["Session ID", "Line Number", "Line Content"], visible=False)
             search_no_results_md = gr.Markdown(visible=False)
 
-        session_list_md = gr.Markdown(
-            value=StatusMessages.info(
-                "Session Library",
-                "Processed sessions for the active campaign will be listed here."
-            )
+        # UX-13: session library helper now returns list-of-lists (DataFrame data).
+        # We must use gr.DataFrame to display it correctly.
+        session_list_md = gr.DataFrame(
+            headers=["Date", "Session ID", "Duration", "Speakers", "Status"],
+            datatype=["str", "str", "str", "number", "str"],
+            interactive=False,
+            wrap=True,
+            value=[],
+            label="Session Library"
         )
 
         narrative_hint_md = gr.Markdown(

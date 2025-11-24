@@ -204,7 +204,10 @@ class AccessibilityAttributes:
     @staticmethod
     def _slugify(label: str) -> str:
         """Convert a label into a safe slug for element identifiers."""
-
+        if not label:
+            return "unknown"
+        if not isinstance(label, str):
+            label = str(label)
         safe_label = label.lower().replace(" ", "-")
         return "".join(ch for ch in safe_label if ch.isalnum() or ch in {"-", "_"})
 

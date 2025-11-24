@@ -19,12 +19,21 @@ class StatusMessages:
 
         import re
         # Redact common path patterns
+
         # 1. Unix absolute paths: starts with / and contains at least 2 segments
-        # regex: (?<!\w)(/[a-zA-Z0-9_\-\.]+(?:/[a-zA-Z0-9_\-\.]+)+)
-        text = re.sub(r'(?<!\w)(/[a-zA-Z0-9_\-\.]+(?:/[a-zA-Z0-9_\-\.]+)+)', '<path_redacted>', text)
+        # Match characters commonly found in paths, including spaces, dots, dashes, underscores
+        # Pattern: / + segment + (/ + segment)+
+        # We use non-greedy match for segments to avoid over-matching
+        text = re.sub(r'(?<!\w)(/(?:[\w\-. ]+/)+[\w\-. ]+)', '<path_redacted>', text)
 
         # 2. Windows drive paths
-        text = re.sub(r'[a-zA-Z]:\\[a-zA-Z0-9_\-\.]+(?:\\[a-zA-Z0-9_\-\.]+)+', '<path_redacted>', text)
+        # Pattern: Drive letter + :\ + segment + (\ + segment)+
+        text = re.sub(r'[a-zA-Z]:\\[\w\-. ]+(?:\\[\w\-. ]+)+', '<path_redacted>', text)
+
+        # 3. Common traceback file paths (often in quotes)
+        text = re.sub(r'File "(/[^"]+)"', 'File "<path_redacted>"', text)
+        text = re.sub(r'File "([a-zA-Z]:\\[^"]+)"', 'File "<path_redacted>"', text)
+
         return text
 
     @staticmethod

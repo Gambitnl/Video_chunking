@@ -18,22 +18,33 @@ def mock_embedding_service():
 
 @pytest.fixture
 def mock_chromadb(monkeypatch):
-    """Mock chromadb module to avoid real database operations."""
+    """
+    Mock chromadb module to avoid real database operations.
+    Returns a dictionary with access to the mock client and collections.
+    """
     mock_client = MagicMock()
     mock_transcript_collection = MagicMock()
     mock_knowledge_collection = MagicMock()
 
-    # Configure mock client
+    # Configure mock client to return our mock collections
+    # side_effect handles consecutive calls: 1st for transcripts, 2nd for knowledge
     mock_client.get_or_create_collection.side_effect = [
         mock_transcript_collection,
         mock_knowledge_collection
     ]
 
-    # Mock chromadb module
+    # Also mock create_collection for clear_all tests
+    mock_client.create_collection.side_effect = [
+        mock_transcript_collection,
+        mock_knowledge_collection
+    ]
+
+    # Mock chromadb module structure
     mock_chromadb_module = MagicMock()
     mock_chromadb_module.PersistentClient.return_value = mock_client
     mock_chromadb_module.config.Settings = MagicMock()
 
+    # Apply mocks to sys.modules
     monkeypatch.setitem(__import__('sys').modules, 'chromadb', mock_chromadb_module)
     monkeypatch.setitem(__import__('sys').modules, 'chromadb.config', mock_chromadb_module.config)
 
@@ -85,16 +96,17 @@ class TestCampaignVectorStoreInit:
         self, tmp_path, mock_embedding_service, monkeypatch
     ):
         """Test that RuntimeError is raised if chromadb is not installed."""
-        # Remove chromadb from sys.modules to simulate ImportError
+        # Cleanly remove chromadb from sys.modules if it exists
         import sys
         if 'chromadb' in sys.modules:
             monkeypatch.delitem(sys.modules, 'chromadb')
 
-        # Mock import to raise ImportError
+        # Mock import to raise ImportError ONLY for chromadb
+        original_import = __import__
         def mock_import(name, *args, **kwargs):
             if name == 'chromadb':
                 raise ImportError("No module named 'chromadb'")
-            return __import__(name, *args, **kwargs)
+            return original_import(name, *args, **kwargs)
 
         monkeypatch.setattr('builtins.__import__', mock_import)
 
@@ -175,7 +187,10 @@ class TestAddTranscriptSegments:
 
 
 class TestAddKnowledgeDocuments:
-    """Tests for add_knowledge_documents method."""
+    """
+    Tests for add_knowledge_documents method.
+    Focus on BUG-20251102-27: Robustness with various structures.
+    """
 
     def test_add_knowledge_documents_happy_path(self, vector_store, mock_embedding_service, mock_chromadb):
         """Test adding knowledge documents successfully."""
@@ -211,92 +226,103 @@ class TestAddKnowledgeDocuments:
         # Verify embed_batch was NOT called
         mock_embedding_service.embed_batch.assert_not_called()
 
-    def test_add_knowledge_documents_sanitizes_ids(self, vector_store, mock_chromadb):
-        """Test that document IDs are sanitized (spaces and slashes removed)."""
+    def test_add_knowledge_documents_various_structures(self, vector_store, mock_chromadb):
+        """
+        Test adding documents with various metadata structures.
+        Verifies robust handling of missing keys, None values, etc.
+        """
         documents = [
+            # Case 1: Standard document
             {
-                "text": "Test document",
-                "metadata": {"type": "location", "name": "Dark Cave / Hidden Path"}
-            }
-        ]
-
-        vector_store.add_knowledge_documents(documents)
-
-        call_args = mock_chromadb['knowledge_collection'].add.call_args[1]
-        doc_id = call_args['ids'][0]
-
-        # Verify spaces and slashes are replaced with underscores
-        assert " " not in doc_id
-        assert "/" not in doc_id
-        assert "Dark_Cave___Hidden_Path" in doc_id
-
-    def test_add_knowledge_documents_batching(self, vector_store, mock_chromadb):
-        """Test that large document lists are batched."""
-        documents = [
-            {
-                "text": f"Document {i}",
-                "metadata": {"type": "item", "name": f"Item {i}"}
-            }
-            for i in range(EMBEDDING_BATCH_SIZE + 30)
-        ]
-
-        vector_store.add_knowledge_documents(documents)
-
-        # Verify collection.add was called twice (2 batches)
-        assert mock_chromadb['knowledge_collection'].add.call_count == 2
-
-    def test_add_knowledge_documents_handles_missing_metadata(self, vector_store, mock_chromadb):
-        """Test that documents with missing metadata are handled."""
-        documents = [
-            {
-                "text": "Doc without metadata"
+                "text": "Standard Doc",
+                "metadata": {"type": "npc", "name": "Hero"}
             },
+            # Case 2: Missing metadata key completely
             {
-                "text": "Doc with empty metadata",
+                "text": "No Metadata Key"
+            },
+            # Case 3: Metadata is None
+            {
+                "text": "None Metadata",
+                "metadata": None
+            },
+            # Case 4: Empty metadata dict
+            {
+                "text": "Empty Metadata",
                 "metadata": {}
             },
+            # Case 5: Missing 'name' (should fallback)
             {
-                "text": "Doc with None metadata",
-                "metadata": None
+                "text": "Missing Name",
+                "metadata": {"type": "location"}
+            },
+            # Case 6: Missing 'type' (should fallback)
+            {
+                "text": "Missing Type",
+                "metadata": {"name": "Sword"}
             }
         ]
 
         vector_store.add_knowledge_documents(documents)
 
+        # Inspect what was passed to collection.add
         call_args = mock_chromadb['knowledge_collection'].add.call_args[1]
         ids = call_args['ids']
         metadatas = call_args['metadatas']
 
-        # Verify IDs were generated with defaults
-        assert "unknown_doc_" in ids[0]
+        assert len(ids) == 6
+
+        # Verify Case 1
+        assert "npc_Hero_" in ids[0]
+        assert metadatas[0] == {"type": "npc", "name": "Hero"}
+
+        # Verify Case 2 (No Metadata Key) - Should handle gracefully
         assert "unknown_doc_" in ids[1]
+        assert metadatas[1] == {}
 
-        # Verify metadata handling
-        # Note: Current implementation might fail here if it expects metadata key
-        # This test will reveal if a fix is needed in vector_store.py
+        # Verify Case 3 (None Metadata)
+        assert "unknown_doc_" in ids[2]
+        assert metadatas[2] == {}
 
-    def test_add_knowledge_documents_partial_metadata(self, vector_store, mock_chromadb):
-        """Test documents with partial metadata keys."""
-        documents = [
-            {
-                "text": "Doc with type only",
-                "metadata": {"type": "npc"}
-            },
-            {
-                "text": "Doc with name only",
-                "metadata": {"name": "My Item"}
-            }
-        ]
+        # Verify Case 4 (Empty Metadata)
+        assert "unknown_doc_" in ids[3]
+        assert metadatas[3] == {}
+
+        # Verify Case 5 (Missing Name)
+        assert "location_doc_" in ids[4]
+        assert metadatas[4] == {"type": "location"}
+
+        # Verify Case 6 (Missing Type)
+        assert "unknown_Sword_" in ids[5]
+        assert metadatas[5] == {"name": "Sword"}
+
+    def test_add_knowledge_documents_sanitizes_ids(self, vector_store, mock_chromadb):
+        """Test that document IDs are sanitized (spaces and slashes removed)."""
+        documents = [{
+            "text": "Content",
+            "metadata": {"type": "file path", "name": "path/to/file name"}
+        }]
 
         vector_store.add_knowledge_documents(documents)
 
         call_args = mock_chromadb['knowledge_collection'].add.call_args[1]
-        ids = call_args['ids']
+        generated_id = call_args['ids'][0]
 
-        # ID should use type and default name
-        assert "npc_doc_" in ids[0]
-        # ID should use default type and name
-        assert "unknown_My_Item_" in ids[1]
+        # Should replace spaces and slashes
+        assert "path_to_file_name" in generated_id
+        assert "/" not in generated_id
+        assert " " not in generated_id
+
+    def test_add_knowledge_documents_batching(self, vector_store, mock_chromadb):
+        """Test that large document lists are processed in batches."""
+        # Create enough docs to trigger multiple batches
+        docs_count = EMBEDDING_BATCH_SIZE + 50
+        documents = [{"text": f"Doc {i}"} for i in range(docs_count)]
+
+        vector_store.add_knowledge_documents(documents)
+
+        # Should be called twice (Batch 1: 100, Batch 2: 50)
+        assert mock_chromadb['knowledge_collection'].add.call_count == 2
 
 
 class TestSearch:
@@ -385,6 +411,14 @@ class TestSearch:
         assert mock_chromadb['transcript_collection'].query.call_count == 0
         assert mock_chromadb['knowledge_collection'].query.call_count == 1
 
+    def test_search_invalid_collection_returns_empty(self, vector_store, mock_chromadb):
+        """Test that specifying an invalid collection returns empty results (fail safe)."""
+        results = vector_store.search("query", collection="invalid_collection_name")
+
+        assert results == []
+        assert mock_chromadb['transcript_collection'].query.call_count == 0
+        assert mock_chromadb['knowledge_collection'].query.call_count == 0
+
     def test_search_returns_top_k_results(self, vector_store, mock_chromadb):
         """Test that only top_k results are returned when more exist."""
         # Return 10 results from each collection
@@ -405,6 +439,22 @@ class TestSearch:
         assert len(results) == 5
         # Should be sorted by distance (lowest first)
         assert results[0]['distance'] < results[-1]['distance']
+
+    def test_search_all_collections_merges_results(self, vector_store, mock_chromadb):
+        """Test searching both collections merges and sorts results."""
+        mock_chromadb['transcript_collection'].query.return_value = {
+            'documents': [["T1"]], 'metadatas': [[{}]], 'distances': [[0.5]]
+        }
+        mock_chromadb['knowledge_collection'].query.return_value = {
+            'documents': [["K1"]], 'metadatas': [[{}]], 'distances': [[0.1]]
+        }
+
+        results = vector_store.search("query", collection=None)
+
+        assert len(results) == 2
+        # Should be sorted by distance (0.1 before 0.5)
+        assert results[0]['text'] == "K1"
+        assert results[1]['text'] == "T1"
 
     def test_search_handles_collection_errors_gracefully(self, vector_store, mock_chromadb):
         """Test that errors in one collection don't prevent results from the other."""
@@ -540,24 +590,10 @@ class TestClearAll:
             new_knowledge_coll
         ]
 
-        # Note: The vector_store instance updates its references to collections
-        # based on the return value of create_collection.
-        # We need to ensure our mock setup reflects this update if we want to test it properly.
-        # In the real code, self.transcript_collection is reassigned.
-        # In the test with mocks, the reassignment happens with the return value of create_collection.
-
         # 2. Try to add data
         vector_store.add_transcript_segments("s1", [{"text": "test"}])
 
         # Verify add was called on the NEW collection instance (returned by create_collection)
-        # Since we mocked create_collection to return a specific mock in the fixture,
-        # and in this test checking if the reassignment works.
-
-        # Wait, the fixture 'mock_chromadb' sets up `get_or_create_collection` but `create_collection`
-        # returns a MagicMock by default.
-        # The `vector_store.transcript_collection` will be updated to whatever `create_collection` returns.
-
-        # Let's verify that `add` is called on the current `transcript_collection` attribute
         assert vector_store.transcript_collection.add.call_count == 1
 
     def test_clear_all_raises_on_error(self, vector_store, mock_chromadb):
@@ -566,6 +602,45 @@ class TestClearAll:
 
         with pytest.raises(Exception, match="Delete failed"):
             vector_store.clear_all()
+
+    def test_clear_all_destructive_operation(self, vector_store, mock_chromadb):
+        """Test that clear_all deletes and recreates collections."""
+        client = mock_chromadb['client']
+
+        vector_store.clear_all()
+
+        # Check deletions
+        delete_calls = [c[0][0] for c in client.delete_collection.call_args_list]
+        assert "transcripts" in delete_calls
+        assert "knowledge" in delete_calls
+
+        # Check recreations
+        create_calls = [c[1]['name'] for c in client.create_collection.call_args_list]
+        assert "transcripts" in create_calls
+        assert "knowledge" in create_calls
+
+    def test_clear_all_updates_references(self, vector_store, mock_chromadb):
+        """
+        Verify that the internal collection references are updated after clearing.
+        This ensures the vector store is usable immediately after clearing.
+        """
+        # Setup: make create_collection return NEW mock objects
+        new_transcript_coll = Mock(name="new_transcript_coll")
+        new_knowledge_coll = Mock(name="new_knowledge_coll")
+
+        mock_chromadb['client'].create_collection.side_effect = [
+            new_transcript_coll,
+            new_knowledge_coll
+        ]
+
+        old_transcript_coll = vector_store.transcript_collection
+
+        # Action
+        vector_store.clear_all()
+
+        # Assertion: Reference should point to the new mock object
+        assert vector_store.transcript_collection is not old_transcript_coll
+        assert vector_store.transcript_collection is new_transcript_coll
 
 
 class TestGetStats:

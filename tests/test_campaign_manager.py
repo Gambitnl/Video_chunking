@@ -119,3 +119,99 @@ def test_campaign_switching(tmp_path):
     manager2 = CampaignManager(config_file=config_path)
     assert manager2.get_campaign(cid1).name == "Campaign One"
     assert manager2.get_campaign(cid2).name == "Campaign Two"
+
+
+def test_load_campaigns_empty_file(tmp_path):
+    config_path = tmp_path / "campaigns.json"
+    config_path.touch()  # Create empty file
+
+    manager = CampaignManager(config_file=config_path)
+    assert manager.campaigns == {}
+
+
+def test_load_campaigns_corrupt_json(tmp_path):
+    config_path = tmp_path / "campaigns.json"
+    config_path.write_text("{invalid_json", encoding="utf-8")
+
+    manager = CampaignManager(config_file=config_path)
+    assert manager.campaigns == {}
+
+
+def test_load_campaigns_partial_corruption(tmp_path):
+    """Test that valid campaigns are loaded even if some are corrupt/incomplete."""
+    config_path = tmp_path / "campaigns.json"
+    data = {
+        "valid_camp": {
+            "name": "Valid Campaign",
+            "party_id": "p1",
+            "settings": {}
+        },
+        "invalid_camp": {
+            "name": "Invalid Campaign"
+            # Missing party_id and settings
+        }
+    }
+    with open(config_path, 'w', encoding='utf-8') as f:
+        json.dump(data, f)
+
+    manager = CampaignManager(config_file=config_path)
+
+    # Should load valid_camp
+    assert "valid_camp" in manager.campaigns
+    assert manager.get_campaign("valid_camp").name == "Valid Campaign"
+
+    # Should skip invalid_camp
+    assert "invalid_camp" not in manager.campaigns
+
+
+def test_campaign_settings_defaults():
+    """Verify default settings are suitable for UI."""
+    settings = CampaignSettings()
+    assert settings.num_speakers == 4
+    assert settings.skip_diarization is False
+    assert settings.skip_classification is False
+    assert settings.skip_snippets is True
+    assert settings.skip_knowledge is False
+    assert settings.session_id_prefix == "Session_"
+    assert settings.auto_number_sessions is False
+
+
+def test_campaign_persistence_integrity(tmp_path):
+    """Verify full round-trip persistence of campaign data."""
+    config_path = tmp_path / "campaigns.json"
+    manager = CampaignManager(config_file=config_path)
+
+    settings = CampaignSettings(
+        num_speakers=2,
+        skip_diarization=True,
+        skip_classification=True,
+        skip_snippets=False,
+        skip_knowledge=True,
+        session_id_prefix="Ep_",
+        auto_number_sessions=True
+    )
+    campaign = Campaign(
+        name="Test Campaign",
+        party_id="party_1",
+        settings=settings,
+        description="Desc",
+        notes="Notes"
+    )
+
+    manager.add_campaign("c1", campaign)
+
+    # Reload
+    manager2 = CampaignManager(config_file=config_path)
+    loaded = manager2.get_campaign("c1")
+
+    assert loaded.name == "Test Campaign"
+    assert loaded.party_id == "party_1"
+    assert loaded.settings.num_speakers == 2
+    assert loaded.settings.skip_diarization is True
+    assert loaded.settings.skip_classification is True
+    assert loaded.settings.skip_snippets is False
+    assert loaded.settings.skip_knowledge is True
+    assert loaded.settings.session_id_prefix == "Ep_"
+    assert loaded.settings.auto_number_sessions is True
+    assert loaded.description == "Desc"
+    assert loaded.notes == "Notes"

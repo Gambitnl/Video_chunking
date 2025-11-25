@@ -119,10 +119,22 @@ class TestAddTranscriptSegments:
 
     def test_add_transcript_segments_happy_path(self, vector_store, mock_embedding_service, mock_chromadb):
         """Test adding transcript segments successfully."""
-        session_id = "session_001"
+        # Why: This test ensures the primary functionality of adding transcript
+        # segments works as expected with realistic, multi-sentence text.
+        session_id = "session_20251125_eois"
         segments = [
-            {"text": "Hello world", "speaker": "Alice", "start": 0.0, "end": 2.0},
-            {"text": "How are you?", "speaker": "Bob", "start": 2.0, "end": 4.0}
+            {
+                "text": "The party enters the Whispering Woods, its ancient trees looming over them like silent giants. Sunlight struggles to pierce the dense canopy.",
+                "speaker": "DM",
+                "start": 10.5,
+                "end": 18.2,
+            },
+            {
+                "text": "I draw my sword, just in case. Something doesn't feel right here.",
+                "speaker": "Kaelen",
+                "start": 19.0,
+                "end": 23.8,
+            },
         ]
 
         vector_store.add_transcript_segments(session_id, segments)
@@ -135,15 +147,17 @@ class TestAddTranscriptSegments:
         call_args = mock_chromadb['transcript_collection'].add.call_args[1]
 
         assert len(call_args['documents']) == 2
-        assert call_args['documents'][0] == "Hello world"
+        assert "Whispering Woods" in call_args['documents'][0]
         assert len(call_args['ids']) == 2
-        assert call_args['ids'][0] == "session_001_seg_0"
+        assert call_args['ids'][0] == "session_20251125_eois_seg_0"
         assert call_args['metadatas'][0]['session_id'] == session_id
-        assert call_args['metadatas'][0]['speaker'] == "Alice"
+        assert call_args['metadatas'][0]['speaker'] == "DM"
+        assert call_args['metadatas'][1]['speaker'] == "Kaelen"
+
 
     def test_add_transcript_segments_empty_list(self, vector_store, mock_embedding_service):
         """Test that empty segment list is handled gracefully."""
-        vector_store.add_transcript_segments("session_001", [])
+        vector_store.add_transcript_segments("session_20251125_eois", [])
 
         # Verify embed_batch was NOT called
         mock_embedding_service.embed_batch.assert_not_called()
@@ -194,15 +208,22 @@ class TestAddKnowledgeDocuments:
 
     def test_add_knowledge_documents_happy_path(self, vector_store, mock_embedding_service, mock_chromadb):
         """Test adding knowledge documents successfully."""
+        # Why: This test ensures the primary path for adding structured knowledge
+        # (like NPCs, locations, etc.) works correctly with more detailed content.
         documents = [
             {
-                "text": "The ancient dragon lives in the mountain",
-                "metadata": {"type": "npc", "name": "Ancient Dragon"}
+                "text": "Gareth Longshadow, a retired adventurer, now runs the 'Stout Dragon Inn'. He's missing his prized golden lute, believed to have been stolen by goblins.",
+                "metadata": {
+                    "type": "npc",
+                    "name": "Gareth Longshadow",
+                    "occupation": "Innkeeper",
+                    "disposition": "Grumpy but helpful",
+                },
             },
             {
-                "text": "Quest to retrieve the magical sword",
-                "metadata": {"type": "quest", "name": "Sword Quest"}
-            }
+                "text": "The Sunstone of Aethel is a legendary artifact rumored to control the weather. It was last seen in the Sunken City of Vash'j.",
+                "metadata": {"type": "item", "name": "Sunstone of Aethel", "material": "Enchanted Gold"},
+            },
         ]
 
         vector_store.add_knowledge_documents(documents)
@@ -215,9 +236,10 @@ class TestAddKnowledgeDocuments:
         call_args = mock_chromadb['knowledge_collection'].add.call_args[1]
 
         assert len(call_args['documents']) == 2
-        assert "dragon" in call_args['documents'][0].lower()
+        assert "gareth longshadow" in call_args['documents'][0].lower()
         assert len(call_args['ids']) == 2
-        assert "npc_Ancient_Dragon" in call_args['ids'][0]
+        assert "npc_Gareth_Longshadow" in call_args['ids'][0]
+        assert call_args['metadatas'][0]['disposition'] == "Grumpy but helpful"
 
     def test_add_knowledge_documents_empty_list(self, vector_store, mock_embedding_service):
         """Test that empty document list is handled gracefully."""
@@ -231,36 +253,41 @@ class TestAddKnowledgeDocuments:
         Test adding documents with various metadata structures.
         Verifies robust handling of missing keys, None values, etc.
         """
+        # Why: This test is critical for ensuring data ingestion is robust.
+        # Real-world data can be messy, and this test covers many edge cases
+        # that could otherwise crash the indexing process.
         documents = [
             # Case 1: Standard document
-            {
-                "text": "Standard Doc",
-                "metadata": {"type": "npc", "name": "Hero"}
-            },
+            {"text": "Standard Doc", "metadata": {"type": "npc", "name": "Hero"}},
             # Case 2: Missing metadata key completely
-            {
-                "text": "No Metadata Key"
-            },
+            {"text": "No Metadata Key"},
             # Case 3: Metadata is None
-            {
-                "text": "None Metadata",
-                "metadata": None
-            },
+            {"text": "None Metadata", "metadata": None},
             # Case 4: Empty metadata dict
+            {"text": "Empty Metadata", "metadata": {}},
+            # Case 5: Missing 'name' (should fallback to a default)
+            {"text": "Missing Name", "metadata": {"type": "location"}},
+            # Case 6: Missing 'type' (should fallback to 'unknown')
+            {"text": "Missing Type", "metadata": {"name": "Sword"}},
+            # Case 7: Deeply nested metadata (should be preserved)
             {
-                "text": "Empty Metadata",
-                "metadata": {}
+                "text": "Nested Data",
+                "metadata": {
+                    "type": "lore",
+                    "name": "Book of Secrets",
+                    "details": {"author": "Unknown", "pages": 99},
+                },
             },
-            # Case 5: Missing 'name' (should fallback)
+            # Case 8: Metadata with mixed types
             {
-                "text": "Missing Name",
-                "metadata": {"type": "location"}
+                "text": "Mixed Types",
+                "metadata": {"type": "event", "name": "Festival", "year": 123, "active": True},
             },
-            # Case 6: Missing 'type' (should fallback)
+            # Case 9: Metadata value is explicitly None (should be preserved)
             {
-                "text": "Missing Type",
-                "metadata": {"name": "Sword"}
-            }
+                "text": "Explicit None",
+                "metadata": {"type": "character", "name": "Mysterious Figure", "faction": None},
+            },
         ]
 
         vector_store.add_knowledge_documents(documents)
@@ -270,31 +297,46 @@ class TestAddKnowledgeDocuments:
         ids = call_args['ids']
         metadatas = call_args['metadatas']
 
-        assert len(ids) == 6
+        assert len(ids) == len(documents)
 
-        # Verify Case 1
+        # --- Assertions ---
+        # Case 1: Standard
         assert "npc_Hero_" in ids[0]
         assert metadatas[0] == {"type": "npc", "name": "Hero"}
 
-        # Verify Case 2 (No Metadata Key) - Should handle gracefully
+        # Case 2: Missing 'metadata' key
         assert "unknown_doc_" in ids[1]
         assert metadatas[1] == {}
 
-        # Verify Case 3 (None Metadata)
+        # Case 3: 'metadata' is None
         assert "unknown_doc_" in ids[2]
         assert metadatas[2] == {}
 
-        # Verify Case 4 (Empty Metadata)
+        # Case 4: Empty metadata dict
         assert "unknown_doc_" in ids[3]
         assert metadatas[3] == {}
 
-        # Verify Case 5 (Missing Name)
+        # Case 5: Missing 'name'
         assert "location_doc_" in ids[4]
         assert metadatas[4] == {"type": "location"}
 
-        # Verify Case 6 (Missing Type)
+        # Case 6: Missing 'type'
         assert "unknown_Sword_" in ids[5]
         assert metadatas[5] == {"name": "Sword"}
+
+        # Case 7: Nested metadata is preserved
+        assert "lore_Book_of_Secrets_" in ids[6]
+        assert metadatas[6]["details"] == {"author": "Unknown", "pages": 99}
+
+        # Case 8: Mixed types are preserved
+        assert "event_Festival_" in ids[7]
+        assert metadatas[7]["year"] == 123
+        assert metadatas[7]["active"] is True
+
+        # Case 9: Explicit None is preserved
+        assert "character_Mysterious_Figure_" in ids[8]
+        assert metadatas[8]["faction"] is None
+
 
     def test_add_knowledge_documents_sanitizes_ids(self, vector_store, mock_chromadb):
         """Test that document IDs are sanitized (spaces and slashes removed)."""
@@ -313,6 +355,35 @@ class TestAddKnowledgeDocuments:
         assert "/" not in generated_id
         assert " " not in generated_id
 
+    def test_add_knowledge_documents_handles_non_ascii_metadata(self, vector_store, mock_chromadb):
+        """
+        Test that metadata with Unicode characters is handled gracefully.
+        Ensures that sanitization for IDs doesn't crash on non-ASCII chars.
+        """
+        # Why: User-generated content often contains emojis or international characters.
+        # This test ensures our ID generation is robust and won't fail on such inputs.
+        documents = [
+            {
+                "text": "Unicode text",
+                "metadata": {"type": "npc", "name": "Jalapeño"},
+            },
+            {
+                "text": "Emoji text",
+                "metadata": {"type": "location", "name": "Castle 🏰"},
+            },
+        ]
+
+        vector_store.add_knowledge_documents(documents)
+        call_args = mock_chromadb['knowledge_collection'].add.call_args[1]
+        ids = call_args['ids']
+
+        # The exact output of sanitization isn't strictly defined, but it
+        # should not contain the original non-ASCII characters and shouldn't crash.
+        assert "Jalape" in ids[0]  # Check for partial sanitization
+        assert "Castle" in ids[1]
+        assert "🏰" not in ids[1] # Check emoji is removed
+
+
     def test_add_knowledge_documents_batching(self, vector_store, mock_chromadb):
         """Test that large document lists are processed in batches."""
         # Create enough docs to trigger multiple batches
@@ -330,21 +401,24 @@ class TestSearch:
 
     def test_search_both_collections(self, vector_store, mock_embedding_service, mock_chromadb):
         """Test search across both collections."""
+        # Why: This test ensures that the search function can correctly query
+        # both transcript and knowledge collections simultaneously and merge the
+        # results in the correct order based on relevance (distance).
         mock_chromadb['transcript_collection'].query.return_value = {
-            'documents': [["Transcript result"]],
-            'metadatas': [[{"session_id": "s1"}]],
-            'distances': [[0.1]]
+            'documents': [["Kaelen mentioned the 'Stout Dragon Inn' in passing."]],
+            'metadatas': [[{"session_id": "session_20251125_eois", "speaker": "Kaelen"}]],
+            'distances': [[0.15]]
         }
         mock_chromadb['knowledge_collection'].query.return_value = {
-            'documents': [["Knowledge result"]],
-            'metadatas': [[{"type": "npc"}]],
-            'distances': [[0.2]]
+            'documents': [["Gareth Longshadow, a retired adventurer, now runs the 'Stout Dragon Inn'."]],
+            'metadatas': [[{"type": "npc", "name": "Gareth Longshadow"}]],
+            'distances': [[0.05]] # This one is a better match
         }
 
-        results = vector_store.search("test query", top_k=5)
+        results = vector_store.search("who is the owner of the stout dragon inn?", top_k=5)
 
         # Verify embed was called
-        mock_embedding_service.embed.assert_called_once_with("test query")
+        mock_embedding_service.embed.assert_called_once_with("who is the owner of the stout dragon inn?")
 
         # Verify both collections were queried
         assert mock_chromadb['transcript_collection'].query.call_count == 1
@@ -352,46 +426,58 @@ class TestSearch:
 
         # Verify results are combined and sorted by distance
         assert len(results) == 2
-        assert results[0]['distance'] == 0.1  # Lower distance first
-        assert results[1]['distance'] == 0.2
+        assert results[0]['distance'] == 0.05  # Lower distance (better match) comes first
+        assert results[0]['metadata']['type'] == "npc"
+        assert "Gareth Longshadow" in results[0]['text']
+        assert results[1]['distance'] == 0.15
+        assert results[1]['metadata']['speaker'] == "Kaelen"
 
     def test_search_specific_collection(self, vector_store, mock_chromadb):
         """Test search on a specific collection only."""
-        mock_chromadb['transcript_collection'].query.return_value = {
-            'documents': [["Result"]],
-            'metadatas': [[{}]],
-            'distances': [[0.1]]
+        # Why: This test verifies that the `collection` parameter correctly
+        # scopes the search to only the specified collection, which is an
+        # important feature for targeted queries.
+        mock_chromadb['knowledge_collection'].query.return_value = {
+            'documents': [["The Sunstone of Aethel is a legendary artifact."]],
+            'metadatas': [[{"type": "item", "name": "Sunstone of Aethel"}]],
+            'distances': [[0.08]]
         }
 
-        results = vector_store.search("query", top_k=5, collection="transcripts")
+        results = vector_store.search("legendary artifacts", top_k=5, collection="knowledge")
 
-        # Verify only transcript collection was queried
-        assert mock_chromadb['transcript_collection'].query.call_count == 1
-        assert mock_chromadb['knowledge_collection'].query.call_count == 0
+        # Verify only knowledge collection was queried
+        assert mock_chromadb['knowledge_collection'].query.call_count == 1
+        assert mock_chromadb['transcript_collection'].query.call_count == 0
+        assert len(results) == 1
+        assert "Sunstone" in results[0]['text']
+
 
     def test_search_collection_filtering_strict(self, vector_store, mock_chromadb):
         """
         Test that searching one collection strictly excludes results from the other.
         BUG-20251102-28
         """
+        # Why: A more rigorous version of the above test, this ensures that even
+        # if a much better result exists in the other collection, it is still
+        # correctly excluded when a specific collection is requested.
         # Setup: Both collections would return results if queried
         mock_chromadb['transcript_collection'].query.return_value = {
-            'documents': [["Transcript Result"]],
-            'metadatas': [[{"type": "transcript"}]],
-            'distances': [[0.1]]
+            'documents': [["Someone mentioned a 'secret passage' behind the tavern."]],
+            'metadatas': [[{"type": "transcript", "speaker": "Aria"}]],
+            'distances': [[0.25]] # Worse match
         }
         mock_chromadb['knowledge_collection'].query.return_value = {
-            'documents': [["Knowledge Result"]],
-            'metadatas': [[{"type": "npc"}]],
-            'distances': [[0.05]] # Better match, but should be ignored if filtering
+            'documents': [["The Whispering Woods contains a hidden Elven shrine."]],
+            'metadatas': [[{"type": "location", "name": "Whispering Woods"}]],
+            'distances': [[0.02]] # Much better match, but should be ignored
         }
 
         # Action: Search only transcripts
         results = vector_store.search("query", collection="transcripts")
 
-        # Assert: Only transcript result returned
+        # Assert: Only transcript result returned, despite being a worse match
         assert len(results) == 1
-        assert results[0]['text'] == "Transcript Result"
+        assert "secret passage" in results[0]['text']
 
         # Verify calls
         assert mock_chromadb['transcript_collection'].query.call_count == 1
@@ -401,15 +487,35 @@ class TestSearch:
         mock_chromadb['transcript_collection'].query.reset_mock()
         mock_chromadb['knowledge_collection'].query.reset_mock()
 
-        results = vector_store.search("query", collection="knowledge")
+        results = vector_store.search("hidden locations", collection="knowledge")
 
-        # Assert: Only knowledge result returned
+        # Assert: Only knowledge result is returned
         assert len(results) == 1
-        assert results[0]['text'] == "Knowledge Result"
+        assert "Elven shrine" in results[0]['text']
+        assert results[0]['metadata']['type'] == "location"
+
 
         # Verify calls
         assert mock_chromadb['transcript_collection'].query.call_count == 0
         assert mock_chromadb['knowledge_collection'].query.call_count == 1
+
+    def test_search_handles_invalid_collection_parameter(self, vector_store, mock_chromadb):
+        """
+        Test that specifying an invalid collection returns empty results safely.
+        Covers empty string, incorrect names, etc.
+        """
+        # Why: The function should be resilient to incorrect inputs. This test
+        # ensures that passing a non-existent collection name doesn't cause a
+        # crash and instead returns a predictable empty list.
+        invalid_collections = ["", " ", "non_existent_collection", "knowledge ", " transcripts"]
+        for invalid in invalid_collections:
+            results = vector_store.search("query", collection=invalid)
+
+            # Assert: No results and no query calls were made
+            assert results == [], f"Failed for collection='{invalid}'"
+            assert mock_chromadb['transcript_collection'].query.call_count == 0, f"Failed for collection='{invalid}'"
+            assert mock_chromadb['knowledge_collection'].query.call_count == 0, f"Failed for collection='{invalid}'"
+
 
     def test_search_invalid_collection_returns_empty(self, vector_store, mock_chromadb):
         """Test that specifying an invalid collection returns empty results (fail safe)."""
@@ -624,6 +730,9 @@ class TestClearAll:
         Verify that the internal collection references are updated after clearing.
         This ensures the vector store is usable immediately after clearing.
         """
+        # Why: If the internal references to collection objects are not updated
+        # after being recreated, subsequent operations would fail by trying to
+        # use the old, deleted collections. This test prevents such regressions.
         # Setup: make create_collection return NEW mock objects
         new_transcript_coll = Mock(name="new_transcript_coll")
         new_knowledge_coll = Mock(name="new_knowledge_coll")
@@ -641,6 +750,35 @@ class TestClearAll:
         # Assertion: Reference should point to the new mock object
         assert vector_store.transcript_collection is not old_transcript_coll
         assert vector_store.transcript_collection is new_transcript_coll
+
+    def test_get_stats_returns_zero_after_clear_all(self, vector_store, mock_chromadb):
+        """
+        Test that get_stats returns zero counts after clear_all.
+        BUG-20251102-30
+        """
+        # Why: This test ensures that `clear_all` properly resets the state.
+        # A successful clear should result in empty collections, which should be
+        # reflected in the stats.
+        # Setup: Configure the "new" collections to return 0 counts.
+        new_transcript_coll = Mock()
+        new_knowledge_coll = Mock()
+        new_transcript_coll.count.return_value = 0
+        new_knowledge_coll.count.return_value = 0
+
+        mock_chromadb['client'].create_collection.side_effect = [
+            new_transcript_coll,
+            new_knowledge_coll
+        ]
+        # Action: Clear the collections
+        vector_store.clear_all()
+
+        # Get stats after clearing
+        stats = vector_store.get_stats()
+
+        # Assert: All counts should be zero
+        assert stats['transcript_segments'] == 0
+        assert stats['knowledge_documents'] == 0
+        assert stats['total_documents'] == 0
 
 
 class TestGetStats:
@@ -671,6 +809,32 @@ class TestGetStats:
         assert stats['transcript_segments'] == 0
         assert stats['knowledge_documents'] == 0
         assert stats['total_documents'] == 0
+
+    def test_get_stats_mixed_collections(self, vector_store, mock_chromadb):
+        """
+        Test stats when one collection is populated and the other is empty.
+        BUG-20251102-31
+        """
+        # Why: This test validates that the stats aggregation is correct and
+        # doesn't fail or miscalculate when one of the data sources is empty,
+        # which is a realistic scenario.
+        # Case 1: Transcripts populated, knowledge empty
+        mock_chromadb['transcript_collection'].count.return_value = 150
+        mock_chromadb['knowledge_collection'].count.return_value = 0
+
+        stats = vector_store.get_stats()
+        assert stats['transcript_segments'] == 150
+        assert stats['knowledge_documents'] == 0
+        assert stats['total_documents'] == 150
+
+        # Case 2: Knowledge populated, transcripts empty
+        mock_chromadb['transcript_collection'].count.return_value = 0
+        mock_chromadb['knowledge_collection'].count.return_value = 75
+
+        stats = vector_store.get_stats()
+        assert stats['transcript_segments'] == 0
+        assert stats['knowledge_documents'] == 75
+        assert stats['total_documents'] == 75
 
     def test_get_stats_handles_errors(self, vector_store, mock_chromadb):
         """Test that get_stats returns zeros on error."""

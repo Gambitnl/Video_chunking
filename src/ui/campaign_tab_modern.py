@@ -95,32 +95,23 @@ def create_campaign_tab_modern(blocks: gr.Blocks) -> Dict[str, gr.components.Com
         # Campaign Overview Section
         gr.Markdown("## Campaign Overview")
         overview_md = gr.HTML(
-            value="""
-            <div class="empty-state-card">
-                <div class="empty-state-icon">🎲</div>
-                <h3>No Campaign Selected</h3>
-                <p>Get started by creating your first campaign or loading an existing one to see campaign metrics, session history, and progress tracking.</p>
-                <div class="empty-state-actions">
-                    <span class="info-badge">→ Use Campaign Launcher tab to get started</span>
-                </div>
-            </div>
-            """
+            value=StatusMessages.empty_state_cta(
+                icon="🎲",
+                title="No Campaign Selected",
+                message="Get started by creating your first campaign or loading an existing one to see campaign metrics, session history, and progress tracking.",
+                cta_html='<span class="info-badge">→ Use Campaign Launcher tab to get started</span>'
+            )
         )
 
         # Knowledge Base Section
         gr.Markdown("## Knowledge Base")
         knowledge_md = gr.HTML(
-            value="""
-            <div class="empty-state-card">
-                <div class="empty-state-icon">📚</div>
-                <h3>Knowledge Base Empty</h3>
-                <p>Your campaign's knowledge base tracks NPCs, locations, quests, items, and factions across all sessions.</p>
-                <div class="empty-state-actions">
-                    <span class="info-badge">💡 Process sessions to build knowledge</span>
-                    <span class="info-badge">🔍 View extracted entities here</span>
-                </div>
-            </div>
-            """
+            value=StatusMessages.empty_state_cta(
+                icon="📚",
+                title="Knowledge Base Empty",
+                message="Your campaign's knowledge base tracks NPCs, locations, quests, items, and factions across all sessions.",
+                cta_html='<span class="info-badge">💡 Process sessions to build knowledge</span><span class="info-badge">🔍 View extracted entities here</span>'
+            )
         )
 
         # Session Library Section (Interactive Table)

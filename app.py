@@ -1686,9 +1686,24 @@ def _build_full_ui_update(campaign_id: Optional[str], campaign_names_map: Option
         outputs=settings_tab_refs["log_level_status"],
     )
 
+    def trigger_restart_confirmation():
+        return (
+            gr.update(visible=True),
+            gr.update(value="### 🔄 Confirm Restart\n\nAre you sure you want to restart the application? This will terminate any active processing jobs and cannot be undone."),
+            gr.update(value=False),
+            gr.update(interactive=False),
+            "restart"
+        )
+
     settings_tab_refs["restart_app_btn"].click(
-        fn=ui_restart_application,
-        outputs=settings_tab_refs["restart_status"],
+        fn=trigger_restart_confirmation,
+        outputs=[
+            settings_tab_refs["confirmation_modal"],
+            settings_tab_refs["confirmation_message"],
+            settings_tab_refs["confirmation_checkbox"],
+            settings_tab_refs["confirm_button"],
+            settings_tab_refs["action_to_confirm"],
+        ],
     )
 
     # Diagnostics event handlers
@@ -1702,15 +1717,98 @@ def _build_full_ui_update(campaign_id: Optional[str], campaign_names_map: Option
         outputs=settings_tab_refs["diagnostics_output"],
     )
 
+    # Confirmation Modal Logic
+    def handle_checkbox_change(checked):
+        return gr.update(interactive=checked)
+
+    settings_tab_refs["confirmation_checkbox"].change(
+        fn=handle_checkbox_change,
+        inputs=settings_tab_refs["confirmation_checkbox"],
+        outputs=settings_tab_refs["confirm_button"],
+    )
+
+    def cancel_confirmation():
+        return gr.update(visible=False), None, gr.update(value=""), gr.update(value=False), gr.update(interactive=False)
+
+    settings_tab_refs["cancel_button"].click(
+        fn=cancel_confirmation,
+        outputs=[
+            settings_tab_refs["confirmation_modal"],
+            settings_tab_refs["action_to_confirm"],
+            settings_tab_refs["countdown_display"],
+            settings_tab_refs["confirmation_checkbox"],
+            settings_tab_refs["confirm_button"],
+        ],
+    )
+
+    def confirm_action_with_countdown(action):
+        import time
+        for i in range(5, 0, -1):
+            yield (
+                gr.update(visible=True),
+                f"### Action will proceed in **{i}**...",
+                gr.update(),
+                gr.update()
+            )
+            time.sleep(1)
+
+        if action == "restart":
+            status_update = ui_restart_application()
+            yield (
+                gr.update(visible=False),
+                "",
+                status_update,
+                gr.update()
+            )
+        elif action == "clear_conversations":
+            status_update = clear_all_conversations()
+            yield (
+                gr.update(visible=False),
+                "",
+                gr.update(),
+                status_update,
+            )
+
+        # Reset modal state after completion
+        yield cancel_confirmation()
+
+
+    settings_tab_refs["confirm_button"].click(
+        fn=confirm_action_with_countdown,
+        inputs=[settings_tab_refs["action_to_confirm"]],
+        outputs=[
+            settings_tab_refs["confirmation_modal"],
+            settings_tab_refs["countdown_display"],
+            settings_tab_refs["restart_status"],
+            settings_tab_refs["chat_output"],
+        ],
+    )
+
+
     # Conversation management event handlers
     settings_tab_refs["list_conversations_btn"].click(
         fn=list_conversations,
         outputs=settings_tab_refs["chat_output"],
     )
 
+    def trigger_clear_conversations_confirmation():
+        return (
+            gr.update(visible=True),
+            gr.update(value="### 🗑️ Confirm Clear Conversations\n\nAre you sure you want to permanently delete all conversation history? This action cannot be undone."),
+            gr.update(value=False),
+            gr.update(interactive=False),
+            "clear_conversations"
+        )
+
     settings_tab_refs["clear_all_conversations_btn"].click(
-        fn=clear_all_conversations,
-        outputs=settings_tab_refs["chat_output"],
+        fn=trigger_clear_conversations_confirmation,
+        outputs=[
+            settings_tab_refs["confirmation_modal"],
+            settings_tab_refs["confirmation_message"],
+            settings_tab_refs["confirmation_checkbox"],
+            settings_tab_refs["confirm_button"],
+            settings_tab_refs["action_to_confirm"],
+        ],
     )
 
     demo.load(

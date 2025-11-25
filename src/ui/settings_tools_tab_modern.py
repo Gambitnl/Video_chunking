@@ -566,6 +566,18 @@ def create_settings_tools_tab_modern(
                     live="polite",
                 )
 
+        # Confirmation Modal
+        with gr.Modal(visible=False) as confirmation_modal:
+            confirmation_message = gr.Markdown()
+            confirmation_checkbox = gr.Checkbox(label="I understand this action cannot be undone.", value=False)
+            countdown_display = gr.Markdown()
+            with gr.Row():
+                cancel_button = gr.Button("Cancel")
+                confirm_button = gr.Button("Confirm", variant="stop", interactive=False)
+            # Hidden state to store which action triggered the modal
+            action_to_confirm = gr.State(value=None)
+
+
         # Other tabs (Social, Speakers)
         social_refs = create_social_insights_tab(
             story_manager=story_manager,
@@ -684,4 +696,12 @@ def create_settings_tools_tab_modern(
         "log_level_status": log_level_status,
         "restart_app_btn": restart_app_btn,
         "restart_status": restart_status,
+        # Confirmation Modal
+        "confirmation_modal": confirmation_modal,
+        "confirmation_message": confirmation_message,
+        "confirmation_checkbox": confirmation_checkbox,
+        "countdown_display": countdown_display,
+        "cancel_button": cancel_button,
+        "confirm_button": confirm_button,
+        "action_to_confirm": action_to_confirm,
     }

@@ -43,6 +43,36 @@ MODERN_CSS = """
     margin: 0 auto !important;
 }
 
+/* --- Accessibility: Focus Indicators (UI-3) --- */
+/*
+  Adds a consistent, high-visibility 3px focus ring for keyboard users.
+  - Uses :focus-visible for buttons etc. to avoid rings on mouse clicks.
+  - Uses a standard :focus for text inputs as is conventional.
+  - Uses theme variables for colors to support dark mode.
+*/
+:is(
+    button,
+    a,
+    [role="button"],
+    .tab-nav button,
+    details summary,
+    input[type="file"]
+):focus-visible {
+    outline: none !important;
+    box-shadow: 0 0 0 3px var(--primary-200) !important;
+    border-color: var(--primary-600) !important;
+}
+
+/* Special handling for text inputs to merge with existing style */
+input[type="text"]:focus,
+textarea:focus,
+select:focus {
+    border-color: var(--primary-500) !important;
+    box-shadow: 0 0 0 3px var(--primary-200) !important;
+    outline: none !important;
+}
+/* --- End Accessibility --- */
+
 /* Tab styling */
 .tabs {
     border-bottom: 2px solid #e5e7eb;
@@ -156,14 +186,6 @@ select {
     padding: 0.625rem 0.875rem !important;
     font-size: 0.95rem !important;
     transition: all 0.2s !important;
-}
-
-input[type="text"]:focus,
-textarea:focus,
-select:focus {
-    border-color: #6366f1 !important;
-    box-shadow: 0 0 0 3px rgb(99 102 241 / 0.1) !important;
-    outline: none !important;
 }
 
 /* File upload styling */

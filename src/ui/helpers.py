@@ -135,6 +135,31 @@ class StatusMessages:
         """
         return f"### {SI.INFO} {component_name}\n\n{action_hint}"
 
+    @staticmethod
+    def empty_state_cta(icon: str, title: str, message: str, cta_html: str) -> str:
+        """
+        Format an empty state with a call-to-action card.
+
+        Args:
+            icon: Unicode icon for the card.
+            title: The main title of the card.
+            message: The descriptive text.
+            cta_html: Raw HTML for the call-to-action buttons or links.
+
+        Returns:
+            HTML-formatted card.
+        """
+        return f"""
+        <div class="empty-state-card">
+            <div class="empty-state-icon">{icon}</div>
+            <h3>{title}</h3>
+            <p>{message}</p>
+            <div class="empty-state-actions">
+                {cta_html}
+            </div>
+        </div>
+        """
+
 
 class FileValidation:
     """Helper class for validating file uploads."""

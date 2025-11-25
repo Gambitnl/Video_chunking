@@ -38,10 +38,12 @@ def create_stories_output_tab_modern(blocks: gr.Blocks) -> Dict[str, gr.componen
             label="Session Library"
         )
 
-        narrative_hint_md = gr.Markdown(
-            value=StatusMessages.info(
-                "Narrative Guidance",
-                "Run the pipeline for this campaign and generate narratives to populate this section."
+        narrative_hint_md = gr.HTML(
+            value=StatusMessages.empty_state_cta(
+                icon="📝",
+                title="No Narratives Generated",
+                message="Run the session processing pipeline for this campaign to generate transcripts and story narratives.",
+                cta_html='<span class="info-badge">→ Use the Process Session tab to get started</span>'
             )
         )
 

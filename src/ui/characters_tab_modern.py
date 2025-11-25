@@ -16,9 +16,11 @@ def character_tab_snapshot(
     """Return table data and status messaging for the active campaign."""
     if not campaign_id:
         return {
-            "status": StatusMessages.info(
-                "No Campaign Selected",
-                "Load a campaign to display its character profiles."
+            "status": StatusMessages.empty_state_cta(
+                icon="🎭",
+                title="No Campaign Selected",
+                message="Load a campaign to display its character profiles.",
+                cta_html='<span class="info-badge">→ Use Campaign Launcher tab to get started</span>'
             ),
             "table": [],
             "characters": [],
@@ -29,9 +31,11 @@ def character_tab_snapshot(
     characters = manager.list_characters(campaign_id=campaign_id)
     if not characters:
         return {
-            "status": StatusMessages.warning(
-                "No Profiles Found",
-                "No character profiles are assigned to this campaign yet."
+            "status": StatusMessages.empty_state_cta(
+                icon="✍️",
+                title="No Character Profiles Found",
+                message="No character profiles are assigned to this campaign yet.",
+                cta_html='<span class="info-badge">💡 Use the Profile Extraction tool to populate characters from a transcript!</span>'
             ),
             "table": [],
             "characters": [],
@@ -101,7 +105,7 @@ def create_characters_tab_modern(
         )
 
         profiles_md = _a11y(
-            gr.Markdown(value=initial_snapshot["status"], elem_id="characters-status"),
+            gr.HTML(value=initial_snapshot["status"], elem_id="characters-status"),
             label="Character profiles status",
             role="status",
             live="polite",

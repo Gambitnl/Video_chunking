@@ -6,6 +6,7 @@ from unittest.mock import Mock, patch, MagicMock
 from datetime import datetime
 
 from src.ui.process_session_helpers import (
+    validate_session_id_realtime,
     validate_session_inputs,
     format_statistics_markdown,
     format_snippet_export_markdown,
@@ -781,6 +782,43 @@ class TestUpdatePartyDisplay:
 
         # Should return empty/hidden update
         assert result is not None
+
+
+class TestValidateSessionIdRealtime:
+    """Test real-time session ID validation for immediate UI feedback."""
+
+    def test_valid_session_id(self):
+        """A valid session ID should return a success message."""
+        result = validate_session_id_realtime("valid_session-123")
+        assert "Valid" in result
+        assert "[v]" in result
+        assert "`valid_session-123`" in result
+
+    def test_invalid_characters(self):
+        """An invalid session ID with special characters should show a detailed error."""
+        result = validate_session_id_realtime("invalid session!")
+        assert "Invalid Session ID" in result
+        assert "[x]" in result
+        assert "' '" in result
+        assert "'!'" in result
+
+    def test_invalid_unicode_characters(self):
+        """Unicode characters that are not letters or numbers should be flagged as invalid."""
+        result = validate_session_id_realtime("session-é-à")
+        assert "Invalid Session ID" in result
+        assert "[x]" in result
+        assert "'é'" in result
+        assert "'à'" in result
+
+    def test_empty_session_id(self):
+        """An empty string should return no message."""
+        result = validate_session_id_realtime("")
+        assert result == ""
+
+    def test_whitespace_session_id(self):
+        """A session ID with only whitespace should return no message."""
+        result = validate_session_id_realtime("   ")
+        assert result == ""
 
     def test_update_with_nonexistent_party(self):
         """Test updating display with nonexistent party."""

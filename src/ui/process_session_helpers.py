@@ -47,7 +47,7 @@ See Also:
     - `src.status_tracker`: Status tracking infrastructure
 """
 
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 import re
 from typing import Any, Callable, Dict, List, Optional, Tuple
@@ -56,6 +56,7 @@ import gradio as gr
 from src.party_config import PartyConfigManager
 from src.file_tracker import FileProcessingTracker
 from src.status_tracker import StatusTracker
+from src.session_manager import SessionManager
 from src.ui.constants import StatusIndicators as SI
 from src.ui.helpers import StatusMessages
 
@@ -63,6 +64,17 @@ from src.ui.helpers import StatusMessages
 # Constants from main module
 ALLOWED_AUDIO_EXTENSIONS: Tuple[str, ...] = (".m4a", ".mp3", ".wav", ".flac")
 SESSION_ID_PATTERN = re.compile(r"^[A-Za-z0-9_-]+$")
+
+# Cache for session IDs to avoid frequent I/O in real-time validation
+# Why: The session ID validation runs on every keystroke. Hitting the filesystem
+# to check for duplicates each time would cause significant UI lag, especially
+# with many sessions. This cache provides a near-instant check, refreshing
+# only periodically.
+_session_id_cache = {
+    "timestamp": None,
+    "ids": set(),
+}
+CACHE_TTL_SECONDS = 5  # Cache session IDs for 5 seconds
 
 
 def validate_session_id_realtime(session_id: str) -> str:
@@ -82,9 +94,7 @@ def validate_session_id_realtime(session_id: str) -> str:
     session_id = session_id.strip()
 
     # Check against pattern
-    if SESSION_ID_PATTERN.match(session_id):
-        return f"### {SI.SUCCESS} Valid\n\n[v] Session ID `{session_id}` is valid."
-    else:
+    if not SESSION_ID_PATTERN.match(session_id):
         # Find invalid characters, ensuring they are ASCII-compatible to match the regex
         invalid_chars = {
             char for char in session_id
@@ -104,6 +114,32 @@ def validate_session_id_realtime(session_id: str) -> str:
                 f"### {SI.ERROR} Invalid Session ID\n\n"
                 "[x] Session ID format is invalid. Use only letters, numbers, underscores (_), and hyphens (-)."
             )
+
+    # UX-04: Add duplicate Session ID prevention with caching.
+    # Why: To prevent UI lag from frequent filesystem access, we check against a
+    # cached set of session IDs.
+    now = datetime.now()
+    cache_is_stale = (
+        _session_id_cache["timestamp"] is None or
+        (now - _session_id_cache["timestamp"]).total_seconds() > CACHE_TTL_SECONDS
+    )
+
+    if cache_is_stale:
+        # Why: This block refreshes the cache if it's empty or has expired.
+        # This is the only time the filesystem is accessed during validation.
+        session_manager = SessionManager()
+        _session_id_cache["ids"] = {s.session_id for s in session_manager.discover_sessions()}
+        _session_id_cache["timestamp"] = now
+
+    if session_id in _session_id_cache["ids"]:
+        return (
+            f"### {SI.WARNING} Duplicate Session ID\n\n"
+            f"[!] Session ID `{session_id}` already exists.\n\n"
+            "Reusing an ID will overwrite existing data. It is recommended to use a unique ID."
+        )
+
+    # If all checks pass, the ID is valid
+    return f"### {SI.SUCCESS} Valid\n\n[v] Session ID `{session_id}` is valid."
 
 
 def validate_processing_readiness(

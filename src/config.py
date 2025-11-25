@@ -133,6 +133,17 @@ class Config:
     AUDIT_LOG_ACTOR: str = os.getenv("AUDIT_LOG_ACTOR", "system")
     AUDIT_LOG_PATH: Path = Path(os.getenv("AUDIT_LOG_PATH", "logs/audit.log"))
 
+    # Interactive Clarification Settings
+    INTERACTIVE_CLARIFICATION_ENABLED: bool = get_env_as_bool(
+        "INTERACTIVE_CLARIFICATION_ENABLED", False
+    )
+    INTERACTIVE_CLARIFICATION_TIMEOUT: int = get_env_as_int(
+        "INTERACTIVE_CLARIFICATION_TIMEOUT", 30
+    )
+    INTERACTIVE_CLARIFICATION_MAX_QUESTIONS: int = get_env_as_int(
+        "INTERACTIVE_CLARIFICATION_MAX_QUESTIONS", 10
+    )
+
     @classmethod
     def ensure_directories(cls):
         """Ensure all necessary directories exist"""

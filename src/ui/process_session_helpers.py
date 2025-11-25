@@ -83,27 +83,26 @@ def validate_session_id_realtime(session_id: str) -> str:
 
     # Check against pattern
     if SESSION_ID_PATTERN.match(session_id):
-        return StatusMessages.success(
-            "Valid",
-            f"Session ID `{session_id}` is valid"
-        )
+        return f"### {SI.SUCCESS} Valid\n\n[v] Session ID `{session_id}` is valid."
     else:
-        # Find invalid characters
-        invalid_chars = set()
-        for char in session_id:
-            if not (char.isalnum() or char in "_-"):
-                invalid_chars.add(char)
+        # Find invalid characters, ensuring they are ASCII-compatible to match the regex
+        invalid_chars = {
+            char for char in session_id
+            if not (char.isascii() and char.isalnum() or char in "_-")
+        }
 
         if invalid_chars:
-            invalid_str = " ".join(repr(c) for c in sorted(invalid_chars))
-            return StatusMessages.error(
-                "Invalid",
-                f"Session ID contains invalid characters: {invalid_str}. Only letters, numbers, underscores (_), and hyphens (-) are allowed."
+            invalid_str = ", ".join(f"'{c}'" for c in sorted(list(invalid_chars)))
+            return (
+                f"### {SI.ERROR} Invalid Session ID\n\n"
+                f"[x] Session ID contains invalid characters: {invalid_str}.\n\n"
+                "Only letters, numbers, underscores (_), and hyphens (-) are allowed."
             )
         else:
-            return StatusMessages.error(
-                "Invalid",
-                "Session ID format is invalid. Use only letters, numbers, underscores (_), and hyphens (-)."
+            # This case is less common but could happen with edge cases in the regex
+            return (
+                f"### {SI.ERROR} Invalid Session ID\n\n"
+                "[x] Session ID format is invalid. Use only letters, numbers, underscores (_), and hyphens (-)."
             )
 
 

@@ -292,6 +292,24 @@ def test_delete_nonexistent_conversation(conversation_store, caplog):
     assert not result
     assert f"Cannot delete, conversation not found: {non_existent_id}" in caplog.text
 
+
+def test_delete_conversation_invalid_id(conversation_store, caplog):
+    """
+    Test deleting a conversation with an invalid ID format.
+    BUG-20251102-16
+    """
+    caplog.set_level(logging.ERROR)
+    invalid_id = "this_is_not_a_valid_id"
+    result = conversation_store.delete_conversation(invalid_id)
+
+    # Why: The function should return False for invalid IDs, not just non-existent ones.
+    # This prevents attempts to interact with the filesystem with a malformed path.
+    assert not result
+    # Why: We expect a specific log message indicating the ID was invalid,
+    # which is crucial for debugging operational issues.
+    assert f"Invalid conversation ID for deletion: Invalid conversation ID format: {invalid_id}" in caplog.text
+
+
 def test_add_message_complex_sources(conversation_store):
     """
     Test adding a message with complex source metadata.

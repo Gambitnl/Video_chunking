@@ -146,6 +146,15 @@ The goblin attacks!"""
         self.assertEqual(extractor._resolve_character_name("Robot 🤖", party_chars), "Robot 🤖")
         self.assertEqual(extractor._resolve_character_name("Robot", party_chars), "Robot 🤖")
 
+        # Whitespace handling
+        self.assertEqual(extractor._resolve_character_name("  M & M  ", party_chars), "M & M")
+        self.assertEqual(extractor._resolve_character_name(" K'th'lar ", party_chars), "K'th'lar")
+
+        # Negative cases that should not match
+        self.assertIsNone(extractor._resolve_character_name("K'th", party_chars), "Should not match partial names")
+        self.assertIsNone(extractor._resolve_character_name("The Great", party_chars), "Should not match partial aliases")
+        self.assertIsNone(extractor._resolve_character_name("M&", party_chars), "Should not match partial fuzzy names")
+
     def test_parse_complex_dialogue_lines(self):
         """Test parsing of unusual dialogue patterns (BUG-20251102-48)."""
         extractor = CharacterProfileExtractor()
@@ -156,13 +165,16 @@ The goblin attacks!"""
 [00:01:30] M & M: We are one.
 [00:01:50] Unknown Entity: You: Me. We are the same.
 [00:02:00] No Timestamp Speaker: Just talking here.
+[00:02:10.555] Speaker with MS: Milliseconds matter.
+   [ 00:02:20 ]  Spaced Out Speaker  :  Message with extra spaces.
+: A message with no speaker.
 """
         transcript_path = self.tmp_path / "complex_transcript.txt"
         transcript_path.write_text(transcript_text, encoding="utf-8")
 
         segments = extractor._parse_plaintext_transcript(transcript_path)
 
-        self.assertEqual(len(segments), 6)
+        self.assertEqual(len(segments), 9)
 
         # 1. K'th'lar the Vile
         self.assertEqual(segments[0]['speaker'], "K'th'lar the Vile")
@@ -188,6 +200,20 @@ The goblin attacks!"""
         # 6. No Timestamp
         self.assertEqual(segments[5]['speaker'], "No Timestamp Speaker")
         self.assertEqual(segments[5]['text'], "Just talking here.")
+
+        # 7. Milliseconds in timestamp
+        self.assertEqual(segments[6]['speaker'], "Speaker with MS")
+        self.assertEqual(segments[6]['text'], "Milliseconds matter.")
+        self.assertAlmostEqual(segments[6]['start'], 130.555)
+
+        # 8. Extra spacing around timestamp and speaker
+        self.assertEqual(segments[7]['speaker'], "Spaced Out Speaker")
+        self.assertEqual(segments[7]['text'], "Message with extra spaces.")
+        self.assertEqual(segments[7]['start'], 140.0)
+
+        # 9. No speaker provided
+        self.assertEqual(segments[8]['speaker'], "Unknown")
+        self.assertEqual(segments[8]['text'], "A message with no speaker.")
 
     def test_format_action(self):
         extractor = CharacterProfileExtractor()
@@ -380,10 +406,11 @@ The goblin attacks!"""
             aliases=["IC", "Checky"]
         )
 
-        # Add rich data
-        profile.notable_actions.append(
-            CharacterAction(session="sess_1", description="Created a golem", type="magic")
-        )
+        # Add rich data, including multiple items in lists
+        profile.notable_actions.extend([
+            CharacterAction(session="sess_1", description="Created a golem", type="magic"),
+            CharacterAction(session="sess_1", description="Solved the riddle", type="intellect")
+        ])
         profile.inventory.append(
             CharacterItem(name="Wrench of Power", category="weapon", session_acquired="sess_1")
         )
@@ -396,24 +423,43 @@ The goblin attacks!"""
         profile.memorable_quotes.append(
             CharacterQuote(session="sess_3", quote="I am alive!", context="After the lightning strike")
         )
+        profile.sessions_appeared.append("sess_1")
+        profile.sessions_appeared.append("sess_2")
+        profile.sessions_appeared.append("sess_3")
+        profile.total_sessions = len(profile.sessions_appeared) # Manually update for the test
 
-        # 2. Save
+        # Create a second, minimally populated profile to test defaults
+        minimal_char_name = "Minimalist"
+        minimal_profile = CharacterProfile(
+            name=minimal_char_name,
+            player="Minnie",
+            race="",  # Empty string
+            class_name=None, # Explicitly None
+            campaign_id="test_camp_1",
+            aliases=[] # Empty list
+        )
+
+        # 2. Save both profiles
         profile_mgr.add_profile(char_name, profile)
+        profile_mgr.add_profile(minimal_char_name, minimal_profile)
 
-        # 3. Load freshly
+        # 3. Load freshly in a new manager instance to ensure it reads from disk
         new_mgr = CharacterProfileManager(profiles_dir=profiles_dir)
-        loaded_profile = new_mgr.get_profile(char_name)
 
+        # --- Verification for the complex profile ---
+        loaded_profile = new_mgr.get_profile(char_name)
         self.assertIsNotNone(loaded_profile)
         self.assertEqual(loaded_profile.name, char_name)
         self.assertEqual(loaded_profile.player, "Tester")
         self.assertEqual(loaded_profile.campaign_id, "test_camp_1")
         self.assertListEqual(loaded_profile.aliases, ["IC", "Checky"])
+        self.assertSetEqual(set(loaded_profile.sessions_appeared), {"sess_1", "sess_2", "sess_3"})
+        self.assertEqual(loaded_profile.total_sessions, 3)
 
-        # Verify nested objects
-        self.assertEqual(len(loaded_profile.notable_actions), 1)
+        # Verify nested objects (now with multiple items)
+        self.assertEqual(len(loaded_profile.notable_actions), 2)
         self.assertEqual(loaded_profile.notable_actions[0].description, "Created a golem")
-        self.assertEqual(loaded_profile.notable_actions[0].type, "magic")
+        self.assertEqual(loaded_profile.notable_actions[1].type, "intellect")
 
         self.assertEqual(len(loaded_profile.inventory), 1)
         self.assertEqual(loaded_profile.inventory[0].name, "Wrench of Power")
@@ -423,3 +469,15 @@ The goblin attacks!"""
 
         self.assertEqual(len(loaded_profile.memorable_quotes), 1)
         self.assertEqual(loaded_profile.memorable_quotes[0].quote, "I am alive!")
+
+        # --- Verification for the minimal profile ---
+        loaded_minimal = new_mgr.get_profile(minimal_char_name)
+        self.assertIsNotNone(loaded_minimal)
+        self.assertEqual(loaded_minimal.name, minimal_char_name)
+        self.assertEqual(loaded_minimal.player, "Minnie")
+        self.assertEqual(loaded_minimal.race, "") # Should be empty string, not None
+        self.assertEqual(loaded_minimal.class_name, None) # Should be None as set
+        self.assertListEqual(loaded_minimal.aliases, [])
+        self.assertSetEqual(set(loaded_minimal.sessions_appeared), set())
+        self.assertEqual(loaded_minimal.total_sessions, 0)
+        self.assertEqual(len(loaded_minimal.inventory), 0)

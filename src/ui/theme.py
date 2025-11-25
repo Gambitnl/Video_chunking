@@ -101,9 +101,15 @@ select:focus {
     background: transparent;
 }
 
-/* Fix tab content width consistency - force all tabs to expand to full width */
+/* Gradio container responsiveness */
+/* Why: This is part of the fix for UX-19 (Mobile Responsiveness).
+   The original CSS forced a minimum width of 1200px, which breaks layouts
+   on smaller screens. This new approach uses a more flexible `max-width`
+   and removes the rigid `min-width`, allowing the container to adapt.
+   The padding is also made more responsive. */
 .gradio-container {
-    min-width: 1200px !important;
+    max-width: 1600px !important; /* Set a max-width for very large screens */
+    padding: 0 1rem !important; /* Responsive padding */
 }
 
 /* Ensure all tab panels take full width of container */
@@ -522,7 +528,17 @@ details > div {
     color: white !important;
 }
 
-/* Responsive adjustments */
+/* Responsive adjustments for UX-19 */
+/* Why: These media queries are the core of the mobile responsiveness solution.
+   They override desktop styles on smaller screens to create a usable layout.
+   Changes include stacking elements, reducing padding, and adjusting text sizes. */
+@media (max-width: 992px) {
+    /* Adjust padding for tablets */
+    .gradio-container {
+        padding: 0 1rem !important;
+    }
+}
+
 @media (max-width: 768px) {
     .stepper {
         flex-direction: column;
@@ -551,7 +567,6 @@ details > div {
 
     .gradio-container {
         padding: 0.5rem !important;
-        min-width: 100% !important;
     }
 
     .card {
@@ -562,10 +577,17 @@ details > div {
         padding: 1rem;
     }
 
-    /* Stack buttons on mobile */
+    /* Stack elements in rows on mobile for better readability */
+    /* This targets Gradio's `.row` class */
     .row {
-        flex-direction: column;
-        gap: 0.5rem;
+        flex-direction: column !important;
+        gap: 1rem !important;
+    }
+
+    /* Make tab buttons more compact on mobile */
+    .tab-nav button {
+        padding: 0.5rem 0.75rem;
+        font-size: 0.9rem;
     }
 
     .campaign-badge-sticky {

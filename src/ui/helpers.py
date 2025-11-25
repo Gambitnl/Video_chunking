@@ -13,26 +13,39 @@ class StatusMessages:
 
     @staticmethod
     def _sanitize_text(text: str) -> str:
-        """Remove sensitive file paths from text."""
+        """
+        Remove sensitive file paths and other potentially sensitive information from text.
+        This is a security measure to prevent leaking internal system details in UI error messages.
+        """
         if not text:
             return ""
 
         import re
-        # Redact common path patterns
 
-        # 1. Unix absolute paths: starts with / and contains at least 2 segments
-        # Match characters commonly found in paths, including spaces, dots, dashes, underscores
-        # Pattern: / + segment + (/ + segment)+
-        # We use non-greedy match for segments to avoid over-matching
-        text = re.sub(r'(?<!\w)(/(?:[\w\-. ]+/)+[\w\-. ]+)', '<path_redacted>', text)
+        # Why: This is the core of BUG-20251103-028. The original implementation was not
+        # comprehensive enough, potentially leaking file paths from stack traces. These
+        # improved regex patterns cover a wider range of formats for both Unix and Windows
+        # systems, including paths with spaces, special characters, and those found inside
+        # Python tracebacks.
 
-        # 2. Windows drive paths
-        # Pattern: Drive letter + :\ + segment + (\ + segment)+
-        text = re.sub(r'[a-zA-Z]:\\[\w\-. ]+(?:\\[\w\-. ]+)+', '<path_redacted>', text)
+        # 1. Comprehensive Unix/Linux Path Regex
+        # - Starts with '/' or './' or '../'
+        # - Handles segments with letters, numbers, spaces, and special characters: . _ -
+        # - Looks for at least two segments to avoid redacting simple phrases like "a/b"
+        unix_path_pattern = r'(\B|[\s"\'(])(/(?:[\w\-. ]+/){1,}[\w\-. ]+\.?[\w\-. ]*|(?:\.\./|\./)(?:[\w\-. ]+/)+[\w\-. ]+\.?[\w\-. ]*)'
+        text = re.sub(unix_path_pattern, r'\1<path_redacted>', text)
 
-        # 3. Common traceback file paths (often in quotes)
-        text = re.sub(r'File "(/[^"]+)"', 'File "<path_redacted>"', text)
-        text = re.sub(r'File "([a-zA-Z]:\\[^"]+)"', 'File "<path_redacted>"', text)
+        # 2. Comprehensive Windows Path Regex
+        # - Starts with a drive letter (e.g., C:\) or a UNC path (\\server\share)
+        # - Handles both forward and backward slashes
+        # - Handles segments with spaces and common special characters
+        windows_path_pattern = r'(\B|[\s"\'(])([a-zA-Z]:(?:\\|/)(?:[\w\-. ]+(?:\\|/))+[\w\-. ]+\.?[\w\-. ]*|\\\\\w+\\\w+)'
+        text = re.sub(windows_path_pattern, r'\1<path_redacted>', text)
+
+        # 3. Traceback-specific patterns (often includes "File ...")
+        #    This is more targeted for stack traces from Python, etc.
+        traceback_pattern = r'(File\s")([^"]+)(")'
+        text = re.sub(traceback_pattern, r'\1<path_redacted>\3', text)
 
         return text
 

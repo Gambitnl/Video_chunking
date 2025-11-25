@@ -90,11 +90,22 @@ gr.Button(
 
 ---
 
-### 3. Missing Focus Indicators
+### 3. Missing Focus Indicators ✅ COMPLETE
 
+**Status:** ✅ **Draft PR #141 (2025-11-25) - Ready for Merge**
+**Branch:** `feat-UI-3-focus-indicators`
+**Files Modified:** `src/ui/theme.py` (+30, -8 lines)
 **Location**: `src/ui/theme.py:119-137` (input focus styles)
 
-**Issue**: Focus states exist but are inconsistent; some elements have no visible focus
+**Completed State:**
+- ✅ 3px focus ring for ALL interactive elements (buttons, links, inputs, accordions)
+- ✅ Uses `:focus-visible` pseudo-class (best practice - only shows on keyboard nav)
+- ✅ Theme-aware using CSS variables (`var(--primary-200)`)
+- ✅ Dark mode compatible
+- ✅ Removed redundant old focus styles for text inputs
+- ✅ Accessibility improvement for keyboard navigation and screen readers
+
+**Original Issue**: Focus states exist but are inconsistent; some elements have no visible focus
 
 **Current Problem**:
 ```css
@@ -647,11 +658,25 @@ def save_api_keys_with_feedback(groq_key, openai_key, hf_key):
 
 ---
 
-### 16. Missing Confirmation Dialogs
+### 16. Missing Confirmation Dialogs ✅ COMPLETE
 
+**Status:** ✅ **Draft PR #144 (2025-11-25) - Ready for Merge**
+**Branch:** `feature-UI-16-confirmation-modals`
+**Files Modified:** 2 files (+122, -4 lines)
 **Location**: `src/ui/settings_tools_tab_modern.py:386-391` (restart_app_btn)
 
-**Issue**: Critical actions like "Restart Application" have no confirmation dialog
+**Completed State:**
+- ✅ Custom confirmation modal system with mandatory checkbox for acknowledgment
+- ✅ 5-second countdown timer before execution (prevents accidental clicks)
+- ✅ Implemented for critical actions:
+  - Restart Application (prevents app shutdown during processing)
+  - Clear All Conversations (prevents data loss)
+- ✅ Gracefully handled non-existent actions (Delete Character, Reset Configuration - correctly skipped)
+- ✅ Protection against accidental data loss and workflow interruption
+
+**Note**: Author manually verified functionality (Playwright environment issue prevented screenshots)
+
+**Original Issue**: Critical actions like "Restart Application" have no confirmation dialog
 
 **Current Code**:
 ```python

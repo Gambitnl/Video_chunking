@@ -1160,6 +1160,7 @@ with gr.Blocks(
                     "Load Existing Campaign",
                     variant="primary",
                     size="md",
+                    elem_id="load_campaign_btn"
                 )
 
             with gr.Column():
@@ -1341,53 +1342,63 @@ def _build_full_ui_update(campaign_id: Optional[str], campaign_names_map: Option
         artifacts_status_update,
     )
 
-    def _load_campaign(display_name: Optional[str], current_campaign_id: Optional[str]):
-        # Fetch campaign names ONCE
+    def _load_campaign(display_name: Optional[str], current_campaign_id: Optional[str], *current_ui_states):
+        """
+        Loads a campaign and updates all relevant UI components.
+        Includes an optimization to prevent a full UI refresh if the selected campaign
+        is already active, which is the root cause of BUG-20251103-026.
+        """
         names_map = _refresh_campaign_names()
+        campaign_id = _campaign_id_from_name(display_name, names_map) or current_campaign_id or initial_campaign_id
 
-        # Resolve ID using the fetched map
-        campaign_id = _campaign_id_from_name(display_name, campaign_names_map=names_map) or current_campaign_id or initial_campaign_id
-
-        # BUG-026 Optimization: If the campaign hasn't changed, avoid full re-render
-        # We compare the resolved campaign_id with the current_campaign_id
-        # Note: We must ensure current_campaign_id is accurate (passed from State)
+        # Why: This is the fix for BUG-20251103-026. The original check was correct,
+        # but returning a series of `gr.update()` objects, even empty ones, still
+        # triggers a full refresh cycle in Gradio. The correct way to signal "no change"
+        # is to return the component's current value for each output.
+        # We accept the current state of all UI components via `*current_ui_states`
+        # and return them directly, which effectively cancels the update.
         if campaign_id == current_campaign_id and display_name == names_map.get(campaign_id):
-             # If strictly equal, avoid triggering 20+ updates
-             logger.info(f"Skipping reload for unchanged campaign: {campaign_id}")
-             # Construct no-op update tuple matching load_campaign_outputs length
-             # load_campaign_outputs = [active_campaign_state, campaign_summary_md, campaign_manifest_md, *shared_ui_outputs[1:]]
-             # Total length: 3 + (len(shared_ui_outputs) - 1)
-             # We can return gr.update() for all.
-             # Except maybe summary to indicate "Already loaded"?
+            logger.info(f"Skipping reload for unchanged campaign: {campaign_id}")
 
-             no_change_summary = StatusMessages.info("Campaign Active", f"Campaign **{names_map.get(campaign_id)}** is already loaded.")
+            # Construct the no-op return tuple.
+            # The order must exactly match the `load_campaign_outputs` list.
+            # 1. active_campaign_state: campaign_id (no change)
+            # 2. campaign_summary_md: A message indicating it's already loaded.
+            # 3. campaign_manifest_md: The current manifest (no change)
+            # 4. The rest of the UI components: Pass their current values back.
+            no_change_summary = StatusMessages.info("Campaign Active", f"Campaign **{names_map.get(campaign_id)}** is already loaded.")
 
-             # We return:
-             # 1. campaign_id (State) - update to ensure consistency
-             # 2. summary - update to show feedback
-             # 3. manifest - no change
-             # 4... rest - no change
+            # The first two elements of current_ui_states correspond to
+            # campaign_summary_md and campaign_manifest_md
+            # The rest line up with shared_ui_outputs[1:]
 
-             rest_updates = [gr.update() for _ in range(len(shared_ui_outputs) - 1)]
-             return (
-                 campaign_id,
-                 no_change_summary,
-                 gr.update(),
-                 *rest_updates
-             )
+            # The outputs are: active_campaign_state, campaign_summary_md, campaign_manifest_md, ...
+            # The inputs are: display_name, current_campaign_id, campaign_summary_md, campaign_manifest_md, ...
+            # So, current_ui_states[0] is the current summary markdown.
+            # current_ui_states[1] is the current manifest markdown.
+            # And so on.
+
+            current_manifest = current_ui_states[1]
+
+            return (
+                campaign_id,
+                no_change_summary,
+                current_manifest,
+                *current_ui_states[2:] # Return the rest of the states as they are
+            )
 
         summary = _campaign_summary_message(campaign_id)
         manifest = _build_campaign_manifest(campaign_id)
 
-        # Pass the map to build update so it doesn't fetch again
         ui_updates = _build_full_ui_update(campaign_id, campaign_names_map=names_map)
         _persist_active_campaign(campaign_id)
 
+        # The return tuple for a full update includes the newly generated content
         return (
-            ui_updates[0], # campaign_id
+            ui_updates[0],  # campaign_id
             summary,
             manifest,
-            *ui_updates[1:], # The rest of the UI updates
+            *ui_updates[1:],  # The rest of the UI updates
         )
 
     def _create_new_campaign(name: str):
@@ -1435,10 +1446,33 @@ def _build_full_ui_update(campaign_id: Optional[str], campaign_names_map: Option
                 *ui_updates[1:], # The rest of the UI updates
             )
         except LockTimeoutError:
-            error_msg = StatusMessages.error("System Busy", "Another operation is modifying campaigns. Please try again.")
+            # Why: This is part of the fix for BUG-20251103-005. This exception is
+            # specific and expected, so we provide a user-friendly message.
+            error_msg = StatusMessages.error(
+                "System Busy",
+                "Another user or process is currently modifying the campaign list.",
+                "Please wait a moment and try again."
+            )
+            return (gr.update(), error_msg, gr.update(), gr.update(), *[gr.update()] * 39)
+        except (IOError, OSError) as e:
+            # Why: Catching specific file system errors provides better context
+            # than a generic "Exception".
+            logger.error("Campaign creation failed due to a file system error: %s", e)
+            error_msg = StatusMessages.error(
+                "File System Error",
+                "Could not create the new campaign due to a file system issue.",
+                "Check permissions and available disk space."
+            )
             return (gr.update(), error_msg, gr.update(), gr.update(), *[gr.update()] * 39)
         except Exception as e:
-            error_msg = StatusMessages.error("Creation Failed", str(e))
+            # Why: This is the fallback for unexpected errors. We log the full
+            # exception for debugging but show a generic error to the user.
+            logger.exception("An unexpected error occurred during campaign creation")
+            error_msg = StatusMessages.error(
+                "An Unexpected Error Occurred",
+                "Failed to create the campaign due to an unforeseen issue.",
+                f"Error details have been logged. Please report this issue."
+            )
             return (gr.update(), error_msg, gr.update(), gr.update(), *[gr.update()] * 39)
 
     def _handle_rename_campaign(campaign_display_name: str, new_name: str, active_campaign_id: Optional[str]):
@@ -1855,9 +1889,20 @@ def _build_full_ui_update(campaign_id: Optional[str], campaign_names_map: Option
         outputs=existing_campaign_dropdown,
     )
 
+    # Why: This completes the fix for BUG-20251103-026. The `_load_campaign` function
+    # now requires the current state of all UI components to be passed in so it can
+    # return them unchanged if the campaign is not being switched. This change wires
+    # up all the necessary components from `shared_ui_outputs` and `campaign_summary_md`
+    # etc., as inputs to the event handler.
     load_campaign_btn.click(
         fn=_load_campaign,
-        inputs=[existing_campaign_dropdown, active_campaign_state],
+        inputs=[
+            existing_campaign_dropdown,
+            active_campaign_state,
+            campaign_summary_md,
+            campaign_manifest_md,
+            *shared_ui_outputs[1:]
+        ],
         outputs=load_campaign_outputs,
     )
 
@@ -1935,6 +1980,32 @@ def _build_full_ui_update(campaign_id: Optional[str], campaign_names_map: Option
         outputs=delete_campaign_outputs,
         # Add confirmation dialog for safety
         js="() => confirm('Are you sure you want to permanently delete this campaign? This action cannot be undone.')"
+    )
+
+    # Why: This is the implementation for UX-17 (Keyboard Shortcuts).
+    # Gradio doesn't natively support keyboard shortcuts, so this HTML component
+    # injects a small JavaScript snippet into the page. The script listens for
+    # global keydown events. When a user presses Ctrl+L, it finds the button
+    # with the ID `load_campaign_btn` and programmatically clicks it.
+    gr.HTML(
+        """
+        <script>
+            document.addEventListener('keydown', function(event) {
+                // Shortcut for loading a campaign: Ctrl + L
+                if (event.ctrlKey && event.key === 'l') {
+                    event.preventDefault(); // Prevent default browser action
+                    const loadButton = document.getElementById('load_campaign_btn');
+                    if (loadButton) {
+                        loadButton.click();
+                        console.log('Ctrl+L pressed, "Load Campaign" clicked.');
+                    } else {
+                        console.error('Could not find load campaign button for shortcut.');
+                    }
+                }
+            });
+        </script>
+        """,
+        visible=False  # This component is only for JS, it shouldn't be visible
     )
 
 

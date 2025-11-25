@@ -114,6 +114,23 @@ class CampaignVectorStore:
             logger.error(f"Error adding transcript segments: {e}", exc_info=True)
             raise
 
+    def _sanitize_for_id(self, text: str) -> str:
+        """
+        Sanitizes a string to be used as part of a ChromaDB ID.
+        - Replaces common separators (spaces, slashes) with underscores.
+        - Removes non-ASCII characters to prevent validation errors.
+        """
+        # Why: ChromaDB IDs have character restrictions. User-provided metadata,
+        # especially names, can contain spaces, slashes, or even emojis. This
+        # function cleans the string to make it a valid ID component.
+        sanitized = str(text)  # Ensure input is a string
+        sanitized = sanitized.replace(" ", "_").replace("/", "_")
+        # Encode to ASCII, ignoring any characters that can't be represented,
+        # then decode back to a string. This effectively strips emojis and other
+        # multi-byte characters.
+        sanitized = sanitized.encode("ascii", "ignore").decode("ascii")
+        return sanitized
+
     def add_knowledge_documents(self, documents: List[Dict]):
         """
         Add knowledge base documents to vector store.
@@ -145,13 +162,11 @@ class CampaignVectorStore:
                     metadata = doc.get("metadata") or {}
 
                     doc_type = metadata.get("type", "unknown")
-                    # Sanitize type for ID to prevent illegal characters
-                    safe_type = doc_type.replace(" ", "_").replace("/", "_")
+                    safe_type = self._sanitize_for_id(doc_type)
 
                     name = metadata.get("name", f"doc_{batch_start + i}")
+                    safe_name = self._sanitize_for_id(name)
 
-                    # Sanitize name for ID
-                    safe_name = name.replace(" ", "_").replace("/", "_")
                     ids.append(f"{safe_type}_{safe_name}_{batch_start + i}")
                     metadatas.append(metadata)
 

@@ -820,6 +820,55 @@ class TestValidateSessionIdRealtime:
         result = validate_session_id_realtime("   ")
         assert result == ""
 
+    @patch('src.ui.process_session_helpers.SessionManager')
+    def test_duplicate_session_id(self, mock_session_manager):
+        """A session ID that already exists should return a warning."""
+        # This test ensures the core functionality of UX-04, preventing overwrites.
+        mock_instance = mock_session_manager.return_value
+        mock_session = MagicMock()
+        mock_session.session_id = "existing_session"
+        mock_instance.discover_sessions.return_value = [mock_session]
+
+        # Invalidate the cache by resetting its timestamp
+        from src.ui import process_session_helpers
+        process_session_helpers._session_id_cache["timestamp"] = None
+
+        result = validate_session_id_realtime("existing_session")
+
+        assert "Duplicate Session ID" in result
+        assert "`existing_session` already exists" in result
+
+    @patch('src.ui.process_session_helpers.SessionManager')
+    def test_session_id_caching_behavior(self, mock_session_manager):
+        """Test that the session ID cache is used to prevent excessive I/O."""
+        # Why this test is important:
+        # This test directly addresses the performance feedback from the code
+        # review. It ensures that the caching mechanism works, preventing the
+        # expensive `discover_sessions` call from running on every keystroke,
+        # which would cause UI lag.
+
+        # Arrange: Mock the SessionManager.
+        mock_instance = mock_session_manager.return_value
+        mock_session = MagicMock()
+        mock_session.session_id = "cached_session"
+        mock_instance.discover_sessions.return_value = [mock_session]
+
+        # Invalidate the cache to ensure the first call hits the mock.
+        from src.ui import process_session_helpers
+        process_session_helpers._session_id_cache["timestamp"] = None
+
+        # Act 1: First call should populate the cache.
+        validate_session_id_realtime("cached_session")
+
+        # Assert 1: The mock should have been called once.
+        mock_instance.discover_sessions.assert_called_once()
+
+        # Act 2: Second call should use the cache, not the mock.
+        validate_session_id_realtime("cached_session")
+
+        # Assert 2: The mock call count should still be one.
+        mock_instance.discover_sessions.assert_called_once()
+
     def test_update_with_nonexistent_party(self):
         """Test updating display with nonexistent party."""
         with patch('src.ui.process_session_helpers.PartyConfigManager') as mock_manager_class:
